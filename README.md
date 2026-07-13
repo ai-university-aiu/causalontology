@@ -8,7 +8,6 @@
   <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--2-120%2F120-FFD700?style=for-the-badge&labelColor=8B0000" alt="ARC-AGI-2 120/120"></a>
   <img src="https://img.shields.io/badge/WORLD%27S_FIRST-REIFIED_CAUSATION_STANDARD-DC143C?style=for-the-badge&labelColor=FFD700" alt="World's First — Reified Causation Standard">
 </p>
-<p align="center"><sub>Benchmark scores by the reference implementation, PrologAI, on the public training sets — pure symbolic induction, no LLM.</sub></p>
 
 <!-- ROW 2: THE STANDARD -->
 <p align="center">
@@ -48,6 +47,8 @@
   <img src="https://img.shields.io/github/last-commit/ai-university-aiu/causalontology?style=flat-square&color=DC143C&labelColor=8B0000" alt="Last commit">
   <img src="https://img.shields.io/github/repo-size/ai-university-aiu/causalontology?style=flat-square&color=DAA520&labelColor=8B0000" alt="Repo size">
 </p>
+
+<p align="center"><sub>Benchmark scores by the reference implementation, PrologAI, on the public training sets — pure symbolic induction, no LLM.</sub></p>
 
 # Causalontology
 
