@@ -1,0 +1,14 @@
+{
+  "name": "causalontology",
+  "version": "0.7.0",
+  "description": "The JavaScript binding of the Causalontology standard - the third verified implementation. Node.js builtins only; zero dependencies.",
+  "license": "The attribution always; no profit, no problem license. (Apache License 2.0 text)",
+  "main": "causalontology.js",
+  "scripts": {
+    "test": "node tests/run_conformance.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,69 @@
+name: conformance
+
+# Every implementation passes the same 38 vectors, or it is not
+# Causalontology. Python and JavaScript are also verified on the authoring
+# machine; Java and Swift are verified here (no local toolchain).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: conformance (38 vectors)
+        run: python3 bindings/python/tests/run_conformance.py
+      - name: Tier A store smoke
+        run: python3 store/server/test_server.py
+      - name: stigmergy layer
+        run: python3 store/server/test_stigmergy.py
+      - name: SPARQL, reputation, Tier B federation
+        run: python3 store/server/test_beyond.py
+      - name: Tier C replication (the CRDT laws)
+        run: python3 store/server/test_tierc.py
+
+  javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: conformance (38 vectors)
+        run: node bindings/javascript/tests/run_conformance.js
+
+  java:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: conformance (38 vectors)
+        run: bash bindings/java/run_conformance.sh
+
+  swift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "5.10"
+      - name: conformance (38 vectors)
+        run: cd bindings/swift && swift run conformance
+
+  gardener:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install SWI-Prolog
+        run: sudo apt-get update && sudo apt-get install -y swi-prolog
+      - name: the synthetic mind gardens the commons
+        run: python3 examples/gardener/test_gardener.py

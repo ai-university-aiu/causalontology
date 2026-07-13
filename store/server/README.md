@@ -55,3 +55,29 @@ The smoke test drives the whole quickstart over HTTP: vocabulary, the
 degenerate claim, the visible gap, the refinement that closes it, signed
 assertions, quarantine, retraction, resolve, a surfaced conflict, pagination,
 and auth.
+
+## Beyond-MVP endpoints (roadmap step 5)
+
+- **`GET|POST /sparql`** — the SHOULD-level endpoint, as a documented subset:
+  `SELECT` over one basic graph pattern (variables, prefixed names, quoted
+  literals; joins across patterns), returning the SPARQL JSON results
+  format. Predicates: `co:hasCause`, `co:hasEffect`, `co:hasMechanism`,
+  `co:refines`, `co:modality`, `co:alias`, `co:isA`, `co:about`,
+  `co:evidenceType`, `prov:wasAttributedTo`, and friends — see
+  [`spec/schema/causalontology.owl.ttl`](../../spec/schema/causalontology.owl.ttl).
+- **`GET /export/triples`** — the whole store as N-Triples (retraction-aware,
+  cycle-broken views), for any RDF toolchain.
+- **`GET /reputation?source=`** — glass-box reputation computed from the
+  signed history: contributions, corroborated entries, retractions,
+  evidence-grade histogram, succession-lineage aware.
+- **`GET /sync/export` + `POST /sync/pull {"peer": url}`** — Tier B
+  federation: pull-based set-union merge; signatures verified on entry,
+  the deterministic view rules judge the union.
+- Tier C lives in [`replicate.py`](replicate.py): offline bundles, set-union
+  merge (commutative, associative, idempotent — tested in
+  [`test_tierc.py`](test_tierc.py)), and `verify` — tamper evidence from
+  content addressing and signatures alone.
+
+Tests: `test_beyond.py` (11 checks: SPARQL, triples, reputation, two live
+servers federating) and `test_tierc.py` (8 checks: the CRDT laws, identical
+cycle-breaking on every replica, forged bytes caught).

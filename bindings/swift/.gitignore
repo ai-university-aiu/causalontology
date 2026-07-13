@@ -1,0 +1,4 @@
+# SwiftPM build products and per-user state.
+.build/
+.swiftpm/
+Package.resolved

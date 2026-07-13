@@ -21,7 +21,9 @@ causalontology-py. Zero dependencies: Python standard library only.
 import argparse
 import base64
 import json
+import re
 import sys
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
@@ -62,6 +64,22 @@ def paginate(items, limit, cursor):
 # ---------------------------------------------------------------------------
 # the server
 # ---------------------------------------------------------------------------
+_NT_PREFIX = {"co": "https://causalontology.org/ns#",
+              "prov": "http://www.w3.org/ns/prov#",
+              "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"}
+
+
+def _nt_term(term):
+    pfx, _, local = term.partition(":")
+    if pfx in _NT_PREFIX:
+        return "<%s%s>" % (_NT_PREFIX[pfx], local)
+    return "<https://causalontology.org/id/%s>" % term
+
+
+def _nt_literal(value):
+    return '"%s"' % str(value).replace("\\", "\\\\").replace('"', '\\"')
+
+
 # the value weights for ranking gaps ("the most valuable gaps first")
 KIND_VALUE = {"conflict": 5, "inconsistent_hierarchy": 4, "missing_field": 3,
               "demand_supply": 3, "dangling_reference": 2,
@@ -125,6 +143,141 @@ class StoreServer(ThreadingHTTPServer):
         gaps.sort(key=lambda g: (-g["value"], json.dumps(g, sort_keys=True)))
         return gaps
 
+    # ------------------------------------------------ linked-data view
+    def triples(self):
+        """The store as (subject, predicate, object, is_literal) triples."""
+        out = []
+        store = self.store
+
+        def emit(s, p, o, lit=False):
+            out.append((s, p, o, lit))
+
+        type_curie = {"cro": "co:CausalRelationObject",
+                      "occurrent": "co:Occurrent",
+                      "continuant": "co:Continuant",
+                      "realizable": "co:Realizable"}
+        for oid, obj in store.objects.items():
+            kind = obj.get("type")
+            emit(oid, "rdf:type", type_curie.get(kind, "co:Thing"))
+            if kind == "cro":
+                for c in obj.get("causes", []):
+                    emit(oid, "co:hasCause", c)
+                for e in obj.get("effects", []):
+                    emit(oid, "co:hasEffect", e)
+                for m in obj.get("mechanism", []):
+                    emit(oid, "co:hasMechanism", m)
+                for cx in obj.get("context", []):
+                    emit(oid, "co:enablingContext", cx)
+                if obj.get("refines"):
+                    emit(oid, "co:refines", obj["refines"])
+                if obj.get("modality"):
+                    emit(oid, "co:modality", obj["modality"], True)
+                if obj.get("temporal"):
+                    tw = obj["temporal"]
+                    emit(oid, "co:temporalDmin", str(tw["dmin"]), True)
+                    emit(oid, "co:temporalDmax", str(tw["dmax"]), True)
+                    emit(oid, "co:temporalUnit", tw["unit"], True)
+            if kind in ("occurrent", "continuant"):
+                emit(oid, "co:canonicalLabel", obj.get("label", ""), True)
+                emit(oid, "co:category", obj.get("category", ""), True)
+            if kind == "realizable":
+                emit(oid, "co:bearer", obj.get("bearer"))
+                emit(oid, "co:kind", obj.get("kind", ""), True)
+        # materialized enrichment views (retraction-aware, cycle-broken)
+        field_pred = {"aliases": "co:alias", "participants": "co:participant",
+                      "subsumes": "co:isA", "part_of": "co:partOf",
+                      "realized_in": "co:realizedIn"}
+        for oid in store.objects:
+            view = store.get(oid)
+            for field, entries in view.get("enrichments", {}).items():
+                pred = field_pred[field]
+                for entry in entries:
+                    val = entry["entry"]
+                    if isinstance(val, dict):
+                        emit(oid, pred, val.get("text", ""), True)
+                    else:
+                        emit(oid, pred, val)
+        # unretracted assertions
+        retracted = store._retracted_ids()
+        for rec in store.records.values():
+            if rec.get("type") != "assertion" or rec["id"] in retracted:
+                continue
+            emit(rec["id"], "rdf:type", "co:Assertion")
+            emit(rec["id"], "co:about", rec["about"])
+            emit(rec["id"], "prov:wasAttributedTo", rec["source"], True)
+            emit(rec["id"], "co:evidenceType", rec["evidence_type"], True)
+            if "strength" in rec:
+                emit(rec["id"], "co:strengthEstimate", str(rec["strength"]), True)
+            emit(rec["id"], "co:confidence", str(rec["confidence"]), True)
+            emit(rec["id"], "prov:generatedAtTime", rec["timestamp"], True)
+        return out
+
+    # ------------------------------------------------------- reputation
+    def reputation(self, source):
+        """Glass-box reputation: computed from the signed record history."""
+        store = self.store
+        lineage = store.lineage(source)
+        retracted = store._retracted_ids()
+        assertions = enrichments = retractions = self_retracted = 0
+        corroborated = 0
+        evidence = {}
+        timestamps = []
+        for rec in store.records.values():
+            src = rec.get("source") or rec.get("predecessor")
+            if src not in lineage:
+                continue
+            timestamps.append(rec.get("timestamp", ""))
+            kind = rec.get("type")
+            if kind == "assertion":
+                assertions += 1
+                evidence[rec["evidence_type"]] = \
+                    evidence.get(rec["evidence_type"], 0) + 1
+                if rec["id"] in retracted:
+                    self_retracted += 1
+            elif kind == "enrichment":
+                enrichments += 1
+                for other in store.records.values():
+                    if (other.get("type") == "enrichment"
+                            and other["id"] != rec["id"]
+                            and other.get("source") not in lineage
+                            and other.get("about") == rec.get("about")
+                            and other.get("field") == rec.get("field")
+                            and other.get("entry") == rec.get("entry")):
+                        corroborated += 1
+                        break
+            elif kind == "retraction":
+                retractions += 1
+        return {"source": source, "lineage_size": len(lineage),
+                "assertions": assertions, "enrichments": enrichments,
+                "retractions_issued": retractions,
+                "self_retracted": self_retracted,
+                "corroborated_entries": corroborated,
+                "evidence_histogram": evidence,
+                "active_since": min(timestamps) if timestamps else None}
+
+    # --------------------------------------------------- Tier B federation
+    def merge_bundle(self, bundle):
+        """Set-union merge of a peer's export (Tier B pull)."""
+        from causalontology import RejectedWrite as _RW
+        counts = {"objects_added": 0, "records_added": 0, "skipped": 0}
+        for obj in bundle.get("objects", []):
+            if obj.get("id") in self.store.objects:
+                continue
+            try:
+                self.store.put(obj)
+                counts["objects_added"] += 1
+            except (_RW, ValueError):
+                counts["skipped"] += 1
+        for rec in bundle.get("records", []):
+            if rec.get("id") in self.store.records:
+                continue
+            try:
+                self.store.force_merge_record(rec)
+                counts["records_added"] += 1
+            except (_RW, ValueError):
+                counts["skipped"] += 1
+        return counts
+
     def persist(self):
         if not self.state_path:
             return
@@ -186,6 +339,10 @@ class Handler(BaseHTTPRequestHandler):
                 "gaps": len(self.server.ranked_gaps()),
                 "demand_tracked": len(self.server.demand),
                 "dashboard": "/dashboard",
+                "sparql": "/sparql?query=",
+                "triples": "/export/triples",
+                "reputation": "/reputation?source=",
+                "federation": ["GET /sync/export", "POST /sync/pull"],
                 "endpoints": [
                     "POST /objects", "GET /objects/{id}",
                     "POST /records", "GET /records/{id}",
@@ -265,7 +422,119 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return None
 
+        if parts[0] == "sparql":
+            query = qs.get("query", "")
+            return self._sparql(query, limit, cursor)
+
+        if parts[0] == "export" and len(parts) == 2 and parts[1] == "triples":
+            lines = []
+            for s, p, o, lit in self.server.triples():
+                lines.append("%s %s %s ." % (
+                    _nt_term(s), _nt_term(p),
+                    _nt_literal(o) if lit else _nt_term(o)))
+            body = ("\n".join(lines) + "\n").encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/n-triples")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return None
+
+        if parts[0] == "reputation":
+            source = qs.get("source", "")
+            if not source:
+                return self._send(400, {"error": "source parameter required"})
+            return self._send(200, self.server.reputation(source))
+
+        if parts[0] == "sync" and len(parts) == 2 and parts[1] == "export":
+            return self._send(200, {
+                "objects": list(store.objects.values()),
+                "records": list(store.records.values())})
+
         return self._send(404, {"error": "unknown endpoint"})
+
+    # ---------------------------------------------- a small SPARQL subset
+    def _sparql(self, query, limit, cursor):
+        """SELECT over a single basic graph pattern - the SHOULD-level
+        endpoint of spec/store.md, implemented as a deliberately small,
+        documented subset (variables, prefixed names, quoted literals)."""
+        try:
+            body = re.sub(r"PREFIX\s+\S+\s+<[^>]*>", "", query,
+                          flags=re.IGNORECASE)
+            m = re.search(r"SELECT\s+(.*?)\s+WHERE\s*\{(.*)\}",
+                          body, flags=re.IGNORECASE | re.DOTALL)
+            if not m:
+                raise ValueError("expected SELECT ... WHERE { ... }")
+            sel, patterns_src = m.group(1).strip(), m.group(2)
+            want = None if sel == "*" else re.findall(r"\?(\w+)", sel)
+            # tokenize with quoted literals kept whole; '.' separates patterns
+            tokens = re.findall(r'"[^"]*"|<[^>]*>|\?\w+|\.|[^\s.]+',
+                                patterns_src)
+            patterns, current = [], []
+            for tok in tokens + ["."]:
+                if tok == ".":
+                    if current:
+                        if len(current) != 3:
+                            raise ValueError(
+                                "each pattern needs subject predicate "
+                                "object: %r" % " ".join(current))
+                        patterns.append(tuple(current))
+                        current = []
+                else:
+                    current.append(tok)
+        except ValueError as e:
+            return self._send(400, {"error": str(e)})
+
+        triples = self.server.triples()
+
+        def term_matches(token, value, lit, binding):
+            if token.startswith("?"):
+                name = token[1:]
+                if name in binding:
+                    return binding[name] == (value, lit) and binding
+                nb = dict(binding)
+                nb[name] = (value, lit)
+                return nb
+            if token.startswith('"'):
+                return binding if (lit and token.strip('"') == value) else None
+            tok = token[1:-1] if token.startswith("<") else token
+            return binding if (not lit and tok == value) else None
+
+        solutions = [dict()]
+        for s_tok, p_tok, o_tok in patterns:
+            nxt = []
+            for binding in solutions:
+                for s, p, o, lit in triples:
+                    b1 = term_matches(s_tok, s, False, binding)
+                    if b1 is None:
+                        continue
+                    b2 = term_matches(p_tok, p, False, b1)
+                    if b2 is None:
+                        continue
+                    b3 = term_matches(o_tok, o, lit, b2)
+                    if b3 is None:
+                        continue
+                    nxt.append(b3)
+            solutions = nxt
+        variables = want if want is not None else sorted(
+            {k for sol in solutions for k in sol})
+        bindings = []
+        seen = set()
+        for sol in solutions:
+            row = {}
+            for v in variables:
+                if v in sol:
+                    value, lit = sol[v]
+                    row[v] = {"type": "literal" if lit else "uri",
+                              "value": value}
+            key = json.dumps(row, sort_keys=True)
+            if key not in seen:
+                seen.add(key)
+                bindings.append(row)
+        page = paginate(bindings, limit, cursor)
+        return self._send(200, {"head": {"vars": variables},
+                                "results": {"bindings": page["items"]},
+                                "next_cursor": page["next_cursor"]})
 
     # ----------------------------------------------------------------- POST
     def do_POST(self):
@@ -305,6 +574,24 @@ class Handler(BaseHTTPRequestHandler):
 
         if parts and parts[0] == "query":
             return self._send(200, self._query(body))
+
+        if parts and parts[0] == "sparql":
+            return self._sparql(body.get("query", ""), None, None)
+
+        if parts and parts[0] == "sync" and len(parts) == 2 \
+                and parts[1] == "pull":
+            peer = body.get("peer", "").rstrip("/")
+            if not peer.startswith("http"):
+                return self._send(400, {"error": "peer URL required"})
+            try:
+                with urllib.request.urlopen(peer + "/sync/export",
+                                            timeout=30) as resp:
+                    bundle = json.loads(resp.read())
+            except Exception as e:  # noqa: BLE001
+                return self._send(502, {"error": "peer unreachable: %s" % e})
+            counts = self.server.merge_bundle(bundle)
+            self.server.persist()
+            return self._send(200, counts)
 
         return self._send(404, {"error": "unknown endpoint"})
 

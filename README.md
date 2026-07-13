@@ -192,7 +192,16 @@ causalontology/
 - [x] Step 2 — [`causalontology-py`](bindings/python/): the second implementation — **38/38 conformance vectors pass**; language independence is proven
 - [x] Step 3 — [the Tier A store](store/server/): the HTTP binding is live — signature verification, materialized views, quarantine, retraction/lineage, pagination, auth; **20/20 end-to-end smoke checks pass**
 - [x] Step 4 — [the stigmergy layer](store/stigmergy/): all six gap kinds live (including `demand_supply` from real read telemetry), value-ranked `GET /gaps`, and the contribution dashboard at `/dashboard` — **the commons guides its own growth; the MVP is complete**
-- [ ] Then — Java and Swift SDKs · SPARQL endpoint · federation (Tier B) · decentralization (Tier C) · Mentova gardening the commons
+- [x] Step 5 — the whole beyond-MVP program:
+  - [x] [JavaScript SDK](bindings/javascript/) — **the third verified implementation: 38/38 vectors pass locally**, zero dependencies, byte-identical signatures with Python
+  - [x] [Java SDK](bindings/java/) — complete port, JDK standard library only; **verified by the [conformance CI](.github/workflows/conformance.yml)** (no local JDK on the authoring machine)
+  - [x] [Swift SDK](bindings/swift/) — complete port (swift-crypto for the primitives); **verified by the conformance CI** (no local Swift toolchain on the authoring machine)
+  - [x] SPARQL endpoint — `GET|POST /sparql` (documented SELECT subset) + `GET /export/triples` (N-Triples) + the [OWL mapping](spec/schema/causalontology.owl.ttl) to BFO / RO / PROV
+  - [x] Federation (Tier B) — `GET /sync/export` + `POST /sync/pull`: two live stores converge by signed set-union; **11/11 checks**
+  - [x] Decentralization (Tier C) — [`replicate.py`](store/server/replicate.py): offline bundles, order-independent merge (the CRDT laws proven **8/8**), tamper evidence from content addresses and signatures alone
+  - [x] Reputation — `GET /reputation?source=`: glass-box, computed from the signed history, succession-aware
+  - [x] **[Mentova gardening the commons](examples/gardener/)** — a glass-box SWI-Prolog mind reads `/gaps`, intervenes (its own hand on the switch), induces the missing fields, signs with Ed25519, contributes, and the gap closes: **11/11 checks — the first synthetic mind gardening the commons**
+  - Reserved for a future MAJOR batch, per governance: the token-level (`tok:`) kind and the bounty layer
 
 ## Governance
 

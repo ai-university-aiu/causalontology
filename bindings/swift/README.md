@@ -1,0 +1,70 @@
+# causalontology-swift
+
+**The Swift binding of the Causalontology standard** — a faithful port of
+[causalontology-py](../python/), sharing the same conformance suite.
+
+One dependency only:
+[swift-crypto](https://github.com/apple/swift-crypto) (from 3.0.0), Apple's
+Linux-compatible crypto package, used for SHA-256 and Ed25519
+(`Curve25519.Signing`). Everything else is hand-written from the
+specification.
+
+| Source file | Implements |
+|---|---|
+| `Sources/Causalontology/JsonValue.swift` | a lossless JSON value model with its own recursive-descent parser (integer literals stay `Int64`, floating literals stay `Double` — the 1-vs-1.0 distinction survives to the canonicalizer) |
+| `Sources/Causalontology/Jcs.swift` | RFC 8785 (JSON Canonicalization Scheme) serialization: UTF-16 key order, minimal string escaping, canonical numbers |
+| `Sources/Causalontology/Canonical.swift` | identity-bearing field filtering and SHA-256 content-addressed `identify()` |
+| `Sources/Causalontology/Signing.swift` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (Ed25519, RFC 8032) |
+| `Sources/Causalontology/SchemaValidator.swift` | validation against the eight JSON Schemas in `spec/schema/` |
+| `Sources/Causalontology/Semantics.swift` | the 13 semantic rules: temporal admissibility (fixed constants), formal conflict, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `Sources/Causalontology/Store.swift` | an in-memory conformant store: idempotent immutable puts, signed add-only records, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
+| `Sources/conformance/main.swift` | the conformance runner: internal known-answer checks, then all 38 vectors from `conformance/vectors/` |
+
+## Conformance
+
+```
+$ cd bindings/swift
+$ swift run conformance
+...
+38/38 vectors passed
+causalontology-swift is CONFORMANT to the suite (pre-freeze, symbolic-id normalization).
+```
+
+The harness normalizes the vectors' pre-freeze symbolic identifiers
+deterministically (symbolic ids become `scheme:sha256(name)`; symbolic key
+names become real Ed25519 keypairs seeded from `sha256("key:" + name)`), so
+every normative behavior is exercised with well-formed data and real
+signatures. The 1.0.0 freeze pins concrete bytes into the vectors themselves.
+
+The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
+environment variable when set, otherwise from its own source location inside
+`bindings/swift/`.
+
+## Thirty-second taste
+
+```swift
+import Causalontology
+
+let store = InMemoryStore()
+let press = try store.put(["type": .string("occurrent"),
+                           "label": .string("press_button"),
+                           "category": .string("action")])
+let light = try store.put(["type": .string("occurrent"),
+                           "label": .string("light_on"),
+                           "category": .string("state_change")])
+let claim = try store.put(["type": .string("cro"),
+                           "causes": .array([.string(press)]),
+                           "effects": .array([.string(light)])])
+
+print(store.gaps("missing_field"))   // the degenerate claim is a visible invitation
+```
+
+## Status
+
+Source complete and ported line-for-line from the Python binding; built and
+executed by GitHub Actions CI (`cd bindings/swift && swift run conformance`) —
+there is no Swift toolchain on the authoring machine, so CI is the gate, as
+it is for every binding.
+
+License: "The attribution always; no profit, no problem license." — see the
+repository `LICENSE` and `NOTICE`.

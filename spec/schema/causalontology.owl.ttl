@@ -1,0 +1,98 @@
+# Causalontology — Web Ontology Language (OWL) mapping (governance-track draft)
+# Aligns the eight object kinds and their fields to Basic Formal Ontology (BFO),
+# the Relation Ontology (RO), and the W3C Provenance Ontology (PROV).
+# The JSON form (the *.schema.json files) remains normative; this mapping is
+# for interoperability with OWL/RDF tooling.
+
+@prefix co:   <https://causalontology.org/ns#> .
+@prefix bfo:  <http://purl.obolibrary.org/obo/BFO_> .
+@prefix ro:   <http://purl.obolibrary.org/obo/RO_> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+<https://causalontology.org/ns> a owl:Ontology ;
+    rdfs:label "Causalontology" ;
+    rdfs:comment "A verb-first noun-hosting ontology: reality is what happens, and things are its participants. Reified causation as a language-neutral standard and a shared commons." ;
+    owl:versionInfo "specification version 7 (pre-1.0)" .
+
+# ---------------------------------------------------------------- content kinds
+co:Occurrent a owl:Class ;
+    rdfs:label "occurrent (type)" ;
+    rdfs:subClassOf bfo:0000003 ;
+    rdfs:comment "A process or event TYPE - the vocabulary of causes and effects." .
+
+co:CausalRelationObject a owl:Class ;
+    rdfs:label "Causal Relation Object" ;
+    rdfs:comment "The fundamental unit: a reified, type-level causal claim. Its cause-to-effect edge specializes RO causally-upstream-of (ro:0002411)." .
+
+co:Continuant a owl:Class ;
+    rdfs:label "continuant" ;
+    rdfs:subClassOf bfo:0000002 .
+
+co:Realizable a owl:Class ;
+    rdfs:label "realizable entity" ;
+    rdfs:subClassOf bfo:0000017 ;
+    rdfs:comment "A disposition, function, or role - inheres in a continuant, realized in occurrents (bfo:0000054)." .
+
+# -------------------------------------------------------------- provenance kinds
+co:Assertion  a owl:Class ; rdfs:subClassOf prov:Entity ;
+    rdfs:comment "A signed statement by a source about a content object." .
+co:Enrichment a owl:Class ; rdfs:subClassOf prov:Entity ;
+    rdfs:comment "A signed addition of one entry to one enrichment field." .
+co:Retraction a owl:Class ; rdfs:subClassOf prov:Entity ;
+    rdfs:comment "A source's signed withdrawal of its own earlier record." .
+co:Succession a owl:Class ; rdfs:subClassOf prov:Entity ;
+    rdfs:comment "A signed key rotation: successor succeeds predecessor." .
+
+# ------------------------------------------------------------- object properties
+co:hasCause a owl:ObjectProperty ;
+    rdfs:domain co:CausalRelationObject ; rdfs:range co:Occurrent ;
+    rdfs:seeAlso ro:0002411 .
+co:hasEffect a owl:ObjectProperty ;
+    rdfs:domain co:CausalRelationObject ; rdfs:range co:Occurrent .
+co:hasMechanism a owl:ObjectProperty ;
+    rdfs:domain co:CausalRelationObject ; rdfs:range co:CausalRelationObject ;
+    rdfs:comment "Hierarchical decomposition: the finer relations that realize this one." .
+co:enablingContext a owl:ObjectProperty ;
+    rdfs:domain co:CausalRelationObject ; rdfs:range co:Occurrent .
+co:refines a owl:ObjectProperty ;
+    rdfs:domain co:CausalRelationObject ; rdfs:range co:CausalRelationObject ;
+    rdfs:comment "Enrichment lineage: this claim adds fields its parent left unspecified." .
+co:isA a owl:ObjectProperty ;
+    rdfs:domain co:Continuant ; rdfs:range co:Continuant ;
+    rdfs:seeAlso rdfs:subClassOf .
+co:partOf a owl:ObjectProperty ;
+    rdfs:domain co:Continuant ; rdfs:range co:Continuant ;
+    rdfs:seeAlso bfo:0000050 .
+co:participant a owl:ObjectProperty ;
+    rdfs:domain co:Occurrent ; rdfs:range co:Continuant .
+co:realizedIn a owl:ObjectProperty ;
+    rdfs:domain co:Realizable ; rdfs:range co:Occurrent ;
+    rdfs:seeAlso bfo:0000054 .
+co:bearer a owl:ObjectProperty ;
+    rdfs:domain co:Realizable ; rdfs:range co:Continuant .
+co:about a owl:ObjectProperty ;
+    rdfs:comment "The content object a provenance record is about." .
+co:retracts a owl:ObjectProperty ;
+    rdfs:domain co:Retraction .
+
+# ----------------------------------------------------------- datatype properties
+co:canonicalLabel  a owl:DatatypeProperty ; rdfs:range xsd:string .
+co:category        a owl:DatatypeProperty ; rdfs:range xsd:string .
+co:alias           a owl:DatatypeProperty ; rdfs:range xsd:string .
+co:modality        a owl:DatatypeProperty ; rdfs:range xsd:string ;
+    rdfs:comment "necessary | sufficient | contributory | preventive" .
+co:temporalDmin    a owl:DatatypeProperty ; rdfs:range xsd:double .
+co:temporalDmax    a owl:DatatypeProperty ; rdfs:range xsd:double .
+co:temporalUnit    a owl:DatatypeProperty ; rdfs:range xsd:string .
+co:evidenceType    a owl:DatatypeProperty ; rdfs:range xsd:string ;
+    rdfs:comment "intervention | observation | derivation | human_hint | imported (intervention is the strongest grade)" .
+co:strengthEstimate a owl:DatatypeProperty ; rdfs:range xsd:double .
+co:confidence      a owl:DatatypeProperty ; rdfs:range xsd:double .
+
+# ------------------------------------------------------------------- provenance
+# A record's source maps to prov:wasAttributedTo; its timestamp to
+# prov:generatedAtTime; the signed byte discipline is defined by the
+# specification (identity.md / provenance.md), not restated in OWL.
