@@ -67,7 +67,10 @@ function sym(s) {
   const idx = s.indexOf(":");
   const scheme = s.slice(0, idx);
   const name = s.slice(idx + 1);
-  if (scheme === "ed25519") return key(name)[1];
+  if (scheme === "ed25519") {
+    if (/^[0-9a-f]{64}$/.test(name)) return s; // frozen key passes through
+    return key(name)[1];
+  }
   if (/^[0-9a-f]{64}$/.test(name)) return s;
   return scheme + ":" + sha256hex(name);
 }
@@ -475,7 +478,7 @@ function main() {
   console.log((total - failures) + "/" + total + " vectors passed");
   if (failures) process.exit(1);
   console.log("causalontology-js is CONFORMANT to the suite " +
-    "(pre-freeze, symbolic-id normalization).");
+    "(vectors frozen at specification 1.0.0).");
 }
 
 main();

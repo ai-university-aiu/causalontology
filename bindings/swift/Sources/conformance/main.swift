@@ -111,6 +111,9 @@ func sym(_ text: String) throws -> String {
     let scheme = String(text[text.startIndex..<colon])
     let name = String(text[text.index(after: colon)...])
     if scheme == "ed25519" {
+        if isHex64(name) {
+            return text
+        }
         return try key(name).publicId
     }
     if isHex64(name) {
@@ -703,4 +706,4 @@ if failures > 0 {
     exit(1)
 }
 print("causalontology-swift is CONFORMANT to the suite "
-      + "(pre-freeze, symbolic-id normalization).")
+      + "(vectors frozen at specification 1.0.0).")

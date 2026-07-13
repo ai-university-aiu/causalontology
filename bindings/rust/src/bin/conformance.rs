@@ -53,6 +53,12 @@ fn sym(s: &str) -> String {
         None => return s.to_string(),
     };
     if scheme == "ed25519" {
+        let frozen = name.len() == 64
+            && name.chars().all(|c| c.is_ascii_hexdigit()
+                                && !c.is_ascii_uppercase());
+        if frozen {
+            return s.to_string(); // frozen: a real key passes through
+        }
         return key(name).1;
     }
     let is_hex64 = name.len() == 64
@@ -527,5 +533,5 @@ fn main() {
         std::process::exit(1);
     }
     println!("causalontology-rust is CONFORMANT to the suite \
-              (pre-freeze, symbolic-id normalization).");
+              (vectors frozen at specification 1.0.0).");
 }

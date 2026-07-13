@@ -26,7 +26,7 @@ CI runs JDK 21).
 $ ./run_conformance.sh
 ...
 38/38 vectors passed
-causalontology-java is CONFORMANT to the suite (pre-freeze, symbolic-id normalization).
+causalontology-java is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
 ```
 
 The script compiles `src/` into `out/` and runs
@@ -36,13 +36,7 @@ read from `../../conformance/vectors` and the schemas from
 property `causalontology.spec` or the environment variable
 `CAUSALONTOLOGY_SPEC` (either names the `spec/` directory).
 
-The harness normalizes the vectors' pre-freeze symbolic identifiers
-deterministically, exactly as the Python harness does: a symbolic object id
-`scheme:name` becomes `scheme:sha256(name)`, and a symbolic key name
-`ed25519:name` becomes a real Ed25519 keypair seeded from
-`sha256("key:" + name)` - so every normative behavior is exercised with
-well-formed data and real signatures. The 1.0.0 freeze pins concrete bytes
-into the vectors themselves.
+The vectors are frozen at specification 1.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 ## Status
 

@@ -67,15 +67,10 @@ declared as `Uint8Array` (`co.Bytes`), which every Node `Buffer` is.
 $ node tests/run_conformance.js
 ...
 38/38 vectors passed
-causalontology-js is CONFORMANT to the suite (pre-freeze, symbolic-id normalization).
+causalontology-js is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
 ```
 
-The harness normalizes the vectors' pre-freeze symbolic identifiers
-deterministically (symbolic ids become `scheme:sha256(name)`; symbolic key
-names become real Ed25519 keypairs seeded from `sha256("key:" + name)`), so
-every normative behavior is exercised with well-formed data and real
-signatures. The 1.0.0 freeze pins concrete bytes into the vectors
-themselves.
+The vectors are frozen at specification 1.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 ## License
 

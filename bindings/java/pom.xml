@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.github.ai-university-aiu</groupId>
+  <artifactId>causalontology</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+  <name>causalontology</name>
+  <description>The Java binding of the Causalontology standard - a verb-first noun-hosting ontology; reified causation as a language-neutral standard and shared commons. JDK standard library only; conformant against the 38 frozen vectors.</description>
+  <url>https://github.com/ai-university-aiu/causalontology</url>
+  <licenses>
+    <license>
+      <name>The attribution always; no profit, no problem license. (Apache License 2.0 text)</name>
+      <url>https://github.com/ai-university-aiu/causalontology/blob/main/LICENSE</url>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <name>AI University (AIU)</name>
+      <email>ai.university.aiu@gmail.com</email>
+    </developer>
+  </developers>
+  <scm>
+    <url>https://github.com/ai-university-aiu/causalontology</url>
+    <connection>scm:git:https://github.com/ai-university-aiu/causalontology.git</connection>
+  </scm>
+  <properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+  </build>
+</project>

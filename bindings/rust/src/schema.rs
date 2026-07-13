@@ -16,21 +16,21 @@ fn schemas() -> &'static HashMap<&'static str, Value> {
     SCHEMAS.get_or_init(|| {
         let mut m = HashMap::new();
         m.insert("cro", serde_json::from_str(include_str!(
-            "../../../spec/schema/cro.schema.json")).unwrap());
+            "../spec_schema/cro.schema.json")).unwrap());
         m.insert("occurrent", serde_json::from_str(include_str!(
-            "../../../spec/schema/occurrent.schema.json")).unwrap());
+            "../spec_schema/occurrent.schema.json")).unwrap());
         m.insert("continuant", serde_json::from_str(include_str!(
-            "../../../spec/schema/continuant.schema.json")).unwrap());
+            "../spec_schema/continuant.schema.json")).unwrap());
         m.insert("realizable", serde_json::from_str(include_str!(
-            "../../../spec/schema/realizable.schema.json")).unwrap());
+            "../spec_schema/realizable.schema.json")).unwrap());
         m.insert("assertion", serde_json::from_str(include_str!(
-            "../../../spec/schema/assertion.schema.json")).unwrap());
+            "../spec_schema/assertion.schema.json")).unwrap());
         m.insert("enrichment", serde_json::from_str(include_str!(
-            "../../../spec/schema/enrichment.schema.json")).unwrap());
+            "../spec_schema/enrichment.schema.json")).unwrap());
         m.insert("retraction", serde_json::from_str(include_str!(
-            "../../../spec/schema/retraction.schema.json")).unwrap());
+            "../spec_schema/retraction.schema.json")).unwrap());
         m.insert("succession", serde_json::from_str(include_str!(
-            "../../../spec/schema/succession.schema.json")).unwrap());
+            "../spec_schema/succession.schema.json")).unwrap());
         m
     })
 }

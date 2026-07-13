@@ -76,6 +76,9 @@ public final class Conformance {
         String scheme = s.substring(0, colon);
         String name = s.substring(colon + 1);
         if (scheme.equals("ed25519")) {
+            if (name.matches("[0-9a-f]{64}")) {
+                return s;
+            }
             return key(name).publicId;
         }
         if (name.matches("[0-9a-f]{64}")) {
@@ -765,6 +768,6 @@ public final class Conformance {
             System.exit(1);
         }
         System.out.println("causalontology-java is CONFORMANT to the suite "
-                           + "(pre-freeze, symbolic-id normalization).");
+                           + "(vectors frozen at specification 1.0.0).");
     }
 }

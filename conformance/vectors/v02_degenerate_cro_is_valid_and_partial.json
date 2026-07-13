@@ -4,12 +4,12 @@
   "group": "A - schema validity",
   "operation": "validate_schema + validate_semantics + is_partial",
   "input": {
-    "id": "cro:demo2",
+    "id": "cro:d2bfc8025ea4935a806fc25efa328dd3491fb3e89b1c4f3095f1fea9d6ef09e8",
     "causes": [
-      "occ:A"
+      "occ:559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd"
     ],
     "effects": [
-      "occ:B"
+      "occ:df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c"
     ]
   },
   "expect": {

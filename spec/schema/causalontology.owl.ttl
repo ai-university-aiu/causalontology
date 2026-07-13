@@ -15,7 +15,7 @@
 <https://causalontology.org/ns> a owl:Ontology ;
     rdfs:label "Causalontology" ;
     rdfs:comment "A verb-first noun-hosting ontology: reality is what happens, and things are its participants. Reified causation as a language-neutral standard and a shared commons." ;
-    owl:versionInfo "specification version 7 (pre-1.0)" .
+    owl:versionInfo "specification 1.0.0 (vectors frozen 2026-07-13)" .
 
 # ---------------------------------------------------------------- content kinds
 co:Occurrent a owl:Class ;

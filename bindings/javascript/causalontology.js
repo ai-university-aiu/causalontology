@@ -15,7 +15,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const VERSION = "0.7.0"; // tracks specification version 7 (pre-1.0)
+const VERSION = "1.0.0"; // tracks specification version 7 (pre-1.0)
 
 /* ===========================================================================
  * Canonicalization and content-addressed identity (spec/identity.md)

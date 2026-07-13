@@ -1,9 +1,11 @@
 [package]
 name = "causalontology"
-version = "0.7.0"
+version = "1.0.0"
 edition = "2021"
 description = "The Rust binding of the Causalontology standard - a verb-first noun-hosting ontology; reified causation as a language-neutral standard and shared commons."
-license-file = "../../LICENSE"
+license-file = "LICENSE"
+repository = "https://github.com/ai-university-aiu/causalontology"
+readme = "README.md"
 
 [lib]
 # cdylib alongside rlib so the same audited core compiles to WebAssembly

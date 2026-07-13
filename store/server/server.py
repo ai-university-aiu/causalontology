@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "bindings" / "pytho
 from causalontology import InMemoryStore, RejectedWrite, is_partial  # noqa: E402
 from causalontology import __version__ as SDK_VERSION                # noqa: E402
 
-SPEC_VERSION = "7 (pre-1.0)"
+SPEC_VERSION = "1.0.0"
 
 
 # ---------------------------------------------------------------------------

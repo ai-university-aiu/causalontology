@@ -4,9 +4,9 @@
   "group": "A - schema validity",
   "operation": "validate_schema",
   "input": {
-    "id": "cro:demo3",
+    "id": "cro:ed882b45e7d23de0772cdb6028c0feaa5d7588deb5ded2030d915df47a9dcb89",
     "causes": [
-      "occ:A"
+      "occ:559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd"
     ]
   },
   "expect": {

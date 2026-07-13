@@ -26,7 +26,7 @@ import (
 	"regexp"
 	"strings"
 
-	co "causalontology/causalontology"
+	co "github.com/ai-university-aiu/causalontology/bindings/go/causalontology"
 )
 
 // vectorsDir is the conformance/vectors directory, set by main.
@@ -67,6 +67,9 @@ func sym(s string) string {
 		return s
 	}
 	if scheme == "ed25519" {
+		if hex64.MatchString(name) {
+			return s // frozen: a real key passes through
+		}
 		return key(name).public
 	}
 	if hex64.MatchString(name) {
@@ -1044,5 +1047,5 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("causalontology-go is CONFORMANT to the suite " +
-		"(pre-freeze, symbolic-id normalization).")
+		"(vectors frozen at specification 1.0.0).")
 }

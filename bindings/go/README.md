@@ -28,7 +28,7 @@ $ cd bindings/go
 $ go run ./conformance
 ...
 38/38 vectors passed
-causalontology-go is CONFORMANT to the suite (pre-freeze, symbolic-id normalization).
+causalontology-go is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
 ```
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
@@ -36,13 +36,7 @@ environment variable when set, otherwise by walking up from the working
 directory until it finds `conformance/vectors`; the schemas are read from
 `spec/schema` under the same root.
 
-The harness normalizes the vectors' pre-freeze symbolic identifiers
-deterministically, exactly as the Python harness does: a symbolic object
-id `scheme:name` becomes `scheme:sha256(name)`, and a symbolic key name
-`ed25519:name` becomes a real Ed25519 keypair seeded from
-`sha256("key:" + name)` — so every normative behavior is exercised with
-well-formed data and real signatures. The 1.0.0 freeze pins concrete
-bytes into the vectors themselves.
+The vectors are frozen at specification 1.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 ## Thirty-second taste
 

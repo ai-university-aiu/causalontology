@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://causalontology.org/schema/assertion.schema.json",
+  "title": "Assertion",
+  "type": "object",
+  "required": [
+    "id",
+    "about",
+    "source",
+    "evidence_type",
+    "confidence",
+    "timestamp"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^ast:[0-9a-f]{64}$"
+    },
+    "type": {
+      "const": "assertion"
+    },
+    "about": {
+      "type": "string",
+      "pattern": "^(cro|occ|cnt|rlz):[0-9a-f]{64}$",
+      "description": "the content object this assertion is about; about a non-causal object it means the source vouches for the vocabulary item"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^ed25519:[0-9a-f]{64}$"
+    },
+    "evidence_type": {
+      "enum": [
+        "intervention",
+        "observation",
+        "derivation",
+        "human_hint",
+        "imported"
+      ],
+      "description": "how the source came to the claim; intervention is the strongest grade"
+    },
+    "evidence": {
+      "type": "string"
+    },
+    "strength": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "the source's estimate of causal strength (semantics.md rule 5); meaningful only when about references a Causal Relation Object"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{128}$",
+      "description": "Ed25519 signature over the record's canonical identity-bearing bytes; excluded from the identity hash"
+    }
+  }
+}

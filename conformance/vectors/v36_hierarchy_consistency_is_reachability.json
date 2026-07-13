@@ -6,30 +6,30 @@
   "given": {
     "P": {
       "causes": [
-        "occ:A"
+        "occ:559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd"
       ],
       "effects": [
-        "occ:C"
+        "occ:6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d"
       ],
       "mechanism": [
-        "cro:m1",
-        "cro:m2"
+        "cro:ca0df2c95aa144c1d0ff2ff3c8f967fdc1de9ef0c4120b3726416701b519d619",
+        "cro:29c1b289e7522195b362e44f54e05470b69ad20540ab60a18a05e5bf6951f13d"
       ]
     },
     "m1": {
       "causes": [
-        "occ:A"
+        "occ:559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd"
       ],
       "effects": [
-        "occ:B"
+        "occ:df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c"
       ]
     },
     "m2": {
       "causes": [
-        "occ:B"
+        "occ:df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c"
       ],
       "effects": [
-        "occ:C"
+        "occ:6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d"
       ]
     }
   },

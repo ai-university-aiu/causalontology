@@ -52,6 +52,8 @@ def sym(s):
     """Normalize one symbolic identifier to a well-formed one."""
     scheme, name = s.split(":", 1)
     if scheme == "ed25519":
+        if re.fullmatch(r"[0-9a-f]{64}", name):
+            return s  # frozen: a real key passes through
         return key(name)[1]
     if re.fullmatch(r"[0-9a-f]{64}", name):
         return s
@@ -392,7 +394,7 @@ def main():
     if failures:
         sys.exit(1)
     print("causalontology-py is CONFORMANT to the suite "
-          "(pre-freeze, symbolic-id normalization).")
+          "(vectors frozen at specification 1.0.0).")
 
 
 if __name__ == "__main__":
