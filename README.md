@@ -171,7 +171,7 @@ That third document — a *degenerate* CRO, just cause and effect — is already
 | Swift | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "1.0.0")` |
 | Go | `go get github.com/ai-university-aiu/causalontology/bindings/go@v1.0.0` |
 
-All published at **specification 1.0.0** (vectors frozen 2026-07-13); the WebAssembly core is attached to the [v1.0.0 release](https://github.com/ai-university-aiu/causalontology/releases/tag/v1.0.0). Details and status: [PUBLISHING.md](PUBLISHING.md).
+All published at **specification 1.0.0** (vectors frozen 2026-07-13). Reach, stated precisely: **Kotlin, Scala, Clojure, and Groovy** consume the Java artifact from Maven Central as-is; **Deno and Bun** consume the npm package directly; and **any WebAssembly host** (browsers, edge workers, wasmtime embeddings) can use the [WASM core attached to the v1.0.0 release](https://github.com/ai-university-aiu/causalontology/releases/tag/v1.0.0) — so six direct installs serve ten-plus languages in practice. Ecosystems without an implementation yet (.NET/NuGet, RubyGems, PHP/Packagist, Dart, ...) are an open invitation: **the 38 frozen vectors are the gate**. Details and status: [PUBLISHING.md](PUBLISHING.md).
 
 ## Repository layout
 
