@@ -11,7 +11,6 @@
 
 <!-- ROW 2: THE STANDARD -->
 <p align="center">
-  <img src="https://img.shields.io/badge/SPEC-V6_BOOK_EDITION-8B0000?style=for-the-badge&labelColor=DAA520" alt="Spec V6 Book Edition">
   <img src="https://img.shields.io/badge/CONFORMANCE_VECTORS-38-DAA520?style=for-the-badge&labelColor=8B0000" alt="Conformance Vectors 38">
   <img src="https://img.shields.io/badge/OBJECT_KINDS-8-FF8C00?style=for-the-badge&labelColor=8B0000" alt="Object Kinds 8">
   <img src="https://img.shields.io/badge/LOCKED_DECISIONS-27-B22222?style=for-the-badge&labelColor=FFD700" alt="Locked Decisions 27">
@@ -35,17 +34,9 @@
 
 <!-- ROW 5: THE LINEAGE -->
 <p align="center">
-  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/REFERENCE-PROLOGAI-800000?style=for-the-badge&labelColor=DAA520" alt="Reference: PrologAI"></a>
   <a href="https://github.com/ai-university-aiu/Mentova"><img src="https://img.shields.io/badge/FLAGSHIP_MIND-MENTOVA-DC143C?style=for-the-badge&labelColor=DAA520" alt="Flagship Mind: Mentova"></a>
   <img src="https://img.shields.io/badge/BOOK-AGI%27S_MISSING_LINK-FFD700?style=for-the-badge&labelColor=8B0000" alt="Book: AGI's Missing Link">
   <img src="https://img.shields.io/badge/LICENSE-ATTRIBUTION_ALWAYS%3B_NO_PROFIT%2C_NO_PROBLEM-DAA520?style=for-the-badge&labelColor=8B0000" alt="License: Attribution always; no profit, no problem">
-</p>
-
-<!-- ROW 6: THE LIVING RIBBONS (auto-updating) -->
-<p align="center">
-  <img src="https://img.shields.io/github/stars/ai-university-aiu/causalontology?style=flat-square&color=FFD700&labelColor=8B0000" alt="GitHub stars">
-  <img src="https://img.shields.io/github/last-commit/ai-university-aiu/causalontology?style=flat-square&color=DC143C&labelColor=8B0000" alt="Last commit">
-  <img src="https://img.shields.io/github/repo-size/ai-university-aiu/causalontology?style=flat-square&color=DAA520&labelColor=8B0000" alt="Repo size">
 </p>
 
 <p align="center"><sub>Benchmark scores by the reference implementation, PrologAI, on the public training sets — pure symbolic induction, no LLM.</sub></p>
