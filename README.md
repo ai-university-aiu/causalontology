@@ -194,8 +194,8 @@ causalontology/
 - [x] Step 4 — [the stigmergy layer](store/stigmergy/): all six gap kinds live (including `demand_supply` from real read telemetry), value-ranked `GET /gaps`, and the contribution dashboard at `/dashboard` — **the commons guides its own growth; the MVP is complete**
 - [x] Step 5 — the whole beyond-MVP program:
   - [x] [JavaScript SDK](bindings/javascript/) — **the third verified implementation: 38/38 vectors pass locally**, zero dependencies, byte-identical signatures with Python
-  - [x] [Java SDK](bindings/java/) — complete port, JDK standard library only; **verified by the [conformance CI](.github/workflows/conformance.yml)** (no local JDK on the authoring machine)
-  - [x] [Swift SDK](bindings/swift/) — complete port (swift-crypto for the primitives); **verified by the conformance CI** (no local Swift toolchain on the authoring machine)
+  - [x] [Java SDK](bindings/java/) — **38/38 vectors pass in CI (JDK 21)** — complete port, JDK standard library only ([workflow](.github/workflows/conformance.yml))
+  - [x] [Swift SDK](bindings/swift/) — **38/38 vectors pass in CI (Swift 5.10)** — complete port, swift-crypto for the primitives
   - [x] SPARQL endpoint — `GET|POST /sparql` (documented SELECT subset) + `GET /export/triples` (N-Triples) + the [OWL mapping](spec/schema/causalontology.owl.ttl) to BFO / RO / PROV
   - [x] Federation (Tier B) — `GET /sync/export` + `POST /sync/pull`: two live stores converge by signed set-union; **11/11 checks**
   - [x] Decentralization (Tier C) — [`replicate.py`](store/server/replicate.py): offline bundles, order-independent merge (the CRDT laws proven **8/8**), tamper evidence from content addresses and signatures alone

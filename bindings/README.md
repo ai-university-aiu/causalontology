@@ -9,8 +9,8 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | PrologAI (`co_*` packs) | github.com/ai-university-aiu/PrologAI | reference implementation |
 | [causalontology-py](python/) | Python Package Index (publication pending) | **available — 38/38 conformance vectors pass; zero dependencies** |
 | [causalontology-js](javascript/) | npm (publication pending) | **available — 38/38 conformance vectors pass locally; zero dependencies** |
-| [causalontology-java](java/) | Maven Central (publication pending) | source complete, JDK stdlib only — **verified in CI** (no local JDK here) |
-| [causalontology-swift](swift/) | Swift Package Manager (publication pending) | source complete (swift-crypto) — **verified in CI** (no local toolchain here) |
+| [causalontology-java](java/) | Maven Central (publication pending) | **available — 38/38 conformance vectors pass in CI (JDK 21)**; JDK standard library only |
+| [causalontology-swift](swift/) | Swift Package Manager (publication pending) | **available — 38/38 conformance vectors pass in CI (Swift 5.10)**; one dependency (swift-crypto) |
 
 Every binding MUST ship `../conformance/vectors/` as its own test suite and
 gate releases on it. Interoperability is through shared data and the shared
