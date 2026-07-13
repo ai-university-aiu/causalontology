@@ -3,7 +3,7 @@
 **Causalontology's purest form is a specification, not a program.** This file is
 the normative core; the complete design rationale, glossary, and lay-readable
 explanations live in the master document at the repository root,
-`Causalontology_Standalone_Design_v10.txt`, which is authoritative where this
+`Causalontology_Standalone_Design_v11.txt`, which is authoritative where this
 summary and it could ever be read to differ.
 
 ## The object model: eight kinds
