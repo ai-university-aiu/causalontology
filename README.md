@@ -85,7 +85,7 @@ Each badge above is a claim, and every claim deserves a plain explanation. Here 
 
 - **`FLAGSHIP APPLICATION | MENTOVA PROLOGAI`** — **PrologAI** is the glass-box cognitive architecture that serves as Causalontology's reference implementation, and **Mentova** is the synthetic mind built on it — the first full application of this ontology, and one day the first machine mind to read the commons' gaps and contribute causal knowledge back. The badge links to Mentova.
 
-- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v8.txt`](Causalontology_Standalone_Design_v8.txt).
+- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v9.txt`](Causalontology_Standalone_Design_v9.txt).
 
 - **`LICENSE | ATTRIBUTION ALWAYS; NO PROFIT, NO PROBLEM`** — the project's license, in its own words: credit the source always, and using it without profit is never a problem. It is the friendly name for the Apache License 2.0 text (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)), one license covering everything here — the code, the data, the specification, and the architecture.
 
@@ -113,7 +113,7 @@ Causalontology's identity, stated from five angles — each the same claim, that
 
 And this repository adds a further first of its own: to our knowledge, the first specification to deliver reified, provenance-signed causation as a **language-neutral standard** with a **shared, stigmergic commons** — offered, glass-box style, with its evidence: the specification, the conformance vectors, and the running implementations, all inspectable.
 
-Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v8.txt`](Causalontology_Standalone_Design_v8.txt) — the complete, self-contained canon of this repository.
+Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v9.txt`](Causalontology_Standalone_Design_v9.txt) — the complete, self-contained canon of this repository.
 
 ---
 
@@ -164,7 +164,7 @@ That third document — a *degenerate* CRO, just cause and effect — is already
 
 ```
 causalontology/
-  Causalontology_Standalone_Design_v8.txt   the canon (complete, lay-readable)
+  Causalontology_Standalone_Design_v9.txt   the canon (complete, lay-readable)
   spec/
     causalontology.md      normative core
     identity.md            RFC 8785 + SHA-256 identity, merge semantics
