@@ -8,7 +8,9 @@ is thin: types can be generated from `../spec/schema/`; only identity
 |---|---|---|
 | PrologAI (`co_*` packs) | github.com/ai-university-aiu/PrologAI | reference implementation |
 | [causalontology-py](python/) | Python Package Index (publication pending) | **available — 38/38 conformance vectors pass; zero dependencies** |
-| [causalontology-js](javascript/) | npm (publication pending) | **available — 38/38 conformance vectors pass locally; zero dependencies** |
+| [causalontology-js](javascript/) | npm (publication pending) | **available — 38/38 conformance vectors pass locally; zero dependencies; TypeScript typings included (`causalontology.d.ts`, tsc-verified)** |
+| [causalontology-rust](rust/) | crates.io (publication pending) | **available — 38/38 conformance vectors pass locally; vetted primitives only** |
+| [WebAssembly core](rust/) | built from the Rust crate | **available — `wasm32-unknown-unknown` build; 6/6 cross-checks against the JS binding pass locally (byte-identical ids, canonical bytes, and Ed25519 verification)** |
 | [causalontology-java](java/) | Maven Central (publication pending) | **available — 38/38 conformance vectors pass in CI (JDK 21)**; JDK standard library only |
 | [causalontology-swift](swift/) | Swift Package Manager (publication pending) | **available — 38/38 conformance vectors pass in CI (Swift 5.10)**; one dependency (swift-crypto) |
 

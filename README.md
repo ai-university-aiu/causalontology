@@ -202,6 +202,12 @@ causalontology/
   - [x] Reputation — `GET /reputation?source=`: glass-box, computed from the signed history, succession-aware
   - [x] **[Mentova gardening the commons](examples/gardener/)** — a glass-box SWI-Prolog mind reads `/gaps`, intervenes (its own hand on the switch), induces the missing fields, signs with Ed25519, contributes, and the gap closes: **11/11 checks — the first synthetic mind gardening the commons**
   - Reserved for a future MAJOR batch, per governance: the token-level (`tok:`) kind and the bounty layer
+- [x] Step 6 — the systems tier:
+  - [x] [Rust SDK](bindings/rust/) — **the fourth locally-verified implementation: 38/38 vectors pass** (vetted primitives: sha2, ed25519-dalek)
+  - [x] [WebAssembly core](bindings/rust/) — the Rust crate compiles unchanged to `wasm32` (schemas embedded, no filesystem); **6/6 cross-checks in Node prove it byte-identical with the JS binding** — one audited core for every host
+  - [x] [TypeScript](bindings/javascript/) — hand-written strict typings over the verified JS binding (no logic duplication, no drift); **tsc-verified locally**
+  - [x] [Go SDK](bindings/go/) — zero dependencies (Go's standard library carries Ed25519 natively); **verified by the conformance CI** (no local Go toolchain)
+  - Contributed implementations welcome — the 38 vectors are the gate (C#, Ruby, PHP, Kotlin, ...)
 
 ## Governance
 

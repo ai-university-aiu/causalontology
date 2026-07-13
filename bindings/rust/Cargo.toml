@@ -1,0 +1,22 @@
+[package]
+name = "causalontology"
+version = "0.7.0"
+edition = "2021"
+description = "The Rust binding of the Causalontology standard - a verb-first noun-hosting ontology; reified causation as a language-neutral standard and shared commons."
+license-file = "../../LICENSE"
+
+[lib]
+# cdylib alongside rlib so the same audited core compiles to WebAssembly
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+# vetted primitives (the standard's rule is "passes all 38 vectors", not "no deps";
+# hand-rolled curve math in a systems language is a vulnerability, not a virtue)
+sha2 = "0.10"
+ed25519-dalek = "2"
+serde_json = "1"
+regex = "1"
+
+[[bin]]
+name = "conformance"
+path = "src/bin/conformance.rs"

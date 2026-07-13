@@ -67,3 +67,40 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y swi-prolog
       - name: the synthetic mind gardens the commons
         run: python3 examples/gardener/test_gardener.py
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: conformance (38 vectors)
+        run: cd bindings/rust && cargo run --bin conformance
+      - name: WebAssembly core build
+        run: cd bindings/rust && cargo build --lib --release --target wasm32-unknown-unknown
+      - name: WASM vs JavaScript cross-check
+        run: node bindings/rust/tests/wasm_check.js
+
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: conformance (38 vectors)
+        run: cd bindings/go && go run ./conformance
+
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: type-check the typed JavaScript binding
+        run: cd bindings/javascript && npx -y -p typescript@5.5 tsc -p .
