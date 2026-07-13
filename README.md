@@ -93,7 +93,7 @@ Each badge above is a claim, and every claim deserves a plain explanation. Here 
 
 # Causalontology
 
-**A language-neutral standard and a shared global commons for reified causation — the data-structure layer of the book *Causalontology: AGI's Missing Link*.**
+**A verb-first noun-hosting ontology — reality is what happens, and things are its participants. A language-neutral standard and a shared global commons for reified causation — the data-structure layer of the book *Causalontology: AGI's Missing Link*.**
 
 ---
 
@@ -118,6 +118,8 @@ Every term above is explained for a newcomer in the master document: [`Causalont
 ---
 
 ## What is Causalontology?
+
+**Causalontology is a verb-first noun-hosting ontology.** Verb-first: the atomic building block is the occurrent — the happening — and the fundamental unit reifies the master verb, *causes*, itself; even knowing is verb-first, because knowledge enters by acting (intervention) rather than by watching. Noun-hosting: things (continuants) are first-class citizens, but they are understood through what they do and what happens to them — Causalontology *governs* the verbs and *hosts* the nouns, with realizable entities as the hinge between them.
 
 **Causalontology's purest form is a specification, not a program.** It separates the *data structure of causation and its rules* (language-neutral) from any *implementation* (Prolog, Python, Java, Swift, ...). Two familiar pictures, held together:
 
