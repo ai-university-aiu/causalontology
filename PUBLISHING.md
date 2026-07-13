@@ -11,6 +11,7 @@ stored on the build machine, by design).
 |---|---|---|
 | GitHub Release v1.0.0 | **live** - carries the wheel, sdist, npm tarball, crate, and the WebAssembly core | the repository's Releases page |
 | Swift Package Manager | **live** - SwiftPM resolves git tags directly | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "1.0.0")` |
+| PyPI | **live** (published 2026-07-13) | `pip install causalontology` — https://pypi.org/project/causalontology/ |
 | crates.io | **live** (published 2026-07-13) | `cargo add causalontology` — https://crates.io/crates/causalontology |
 | Go modules / pkg.go.dev | **live** - Go resolves module tags directly (`bindings/go/v1.0.0`) | `go get github.com/ai-university-aiu/causalontology/bindings/go@v1.0.0` |
 
@@ -18,7 +19,6 @@ stored on the build machine, by design).
 
 | Registry | Artifact | The one command (run after logging in) |
 |---|---|---|
-| PyPI | `causalontology-1.0.0-py3-none-any.whl` + `.tar.gz` | `cd bindings/python && python3 -m build && python3 -m twine upload dist/*` |
 | npm | `causalontology-1.0.0.tgz` | `cd bindings/javascript && npm publish` |
 | Maven Central | build from `bindings/java/pom.xml` | the Sonatype Central ceremony (account + GPG signing + `mvn deploy`); the pom carries all required metadata |
 
