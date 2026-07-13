@@ -2,14 +2,56 @@
   <img src="assets/Causalontology_754x176.png" alt="Causalontology" width="754">
 </p>
 
+<!-- THE RACK — ROW 1: THE HONORS -->
+<p align="center">
+  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--1-400%2F400-FFD700?style=for-the-badge&labelColor=8B0000" alt="ARC-AGI-1 400/400"></a>
+  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--2-120%2F120-FFD700?style=for-the-badge&labelColor=8B0000" alt="ARC-AGI-2 120/120"></a>
+  <img src="https://img.shields.io/badge/WORLD%27S_FIRST-REIFIED_CAUSATION_STANDARD-DC143C?style=for-the-badge&labelColor=FFD700" alt="World's First — Reified Causation Standard">
+</p>
+<p align="center"><sub>Benchmark scores by the reference implementation, PrologAI, on the public training sets — pure symbolic induction, no LLM.</sub></p>
+
+<!-- ROW 2: THE STANDARD -->
+<p align="center">
+  <img src="https://img.shields.io/badge/SPEC-V6_BOOK_EDITION-8B0000?style=for-the-badge&labelColor=DAA520" alt="Spec V6 Book Edition">
+  <img src="https://img.shields.io/badge/CONFORMANCE_VECTORS-38-DAA520?style=for-the-badge&labelColor=8B0000" alt="Conformance Vectors 38">
+  <img src="https://img.shields.io/badge/OBJECT_KINDS-8-FF8C00?style=for-the-badge&labelColor=8B0000" alt="Object Kinds 8">
+  <img src="https://img.shields.io/badge/LOCKED_DECISIONS-27-B22222?style=for-the-badge&labelColor=FFD700" alt="Locked Decisions 27">
+</p>
+
+<!-- ROW 3: THE FOUNDATIONS -->
+<p align="center">
+  <img src="https://img.shields.io/badge/CANONICAL-RFC_8785-CD7F32?style=for-the-badge&labelColor=8B0000" alt="Canonical RFC 8785">
+  <img src="https://img.shields.io/badge/IDENTITY-SHA--256-FF4500?style=for-the-badge&labelColor=8B0000" alt="Identity SHA-256">
+  <img src="https://img.shields.io/badge/SIGNED-ED25519-DC143C?style=for-the-badge&labelColor=8B0000" alt="Signed Ed25519">
+  <img src="https://img.shields.io/badge/JSON--LD-LINKED_DATA-F4C430?style=for-the-badge&labelColor=8B0000" alt="JSON-LD Linked Data">
+</p>
+
+<!-- ROW 4: THE CHARACTER -->
+<p align="center">
+  <img src="https://img.shields.io/badge/GLASS_BOX-ALWAYS-FFD700?style=for-the-badge&labelColor=8B0000" alt="Glass Box Always">
+  <img src="https://img.shields.io/badge/ATTRIBUTION-ALWAYS-8B0000?style=for-the-badge&labelColor=FFD700" alt="Attribution Always">
+  <img src="https://img.shields.io/badge/STIGMERGY-BUILT_IN-FF8C00?style=for-the-badge&labelColor=8B0000" alt="Stigmergy Built In">
+  <img src="https://img.shields.io/badge/EVIDENCE-ACTING_%3E_WATCHING-B22222?style=for-the-badge&labelColor=FFD700" alt="Evidence: Acting over Watching">
+</p>
+
+<!-- ROW 5: THE LINEAGE -->
+<p align="center">
+  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/REFERENCE-PROLOGAI-800000?style=for-the-badge&labelColor=DAA520" alt="Reference: PrologAI"></a>
+  <a href="https://github.com/ai-university-aiu/Mentova"><img src="https://img.shields.io/badge/FLAGSHIP_MIND-MENTOVA-DC143C?style=for-the-badge&labelColor=DAA520" alt="Flagship Mind: Mentova"></a>
+  <img src="https://img.shields.io/badge/BOOK-AGI%27S_MISSING_LINK-FFD700?style=for-the-badge&labelColor=8B0000" alt="Book: AGI's Missing Link">
+  <img src="https://img.shields.io/badge/LICENSE-ATTRIBUTION_ALWAYS%3B_NO_PROFIT%2C_NO_PROBLEM-DAA520?style=for-the-badge&labelColor=8B0000" alt="License: Attribution always; no profit, no problem">
+</p>
+
+<!-- ROW 6: THE LIVING RIBBONS (auto-updating) -->
+<p align="center">
+  <img src="https://img.shields.io/github/stars/ai-university-aiu/causalontology?style=flat-square&color=FFD700&labelColor=8B0000" alt="GitHub stars">
+  <img src="https://img.shields.io/github/last-commit/ai-university-aiu/causalontology?style=flat-square&color=DC143C&labelColor=8B0000" alt="Last commit">
+  <img src="https://img.shields.io/github/repo-size/ai-university-aiu/causalontology?style=flat-square&color=DAA520&labelColor=8B0000" alt="Repo size">
+</p>
+
 # Causalontology
 
 **A language-neutral standard and a shared global commons for reified causation — the data-structure layer of the book *Causalontology: AGI's Missing Link*.**
-
-![Spec](https://img.shields.io/badge/spec-version%206%20(pre--1.0)-blue)
-![Conformance](https://img.shields.io/badge/conformance%20vectors-38-brightgreen)
-![Status](https://img.shields.io/badge/status-scaffold%20%2F%20pre--release-orange)
-![License](https://img.shields.io/badge/license-Attribution%20always%3B%20no%20profit%2C%20no%20problem%20(Apache--2.0)-lightgrey)
 
 ---
 
