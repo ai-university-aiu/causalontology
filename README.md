@@ -191,7 +191,7 @@ causalontology/
 - [x] Step 1 — publish the specification, schemas, and conformance vectors (this repository)
 - [x] Step 2 — [`causalontology-py`](bindings/python/): the second implementation — **38/38 conformance vectors pass**; language independence is proven
 - [x] Step 3 — [the Tier A store](store/server/): the HTTP binding is live — signature verification, materialized views, quarantine, retraction/lineage, pagination, auth; **20/20 end-to-end smoke checks pass**
-- [ ] Step 4 — the stigmergy read: `GET /gaps` + the contribution dashboard
+- [x] Step 4 — [the stigmergy layer](store/stigmergy/): all six gap kinds live (including `demand_supply` from real read telemetry), value-ranked `GET /gaps`, and the contribution dashboard at `/dashboard` — **the commons guides its own growth; the MVP is complete**
 - [ ] Then — Java and Swift SDKs · SPARQL endpoint · federation (Tier B) · decentralization (Tier C) · Mentova gardening the commons
 
 ## Governance

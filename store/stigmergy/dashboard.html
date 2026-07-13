@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Causalontology — The Stigmergy Dashboard</title>
+<style>
+  :root {
+    --field: #8B0000; --field2: #6d0000; --gold: #FFD700; --goldenrod: #DAA520;
+    --crimson: #DC143C; --amber: #FF8C00; --bronze: #CD7F32; --brick: #B22222;
+    --cream: #FFF8E7; --ink: #2b1608;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--cream); color: var(--ink);
+         font: 15px/1.5 Georgia, "Times New Roman", serif; }
+  header { background: linear-gradient(160deg, var(--field), var(--field2));
+           color: var(--gold); padding: 22px 28px; }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: 1px; }
+  header p { margin: 6px 0 0; color: #f3d98a; font-style: italic; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 24px 60px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
+  .stat { background: var(--field); color: var(--gold); border-radius: 10px;
+          padding: 10px 18px; min-width: 130px; text-align: center; }
+  .stat b { display: block; font-size: 26px; }
+  .stat span { font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+               color: #f3d98a; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+              margin: 14px 0 20px; }
+  input, select, button {
+    font: inherit; padding: 8px 12px; border: 2px solid var(--goldenrod);
+    border-radius: 8px; background: #fff; color: var(--ink); }
+  button { background: var(--field); color: var(--gold); cursor: pointer;
+           border-color: var(--field); }
+  button:hover { background: var(--crimson); }
+  h2 { color: var(--field); border-bottom: 3px solid var(--goldenrod);
+       padding-bottom: 6px; margin-top: 30px; }
+  .gap { display: flex; gap: 12px; align-items: baseline; background: #fff;
+         border: 1px solid var(--goldenrod); border-left: 8px solid var(--brick);
+         border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .gap .value { font-weight: bold; font-size: 20px; color: var(--field);
+                min-width: 2.2em; text-align: right; }
+  .kind { font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+          color: #fff; border-radius: 6px; padding: 3px 9px; white-space: nowrap; }
+  .k-conflict { background: var(--crimson); }
+  .k-inconsistent_hierarchy { background: var(--brick); }
+  .k-missing_field { background: var(--goldenrod); color: var(--ink); }
+  .k-demand_supply { background: var(--amber); color: var(--ink); }
+  .k-dangling_reference { background: var(--bronze); }
+  .k-empty_mechanism { background: #b8860b; }
+  .gap code { font-size: 12px; color: #6b3d10; word-break: break-all; }
+  .gap .note { color: #7a4a12; font-size: 13px; }
+  .empty { color: #8a6a3a; font-style: italic; padding: 12px 4px; }
+  footer { margin-top: 40px; font-size: 12.5px; color: #8a6a3a;
+           border-top: 1px solid var(--goldenrod); padding-top: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CAUSALONTOLOGY &mdash; THE STIGMERGY DASHBOARD</h1>
+  <p>Where the next brick goes: the commons announcing its own most valuable gaps.</p>
+</header>
+<div class="wrap">
+
+  <div class="stats" id="stats"></div>
+
+  <div class="controls">
+    <label>near <input id="near" placeholder="topic or identifier fragment" size="28"></label>
+    <label>kind
+      <select id="kind">
+        <option value="">all six kinds</option>
+        <option>conflict</option>
+        <option>inconsistent_hierarchy</option>
+        <option>missing_field</option>
+        <option>demand_supply</option>
+        <option>dangling_reference</option>
+        <option>empty_mechanism</option>
+      </select>
+    </label>
+    <button onclick="refresh()">refresh</button>
+    <label><input type="checkbox" id="auto" checked> auto (5s)</label>
+  </div>
+
+  <h2>The most valuable gaps</h2>
+  <div id="gaps" class="empty">loading&hellip;</div>
+
+  <h2>Surfaced conflicts</h2>
+  <div id="conflicts" class="empty">loading&hellip;</div>
+
+  <footer>
+    Stigmergy is coordination through the shared environment: a half-built
+    wall shows the next worker where the next brick goes. Every gap above is
+    a first-class, queryable fact &mdash; a partial claim to refine, a wanted
+    definition to write, a contradiction to resolve with intervention-grade
+    evidence, or a high-demand claim awaiting support. Close one with a
+    <code>refines</code> object or a signed enrichment, and watch it leave
+    this list. Humans and synthetic minds read the same frontier.
+    &mdash; <em>Causalontology: a verb-first noun-hosting ontology.</em>
+  </footer>
+</div>
+
+<script>
+async function jget(path) {
+  const r = await fetch(path);
+  return await r.json();
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g,
+    c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+function gapRow(g) {
+  const id = g.id ? "<code>" + esc(g.id) + "</code>"
+                  : "<code>" + esc(g.a) + "</code> vs <code>" + esc(g.b) + "</code>";
+  const extra = [];
+  if (g.missing) extra.push("missing: " + esc(g.missing.join(", ")));
+  if (g.ref) extra.push("wants: " + esc(g.ref));
+  if (g.demand) extra.push("demand: " + esc(g.demand));
+  if (g.note) extra.push(esc(g.note));
+  return '<div class="gap"><span class="value">' + esc(g.value) + '</span>'
+       + '<span class="kind k-' + esc(g.kind) + '">' + esc(g.kind) + '</span>'
+       + '<span>' + id
+       + (extra.length ? ' <span class="note">&mdash; ' + extra.join(" &middot; ") + '</span>' : '')
+       + '</span></div>';
+}
+async function refresh() {
+  const info = await jget("/");
+  document.getElementById("stats").innerHTML =
+    '<div class="stat"><b>' + info.objects + '</b><span>objects</span></div>'
+    + '<div class="stat"><b>' + info.records + '</b><span>records</span></div>'
+    + '<div class="stat"><b>' + info.gaps + '</b><span>open gaps</span></div>'
+    + '<div class="stat"><b>' + info.demand_tracked + '</b><span>demand tracked</span></div>'
+    + '<div class="stat"><b>' + info.quarantined + '</b><span>quarantined</span></div>';
+  const near = encodeURIComponent(document.getElementById("near").value.trim());
+  const kind = document.getElementById("kind").value;
+  let q = "/gaps?limit=50";
+  if (near) q += "&near=" + near;
+  if (kind) q += "&kind=" + kind;
+  const gaps = await jget(q);
+  document.getElementById("gaps").outerHTML =
+    '<div id="gaps">' + (gaps.items.length
+      ? gaps.items.map(gapRow).join("")
+      : '<div class="empty">no open gaps &mdash; the wall, here, is built.</div>') + '</div>';
+  const conflicts = await jget("/conflicts?limit=20");
+  document.getElementById("conflicts").outerHTML =
+    '<div id="conflicts">' + (conflicts.items.length
+      ? conflicts.items.map(gapRow).join("")
+      : '<div class="empty">no surfaced contradictions.</div>') + '</div>';
+}
+refresh();
+setInterval(() => { if (document.getElementById("auto").checked) refresh(); }, 5000);
+</script>
+</body>
+</html>

@@ -62,12 +62,68 @@ def paginate(items, limit, cursor):
 # ---------------------------------------------------------------------------
 # the server
 # ---------------------------------------------------------------------------
+# the value weights for ranking gaps ("the most valuable gaps first")
+KIND_VALUE = {"conflict": 5, "inconsistent_hierarchy": 4, "missing_field": 3,
+              "demand_supply": 3, "dangling_reference": 2,
+              "empty_mechanism": 1}
+
+WEAK_EVIDENCE = {"imported", "human_hint"}
+
+
 class StoreServer(ThreadingHTTPServer):
-    def __init__(self, addr, store, token=None, state_path=None):
+    def __init__(self, addr, store, token=None, state_path=None,
+                 demand_threshold=3):
         super().__init__(addr, Handler)
         self.store = store
         self.token = token
         self.state_path = state_path
+        self.demand = {}                      # identifier -> read count
+        self.demand_threshold = demand_threshold
+
+    def note_demand(self, identifier):
+        if identifier:
+            self.demand[identifier] = self.demand.get(identifier, 0) + 1
+
+    def demand_gaps(self):
+        """The demand_supply gap kind: high demand, weak supply (spec Part 10)."""
+        out = []
+        for oid, obj in self.store.objects.items():
+            if obj.get("type") != "cro":
+                continue
+            demand = self.demand.get(oid, 0)
+            if demand < self.demand_threshold:
+                continue
+            assertions = self.store.assertions_about(oid)
+            weak = (not assertions
+                    or all(a.get("evidence_type") in WEAK_EVIDENCE
+                           for a in assertions))
+            if weak:
+                out.append({"id": oid, "kind": "demand_supply",
+                            "demand": demand,
+                            "note": "read %d times; %s" % (
+                                demand,
+                                "no assertions" if not assertions
+                                else "only low-grade evidence")})
+        return out
+
+    def ranked_gaps(self, kind=None):
+        """All gaps (the six kinds), each scored and sorted by value."""
+        if kind == "demand_supply":
+            gaps = self.demand_gaps()
+        elif kind is None:
+            gaps = self.store.gaps(None) + self.demand_gaps()
+        else:
+            gaps = self.store.gaps(kind)
+        for g in gaps:
+            base = KIND_VALUE.get(g.get("kind"), 1)
+            if "id" in g:
+                base += self.demand.get(g["id"], 0)
+            elif "a" in g:  # a conflict pair
+                base += max(self.demand.get(g["a"], 0),
+                            self.demand.get(g["b"], 0))
+            g["value"] = base
+        gaps.sort(key=lambda g: (-g["value"], json.dumps(g, sort_keys=True)))
+        return gaps
 
     def persist(self):
         if not self.state_path:
@@ -127,6 +183,9 @@ class Handler(BaseHTTPRequestHandler):
                 "objects": len(store.objects),
                 "records": len(store.records),
                 "quarantined": len(store.quarantine),
+                "gaps": len(self.server.ranked_gaps()),
+                "demand_tracked": len(self.server.demand),
+                "dashboard": "/dashboard",
                 "endpoints": [
                     "POST /objects", "GET /objects/{id}",
                     "POST /records", "GET /records/{id}",
@@ -140,6 +199,7 @@ class Handler(BaseHTTPRequestHandler):
             result = store.get(parts[1], view=view)
             if result is None:
                 return self._send(404, {"error": "no such object"})
+            self.server.note_demand(parts[1])
             return self._send(200, result)
 
         if parts[0] == "records" and len(parts) == 2:
@@ -150,7 +210,9 @@ class Handler(BaseHTTPRequestHandler):
 
         if parts[0] == "assertions":
             include = qs.get("view") == "history"
-            items = store.assertions_about(qs.get("about", ""), include)
+            about = qs.get("about", "")
+            self.server.note_demand(about)
+            items = store.assertions_about(about, include)
             return self._send(200, paginate(items, limit, cursor))
 
         if parts[0] == "enrichments":
@@ -174,10 +236,12 @@ class Handler(BaseHTTPRequestHandler):
 
         if parts[0] == "resolve":
             ids = store.resolve(qs.get("text", ""), qs.get("lang"))
+            for hit in ids:
+                self.server.note_demand(hit)
             return self._send(200, paginate(ids, limit, cursor))
 
         if parts[0] == "gaps":
-            gaps = store.gaps(qs.get("kind"))
+            gaps = self.server.ranked_gaps(qs.get("kind"))
             near = qs.get("near")
             if near:
                 gaps = [g for g in gaps if near in json.dumps(g)
@@ -185,8 +249,21 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, paginate(gaps, limit, cursor))
 
         if parts[0] == "conflicts":
-            pairs = store.gaps("conflict")
+            pairs = self.server.ranked_gaps("conflict")
             return self._send(200, paginate(pairs, limit, cursor))
+
+        if parts[0] == "dashboard":
+            page = (Path(__file__).resolve().parents[1] / "stigmergy"
+                    / "dashboard.html")
+            if not page.exists():
+                return self._send(404, {"error": "dashboard not installed"})
+            body = page.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return None
 
         return self._send(404, {"error": "unknown endpoint"})
 
@@ -273,11 +350,15 @@ def main():
                     help="JSON file for persistence across restarts")
     ap.add_argument("--no-enforce", action="store_true",
                     help="replica mode: skip the enforcing-tier write gates")
+    ap.add_argument("--demand-threshold", type=int, default=3,
+                    help="reads before an unsupported claim counts as "
+                         "high-demand (the demand_supply gap)")
     args = ap.parse_args()
 
     store = InMemoryStore(enforcing=not args.no_enforce)
     server = StoreServer((args.host, args.port), store,
-                         token=args.token, state_path=args.state)
+                         token=args.token, state_path=args.state,
+                         demand_threshold=args.demand_threshold)
     server.restore()
     print("causalontology Tier A store on http://%s:%d  "
           "(spec %s, sdk %s, %d objects, %d records)"
