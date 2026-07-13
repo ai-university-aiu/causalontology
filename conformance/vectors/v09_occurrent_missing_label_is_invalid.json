@@ -1,0 +1,14 @@
+{
+  "vector": "V09",
+  "name": "occurrent_missing_label_is_invalid",
+  "group": "A - schema validity",
+  "operation": "validate_schema",
+  "input": {
+    "id": "occ:demo9",
+    "category": "action"
+  },
+  "expect": {
+    "schema_valid": false,
+    "reason": "required property 'label' missing"
+  }
+}

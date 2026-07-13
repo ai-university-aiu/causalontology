@@ -1,0 +1,44 @@
+// Causalontology - optional Protocol Buffers encoding (NON-NORMATIVE).
+// The JSON form defined by the sibling *.schema.json files is normative;
+// this binary encoding must round-trip to it without loss.
+syntax = "proto3";
+package causalontology.v1;
+
+enum Modality { MODALITY_UNSPECIFIED = 0; NECESSARY = 1; SUFFICIENT = 2; CONTRIBUTORY = 3; PREVENTIVE = 4; }
+enum TemporalUnit { UNIT_UNSPECIFIED = 0; INSTANT = 1; SECONDS = 2; MINUTES = 3; HOURS = 4; DAYS = 5; WEEKS = 6; MONTHS = 7; YEARS = 8; }
+enum EvidenceType { EVIDENCE_UNSPECIFIED = 0; INTERVENTION = 1; OBSERVATION = 2; DERIVATION = 3; HUMAN_HINT = 4; IMPORTED = 5; }
+enum OccurrentCategory { OCC_CAT_UNSPECIFIED = 0; ACTION = 1; EVENT = 2; PROCESS = 3; STATE = 4; STATE_CHANGE = 5; }
+enum ContinuantCategory { CNT_CAT_UNSPECIFIED = 0; OBJECT = 1; AGENT = 2; PLACE = 3; SUBSTANCE = 4; COLLECTION = 5; INFORMATION = 6; }
+enum RealizableKind { RLZ_KIND_UNSPECIFIED = 0; DISPOSITION = 1; FUNCTION = 2; ROLE = 3; }
+enum EnrichmentField { FIELD_UNSPECIFIED = 0; ALIASES = 1; PARTICIPANTS = 2; SUBSUMES = 3; PART_OF = 4; REALIZED_IN = 5; }
+
+message TemporalWindow { double dmin = 1; double dmax = 2; TemporalUnit unit = 3; }
+message Alias { string lang = 1; string text = 2; }
+
+message CausalRelationObject {
+  string id = 1;                 // cro:<sha256 hex>
+  repeated string causes = 2;    // occ:<hex>
+  repeated string effects = 3;   // occ:<hex>
+  repeated string mechanism = 4; // cro:<hex>
+  TemporalWindow temporal = 5;
+  Modality modality = 6;
+  repeated string context = 7;   // occ:<hex>
+  string refines = 8;            // cro:<hex>
+}
+message Occurrent  { string id = 1; string label = 2; OccurrentCategory category = 3; }
+message Continuant { string id = 1; string label = 2; ContinuantCategory category = 3; }
+message Realizable { string id = 1; RealizableKind kind = 2; string bearer = 3; }
+
+message Assertion {
+  string id = 1; string about = 2; string source = 3;
+  EvidenceType evidence_type = 4; string evidence = 5;
+  double strength = 6; double confidence = 7;
+  string timestamp = 8; string signature = 9;
+}
+message Enrichment {
+  string id = 1; string about = 2; EnrichmentField field = 3;
+  oneof entry { Alias alias = 4; string reference = 5; }
+  string source = 6; string timestamp = 7; string signature = 8;
+}
+message Retraction { string id = 1; string retracts = 2; string source = 3; string reason = 4; string timestamp = 5; string signature = 6; }
+message Succession { string id = 1; string predecessor = 2; string successor = 3; string timestamp = 4; string signature = 5; }

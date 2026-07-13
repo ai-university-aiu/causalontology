@@ -1,0 +1,41 @@
+{
+  "vector": "V36",
+  "name": "hierarchy_consistency_is_reachability",
+  "group": "F - conflict, hierarchy, resolve, stigmergy",
+  "operation": "hierarchy_consistent",
+  "given": {
+    "P": {
+      "causes": [
+        "occ:A"
+      ],
+      "effects": [
+        "occ:C"
+      ],
+      "mechanism": [
+        "cro:m1",
+        "cro:m2"
+      ]
+    },
+    "m1": {
+      "causes": [
+        "occ:A"
+      ],
+      "effects": [
+        "occ:B"
+      ]
+    },
+    "m2": {
+      "causes": [
+        "occ:B"
+      ],
+      "effects": [
+        "occ:C"
+      ]
+    }
+  },
+  "expect": {
+    "with_m1_and_m2": "consistent (path A -> B -> C exists)",
+    "with_m2_replaced_by_D_to_C": "inconsistent; P surfaces as an inconsistent_hierarchy gap",
+    "with_m2_absent_from_store": "indeterminate; P surfaces as a dangling_reference gap"
+  }
+}

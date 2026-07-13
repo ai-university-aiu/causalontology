@@ -1,0 +1,18 @@
+{
+  "vector": "V12",
+  "name": "assertion_confidence_out_of_range_is_invalid",
+  "group": "A - schema validity",
+  "operation": "validate_schema",
+  "input": {
+    "id": "ast:demo12",
+    "about": "cro:demo1",
+    "source": "ed25519:ab12",
+    "evidence_type": "observation",
+    "confidence": 1.4,
+    "timestamp": "2026-07-13T00:00:00Z"
+  },
+  "expect": {
+    "schema_valid": false,
+    "reason": "confidence must be <= 1"
+  }
+}

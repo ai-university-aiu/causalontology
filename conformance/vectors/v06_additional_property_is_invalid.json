@@ -1,0 +1,21 @@
+{
+  "vector": "V06",
+  "name": "additional_property_is_invalid",
+  "group": "A - schema validity",
+  "operation": "validate_schema",
+  "input": {
+    "id": "cro:demo1",
+    "causes": [
+      "occ:A"
+    ],
+    "effects": [
+      "occ:B"
+    ],
+    "colour": "red"
+  },
+  "expect": {
+    "schema_valid": false,
+    "reason": "additional property 'colour'"
+  },
+  "note": "Also rejects any attempt to put aliases or other enrichment state inside a content object."
+}

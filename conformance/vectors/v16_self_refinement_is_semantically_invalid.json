@@ -1,0 +1,21 @@
+{
+  "vector": "V16",
+  "name": "self_refinement_is_semantically_invalid",
+  "group": "B - semantic validity",
+  "operation": "validate_semantics",
+  "input": {
+    "id": "cro:demo16",
+    "causes": [
+      "occ:A"
+    ],
+    "effects": [
+      "occ:B"
+    ],
+    "refines": "cro:demo16"
+  },
+  "expect": {
+    "schema_valid": true,
+    "semantically_valid": false,
+    "reason": "refines must be acyclic"
+  }
+}

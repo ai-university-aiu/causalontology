@@ -1,0 +1,18 @@
+{
+  "vector": "V19",
+  "name": "enrichment_entry_shape_mismatch_is_invalid",
+  "group": "B - semantic validity",
+  "operation": "validate_semantics",
+  "input": {
+    "id": "enr:demo19",
+    "about": "occ:press_button",
+    "field": "aliases",
+    "entry": "cnt:abcd",
+    "source": "ed25519:x",
+    "timestamp": "2026-07-13T00:00:00Z"
+  },
+  "expect": {
+    "semantically_valid": false,
+    "reason": "an aliases entry must be a language-tagged text object"
+  }
+}

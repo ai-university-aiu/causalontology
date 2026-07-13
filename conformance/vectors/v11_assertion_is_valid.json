@@ -1,0 +1,19 @@
+{
+  "vector": "V11",
+  "name": "assertion_is_valid",
+  "group": "A - schema validity",
+  "operation": "validate_schema",
+  "input": {
+    "id": "ast:demo11",
+    "about": "cro:demo1",
+    "source": "ed25519:ab12",
+    "evidence_type": "intervention",
+    "strength": 0.7,
+    "confidence": 0.9,
+    "timestamp": "2026-07-13T00:00:00Z",
+    "signature": "<128 hex>"
+  },
+  "expect": {
+    "schema_valid": true
+  }
+}

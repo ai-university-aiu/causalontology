@@ -1,0 +1,20 @@
+{
+  "vector": "V07",
+  "name": "free_text_cause_is_invalid",
+  "group": "A - schema validity",
+  "operation": "validate_schema",
+  "input": {
+    "id": "cro:demo7",
+    "causes": [
+      "pressing the button"
+    ],
+    "effects": [
+      "occ:B"
+    ]
+  },
+  "expect": {
+    "schema_valid": false,
+    "reason": "cause must match ^occ:[0-9a-f]{64}$"
+  },
+  "note": "Words live on enrichment records, not in claims."
+}

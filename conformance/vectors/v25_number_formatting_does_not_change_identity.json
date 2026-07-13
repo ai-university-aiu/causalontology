@@ -1,0 +1,36 @@
+{
+  "vector": "V25",
+  "name": "number_formatting_does_not_change_identity",
+  "group": "D - identity, canonicalization, and merge",
+  "operation": "identify",
+  "inputA": {
+    "causes": [
+      "occ:A"
+    ],
+    "effects": [
+      "occ:B"
+    ],
+    "temporal": {
+      "dmin": 1.0,
+      "dmax": 6,
+      "unit": "hours"
+    }
+  },
+  "inputB": {
+    "causes": [
+      "occ:A"
+    ],
+    "effects": [
+      "occ:B"
+    ],
+    "temporal": {
+      "dmin": 1,
+      "dmax": 6.0,
+      "unit": "hours"
+    }
+  },
+  "expect": {
+    "equal_identifiers": true
+  },
+  "note": "Guaranteed by RFC 8785 number serialization."
+}

@@ -1,0 +1,29 @@
+{
+  "vector": "V34",
+  "name": "preventive_conflicts_with_sufficient",
+  "group": "F - conflict, hierarchy, resolve, stigmergy",
+  "operation": "conflicts",
+  "given": {
+    "A": {
+      "causes": [
+        "occ:X"
+      ],
+      "effects": [
+        "occ:Y"
+      ],
+      "modality": "sufficient"
+    },
+    "B": {
+      "causes": [
+        "occ:X"
+      ],
+      "effects": [
+        "occ:Y"
+      ],
+      "modality": "preventive"
+    }
+  },
+  "expect": {
+    "conflicts": true
+  }
+}

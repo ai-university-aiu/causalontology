@@ -1,0 +1,33 @@
+{
+  "vector": "V17",
+  "name": "refinement_changing_parent_field_is_not_a_refinement",
+  "group": "B - semantic validity",
+  "operation": "valid_refinement",
+  "given": {
+    "parent": {
+      "id": "cro:P",
+      "causes": [
+        "occ:A"
+      ],
+      "effects": [
+        "occ:B"
+      ],
+      "modality": "sufficient"
+    }
+  },
+  "input": {
+    "id": "cro:R",
+    "causes": [
+      "occ:A"
+    ],
+    "effects": [
+      "occ:B"
+    ],
+    "modality": "preventive",
+    "refines": "cro:P"
+  },
+  "expect": {
+    "valid_refinement": false,
+    "reason": "a refinement may not change a field the parent specified; this is a rival claim"
+  }
+}

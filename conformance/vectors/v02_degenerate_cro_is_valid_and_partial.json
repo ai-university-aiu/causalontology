@@ -1,0 +1,27 @@
+{
+  "vector": "V02",
+  "name": "degenerate_cro_is_valid_and_partial",
+  "group": "A - schema validity",
+  "operation": "validate_schema + validate_semantics + is_partial",
+  "input": {
+    "id": "cro:demo2",
+    "causes": [
+      "occ:A"
+    ],
+    "effects": [
+      "occ:B"
+    ]
+  },
+  "expect": {
+    "schema_valid": true,
+    "semantically_valid": true,
+    "is_partial": true,
+    "missing": [
+      "mechanism",
+      "temporal",
+      "modality",
+      "context"
+    ]
+  },
+  "note": "The subsumption case: an imported bare edge as a degenerate object - a valid partial and a stigmergic gap."
+}

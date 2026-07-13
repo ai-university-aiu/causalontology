@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://causalontology.org/schema/realizable.schema.json",
+  "title": "Realizable Entity",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "bearer"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^rlz:[0-9a-f]{64}$"
+    },
+    "type": {
+      "const": "realizable"
+    },
+    "kind": {
+      "enum": [
+        "disposition",
+        "function",
+        "role"
+      ]
+    },
+    "bearer": {
+      "type": "string",
+      "pattern": "^cnt:[0-9a-f]{64}$"
+    }
+  }
+}

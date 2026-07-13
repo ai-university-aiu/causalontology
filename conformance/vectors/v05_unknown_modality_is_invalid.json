@@ -1,0 +1,20 @@
+{
+  "vector": "V05",
+  "name": "unknown_modality_is_invalid",
+  "group": "A - schema validity",
+  "operation": "validate_schema",
+  "input": {
+    "id": "cro:demo1",
+    "causes": [
+      "occ:A"
+    ],
+    "effects": [
+      "occ:B"
+    ],
+    "modality": "maybe"
+  },
+  "expect": {
+    "schema_valid": false,
+    "reason": "modality not in enumeration"
+  }
+}

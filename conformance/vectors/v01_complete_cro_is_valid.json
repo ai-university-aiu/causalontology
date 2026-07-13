@@ -1,0 +1,29 @@
+{
+  "vector": "V01",
+  "name": "complete_cro_is_valid",
+  "group": "A - schema validity",
+  "operation": "validate_schema + validate_semantics",
+  "input": {
+    "id": "cro:demo1",
+    "type": "cro",
+    "causes": [
+      "occ:press_button"
+    ],
+    "effects": [
+      "occ:light_on"
+    ],
+    "mechanism": [],
+    "temporal": {
+      "dmin": 0,
+      "dmax": 0,
+      "unit": "instant"
+    },
+    "modality": "sufficient",
+    "context": []
+  },
+  "expect": {
+    "schema_valid": true,
+    "semantically_valid": true
+  },
+  "note": "A complete Causal Relation Object carries no strength and no provenance fields; both live in assertions."
+}

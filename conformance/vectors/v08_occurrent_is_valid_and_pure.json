@@ -1,0 +1,15 @@
+{
+  "vector": "V08",
+  "name": "occurrent_is_valid_and_pure",
+  "group": "A - schema validity",
+  "operation": "validate_schema",
+  "input": {
+    "id": "occ:demo8",
+    "label": "press_button",
+    "category": "action"
+  },
+  "expect": {
+    "schema_valid": true
+  },
+  "note": "Nothing else is legal on an occurrent - its aliases arrive as signed enrichment records."
+}

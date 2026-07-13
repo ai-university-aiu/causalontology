@@ -1,0 +1,16 @@
+{
+  "vector": "V03",
+  "name": "missing_effects_is_invalid",
+  "group": "A - schema validity",
+  "operation": "validate_schema",
+  "input": {
+    "id": "cro:demo3",
+    "causes": [
+      "occ:A"
+    ]
+  },
+  "expect": {
+    "schema_valid": false,
+    "reason": "required property 'effects' missing"
+  }
+}

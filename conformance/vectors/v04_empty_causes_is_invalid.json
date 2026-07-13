@@ -1,0 +1,17 @@
+{
+  "vector": "V04",
+  "name": "empty_causes_is_invalid",
+  "group": "A - schema validity",
+  "operation": "validate_schema",
+  "input": {
+    "id": "cro:demo4",
+    "causes": [],
+    "effects": [
+      "occ:B"
+    ]
+  },
+  "expect": {
+    "schema_valid": false,
+    "reason": "causes must have at least one item"
+  }
+}

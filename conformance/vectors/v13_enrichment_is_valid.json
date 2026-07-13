@@ -1,0 +1,22 @@
+{
+  "vector": "V13",
+  "name": "enrichment_is_valid",
+  "group": "A - schema validity",
+  "operation": "validate_schema + validate_semantics",
+  "input": {
+    "id": "enr:demo13",
+    "about": "occ:press_button",
+    "field": "aliases",
+    "entry": {
+      "lang": "ja",
+      "text": "botan wo osu"
+    },
+    "source": "ed25519:bob",
+    "timestamp": "2026-07-13T00:00:00Z",
+    "signature": "<128 hex>"
+  },
+  "expect": {
+    "schema_valid": true,
+    "semantically_valid": true
+  }
+}

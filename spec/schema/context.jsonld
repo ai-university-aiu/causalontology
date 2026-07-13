@@ -1,0 +1,87 @@
+{
+  "@context": {
+    "co": "https://causalontology.org/ns#",
+    "bfo": "http://purl.obolibrary.org/obo/BFO_",
+    "ro": "http://purl.obolibrary.org/obo/RO_",
+    "prov": "http://www.w3.org/ns/prov#",
+    "cro": "co:CausalRelationObject",
+    "occurrent": {
+      "@id": "bfo:0000003"
+    },
+    "continuant": {
+      "@id": "bfo:0000002"
+    },
+    "realizable": {
+      "@id": "bfo:0000017"
+    },
+    "causes": {
+      "@id": "co:hasCause",
+      "@type": "@id"
+    },
+    "effects": {
+      "@id": "co:hasEffect",
+      "@type": "@id"
+    },
+    "mechanism": {
+      "@id": "co:hasMechanism",
+      "@type": "@id"
+    },
+    "temporal": {
+      "@id": "co:temporalWindow"
+    },
+    "modality": {
+      "@id": "co:modality"
+    },
+    "context": {
+      "@id": "co:enablingContext",
+      "@type": "@id"
+    },
+    "refines": {
+      "@id": "co:refines",
+      "@type": "@id"
+    },
+    "label": "co:canonicalLabel",
+    "category": "co:category",
+    "about": {
+      "@id": "co:about",
+      "@type": "@id"
+    },
+    "field": "co:enrichmentField",
+    "entry": "co:enrichmentEntry",
+    "realized_in": {
+      "@id": "bfo:0000054",
+      "@type": "@id"
+    },
+    "subsumes": {
+      "@id": "co:isA",
+      "@type": "@id"
+    },
+    "part_of": {
+      "@id": "bfo:0000050",
+      "@type": "@id"
+    },
+    "source": {
+      "@id": "prov:wasAttributedTo",
+      "@type": "@id"
+    },
+    "evidence_type": "co:evidenceType",
+    "evidence": "co:evidence",
+    "strength": "co:strengthEstimate",
+    "confidence": "co:confidence",
+    "timestamp": {
+      "@id": "prov:generatedAtTime"
+    },
+    "retracts": {
+      "@id": "co:retracts",
+      "@type": "@id"
+    },
+    "predecessor": {
+      "@id": "co:predecessorKey",
+      "@type": "@id"
+    },
+    "successor": {
+      "@id": "co:successorKey",
+      "@type": "@id"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "vector": "V14",
+  "name": "reversed_temporal_window_is_semantically_invalid",
+  "group": "B - semantic validity",
+  "operation": "validate_semantics",
+  "input": {
+    "id": "cro:demo1",
+    "causes": [
+      "occ:A"
+    ],
+    "effects": [
+      "occ:B"
+    ],
+    "temporal": {
+      "dmin": 6,
+      "dmax": 1,
+      "unit": "hours"
+    }
+  },
+  "expect": {
+    "schema_valid": true,
+    "semantically_valid": false,
+    "reason": "dmin must be <= dmax"
+  }
+}

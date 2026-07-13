@@ -1,0 +1,21 @@
+{
+  "vector": "V20",
+  "name": "subsumes_cycle_is_rejected_or_broken_deterministically",
+  "group": "B - semantic validity",
+  "operation": "put_record / materialized view",
+  "given": {
+    "materialized_subsumes": [
+      "cnt:dog -> cnt:mammal",
+      "cnt:mammal -> cnt:animal"
+    ]
+  },
+  "input": {
+    "field": "subsumes",
+    "about": "cnt:animal",
+    "entry": "cnt:dog"
+  },
+  "expect": {
+    "enforcing_tier": "write rejected: would create a cycle in the materialized subsumes graph",
+    "decentralized_merge": "the conformant view excludes the cycle-completing record with the latest timestamp (ties by lexicographic record identifier) and surfaces it as a repair gap"
+  }
+}

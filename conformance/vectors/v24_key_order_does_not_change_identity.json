@@ -1,0 +1,27 @@
+{
+  "vector": "V24",
+  "name": "key_order_does_not_change_identity",
+  "group": "D - identity, canonicalization, and merge",
+  "operation": "identify",
+  "inputA": {
+    "causes": [
+      "occ:A"
+    ],
+    "effects": [
+      "occ:B"
+    ],
+    "modality": "sufficient"
+  },
+  "inputB": {
+    "modality": "sufficient",
+    "effects": [
+      "occ:B"
+    ],
+    "causes": [
+      "occ:A"
+    ]
+  },
+  "expect": {
+    "equal_identifiers": true
+  }
+}

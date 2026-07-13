@@ -1,0 +1,19 @@
+{
+  "vector": "V18",
+  "name": "enrichment_field_illegal_for_kind_is_invalid",
+  "group": "B - semantic validity",
+  "operation": "validate_semantics",
+  "input": {
+    "id": "enr:demo18",
+    "about": "cnt:lamp",
+    "field": "participants",
+    "entry": "cnt:bulb",
+    "source": "ed25519:x",
+    "timestamp": "2026-07-13T00:00:00Z"
+  },
+  "expect": {
+    "schema_valid": true,
+    "semantically_valid": false,
+    "reason": "participants is not a legal field for a continuant (semantics rule 12)"
+  }
+}
