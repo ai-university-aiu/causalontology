@@ -7,7 +7,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | Binding | Registry | Status |
 |---|---|---|
 | PrologAI (`co_*` packs) | github.com/ai-university-aiu/PrologAI | reference implementation |
-| causalontology-py | Python Package Index | planned — roadmap step 2 (proves language independence) |
+| [causalontology-py](python/) | Python Package Index (publication pending) | **available — 38/38 conformance vectors pass; zero dependencies** |
 | causalontology-java | Maven Central | planned |
 | causalontology-swift | Swift Package Manager | planned |
 

@@ -189,7 +189,7 @@ causalontology/
 ## Roadmap (the Minimum Viable Product)
 
 - [x] Step 1 — publish the specification, schemas, and conformance vectors (this repository)
-- [ ] Step 2 — `causalontology-py`: the second implementation, proving language independence
+- [x] Step 2 — [`causalontology-py`](bindings/python/): the second implementation — **38/38 conformance vectors pass**; language independence is proven
 - [ ] Step 3 — the Tier A store: HTTP binding, signature verification, materialized views, quarantine
 - [ ] Step 4 — the stigmergy read: `GET /gaps` + the contribution dashboard
 - [ ] Then — Java and Swift SDKs · SPARQL endpoint · federation (Tier B) · decentralization (Tier C) · Mentova gardening the commons

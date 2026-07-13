@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "causalontology"
+version = "0.7.0"
+description = "The Python binding of the Causalontology standard - a verb-first noun-hosting ontology; a language-neutral standard and shared commons for reified causation. Zero dependencies: RFC 8785 canonicalization, SHA-256 identity, pure-Python Ed25519 (RFC 8032), schema and semantics validation, and an in-memory conformant store."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "The attribution always; no profit, no problem license. (Apache License 2.0 text)"}
+authors = [{name = "AI University (AIU)", email = "ai.university.aiu@gmail.com"}]
+keywords = ["causality", "ontology", "causal-reasoning", "knowledge-graph", "provenance", "AGI"]
+
+[project.urls]
+Homepage = "https://github.com/ai-university-aiu/causalontology"
+Specification = "https://github.com/ai-university-aiu/causalontology/tree/main/spec"
+
+[tool.setuptools.packages.find]
+include = ["causalontology*"]

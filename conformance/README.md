@@ -27,3 +27,17 @@ normative now**; the concrete bytes are pinned at freeze.
 
 Every binding must run this suite in Continuous Integration and refuse to
 publish a release that fails it.
+
+## Running the suite
+
+The Python binding ships the first executable harness:
+
+```
+python3 bindings/python/tests/run_conformance.py
+```
+
+It interprets every vector against the `causalontology` package and exits
+nonzero on any failure. Pre-freeze, it normalizes the symbolic identifiers
+deterministically (ids become `scheme:sha256(name)`, key names become real
+Ed25519 keypairs), so the normative behaviors run with well-formed data and
+real signatures.
