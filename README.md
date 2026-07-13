@@ -121,7 +121,7 @@ Every term above is explained for a newcomer in the master document: [`Causalont
 
 **Causalontology is a verb-first noun-hosting ontology.** Verb-first: the atomic building block is the occurrent — the happening — and the fundamental unit reifies the master verb, *causes*, itself; even knowing is verb-first, because knowledge enters by acting (intervention) rather than by watching. Noun-hosting: things (continuants) are first-class citizens, but they are understood through what they do and what happens to them — Causalontology *governs* the verbs and *hosts* the nouns, with realizable entities as the hinge between them.
 
-**Causalontology's purest form is a specification, not a program.** It separates the *data structure of causation and its rules* (language-neutral) from any *implementation* (Prolog, Python, Java, Swift, ...). Two familiar pictures, held together:
+**Causalontology's purest form is a specification, not a program.** It separates the *data structure of causation and its rules* (language-neutral) from any *implementation* (Prolog, Python, JavaScript, Rust, Java, Swift, Go, ...). Two familiar pictures, held together:
 
 - **A standard** — like a W3C or IETF specification: a normative document plus a conformance test suite, with independent implementations that all agree because they all pass the same tests.
 - **A commons** — like Wikidata, specialized to causation: one shared, world-wide, provenance-first store of causal knowledge that developers everywhere (and autonomous minds) draw from and contribute to.
@@ -160,33 +160,48 @@ Four **provenance kinds** — signed (Ed25519), add-only records:
 
 That third document — a *degenerate* CRO, just cause and effect — is already valid, and the store lists it as a **gap** inviting enrichment (`GET /gaps?kind=missing_field`). Someone (or some mind) later `refines` it with a temporal window and modality, and the gap visibly closes. That is **stigmergy**: the structure's own partiality guides the next contribution. Full walkthrough: [`examples/quickstart.md`](examples/quickstart.md).
 
+## Install (one line, your language)
+
+| Language | Command |
+|---|---|
+| Python | `pip install causalontology` |
+| JavaScript / TypeScript | `npm install causalontology` (typings included) |
+| Rust | `cargo add causalontology` |
+| Java | `io.github.ai-university-aiu:causalontology:1.0.0` (Maven Central) |
+| Swift | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "1.0.0")` |
+| Go | `go get github.com/ai-university-aiu/causalontology/bindings/go@v1.0.0` |
+
+All published at **specification 1.0.0** (vectors frozen 2026-07-13); the WebAssembly core is attached to the [v1.0.0 release](https://github.com/ai-university-aiu/causalontology/releases/tag/v1.0.0). Details and status: [PUBLISHING.md](PUBLISHING.md).
+
 ## Repository layout
 
 ```
 causalontology/
   Causalontology_Standalone_Design_v11.txt   the canon (complete, lay-readable)
-  spec/
-    causalontology.md      normative core
-    identity.md            RFC 8785 + SHA-256 identity, merge semantics
-    semantics.md           the 13 rules beyond the schemas
-    provenance.md          signatures, evidence grading, retraction, succession
-    store.md               operations, HTTP binding, query, resolve, tiers
-    safety.md              abuse resistance, claims of consequence, takedown
-    schema/                8 JSON Schemas + JSON-LD context + optional Protobuf
-  conformance/vectors/     38 language-neutral test cases (the meaning of "correct")
-  bindings/                per-language SDKs (PrologAI is the reference)
-  store/server/            Tier A reference store (planned)
-  store/stigmergy/         gap signals + contribution dashboard (planned)
-  examples/                the four-language quickstart
-  GOVERNANCE.md            semantic versioning, the enumeration rule, change process
-  LICENSE · DATA_LICENSE · NOTICE
+  spec/                    normative core, identity, semantics, provenance,
+                           store, safety; schema/ = 8 JSON Schemas + JSON-LD
+                           context + Protobuf + the OWL mapping (BFO/RO/PROV)
+  conformance/             the 38 FROZEN vectors (specification 1.0.0) + the
+                           freeze tool; the meaning of "correct"
+  bindings/                python · javascript (+ TypeScript typings) · rust
+                           (+ the WebAssembly core) · java · swift · go —
+                           all conformant; PrologAI is the reference
+  store/server/            Tier A store (live), SPARQL subset, N-Triples
+                           export, reputation, Tier B federation, Tier C
+                           offline replication + the test suites
+  store/stigmergy/         the contribution dashboard (served at /dashboard)
+  examples/                the quickstart + the Mentova gardener (the first
+                           synthetic mind contributing to the commons)
+  .github/workflows/       8 CI gates: every implementation, every push
+  archive/                 superseded editions of versioned documents
+  GOVERNANCE.md · PUBLISHING.md · LICENSE · DATA_LICENSE · NOTICE
 ```
 
 ## Conformance
 
-**An implementation is Causalontology-conformant if and only if it passes every vector in [`conformance/vectors/`](conformance/vectors/) for the specification version it declares.** That single rule is how Prolog, Python, Java, and Swift agree without sharing a line of code — down to the length of a month (2,629,746 seconds) and the ranking of a `resolve()`.
+**An implementation is Causalontology-conformant if and only if it passes every vector in [`conformance/vectors/`](conformance/vectors/) for the specification version it declares.** That single rule is how seven implementations in seven languages — Prolog, Python, JavaScript, Rust, Java, Swift, and Go — agree without sharing a line of code — down to the length of a month (2,629,746 seconds) and the ranking of a `resolve()`.
 
-## Roadmap (the Minimum Viable Product)
+## Roadmap — built, proven, and shipped
 
 - [x] Step 1 — publish the specification, schemas, and conformance vectors (this repository)
 - [x] Step 2 — [`causalontology-py`](bindings/python/): the second implementation — **38/38 conformance vectors pass**; language independence is proven
@@ -224,7 +239,7 @@ Before the public launch, contributions land through the change process in `GOVE
 
 ## Citation
 
-> D. R. Dison. *Causalontology: AGI's Missing Link* — the Standalone Standard and the Shared Commons, Version 6 (Book Edition). AI University (AIU), 2026. github.com/ai-university-aiu/causalontology
+> D. R. Dison. *Causalontology: AGI's Missing Link* — the Standalone Standard and the Shared Commons, Version 11 (Release Edition), specification 1.0.0. AI University (AIU), 2026. github.com/ai-university-aiu/causalontology
 
 ## Author
 
