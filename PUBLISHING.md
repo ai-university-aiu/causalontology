@@ -11,15 +11,15 @@ stored on the build machine, by design).
 |---|---|---|
 | GitHub Release v1.0.0 | **live** - carries the wheel, sdist, npm tarball, crate, and the WebAssembly core | the repository's Releases page |
 | Swift Package Manager | **live** - SwiftPM resolves git tags directly | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "1.0.0")` |
+| npm | **live** (published 2026-07-13) | `npm install causalontology` — https://www.npmjs.com/package/causalontology |
 | PyPI | **live** (published 2026-07-13) | `pip install causalontology` — https://pypi.org/project/causalontology/ |
 | crates.io | **live** (published 2026-07-13) | `cargo add causalontology` — https://crates.io/crates/causalontology |
 | Go modules / pkg.go.dev | **live** - Go resolves module tags directly (`bindings/go/v1.0.0`) | `go get github.com/ai-university-aiu/causalontology/bindings/go@v1.0.0` |
 
-## Awaiting the owner's account (artifacts built and attached to the release)
+## Awaiting the owner's account (one remains)
 
 | Registry | Artifact | The one command (run after logging in) |
 |---|---|---|
-| npm | `causalontology-1.0.0.tgz` | `cd bindings/javascript && npm publish` |
 | Maven Central | build from `bindings/java/pom.xml` | the Sonatype Central ceremony (account + GPG signing + `mvn deploy`); the pom carries all required metadata |
 
 Name-collision note, stated plainly: if the bare name `causalontology` is
