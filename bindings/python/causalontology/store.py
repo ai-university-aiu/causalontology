@@ -10,7 +10,7 @@ cycle-breaking view rule; and the stigmergy gap read.
 from .canonical import identify, infer_kind, KIND_OF_PREFIX
 from .schema import validate_schema
 from .semantics import (validate_semantics, refinement_valid, is_partial,
-                        ENRICHMENT_FIELDS)
+                        conflicts, ENRICHMENT_FIELDS)
 from .signing import verify_record
 
 CONTENT_KINDS = {"occurrent", "cro", "continuant", "realizable"}
@@ -281,6 +281,30 @@ class InMemoryStore:
                 out.append({"id": rec["id"], "kind": "inconsistent_hierarchy",
                             "note": "excluded by the deterministic "
                                     "cycle-breaking view rule"})
+        # dangling_reference: a reference to an object absent from the store -
+        # the red link that says "this page is wanted".
+        for oid, obj in self.objects.items():
+            refs = []
+            if obj.get("type") == "cro":
+                refs = (list(obj.get("causes", []))
+                        + list(obj.get("effects", []))
+                        + list(obj.get("context", []))
+                        + list(obj.get("mechanism", [])))
+                if obj.get("refines"):
+                    refs.append(obj["refines"])
+            elif obj.get("type") == "realizable":
+                refs = [obj.get("bearer")]
+            for ref in refs:
+                if ref and ref not in self.objects:
+                    out.append({"id": oid, "kind": "dangling_reference",
+                                "ref": ref})
+        # conflict: pairs of claims satisfying the formal test (rule 6).
+        cros = [o for o in self.objects.values() if o.get("type") == "cro"]
+        for i in range(len(cros)):
+            for j in range(i + 1, len(cros)):
+                if conflicts(cros[i], cros[j]):
+                    out.append({"kind": "conflict",
+                                "a": cros[i]["id"], "b": cros[j]["id"]})
         if kind is not None:
             out = [g for g in out if g["kind"] == kind]
         return out
