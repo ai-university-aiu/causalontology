@@ -19,3 +19,14 @@
 - The takedown procedure (spec/safety.md) is part of governance; every
   takedown and every registry re-binding after key compromise is publicly
   logged.
+
+## The archive rule
+
+Old versions of versioned documents never remain at their published location.
+Whenever a new version of a versioned document is created (the Standalone
+Design canon, or any future versioned series), the superseded version is moved
+into `archive/` **in the same change**, and only the latest version of each
+series lives outside `archive/`. On every document update, sweep for
+stragglers: if more than one version of a series is present outside
+`archive/`, move all but the highest version in. Nothing is deleted — the
+archive is the lineage.
