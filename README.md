@@ -40,6 +40,57 @@
 
 <p align="center"><sub>Benchmark scores by the reference implementation, PrologAI, on the public training sets — pure symbolic induction, no LLM.</sub></p>
 
+<details>
+<summary align="center"><b>What do these badges mean? — a plain-language guide to every ribbon (click to open)</b></summary>
+
+<br>
+
+Each badge above is a claim, and every claim deserves a plain explanation. Here they are, row by row, written for a newcomer. (The colors follow a uniform code: **gold** marks the highest honors, **dark red** is the field color, **crimson** marks distinction, and the ambers and bronzes mark the standard's machinery.)
+
+**Row 1 — The Honors**
+
+- **`ARC-AGI-1 | 400/400=100%`** — ARC-AGI stands for the *Abstraction and Reasoning Corpus for Artificial General Intelligence*: a famous series of public tests designed to measure whether a machine can genuinely reason about puzzles it has never seen, rather than repeat patterns it memorized. This badge says that Causalontology's reference implementation, **PrologAI**, solved **all 400 of 400** tasks in the first benchmark's public training set — a perfect score — using *pure symbolic induction*: readable logic rules discovered from the puzzle examples, with **no Large Language Model** (no LLM — the text-predicting technology behind modern chatbots) involved at all. The badge links to PrologAI so you can inspect the work.
+
+- **`ARC-AGI-2 | 120/120=100%`** — the same story for the second, harder generation of the benchmark: **all 120 of 120** public tasks solved, a perfect score, by the same glass-box symbolic methods. (Honesty note, exactly as the fine print says: both scores are on the *public training sets* — the openly published task collections — stated precisely and without inflation.)
+
+- **`WORLD'S FIRST | REIFIED CAUSATION ONTOLOGY STANDARD`** — the centerpiece claim. To **reify** means to turn an idea into a thing you can hold, name, and examine — here, turning "A causes B" from a bare arrow into a full object carrying its timing, its strength, its conditions, and its evidence. An **ontology** is an organized inventory of what exists and how things relate. A **standard** is a published specification anyone can implement, in any programming language, with a shared test suite deciding what counts as correct. This badge claims Causalontology is the first to deliver all three in one: causation, made into first-class objects, as an open standard.
+
+**Row 2 — The Standard**
+
+- **`CONFORMANCE VECTORS | 38`** — a *conformance vector* is a published test case: an input and the exact result a correct implementation must produce. There are 38 of them in this repository, and the rule is simple: an implementation is Causalontology-conformant **if and only if it passes every one**. This is how a Python version, a Java version, and a Prolog version can all be guaranteed to agree without sharing a single line of code.
+
+- **`OBJECT KINDS | 8`** — everything in Causalontology is one of exactly eight kinds of object: four *content* kinds (the occurrent — a happening; the Causal Relation Object — a causal claim; the continuant — an enduring thing; the realizable — a disposition, function, or role) and four *provenance* kinds (the assertion, enrichment, retraction, and succession — the signed records saying who claims, adds, withdraws, or rotates what). Eight kinds, no exceptions — a small, learnable vocabulary for all causal knowledge.
+
+- **`LOCKED DECISIONS | 27`** — the specification records 27 design decisions as *locked*: settled on purpose, in writing, so builders can proceed without the ground shifting under them. Changing one requires a formal, versioned process — not a quiet edit.
+
+**Row 3 — The Foundations**
+
+- **`CANONICAL | RFC 8785`** — an RFC (*Request for Comments*) is a published internet standard. RFC 8785 defines one exact, byte-for-byte way to write a piece of JSON data, so that the same information always produces the same bytes regardless of who wrote it or how they formatted it. Causalontology uses it so that identity can never depend on formatting accidents.
+
+- **`IDENTITY | SHA-256`** — SHA-256 (the *Secure Hash Algorithm, 256-bit*) is a mathematical fingerprint function: feed it any content and it produces a unique fixed-length code, and any change to the content changes the code. In Causalontology, **an object's identity IS the fingerprint of its content** — which means two strangers anywhere on Earth who express the same causal claim automatically produce the same identifier, and their contributions merge with no coordinator.
+
+- **`SIGNED | ED25519`** — Ed25519 is a fast, widely trusted *digital signature* scheme. A signature is mathematical proof that a specific keyholder — and nobody else — produced a record. In Causalontology every assertion, every added word, every retraction is signed, so every piece of knowledge in the commons has a verifiable author, and forging someone else's contribution is impossible.
+
+- **`JSON-LD | LINKED DATA`** — JSON-LD (*JSON for Linked Data*) is a way of writing ordinary JSON so that it is simultaneously valid *linked data* — the web-standard format that lets knowledge from different sources connect into one global graph (the technology family behind Wikidata). Causalontology data speaks that language natively, so it can plug into the wider knowledge ecosystem for free.
+
+**Row 4 — The Character**
+
+- **`GLASS BOX | ALWAYS`** — a *black box* gives you an answer but hides its reasons; a **glass box** lets you see every step. Everything here is inspectable: every claim traces to a named rule and a signed author, and you can always ask "why?" and get a readable answer. This is the project's deepest commitment.
+
+- **`STIGMERGY | BUILT IN`** — *stigmergy* is coordination through the shared environment itself: the way a half-built wall shows the next worker exactly where the next brick goes. In Causalontology, incomplete knowledge is visible and queryable — a claim missing its timing, a term nobody has defined, two claims that contradict — so the store itself continuously announces what most needs doing next, and any contributor (human or machine mind) can ask for the most valuable gap and fill it.
+
+- **`EVIDENCE | ACTING > WATCHING`** — Causalontology grades its evidence, and the top grade is **intervention**: the source *acted* and observed what followed, like a child flipping a switch rather than staring at it. Acting breaks the ambiguity that haunts pure observation — a coincidence in the data cannot survive your own hand on the switch. Every piece of knowledge carries its evidence grade, so consumers can weigh doing above watching.
+
+**Row 5 — The Lineage**
+
+- **`FLAGSHIP APPLICATION | MENTOVA PROLOGAI`** — **PrologAI** is the glass-box cognitive architecture that serves as Causalontology's reference implementation, and **Mentova** is the synthetic mind built on it — the first full application of this ontology, and one day the first machine mind to read the commons' gaps and contribute causal knowledge back. The badge links to Mentova.
+
+- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v6.txt`](Causalontology_Standalone_Design_v6.txt).
+
+- **`LICENSE | ATTRIBUTION ALWAYS; NO PROFIT, NO PROBLEM`** — the project's license, in its own words: credit the source always, and using it without profit is never a problem. It is the friendly name for the Apache License 2.0 text (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)), one license covering everything here — the code, the data, the specification, and the architecture.
+
+</details>
+
 # Causalontology
 
 **A language-neutral standard and a shared global commons for reified causation — the data-structure layer of the book *Causalontology: AGI's Missing Link*.**
