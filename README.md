@@ -4,9 +4,9 @@
 
 <!-- THE RACK — ROW 1: THE HONORS -->
 <p align="center">
-  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--1-400%2F400-FFD700?style=for-the-badge&labelColor=8B0000" alt="ARC-AGI-1 400/400"></a>
-  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--2-120%2F120-FFD700?style=for-the-badge&labelColor=8B0000" alt="ARC-AGI-2 120/120"></a>
-  <img src="https://img.shields.io/badge/WORLD%27S_FIRST-REIFIED_CAUSATION_STANDARD-DC143C?style=for-the-badge&labelColor=FFD700" alt="World's First — Reified Causation Standard">
+  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--1-400%2F400%3D100%25-FFD700?style=for-the-badge&labelColor=8B0000" alt="ARC-AGI-1 400/400=100%"></a>
+  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--2-120%2F120%3D100%25-FFD700?style=for-the-badge&labelColor=8B0000" alt="ARC-AGI-2 120/120=100%"></a>
+  <img src="https://img.shields.io/badge/WORLD%27S_FIRST-REIFIED_CAUSATION_ONTOLOGY_STANDARD-DC143C?style=for-the-badge&labelColor=FFD700" alt="World's First — Reified Causation Ontology Standard">
 </p>
 
 <!-- ROW 2: THE STANDARD -->
@@ -27,14 +27,13 @@
 <!-- ROW 4: THE CHARACTER -->
 <p align="center">
   <img src="https://img.shields.io/badge/GLASS_BOX-ALWAYS-FFD700?style=for-the-badge&labelColor=8B0000" alt="Glass Box Always">
-  <img src="https://img.shields.io/badge/ATTRIBUTION-ALWAYS-8B0000?style=for-the-badge&labelColor=FFD700" alt="Attribution Always">
   <img src="https://img.shields.io/badge/STIGMERGY-BUILT_IN-FF8C00?style=for-the-badge&labelColor=8B0000" alt="Stigmergy Built In">
   <img src="https://img.shields.io/badge/EVIDENCE-ACTING_%3E_WATCHING-B22222?style=for-the-badge&labelColor=FFD700" alt="Evidence: Acting over Watching">
 </p>
 
 <!-- ROW 5: THE LINEAGE -->
 <p align="center">
-  <a href="https://github.com/ai-university-aiu/Mentova"><img src="https://img.shields.io/badge/FLAGSHIP_MIND-MENTOVA-DC143C?style=for-the-badge&labelColor=DAA520" alt="Flagship Mind: Mentova"></a>
+  <a href="https://github.com/ai-university-aiu/Mentova"><img src="https://img.shields.io/badge/FLAGSHIP_APPLICATION-MENTOVA_PROLOGAI-DC143C?style=for-the-badge&labelColor=DAA520" alt="Flagship Application: Mentova PrologAI"></a>
   <img src="https://img.shields.io/badge/BOOK-AGI%27S_MISSING_LINK-FFD700?style=for-the-badge&labelColor=8B0000" alt="Book: AGI's Missing Link">
   <img src="https://img.shields.io/badge/LICENSE-ATTRIBUTION_ALWAYS%3B_NO_PROFIT%2C_NO_PROBLEM-DAA520?style=for-the-badge&labelColor=8B0000" alt="License: Attribution always; no profit, no problem">
 </p>
