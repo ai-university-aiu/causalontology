@@ -208,7 +208,7 @@ causalontology/
   - [x] [TypeScript](bindings/javascript/) — hand-written strict typings over the verified JS binding (no logic duplication, no drift); **tsc-verified locally**
   - [x] [Go SDK](bindings/go/) — zero dependencies (Go's standard library carries Ed25519 natively); **verified by the conformance CI** (no local Go toolchain)
   - Contributed implementations welcome — the 38 vectors are the gate (C#, Ruby, PHP, Kotlin, ...)
-- [x] The ceremony — **specification 1.0.0**: the [vector freeze](conformance/freeze_1_0_0.py) pinned concrete bytes into all 38 vectors (real identifiers, real keys, a real verifying signature); every manifest bumped to 1.0.0; tagged `v1.0.0` with a GitHub Release carrying the built artifacts; SwiftPM and Go modules live via tags; PyPI / npm / crates.io / Maven artifacts built and documented in [PUBLISHING.md](PUBLISHING.md) awaiting the owner's registry accounts
+- [x] The ceremony — **specification 1.0.0**: the [vector freeze](conformance/freeze_1_0_0.py) pinned concrete bytes into all 38 vectors (real identifiers, real keys, a real verifying signature); every manifest bumped to 1.0.0; tagged `v1.0.0` with a GitHub Release carrying the built artifacts; SwiftPM and Go modules live via tags; and **all seven distribution channels live the same day** — crates.io, PyPI, npm, Maven Central, SwiftPM, Go modules, and the GitHub Release ([PUBLISHING.md](PUBLISHING.md))
 
 ## Governance
 

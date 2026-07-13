@@ -14,13 +14,14 @@ stored on the build machine, by design).
 | npm | **live** (published 2026-07-13) | `npm install causalontology` — https://www.npmjs.com/package/causalontology |
 | PyPI | **live** (published 2026-07-13) | `pip install causalontology` — https://pypi.org/project/causalontology/ |
 | crates.io | **live** (published 2026-07-13) | `cargo add causalontology` — https://crates.io/crates/causalontology |
+| Maven Central | **live** (published 2026-07-13) | `io.github.ai-university-aiu:causalontology:1.0.0` — https://repo1.maven.org/maven2/io/github/ai-university-aiu/causalontology/1.0.0/ |
 | Go modules / pkg.go.dev | **live** - Go resolves module tags directly (`bindings/go/v1.0.0`) | `go get github.com/ai-university-aiu/causalontology/bindings/go@v1.0.0` |
 
-## Awaiting the owner's account (one remains)
+## Nothing awaits: every channel is live
 
-| Registry | Artifact | The one command (run after logging in) |
-|---|---|---|
-| Maven Central | build from `bindings/java/pom.xml` | the Sonatype Central ceremony (account + GPG signing + `mvn deploy`); the pom carries all required metadata |
+All seven distribution channels published on 2026-07-13. The build recipe
+for Maven (JDK tarball, three jars, GPG-signed bundle, the Central
+Publisher API) is recorded in the repository history for the next release.
 
 Name-collision note, stated plainly: if the bare name `causalontology` is
 already claimed on a registry, publish under the organization scope instead
