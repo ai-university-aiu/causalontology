@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/causalontology-banner.svg" alt="Causalontology — placeholder banner (replace with the custom Causalontology image)" width="100%">
+  <img src="assets/Causalontology_754x176.png" alt="Causalontology" width="754">
 </p>
 
 # Causalontology
@@ -118,7 +118,7 @@ Before the public launch, contributions land through the change process in `GOVE
 
 ## License
 
-**"The attribution always; no profit, no problem license."** — the friendly name for the [Apache License 2.0](LICENSE), the same license carried by PrologAI and Mentova: attribution (the [`NOTICE`](NOTICE) file) is always required, and use without profit is never a problem. Data contributed to the commons: see [`DATA_LICENSE`](DATA_LICENSE).
+**"The attribution always; no profit, no problem license."** — one license for everything in this repository and its commons: the code, the data, the specification, and the architecture. It is the friendly name for the [Apache License 2.0](LICENSE) text, the same license carried by PrologAI and Mentova: attribution (the [`NOTICE`](NOTICE) file) is always required, and use without profit is never a problem. The data license ([`DATA_LICENSE`](DATA_LICENSE)) carries the same terms, by the owner's decision of 2026-07-13.
 
 ## Citation
 

@@ -1,10 +1,15 @@
-DATA LICENSE — STATUS NOTE
+DATA LICENSE
 
-The design document (Part 12) proposes Creative Commons Zero (CC0), the
-public-domain dedication used by Wikidata, for the DATA contributed to the
-Causalontology commons, with attribution surviving as built-in provenance
-rather than as a legal obligation.
+All data contributed to the Causalontology commons - every content object and
+every provenance record - is licensed under "The attribution always; no
+profit, no problem license.": the same terms as the repository LICENSE file
+(the Apache License, Version 2.0 text, as carried by PrologAI and Mentova).
 
-Until the owner finalizes the data license before public launch, data in
-this repository is covered by the repository LICENSE ("The attribution
-always; no profit, no problem license." — Apache License 2.0).
+Attribution is always required - and in Causalontology it is also built into
+the data itself, because every record carries its signed source.
+
+Owner's decision, 2026-07-13: this single license applies to ALL of it - the
+code, the data, the specification, and the architecture. It supersedes the
+Creative Commons Zero proposal in Part 12 of the design document
+(Causalontology_Standalone_Design_v6.txt), which remains in that document as
+the historical design record.
