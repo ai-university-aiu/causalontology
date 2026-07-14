@@ -7,8 +7,8 @@
 # the SIGNING KEY IS THE 32-BYTE SEED itself -- sodium derives the key
 # pair internally (crypto_sign_seed_keypair). The argument orders, as
 # documented by the sodium package, are:
-#   sodium::sig_pubkey(key)             key = 32-byte seed -> 32-byte public
-#   sodium::sig_sign(msg, key)          message FIRST, then the seed
+#   sodium::sig_pubkey(key)             key = 64-byte secret -> 32-byte public
+#   sodium::sig_sign(msg, key)          message FIRST, then the 64-byte secret
 #   sodium::sig_verify(msg, sig, pubkey)
 # sig_verify THROWS an error on a bad signature instead of returning
 # FALSE, so it is wrapped in tryCatch below. The RFC 8032 TEST 1
@@ -26,11 +26,15 @@ co_ed25519_verify <- function(message, signature, public) {
            error = function(e) FALSE)
 }
 
-# list(secret = <32-byte raw seed>, public = "ed25519:<hex>") from a seed.
+# list(secret = <64-byte libsodium secret key>, public = "ed25519:<hex>")
+# from a 32-byte seed. The sodium R package works with the full 64-byte
+# libsodium secret key (seed || public); sig_keygen(seed) performs the
+# crypto_sign_seed_keypair expansion deterministically.
 co_keypair_from_seed <- function(seed32) {
   stopifnot(is.raw(seed32), length(seed32) == 32L)
-  public <- sodium::sig_pubkey(seed32)
-  list(secret = seed32, public = paste0("ed25519:", co_bin2hex(public)))
+  secret <- sodium::sig_keygen(seed = seed32)
+  public <- sodium::sig_pubkey(secret)
+  list(secret = secret, public = paste0("ed25519:", co_bin2hex(public)))
 }
 
 # Return the record completed with its id and Ed25519 signature.

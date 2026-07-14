@@ -155,6 +155,7 @@ internal_checks <- function() {
   sk <- co_hex2bin(paste0(
     "9d61b19deffd5a60ba844af492ec2cc4",
     "4449c5697b326919703bac031cae7f60"))
+  sk <- sodium::sig_keygen(seed = sk)  # expand the 32-byte seed to the 64-byte secret
   pk <- sodium::sig_pubkey(sk)
   expected <- paste0(
     "d75a980182b10ab7d54bfed3c964073a",
