@@ -59,4 +59,4 @@ machine; each publish is one account + one command.
 |---|---|---|
 | Zig packages | zig | **live by git tag** — Zig consumes git URLs + build.zig.zon; the v1.0.0 tag serves it |
 | C++ | cpp | source + GitHub release; vcpkg/Conan port manifests are a welcome contribution |
-| Julia General registry | julia | registration is a pull-request review process (JuliaRegistries/General) — stated plainly; Project.toml is ready |
+| Julia General registry | julia | **registration PR open: [JuliaRegistries/General#161292](https://github.com/JuliaRegistries/General/pull/161292)** (2026-07-14). New packages wait a mandatory ~3 days; if the automated AutoMerge checks pass, it merges without human action — then `pkg> add Causalontology` |
