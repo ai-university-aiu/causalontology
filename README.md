@@ -4,38 +4,38 @@
 
 <!-- THE RACK — ROW 1: THE HONORS -->
 <p align="center">
-  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--1-400%2F400%3D100%25-FFD700?style=for-the-badge&labelColor=8B0000" alt="ARC-AGI-1 400/400=100%"></a>
-  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--2-120%2F120%3D100%25-FFD700?style=for-the-badge&labelColor=8B0000" alt="ARC-AGI-2 120/120=100%"></a>
-  <img src="https://img.shields.io/badge/WORLD%27S_FIRST-REIFIED_CAUSATION_ONTOLOGY_STANDARD-DC143C?style=for-the-badge&labelColor=FFD700" alt="World's First — Reified Causation Ontology Standard">
+  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--1-400%2F400%3D100%25-FFD700?style=for-the-badge" alt="ARC-AGI-1 400/400=100%"></a>
+  <a href="https://github.com/ai-university-aiu/PrologAI"><img src="https://img.shields.io/badge/ARC--AGI--2-120%2F120%3D100%25-FFD700?style=for-the-badge" alt="ARC-AGI-2 120/120=100%"></a>
+  <img src="https://img.shields.io/badge/WORLD%27S_FIRST-REIFIED_CAUSATION_ONTOLOGY_STANDARD-DC143C?style=for-the-badge" alt="World's First — Reified Causation Ontology Standard">
 </p>
 
 <!-- ROW 2: THE STANDARD -->
 <p align="center">
-  <img src="https://img.shields.io/badge/CONFORMANCE_VECTORS-38-DAA520?style=for-the-badge&labelColor=8B0000" alt="Conformance Vectors 38">
-  <img src="https://img.shields.io/badge/OBJECT_KINDS-8-FF8C00?style=for-the-badge&labelColor=8B0000" alt="Object Kinds 8">
-  <img src="https://img.shields.io/badge/LOCKED_DECISIONS-27-B22222?style=for-the-badge&labelColor=FFD700" alt="Locked Decisions 27">
+  <img src="https://img.shields.io/badge/CONFORMANCE_VECTORS-38-DAA520?style=for-the-badge" alt="Conformance Vectors 38">
+  <img src="https://img.shields.io/badge/OBJECT_KINDS-8-FF8C00?style=for-the-badge" alt="Object Kinds 8">
+  <img src="https://img.shields.io/badge/LOCKED_DECISIONS-27-B22222?style=for-the-badge" alt="Locked Decisions 27">
 </p>
 
 <!-- ROW 3: THE FOUNDATIONS -->
 <p align="center">
-  <img src="https://img.shields.io/badge/CANONICAL-RFC_8785-CD7F32?style=for-the-badge&labelColor=8B0000" alt="Canonical RFC 8785">
-  <img src="https://img.shields.io/badge/IDENTITY-SHA--256-FF4500?style=for-the-badge&labelColor=8B0000" alt="Identity SHA-256">
-  <img src="https://img.shields.io/badge/SIGNED-ED25519-DC143C?style=for-the-badge&labelColor=8B0000" alt="Signed Ed25519">
-  <img src="https://img.shields.io/badge/JSON--LD-LINKED_DATA-F4C430?style=for-the-badge&labelColor=8B0000" alt="JSON-LD Linked Data">
+  <img src="https://img.shields.io/badge/CANONICAL-RFC_8785-CD7F32?style=for-the-badge" alt="Canonical RFC 8785">
+  <img src="https://img.shields.io/badge/IDENTITY-SHA--256-FF4500?style=for-the-badge" alt="Identity SHA-256">
+  <img src="https://img.shields.io/badge/SIGNED-ED25519-DC143C?style=for-the-badge" alt="Signed Ed25519">
+  <img src="https://img.shields.io/badge/JSON--LD-LINKED_DATA-F4C430?style=for-the-badge" alt="JSON-LD Linked Data">
 </p>
 
 <!-- ROW 4: THE CHARACTER -->
 <p align="center">
-  <img src="https://img.shields.io/badge/GLASS_BOX-ALWAYS-FFD700?style=for-the-badge&labelColor=8B0000" alt="Glass Box Always">
-  <img src="https://img.shields.io/badge/STIGMERGY-BUILT_IN-FF8C00?style=for-the-badge&labelColor=8B0000" alt="Stigmergy Built In">
-  <img src="https://img.shields.io/badge/EVIDENCE-ACTING_%3E_WATCHING-B22222?style=for-the-badge&labelColor=FFD700" alt="Evidence: Acting over Watching">
+  <img src="https://img.shields.io/badge/GLASS_BOX-ALWAYS-FFD700?style=for-the-badge" alt="Glass Box Always">
+  <img src="https://img.shields.io/badge/STIGMERGY-BUILT_IN-FF8C00?style=for-the-badge" alt="Stigmergy Built In">
+  <img src="https://img.shields.io/badge/EVIDENCE-ACTING_%3E_WATCHING-B22222?style=for-the-badge" alt="Evidence: Acting over Watching">
 </p>
 
 <!-- ROW 5: THE LINEAGE -->
 <p align="center">
-  <a href="https://github.com/ai-university-aiu/Mentova"><img src="https://img.shields.io/badge/FLAGSHIP_APPLICATION-MENTOVA_PROLOGAI-DC143C?style=for-the-badge&labelColor=DAA520" alt="Flagship Application: Mentova PrologAI"></a>
-  <img src="https://img.shields.io/badge/BOOK-AGI%27S_MISSING_LINK-FFD700?style=for-the-badge&labelColor=8B0000" alt="Book: AGI's Missing Link">
-  <img src="https://img.shields.io/badge/LICENSE-ATTRIBUTION_ALWAYS%3B_NO_PROFIT%2C_NO_PROBLEM-DAA520?style=for-the-badge&labelColor=8B0000" alt="License: Attribution always; no profit, no problem">
+  <a href="https://github.com/ai-university-aiu/Mentova"><img src="https://img.shields.io/badge/FLAGSHIP_APPLICATION-MENTOVA_PROLOGAI-DC143C?style=for-the-badge" alt="Flagship Application: Mentova PrologAI"></a>
+  <img src="https://img.shields.io/badge/BOOK-AGI%27S_MISSING_LINK-FFD700?style=for-the-badge" alt="Book: AGI's Missing Link">
+  <img src="https://img.shields.io/badge/LICENSE-ATTRIBUTION_ALWAYS%3B_NO_PROFIT%2C_NO_PROBLEM-DAA520?style=for-the-badge" alt="License: Attribution always; no profit, no problem">
 </p>
 
 <p align="center"><sub>Benchmark scores by the reference implementation, PrologAI, on the public training sets — pure symbolic induction, no LLM.</sub></p>
