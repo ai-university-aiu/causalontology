@@ -19,7 +19,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | [causalontology-lua](lua/) | LuaRocks (publication pending) | **verified locally — 38/38**; pure-Lua crypto incl. a hand-built bignum layer (288/288 cross-checks vs Python) |
 | [causalontology-ruby](ruby/) | **[RubyGems — LIVE](https://rubygems.org/gems/causalontology)** (`gem install causalontology`) | **published 1.0.0 — 38/38 in CI**; stdlib only |
 | [causalontology-php](php/) | Packagist (publication pending) | source complete, bundled sodium/hash only — **verified in CI** |
-| [causalontology-elixir](elixir/) | Hex (publication pending) | source complete, OTP :crypto only — **verified in CI** |
+| [causalontology-elixir](elixir/) | **[Hex — LIVE](https://hex.pm/packages/causalontology)** (`{:causalontology, "~> 1.0"}`) | **published 1.0.0 — 38/38 in CI**; OTP :crypto only |
 | [causalontology-haskell](haskell/) | Hackage (publication pending) | source complete, GHC-bundled packages only, pure-Haskell SHA-2 + Ed25519 — **verified in CI** |
 | [causalontology-r](r/) | CRAN (submission is a human-review process, stated plainly) | source complete (sodium + openssl CRAN packages) — **verified in CI** |
 | [causalontology-cpp](cpp/) | source + release (vcpkg/Conan manifests welcome) | **verified locally — 38/38, zero warnings**; zero dependencies incl. a hand-built uint64-limb bignum (361/361 cross-checks vs Python) |

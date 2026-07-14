@@ -13,6 +13,7 @@ stored on the build machine, by design).
 | Swift Package Manager | **live** - SwiftPM resolves git tags directly | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "1.0.0")` |
 | NuGet | **live** (published 2026-07-14) | `dotnet add package causalontology` — https://www.nuget.org/packages/causalontology |
 | RubyGems | **live** (published 2026-07-14, via the publish workflow) | `gem install causalontology` — https://rubygems.org/gems/causalontology |
+| Hex | **live** (published 2026-07-14, via the publish workflow) | `{:causalontology, "~> 1.0"}` — https://hex.pm/packages/causalontology |
 | npm | **live** (published 2026-07-13) | `npm install causalontology` — https://www.npmjs.com/package/causalontology |
 | PyPI | **live** (published 2026-07-13) | `pip install causalontology` — https://pypi.org/project/causalontology/ |
 | crates.io | **live** (published 2026-07-13) | `cargo add causalontology` — https://crates.io/crates/causalontology |
@@ -46,7 +47,6 @@ machine; each publish is one account + one command.
 |---|---|---|
 | Packagist | php | submit the repository URL at packagist.org (it reads composer.json) |
 | pub.dev | dart | `cd bindings/dart && dart pub publish` |
-| Hex | elixir | `cd bindings/elixir && mix hex.publish` |
 | Hackage | haskell | `cd bindings/haskell && cabal sdist && cabal upload --publish dist-newstyle/sdist/*.tar.gz` |
 | CPAN | perl | PAUSE account, then upload the dist tarball at pause.perl.org |
 | CRAN | r | a human-review submission process (cran.r-project.org/submit.html) — stated plainly |
