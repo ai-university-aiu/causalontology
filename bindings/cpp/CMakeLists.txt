@@ -1,11 +1,14 @@
-# CMakeLists.txt - a minimal build for downstream consumers of
-# causalontology-cpp. Not used by run_conformance.sh (which invokes g++
-# directly); provided so the library can be embedded with add_subdirectory.
+# causalontology-cpp - the C++ binding of the Causalontology standard.
+# Zero dependencies. Builds the library, installs headers to
+# include/causalontology/, and exports a CMake package so consumers can:
+#   find_package(causalontology CONFIG REQUIRED)
+#   target_link_libraries(app PRIVATE causalontology::causalontology)
+# The conformance runner is opt-in (-DCAUSALONTOLOGY_BUILD_CONFORMANCE=ON)
+# and needs the repository's conformance/vectors alongside this tree.
 cmake_minimum_required(VERSION 3.16)
-project(causalontology_cpp CXX)
+project(causalontology VERSION 1.0.2 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(CAUSALONTOLOGY_BUILD_CONFORMANCE "Build the conformance runner" OFF)
 
 add_library(causalontology
     src/json.cpp
@@ -18,7 +21,50 @@ add_library(causalontology
     src/semantics.cpp
     src/signing.cpp
     src/store.cpp)
-target_include_directories(causalontology PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(causalontology::causalontology ALIAS causalontology)
 
-add_executable(conformance conformance.cpp)
-target_link_libraries(conformance PRIVATE causalontology)
+target_compile_features(causalontology PUBLIC cxx_std_17)
+set_target_properties(causalontology PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+    POSITION_INDEPENDENT_CODE ON)
+
+target_include_directories(causalontology PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<INSTALL_INTERFACE:include/causalontology>)
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(TARGETS causalontology
+    EXPORT causalontologyTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+install(FILES
+    src/json.hpp src/jcs.hpp src/sha2.hpp src/bignum.hpp src/ed25519.hpp
+    src/canonical.hpp src/schema.hpp src/semantics.hpp src/signing.hpp
+    src/store.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/causalontology)
+
+install(EXPORT causalontologyTargets
+    FILE causalontologyTargets.cmake
+    NAMESPACE causalontology::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/causalontology)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/causalontologyConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/causalontologyConfig.cmake"
+    "include(\"\${CMAKE_CURRENT_LIST_DIR}/causalontologyTargets.cmake\")\n")
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/causalontologyConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/causalontologyConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/causalontology)
+
+if(CAUSALONTOLOGY_BUILD_CONFORMANCE)
+    add_executable(conformance conformance.cpp)
+    target_link_libraries(conformance PRIVATE causalontology)
+endif()
