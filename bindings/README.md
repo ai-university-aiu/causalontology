@@ -22,6 +22,10 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | [causalontology-elixir](elixir/) | Hex (publication pending) | source complete, OTP :crypto only — **verified in CI** |
 | [causalontology-haskell](haskell/) | Hackage (publication pending) | source complete, GHC-bundled packages only, pure-Haskell SHA-2 + Ed25519 — **verified in CI** |
 | [causalontology-r](r/) | CRAN (submission is a human-review process, stated plainly) | source complete (sodium + openssl CRAN packages) — **verified in CI** |
+| [causalontology-cpp](cpp/) | source + release (vcpkg/Conan manifests welcome) | **verified locally — 38/38, zero warnings**; zero dependencies incl. a hand-built uint64-limb bignum (361/361 cross-checks vs Python) |
+| [causalontology-zig](zig/) | **live by git tag** (build.zig.zon; Zig consumes git URLs) | **verified locally — 38/38**; std-lib crypto (Zig 0.13.0), insertion-ordered maps throughout |
+| [causalontology-julia](julia/) | General registry (registration is a pull-request process, stated plainly) | **verified locally — 38/38**; stdlib SHA + pure-Julia Ed25519 over BigInt; byte-parity with Python |
+| [causalontology-kotlin](kotlin/) | Maven Central as a Kotlin/Native artifact (publication pending) | **verified locally — 38/38 on the binary's first run**; pure Kotlin/Native: hand-built JSON, SHA-2, base-2^16 bignum (422 crypto + 1,232 JCS cross-checks vs Python) |
 
 Every binding MUST ship `../conformance/vectors/` as its own test suite and
 gate releases on it. Interoperability is through shared data and the shared

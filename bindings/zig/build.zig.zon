@@ -1,0 +1,18 @@
+.{
+    // Zig packages are consumed by git URL + hash, so this manifest is the
+    // registry story: `zig fetch --save <git url>` records the dependency,
+    // and `@import("causalontology")` imports the module build.zig exposes.
+    .name = "causalontology",
+    .version = "1.0.0",
+    .minimum_zig_version = "0.13.0",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "conformance.zig",
+        "run_conformance.sh",
+        "README.md",
+        "LICENSE",
+    },
+}

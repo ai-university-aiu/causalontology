@@ -85,7 +85,7 @@ Each badge above is a claim, and every claim deserves a plain explanation. Here 
 
 - **`FLAGSHIP APPLICATION | MENTOVA PROLOGAI`** — **PrologAI** is the glass-box cognitive architecture that serves as Causalontology's reference implementation, and **Mentova** is the synthetic mind built on it — the first full application of this ontology, and one day the first machine mind to read the commons' gaps and contribute causal knowledge back. The badge links to Mentova.
 
-- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v12.txt`](Causalontology_Standalone_Design_v12.txt).
+- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v13.txt`](Causalontology_Standalone_Design_v13.txt).
 
 - **`LICENSE | ATTRIBUTION ALWAYS; NO PROFIT, NO PROBLEM`** — the project's license, in its own words: credit the source always, and using it without profit is never a problem. It is the friendly name for the Apache License 2.0 text (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)), one license covering everything here — the code, the data, the specification, and the architecture.
 
@@ -113,7 +113,7 @@ Causalontology's identity, stated from five angles — each the same claim, that
 
 And this repository adds a further first of its own: to our knowledge, the first specification to deliver reified, provenance-signed causation as a **language-neutral standard** with a **shared, stigmergic commons** — offered, glass-box style, with its evidence: the specification, the conformance vectors, and the running implementations, all inspectable.
 
-Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v12.txt`](Causalontology_Standalone_Design_v12.txt) — the complete, self-contained canon of this repository.
+Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v13.txt`](Causalontology_Standalone_Design_v13.txt) — the complete, self-contained canon of this repository.
 
 ---
 
@@ -121,7 +121,7 @@ Every term above is explained for a newcomer in the master document: [`Causalont
 
 **Causalontology is a verb-first noun-hosting ontology.** Verb-first: the atomic building block is the occurrent — the happening — and the fundamental unit reifies the master verb, *causes*, itself; even knowing is verb-first, because knowledge enters by acting (intervention) rather than by watching. Noun-hosting: things (continuants) are first-class citizens, but they are understood through what they do and what happens to them — Causalontology *governs* the verbs and *hosts* the nouns, with realizable entities as the hinge between them.
 
-**Causalontology's purest form is a specification, not a program.** It separates the *data structure of causation and its rules* (language-neutral) from any *implementation* (sixteen exist, from Prolog to Lua). Two familiar pictures, held together:
+**Causalontology's purest form is a specification, not a program.** It separates the *data structure of causation and its rules* (language-neutral) from any *implementation* (twenty exist, from Prolog to Kotlin/Native). Two familiar pictures, held together:
 
 - **A standard** — like a W3C or IETF specification: a normative document plus a conformance test suite, with independent implementations that all agree because they all pass the same tests.
 - **A commons** — like Wikidata, specialized to causation: one shared, world-wide, provenance-first store of causal knowledge that developers everywhere (and autonomous minds) draw from and contribute to.
@@ -171,13 +171,13 @@ That third document — a *degenerate* CRO, just cause and effect — is already
 | Swift | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "1.0.0")` |
 | Go | `go get github.com/ai-university-aiu/causalontology/bindings/go@v1.0.0` |
 
-All published at **specification 1.0.0** (vectors frozen 2026-07-13). Reach, stated precisely: **Kotlin, Scala, Clojure, and Groovy** consume the Java artifact from Maven Central as-is; **Deno and Bun** consume the npm package directly; and **any WebAssembly host** (browsers, edge workers, wasmtime embeddings) can use the [WASM core attached to the v1.0.0 release](https://github.com/ai-university-aiu/causalontology/releases/tag/v1.0.0) — so six direct installs serve ten-plus languages in practice. Nine further implementations — **C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, and Lua** — are conformant in the repository (registry publications pending the owner's accounts; see PUBLISHING.md). Anything still missing (C++, Kotlin-native, Zig, Julia, ...) remains the open invitation: **the 38 frozen vectors are the gate**. Details and status: [PUBLISHING.md](PUBLISHING.md).
+All published at **specification 1.0.0** (vectors frozen 2026-07-13). Reach, stated precisely: **Kotlin, Scala, Clojure, and Groovy** consume the Java artifact from Maven Central as-is; **Deno and Bun** consume the npm package directly; and **any WebAssembly host** (browsers, edge workers, wasmtime embeddings) can use the [WASM core attached to the v1.0.0 release](https://github.com/ai-university-aiu/causalontology/releases/tag/v1.0.0) — so six direct installs serve ten-plus languages in practice. Nine further implementations — **C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, and Lua** — are conformant in the repository (registry publications pending the owner's accounts; see PUBLISHING.md). C++, Zig, Julia, and Kotlin/Native joined in the second wave — twenty implementations now stand. Anything still missing (OCaml, Scala Native, Fortran, COBOL if you dare, ...) remains the open invitation: **the 38 frozen vectors are the gate**. Details and status: [PUBLISHING.md](PUBLISHING.md).
 
 ## Repository layout
 
 ```
 causalontology/
-  Causalontology_Standalone_Design_v12.txt   the canon (complete, lay-readable)
+  Causalontology_Standalone_Design_v13.txt   the canon (complete, lay-readable)
   spec/                    normative core, identity, semantics, provenance,
                            store, safety; schema/ = 8 JSON Schemas + JSON-LD
                            context + Protobuf + the OWL mapping (BFO/RO/PROV)
@@ -199,7 +199,7 @@ causalontology/
 
 ## Conformance
 
-**An implementation is Causalontology-conformant if and only if it passes every vector in [`conformance/vectors/`](conformance/vectors/) for the specification version it declares.** That single rule is how sixteen implementations in sixteen languages — Prolog, Python, JavaScript, Rust, Java, Swift, Go, C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, and Lua — agree without sharing a line of code — down to the length of a month (2,629,746 seconds) and the ranking of a `resolve()`.
+**An implementation is Causalontology-conformant if and only if it passes every vector in [`conformance/vectors/`](conformance/vectors/) for the specification version it declares.** That single rule is how twenty implementations in twenty languages — Prolog, Python, JavaScript, Rust, Java, Swift, Go, C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua, C++, Zig, Julia, and Kotlin/Native — agree without sharing a line of code — down to the length of a month (2,629,746 seconds) and the ranking of a `resolve()`.
 
 ## Roadmap — built, proven, and shipped
 
@@ -223,6 +223,7 @@ causalontology/
   - [x] [TypeScript](bindings/javascript/) — hand-written strict typings over the verified JS binding (no logic duplication, no drift); **tsc-verified locally**
   - [x] [Go SDK](bindings/go/) — zero dependencies (Go's standard library carries Ed25519 natively); **verified by the conformance CI** (no local Go toolchain)
   - Contributed implementations welcome — the 38 vectors are the gate (C#, Ruby, PHP, Kotlin, ...)
+- [x] Wave two — **C++, Zig, Julia, Kotlin/Native**: four more conformant implementations, ALL verified on the authoring machine (C++ with a hand-built bignum, 361/361 cross-checks; Zig on its standard-library crypto; Julia in pure stdlib; Kotlin/Native hand-building JSON + SHA-2 + bignum + Ed25519 with no stdlib crypto at all, 38/38 on the binary's first run) — **twenty implementations in twenty languages, twenty-one CI gates**
 - [x] The nine-language wave — **C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua**: nine more conformant implementations in one wave (four verified on the authoring machine — including pure-Lua Ed25519 over a hand-built bignum layer — five gated in CI), taking the standard to **sixteen implementations in sixteen languages**, all passing the same 38 frozen vectors under seventeen CI gates
 - [x] The ceremony — **specification 1.0.0**: the [vector freeze](conformance/freeze_1_0_0.py) pinned concrete bytes into all 38 vectors (real identifiers, real keys, a real verifying signature); every manifest bumped to 1.0.0; tagged `v1.0.0` with a GitHub Release carrying the built artifacts; SwiftPM and Go modules live via tags; and **all seven distribution channels live the same day** — crates.io, PyPI, npm, Maven Central, SwiftPM, Go modules, and the GitHub Release ([PUBLISHING.md](PUBLISHING.md))
 

@@ -51,3 +51,12 @@ machine; each publish is one account + one command.
 | CPAN | perl | PAUSE account, then upload the dist tarball at pause.perl.org |
 | CRAN | r | a human-review submission process (cran.r-project.org/submit.html) — stated plainly |
 | LuaRocks | lua | `cd bindings/lua && luarocks upload causalontology-1.0.0-1.rockspec --api-key=<key>` |
+
+## Wave two (2026-07-14): C++, Zig, Julia, Kotlin/Native
+
+| Channel | Binding | Status / command |
+|---|---|---|
+| Zig packages | zig | **live by git tag** — Zig consumes git URLs + build.zig.zon; the v1.0.0 tag serves it |
+| C++ | cpp | source + GitHub release; vcpkg/Conan port manifests are a welcome contribution |
+| Julia General registry | julia | registration is a pull-request review process (JuliaRegistries/General) — stated plainly; Project.toml is ready |
+| Maven Central (klib) | kotlin | Kotlin/Native artifact publication pending — reuses the existing verified io.github.ai-university-aiu namespace |

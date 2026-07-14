@@ -192,3 +192,38 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lua5.4
       - name: conformance (38 vectors)
         run: lua5.4 bindings/lua/conformance.lua
+
+  cpp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: conformance (38 vectors)
+        run: bash bindings/cpp/run_conformance.sh
+
+  zig:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: conformance (38 vectors)
+        run: bash bindings/zig/run_conformance.sh
+
+  julia:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.10"
+      - name: conformance (38 vectors)
+        run: julia bindings/julia/conformance.jl
+
+  kotlin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: conformance (38 vectors)
+        run: bash bindings/kotlin/run_conformance.sh
