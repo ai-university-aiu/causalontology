@@ -43,10 +43,12 @@ jobs:
           elixir-version: "1.16"
       - name: conformance first
         run: cd bindings/elixir && elixir conformance.exs
-      - name: publish to Hex
+      - name: publish to Hex (package only - no ex_doc in a zero-dep binding)
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
-        run: cd bindings/elixir && mix hex.publish --yes
+        run: |
+          mix local.hex --force
+          cd bindings/elixir && mix hex.publish package --yes
 
   luarocks:
     if: inputs.registry == 'luarocks'
