@@ -59,4 +59,5 @@ machine; each publish is one account + one command.
 |---|---|---|
 | Zig packages | zig | **live by git tag** — Zig consumes git URLs + build.zig.zon; the v1.0.0 tag serves it |
 | vcpkg (C++) | cpp | **port PR open: [microsoft/vcpkg#52892](https://github.com/microsoft/vcpkg/pull/52892)** (2026-07-14) — install-tested locally (5.8 s, x64-linux); honest maturity note included (the repo is days old vs their 6-month guideline), so maintainer discretion applies |
+| Conan (C++) | cpp | **recipe PR open: [conan-io/conan-center-index#30612](https://github.com/conan-io/conan-center-index/pull/30612)** (2026-07-14) — conan-create-tested static AND shared; ACTION FOR THE OWNER: sign the Contributor License Agreement when the cla-assistant bot prompts on the PR |
 | Julia General registry | julia | **registration PR open: [JuliaRegistries/General#161292](https://github.com/JuliaRegistries/General/pull/161292)** (2026-07-14). New packages wait a mandatory ~3 days; if the automated AutoMerge checks pass, it merges without human action — then `pkg> add Causalontology` |
