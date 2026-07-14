@@ -23,11 +23,10 @@ defmodule Causalontology.MixProject do
   end
 
   defp description do
-    "The Elixir binding of the Causalontology standard - a verb-first " <>
-      "noun-hosting ontology; a language-neutral standard and shared commons " <>
-      "for reified causation. OTP standard library only: RFC 8785 " <>
-      "canonicalization, SHA-256 identity, Ed25519 (RFC 8032) via :crypto, " <>
-      "schema and semantics validation, and an in-memory conformant store."
+    "The Elixir binding of the Causalontology standard - reified causation " <>
+      "as a language-neutral standard and shared commons. OTP stdlib only: " <>
+      "RFC 8785 canonicalization, SHA-256 identity, Ed25519 signing, and a " <>
+      "conformant store. Passes all 38 frozen vectors."
   end
 
   defp package do
