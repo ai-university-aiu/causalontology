@@ -15,6 +15,7 @@ stored on the build machine, by design).
 | RubyGems | **live** (published 2026-07-14, via the publish workflow) | `gem install causalontology` — https://rubygems.org/gems/causalontology |
 | Hex | **live** (published 2026-07-14, via the publish workflow) | `{:causalontology, "~> 1.0"}` — https://hex.pm/packages/causalontology |
 | LuaRocks | **live** (published 2026-07-14, via the publish workflow) | `luarocks install causalontology` — https://luarocks.org/modules/search?q=causalontology |
+| Packagist | **live** (published 2026-07-14) | `composer require causalontology/causalontology` — https://packagist.org/packages/causalontology/causalontology |
 | npm | **live** (published 2026-07-13) | `npm install causalontology` — https://www.npmjs.com/package/causalontology |
 | PyPI | **live** (published 2026-07-13) | `pip install causalontology` — https://pypi.org/project/causalontology/ |
 | crates.io | **live** (published 2026-07-13) | `cargo add causalontology` — https://crates.io/crates/causalontology |
@@ -46,7 +47,6 @@ machine; each publish is one account + one command.
 
 | Registry | Binding | The command (after logging in) |
 |---|---|---|
-| Packagist | php | submit the repository URL at packagist.org (it reads composer.json) |
 | pub.dev | dart | `cd bindings/dart && dart pub publish` |
 | Hackage | haskell | `cd bindings/haskell && cabal sdist && cabal upload --publish dist-newstyle/sdist/*.tar.gz` |
 | CPAN | perl | PAUSE account, then upload the dist tarball at pause.perl.org |
