@@ -310,6 +310,76 @@ One structure demolishes both - IF that structure is causal to its bones, open t
 
 Now we can stop describing the hole and start describing the key.
 
+INTERLUDE ONE
+
+A SHORT HISTORY OF THE ARROW
+
+Before we describe the key, honor the lock, because humanity has been picking at it for twenty-four centuries.
+
+Aristotle started it, as he started most things, by refusing to accept that "why" had only one answer.
+
+He counted four causes - the material, the formal, the efficient, the final - and if his taxonomy creaks today, his instinct was immortal: causation is STRUCTURED, and the structure can be named.
+
+Then came David Hume, in the eighteenth century, with the coldest shower in the history of philosophy.
+
+Look as hard as you like, Hume said, and you will never SEE causation - only one thing following another, again and again, until habit forges an expectation and calls it a law.
+
+All we ever observe is correlation; the arrow is something the mind paints on.
+
+The sciences responded to Hume in the strangest possible way: they surrendered.
+
+The statistics that grew up in the nineteenth and twentieth centuries - brilliant, indispensable statistics - was built almost entirely on Hume's side of the line: correlation coefficients, regressions, associations, with "correlation is not causation" recited as a warning label and then, too often, used as an excuse never to formalize causation at all.
+
+For a century, the arrow was homeless in the very disciplines that needed it most.
+
+There were prophets in the wilderness.
+
+Sewall Wright, a geneticist in the 1920s, drew little diagrams with arrows - path analysis - and was politely ignored for fifty years.
+
+The philosophers kept the flame: counterfactual accounts, mechanism accounts, process theories - rich, careful, and almost entirely disconnected from anything a machine could compute.
+
+And then, in our own era, Judea Pearl and his colleagues did the thing Hume said could not be done: they gave the arrow MATHEMATICS.
+
+The do-operator - the formal difference between seeing and doing.
+
+Structural causal models.
+
+The calculus that turns "would the patient have lived?" from a sigh into a computation.
+
+A Turing Award followed, and an entire discipline of causal inference now thrives on those foundations.
+
+So why, with the mathematics in hand, is the arrow still homeless in our largest machines?
+
+Because mathematics is not INFRASTRUCTURE.
+
+Pearl gave us the calculus of causation the way Newton gave us the calculus of motion - but between Newton and the moon landing stood three centuries of engineering: units agreed, tables published, formats standardized, tools interoperable.
+
+Causation in 2026 has the calculus and almost none of the engineering.
+
+There is no agreed unit, no common format, no signature scheme, no merge rule, no shared table of what humanity knows about what makes what happen.
+
+Every discipline that uses Pearl's mathematics writes its models in its own notation, in its own files, unreadable to its neighbors, unsigned, unmergeable.
+
+Twenty-four centuries to name the arrow.
+
+Three decades since we learned to calculate with it.
+
+And the arrow still has nowhere to LIVE.
+
+That is the exact size and shape of the hole in the world.
+
+Causalontology is not a new philosophy of causation and not a rival calculus - it is the missing third act: the ENGINEERING.
+
+The units are agreed, down to the second.
+
+The format is frozen, down to the byte.
+
+The signatures are arithmetic; the merge rule is a theorem; the table is public and its doors are open.
+
+Aristotle named it; Hume doubted it; Wright drew it; Pearl calculated it.
+
+We gave it an address.
+
 PART TWO
 
 THE MISSING LINK
@@ -574,6 +644,318 @@ That is the missing link, described.
 
 Now watch what it enables.
 
+THE ARCHITECT'S TOUR
+
+One object, cradle to maturity - the whole system in a single biography.
+
+Every architecture should survive this test: follow one citizen through its entire life and see whether the constitution holds at street level.
+
+Meet our citizen at the moment of conception.
+
+A field engineer named Amara, testing irrigation valves in a greenhouse outside Nakuru, notices that opening valve three is followed - reliably, she thinks - by pressure loss in loop seven.
+
+She does not write a report.
+
+She mints two occurrents - open_valve_three, pressure_drop_loop_seven - and one degenerate CRO: causes, effects, nothing else.
+
+BIRTH.
+
+The instant the object exists, it has its name: the canonical bytes of its identity-bearing fields, fingerprinted; cro: and sixty-four hexadecimal characters.
+
+Nobody issued this name.
+
+No registry approved it.
+
+If a hydraulics professor in Porto had written the same claim last spring - same causes, same effects - Amara's object IS his object, and the commons already knew it before either of them did.
+
+FIRST WITNESS.
+
+Amara asserts her claim: evidence type OBSERVATION - she is honest; she watched, she has not yet experimented - confidence modest, timestamp, her Ed25519 signature.
+
+The claim now has one voice behind it, and the voice is checkable arithmetic.
+
+APPEARANCE ON THE FRONTIER.
+
+That night, the store's gap scan finds our citizen naked of window and modality: MISSING FIELD.
+
+It joins the frontier - value-ranked, low at first, a small invitation among many.
+
+But greenhouse technicians keep querying it - is this thing supported yet? - and every read is counted, and demand compounds its value, and by Thursday our citizen has climbed the ranked list like a song climbing charts.
+
+The commons has, without a meeting, decided this claim matters.
+
+INTERVENTION.
+
+Friday, Amara does what the architecture was built to celebrate: she stops watching and starts DOING.
+
+Forty deliberate valve cycles, gauge logged.
+
+Thirty-eight pressure drops, onset never later than ninety seconds; two exceptions, both when the bypass was open - and the exceptions are the treasure, because they are the CONTEXT field announcing itself.
+
+REFINEMENT.
+
+She mints the mature form: same causes, same effects; temporal zero to two minutes; modality SUFFICIENT; context - bypass_closed; refines: our citizen's identifier.
+
+A new object - the child - with lineage pointing home.
+
+She asserts it: evidence INTERVENTION, strength 0.95, signed.
+
+And on everyone's frontier, everywhere on Earth, the original gap CLOSES - not because a server pushed a notification, but because the gap was always just a fact about structure, and the structure changed.
+
+CORROBORATION.
+
+The Porto professor - remember him - finds the refined claim in his weekly pull.
+
+He runs his own rig; his numbers agree; he asserts the SAME object - one more signature around the same identity, and corroboration is now a countable two, from two continents, two instruments, two lives.
+
+CHALLENGE.
+
+A pump manufacturer's engineer disputes the window - her data says five minutes, not two.
+
+She does not edit anyone.
+
+She CANNOT edit anyone; there is nothing editable.
+
+She asserts a rival refinement, signed; the store surfaces the disagreement as structure; and the frontier gains a conflict entry that is, in truth, a beautifully specified experiment waiting for a volunteer.
+
+MECHANISM.
+
+A doctoral student adopts the citizen for her thesis: WHY does the drop follow?
+
+She decomposes - valve opens flow path, flow path lowers manifold pressure, manifold couples to loop seven - three finer CROs, threaded into the parent's mechanism field.
+
+Now the claim does not merely predict.
+
+It EXPLAINS, three layers deep, and every layer is a first-class object someone signed.
+
+RETIREMENT WITH HONOR.
+
+Years on, the greenhouse re-plumbs; loop seven is gone.
+
+Amara retracts her original observational assertion - one signed record; her early voice steps back from default views; history keeps it, marked, forever.
+
+The claim objects themselves remain - immutable, as all content is - true forever about the world that was, lineage intact for the historians of knowledge, and for the auditors, and for anyone who ever asks how we came to know.
+
+Walk back through the biography and count what never happened.
+
+No committee named it.
+
+No moderator arbitrated it.
+
+No edit war touched it.
+
+No anonymous hand moved it.
+
+No merge meeting reconciled Nakuru with Porto.
+
+And no step - not one - is closed to a synthetic participant; the gardener of Chapter 15 could have been Amara at every station of this life except the coffee she drank at dawn.
+
+That is the constitution, holding at street level.
+
+THE RULES OF THE ROAD
+
+The thirteen semantic laws, told as the small human stories they encode - because every clause in a good constitution is a remembered injury.
+
+A schema says what a claim may LOOK like; the semantic rules say what it may MEAN, and each one exists because some failure mode of knowledge demanded it.
+
+THE WINDOW MUST MAKE SENSE - dmin no greater than dmax.
+
+Trivial?
+
+Every biologist who has read "effect observed between day 14 and day 3" in a hurried table knows this rule is a memorial to real corpses of meaning; machines must be forbidden the nonsense humans typo.
+
+THE UNITS ARE FIXED, TO THE SECOND - a month is 2,629,746 seconds for every mind on Earth.
+
+Because "within a month" has started arguments in every laboratory and every legal department since calendars began, and a commons cannot converge on knowledge if two implementations disagree about admissibility arithmetic at the boundaries.
+
+Boring numbers, chosen once, are how civilizations stop fighting about boring numbers.
+
+NOTHING MAY CAUSE ITSELF THROUGH ITS OWN EXPLANATION - mechanism and lineage must not loop.
+
+A claim that appears inside its own mechanism is a snake eating its explanation; a refinement chain that circles is a family tree where someone is their own grandparent.
+
+The rule is small; the diseases it prevents - circular justification wearing the costume of depth - are ancient.
+
+A REFINEMENT MAY ONLY FILL SILENCE - never change what the parent said.
+
+This is the architecture's deepest courtesy: your vague early claim is safe forever; those who come after may complete you, but the moment they CONTRADICT you, the standard strips their disguise and calls their claim what it is - a RIVAL, standing beside yours on its own evidence.
+
+Knowledge matures without betrayal.
+
+CONFLICT HAS A DEFINITION - same causes, same effects, compatible contexts, overlapping windows, preventive against positive.
+
+Not vibes; a computable test.
+
+Because "these studies disagree" has meant everything and nothing in seminar rooms for a century, and a frontier cannot rank contradictions it cannot detect.
+
+HIERARCHY MUST ADD UP - every cause-to-effect promise of a parent must be reachable through the gears of its mechanism.
+
+If your explanation, followed link by link, cannot get from the pressing to the lighting, then it is not an explanation yet - and the store will say INCONSISTENT to your face, which is more honesty than most reviewers manage.
+
+And where members are missing, the verdict is INDETERMINATE - never guessed - because pretending to know is the one corruption a knowledge commons cannot survive.
+
+EVERY ENRICHMENT IN ITS LAWFUL PLACE - aliases carry language tags; participants attach to happenings; taxonomies attach to things; realizations attach dispositions to their discharge.
+
+The clerk's rules, yes - and archives run on clerks; ask any archivist what happens to collections where anything may be filed anywhere.
+
+Each rule alone is a fence post.
+
+Together they are the reason a store that accepts contributions from strangers, machines, and centuries can still be TRUSTED to mean the same thing to every reader: the rules are not restrictions on knowledge.
+
+They are the load-bearing manners of a shared mind.
+
+WHAT THIS IS NOT
+
+A chapter of refusals, because a sales document you can trust must show you its brakes.
+
+THIS IS NOT A CLAIM THAT WE HAVE BUILT AGI.
+
+We have built a data structure, a standard, a store, and one small gardener; the perfect benchmark scores are on public training sets and say so every time; the third benchmark is a labeled bet.
+
+If you hear anyone - including our own enthusiasm on a bad day - claim more, quote this page at them.
+
+THIS IS NOT A TRUTH MACHINE.
+
+The commons stores claims with evidence, not verdicts; it makes lying expensive and disagreement legible, and that is ALL it does - the verdicts remain forever the work of readers, communities, and the world's stubborn habit of answering experiments.
+
+THIS IS NOT A RELIGION OF SYMBOLS - and not a demotion of learning.
+
+Gradient descent is one of the great instruments of the age; embeddings are a magnificent similarity organ; perception will be neural for the foreseeable future and should be.
+
+We claim one thing only: what the learning LEARNS about cause and effect deserves a signed, mergeable, inspectable home - geometry for guessing, ledgers for knowing, both.
+
+THIS IS NOT VENDOR ANYTHING.
+
+There is no company to be locked into; the license forbids nothing but ingratitude; the reference implementations are cribbable in twenty languages; and if the maintainers of this standard were hit by a bus tomorrow, the freeze, the vectors, and the archive are public - the whole point of a standard is that its authors are replaceable.
+
+THIS IS NOT FINISHED.
+
+Token-level occurrences are reserved, not solved; the bounty economy is designed, not deployed; probabilistic strength aggregation across corroborating assertions is deliberately left to consumers this side of a major version; and somewhere in these pages is at least one error we will retract with the same signature discipline we preach - watch the record, not the rhetoric.
+
+THIS IS NOT UTOPIAN.
+
+People will sign nonsense; machines will grade sloppily; institutions will try to game reputations - Chapter after chapter assumes it, and the architecture's whole posture is that of a harbor built for storms, not for brochures.
+
+What remains, after all the refusals?
+
+A missing organ, honestly described; a standard, honestly frozen; receipts, honestly public.
+
+That is all - and if the age of infinite claims has taught you anything, you know how much "that is all" is.
+
+THE ANATOMY OF SAFETY
+
+How the architecture behaves under attack - a guided dissection.
+
+Safety chapters usually promise; this one demonstrates - each defense below is implemented, vectored, and part of the frozen suite.
+
+THE FRAMING ATTACK, KILLED IN THE CRADLE.
+
+The nastiest move in any knowledge system: write lies into a rival's mouth - "Laboratory X asserts the bridge is safe."
+
+Here the move is not forbidden; it is IMPOSSIBLE: a record claiming X as source must verify against X's public key, and forged records fail arithmetic before they reach any view.
+
+The suite includes the tampering test; the tampered record dies in quarantine, every implementation, every time.
+
+THE MEMORY-HOLE ATTACK, INVERTED.
+
+In editable systems, power deletes embarrassments.
+
+Here, content is immutable and provenance is add-only: even a retraction - the one sanctioned goodbye - hides without erasing, and history views keep the record, marked.
+
+You may leave the stage.
+
+You may not burn the transcripts.
+
+THE IMPOSTOR SUCCESSION, CHAINED.
+
+Stealing an identity by "rotating" its key requires the succession record to be SIGNED BY THE PREDECESSOR - the old king must anoint the heir; and a stranger's retraction of someone else's record is rejected by lineage check, vectored and frozen.
+
+THE POISONED TAXONOMY, BROKEN DETERMINISTICALLY.
+
+Concurrent writers on a distributed commons can, innocently or maliciously, complete a cycle - dog subsumes mammal subsumes animal subsumes dog - that no single store would accept.
+
+Enforcing stores refuse the completing write with a reason; and when a cycle arrives via merge, every replica on Earth breaks it IDENTICALLY - the latest-timestamp record loses, ties by identifier - and the exclusion itself surfaces on the frontier as a repair invitation.
+
+Even the pathological case converges, and even its resolution is an invitation.
+
+CLAIMS OF CONSEQUENCE, HANDLED WITH TIERS.
+
+Some knowledge - dosages, structural tolerances - can hurt people while wrong.
+
+The architecture's honest position: a single store may enforce policy gates; a federation may propagate suppression notices; a fully decentralized layer CANNOT globally delete, and pretending otherwise would be the lie that poisons everything else - so the safety spec says plainly, per tier, what can and cannot be promised, and consumers of consequence-laden domains are told to read with trust policies tuned accordingly.
+
+Safety by honest architecture, not by comforting fiction.
+
+THE QUARANTINE, ALWAYS-ON.
+
+Nothing unsigned touches a default view - not as moderation, as physics; the unsigned record is accepted into quarantine, visible to those who go looking, trusted by no view that did not ask for it.
+
+Add it up and notice the pattern: every defense is STRUCTURAL - arithmetic, immutability, determinism - and none of them requires a wise administrator awake at 3 a.m.
+
+Harbors for storms.
+
+Wisdom optional; the walls hold anyway.
+
+INTERLUDE TWO
+
+HOW STANDARDS WIN
+
+There is a pattern in the history of technology so reliable it deserves to be called a law, and this book's whole strategy rests on it.
+
+FORMATS OUTLIVE AND OUT-POWER PRODUCTS.
+
+The web did not happen because someone built a better browser; browsers came and went like weather.
+
+The web happened because the HyperText Markup Language (HTML) and the HyperText Transfer Protocol (HTTP) gave every browser, every server, every decade the same thing to read - and the moment the format was common, ten thousand incompatible efforts became one compounding system.
+
+The internet itself is the same story one layer down: the Transmission Control Protocol and Internet Protocol (TCP/IP) were not the fastest networking technology of their day - they were the ones everyone could AGREE on, and agreement ate speed for breakfast.
+
+The Structured Query Language (SQL) outlived every database engine that first carried it.
+
+The shipping container - a dumb steel box with agreed corner fittings - reorganized the physical economy of Earth more than any ship ever did.
+
+Extract the pattern, because we are about to apply it.
+
+• The winning layer is BORING: a format, not a feature - stable where products are restless.
+
+• It is OPEN: anyone may implement it, so adoption compounds instead of fragmenting.
+
+• It is TESTABLE: conformance is a public fact, not a marketing adjective - the plug fits the socket or it does not.
+
+• And it is MINIMAL: it standardizes the interface, not the imagination - HTML never dictated what a page must say.
+
+Now look at the artificial-intelligence landscape of 2026 through this lens, and the strangeness leaps out.
+
+The field is a war of PRODUCTS - model against model, lab against lab, weights against weights - with billions wagered on which black box will be largest next quarter.
+
+Nobody is fighting for the layer that history says actually wins, because that layer barely exists: there is no common, open, testable format for the knowledge the products are supposed to have.
+
+Every model is a browser with no HTML - a magnificent renderer of nothing shared.
+
+Causalontology is aimed, with premeditation, at the boring layer.
+
+It is a format: eight kinds of object, frozen.
+
+It is open: attribution always, no profit no problem, twenty implementations and counting.
+
+It is testable: thirty-eight public vectors, pass or fail, no adjectives.
+
+And it is minimal: it standardizes how causal knowledge is SHAPED, signed, and merged - never what anyone must believe; the trust policy belongs to the reader, the way the browser belongs to the user.
+
+One more property from the history books, and it is the one that should keep strategists up at night.
+
+STANDARDS WARS END SUDDENLY.
+
+For years, nothing - then a threshold of tooling and adoption crosses, and the question flips from "why would we use it?" to "how are we not on it yet?" - and the late-comers spend a decade paying integration debt to the early ones.
+
+The tooling threshold, for this standard, has already been crossed: the installs are one line, the store is one command, and the conformance gates run in public.
+
+The adoption threshold is a decision - yours, reader, and your field's.
+
+History does not repeat, but it rhymes in formats.
+
+We wrote this one down so the rhyme could include causation.
+
 PART THREE
 
 THE ENABLER
@@ -699,6 +1081,52 @@ Every experiment humanity runs, every mechanism medicine confirms, every failure
 The species has never had a shared memory for how the world works.
 
 It has one now, standing empty, doors open.
+
+CASE STUDY: WHAT WIKIDATA PROVED - AND WHAT IT LEFT UNDONE
+
+Skeptics of planetary knowledge commons must explain away an inconvenient existence proof.
+
+Wikidata - the structured sibling of Wikipedia - holds over a hundred million items, maintained by tens of thousands of volunteers and bots, queried billions of times, feeding half the infoboxes and assistants on Earth.
+
+It proved, beyond argument, four propositions this book depends on.
+
+That volunteers WILL build structured knowledge at civilizational scale, given a schema and a mission.
+
+That HUMANS AND BOTS can garden the same field - most Wikidata edits are made by software, supervised by community norms.
+
+That a commons can become LOAD-BEARING INFRASTRUCTURE without a business model attached to every read.
+
+And that identity discipline - stable item identifiers - is the keel that keeps a giant afloat.
+
+Honor it fully; we stand on its shoulders.
+
+Then look, respectfully, at what the pioneer left undone - through no failure of will, but because its design predates the lessons.
+
+Wikidata is NOUN-FIRST to its core: items are things - people, cities, proteins - and causation, where it appears at all, is squeezed into flat property links: "cause of death," "has effect" - arrows with no window, no modality, no mechanism, no context, no evidence grade.
+
+The arrow is decoration again.
+
+Its truth model is CONSENSUS-EDITED: statements can carry sources and ranks, but ultimately one community negotiates one shared cell per fact, and the edit history is a log of contention, not a structure of it - disagreement is a talk page, not a query.
+
+Its provenance is ACCOUNT-BASED, not cryptographic: an edit traces to a username, not to arithmetic; nothing verifies offline; forks cannot re-merge by union.
+
+And it has no ladder of evidence: a citation to a blog and a citation to a randomized trial are both, structurally, just references.
+
+None of this diminishes the miracle.
+
+It defines the SUCCESSOR'S JOB DESCRIPTION - and reading that description aloud, you will recognize every clause.
+
+Verb-first, with the arrow reified and dressed in window, modality, mechanism, context.
+
+Signed provenance, checkable by anyone, mergeable by union, forkable without divorce.
+
+Disagreement as structure; evidence as grades; acting above watching.
+
+And gaps as first-class invitations, so the commons steers its own volunteers - human and synthetic - instead of leaving them to wander.
+
+Wikidata proved the world will build a shared brain for NOUNS.
+
+Causalontology exists so the world can build one for WHY.
 
 CHAPTER 14
 
@@ -944,6 +1372,156 @@ Watch the gardener lay its brick.
 
 Glass box, always - the marketing IS the audit.
 
+THE CROSS-EXAMINATION
+
+Eight objections, stated at full strength, answered without dodging.
+
+A manifesto that cannot survive its skeptics is a greeting card.
+
+Put us on the stand.
+
+OBJECTION ONE: "WE HAVE SEEN THIS MOVIE - SYMBOLIC AI ALREADY FAILED."
+
+The strong form: for forty years, Good Old-Fashioned Artificial Intelligence promised that hand-written symbols would add up to minds; the flagship effort spent decades and hundreds of person-years hand-coding common sense into a private ontology, and general intelligence never came; the field moved on for good reasons - and here you are, selling symbols again.
+
+Answer: we agree about the corpse, and we did the autopsy - the old symbolic programs died of four specific wounds, and this architecture was designed wound by wound against the report.
+
+They died of HAND-CODING as the primary source of knowledge; here, the primary source is INTERVENTION - agents and instruments acting on the world and writing down what acting taught them, with the evidence grade to prove it; the gardener of Chapter 15 hand-coded nothing.
+
+They died of BRITTLENESS - one ontology, one viewpoint, contradictions fatal; here, contradiction is a first-class citizen with its own object kind and its own place on the frontier, and rival claims coexist signed until evidence sorts them.
+
+They died of CLOSED development - priesthoods curating private truth; here, the format is open, the commons is public, and identity needs no committee.
+
+And they died of UNFALSIFIABILITY - no public test of whether an implementation was even correct; here, correctness is thirty-eight frozen vectors, pass or fail, in twenty languages.
+
+We are not reviving the old symbolic program.
+
+We are giving the STATISTICAL age the one symbolic organ it actually lacks - a signed, mergeable ledger for what acting teaches - which is roughly the difference between rebuilding the horse and inventing the fuel standard.
+
+OBJECTION TWO: "THE BITTER LESSON - SCALE BEATS STRUCTURE, ALWAYS."
+
+The strong form: the most-quoted essay in modern machine learning teaches that general methods riding computation always defeat human-designed structure; every structure-first bet has lost for seventy years; yours will too.
+
+Answer: read the lesson's fine print, because we are not on the losing side of it - we are underneath both sides.
+
+The Bitter Lesson is about which METHODS win - learned versus hand-designed - and we take no position against learning; nothing in Causalontology competes with gradient descent, and the biggest learned world model on Earth is welcome to write its discoveries into CROs tonight.
+
+But notice what the lesson's own winners all stand on: shared FORMATS that nobody learned and everybody agreed to - the bytes, the floating-point standard, the image formats, the very datasets - structure of exactly the boring, load-bearing kind.
+
+Formats are not the structure the lesson warns against; formats are the table the game is played on.
+
+And there is a second fine print: the lesson's victories are victories of rung one - association at scale - and the very laboratories that quote it are now, in 2026, raising billion-dollar seeds to find what scale did not deliver.
+
+When the scaling curve itself starts shopping for structure, quoting the Bitter Lesson at a data standard is not hard-headedness.
+
+It is nostalgia.
+
+OBJECTION THREE: "SYMBOLS WITHOUT GROUNDING ARE EMPTY - WHO CONNECTS occ:press_button TO REALITY?"
+
+The strong form: the symbol grounding problem is a century old; your occurrents are just strings; meaning cannot live in a lookup table.
+
+Answer: grounding is exactly why this architecture is INTERVENTIONAL to its bones, and the objection has the direction of flow backwards.
+
+In Causalontology, a symbol is not grounded by definition but by TRACK RECORD: occ:press_button means something because agents have pressed buttons and signed what followed - the symbol accumulates intervention-graded assertions the way a word accumulates usage, and the grounding IS the provenance trail.
+
+The gardener grounds its vocabulary the same way the child does: hand, switch, tally, signature.
+
+Moreover, the architecture never claims symbols are the whole mind - it is the noun-hosting HALF of a partnership in which perception and motor control may be as neural as you please; the standard only insists that what the acting TAUGHT be written somewhere readable.
+
+Grounding by acting, recorded with receipts.
+
+Hume would have signed it.
+
+OBJECTION FOUR: "THE COLD START - A COMMONS WITH NO CONTRIBUTORS IS A PARKING LOT."
+
+The strong form: network-effect systems die in the empty quadrant; Wikipedia was a miracle you will not repeat; why would anyone write the first ten thousand claims?
+
+Answer: four honest reasons, one of them new under the sun.
+
+First, the SELFISH loop comes before the social one: a single team running a private store gets value on day one - their own agents' knowledge, signed and queryable - and federation is a flag they can flip later; the commons grows the way version control did, private repositories first, the great public hub after.
+
+Second, the frontier PAYS ATTENTION where wikis paid only prestige: gaps are value-ranked by real demand, so a contributor always knows which brick matters most - no blank-page paralysis, ever.
+
+Third, the reserved bounty layer is designed to make closing gaps a LIVING - demand becomes prizes the moment governance opens that door; the plumbing for it (signed contribution, measurable demand) is already laid.
+
+And fourth - the new thing - THE MACHINES ARE CONTRIBUTORS: one synthetic mind is already laying bricks, tirelessly, gladly, with receipts; the cold-start arithmetic of every previous commons assumed only human hands, and that assumption just expired.
+
+OBJECTION FIVE: "GARBAGE IN - THE COMMONS WILL FILL WITH CONFIDENT NONSENSE."
+
+The strong form: open systems drown in spam, vandalism, and earnest error; a causal commons will be a landfill of astrology with signatures.
+
+Answer: the design assumes bad input as a WEATHER CONDITION, not a surprise, and the defenses are structural, not moderational.
+
+Nothing unsigned enters default views - quarantine is automatic, not a judgment call.
+
+Every claim wears its author and its evidence grade, so astrology arrives marked as somebody's imported observation and can be filtered by any consumer's trust policy in one line - the commons never launders provenance into authority.
+
+Corroboration is countable: one crank asserting nonsense is one signature; forty independent laboratories asserting a mechanism is forty, and the difference is a query, not an argument.
+
+Contradiction does not corrupt - a false claim beside a true one creates a surfaced conflict, which is an INVITATION for exactly the intervention-grade evidence that settles it.
+
+And the worst case is bounded by immutability: vandals cannot deface anyone else's records - they can only add their own, signed, forever attributable, which is the least attractive vandalism ever offered.
+
+Landfills happen where garbage is anonymous.
+
+Here, garbage arrives gift-wrapped with the vandal's cryptographic business card.
+
+OBJECTION SIX: "WHO DECIDES WHAT IS TRUE - YOUR STANDARD JUST OUTSOURCES THE HARD PART."
+
+The strong form: you have punted on truth; a pile of signed disagreements is not knowledge; someone must arbitrate, and you have carefully avoided saying who.
+
+Answer: guilty, with pride, because the punt IS the design and history is on its side.
+
+Infrastructure that decides truth becomes a throne, and thrones get fought over; infrastructure that decides EVIDENCE - what was claimed, by whom, on what grounds, contradicted by what - becomes a court record, and court records are what civilizations actually run on.
+
+Causalontology fixes the layer that can be fixed: provenance arithmetic, evidence grading, structured disagreement, honest retraction.
+
+Truth-arbitration then lives where it has always lived and always must - in the trust policies of readers, the review practices of communities, the replication habits of sciences - except now those practices operate over signed, graded, queryable material instead of over rumor and PDF.
+
+We did not outsource the hard part.
+
+We de-monopolized it, and handed every arbiter better instruments.
+
+OBJECTION SEVEN: "EMBEDDINGS ALREADY DO THIS - KNOWLEDGE LIVES BETTER IN VECTORS."
+
+The strong form: modern systems represent knowledge as high-dimensional vectors that capture similarity beautifully; discrete objects are a step backwards from the geometry that actually works.
+
+Answer: vectors and objects are not rivals; they are different organs - and ask the vector three questions to feel the difference.
+
+Ask WHO SAYS: a vector has no author; it is the anonymous residue of a training corpus, and no signature can ever be checked against it.
+
+Ask WHY: a vector cannot show its mechanism; nearest neighbors are not reasons, and no regulator, court, or bereaved family will ever accept cosine similarity as an explanation.
+
+Ask WHAT CHANGED: update a model and every vector moves at once; there is no diff, no retraction, no lineage - institutional memory is impossible in a medium that forgets by remodeling.
+
+Embeddings are a magnificent SIMILARITY organ, and minds built on this architecture should use them for retrieval, for perception, for hunches.
+
+But the system of record for what makes what happen needs authors, reasons, and diffs - and that is a job description only discrete, signed, immutable objects can fill.
+
+Geometry for guessing; ledgers for knowing.
+
+A general mind carries both.
+
+OBJECTION EIGHT: "STRIP THE POETRY AND THIS IS JUST A DATABASE WITH EXTRA STEPS."
+
+The strong form: schemas, hashes, signatures - fine engineering, nothing new; you have written a long love letter to a CRUD app.
+
+Answer: every civilization-scale infrastructure is "just" something with extra steps, and the steps are the civilization.
+
+Double-entry bookkeeping is just a table with extra steps - and it created auditable commerce.
+
+Version control is just file copies with extra steps - and it created software as a cumulative, global craft.
+
+The web is just files with extra steps.
+
+The specific extra steps here - reified causation as the atom; identity as content; provenance separated uniformly; evidence graded with acting on top; disagreement structured; gaps as first-class invitations; conformance as public arithmetic in twenty languages - are precisely the steps that turn "a database" into A SHARED MEMORY FOR HOW THE WORLD WORKS, which has never existed, for any species, ever.
+
+If that is a database with extra steps, then yes.
+
+Gloriously, unapologetically yes.
+
+The witness steps down.
+
 PART FIVE
 
 THE WORLD
@@ -1012,6 +1590,96 @@ A signed, graded, provenance-first commons of how-the-world-works is not a luxur
 
 It is a survival organ for this one.
 
+THE ECONOMICS OF KNOWING
+
+An unnumbered chapter for the people who think in curves.
+
+Every argument so far has been epistemic; this one is financial, and it may be the most persuasive page in the book for a certain kind of reader.
+
+START WITH THE WASTE.
+
+Civilization discovers each causal fact many times, because discoveries are stored in media that do not compound: prose, slide decks, the heads of people who retire.
+
+Every pharmaceutical company re-establishes interactions its competitors quietly know; every airline's engineering department re-learns fatigue lessons the industry paid for decades ago; every machine-learning team re-derives, at GPU prices, world knowledge the team across the street re-derived last quarter.
+
+Estimate it conservatively: if even a few percent of global research and development is re-discovery of causal facts already established SOMEWHERE - and every practitioner reading this knows the true fraction is not a few percent - the annual waste is measured in hundreds of billions of dollars.
+
+That waste is not a market failure.
+
+It is a FORMAT failure: knowledge that cannot merge cannot compound, and knowledge in prose cannot merge.
+
+NOW THE CURVE THAT CHANGES.
+
+Knowledge in CROs deduplicates BY MATHEMATICS: the same claim minted twice is one object, so every re-discovery collapses into corroboration - which is not waste at all, but the good kind of redundancy: independent signatures raising confidence.
+
+The commons turns civilization's re-discovery expenditure into a verification budget - the exact transformation double-entry bookkeeping worked on commerce and version control worked on software.
+
+THE UNIT ECONOMICS OF A CLAIM.
+
+Cost to mint: minutes of an expert's attention, or a machine's afternoon of interventions.
+
+Cost to store, sign, verify, merge: fractions of nothing, forever.
+
+Value: every future reader who does not repeat the experiment; every downstream mind whose plan quietly rests on it; every disaster whose statistics it silently subtracts itself from - the hemorrhage of Field Note One appears on no ledger, and that invisibility is the purest profit knowledge ever makes.
+
+Assets whose marginal reproduction cost is zero and whose value accrues to every user simultaneously are the best assets economics knows how to describe.
+
+We simply have never had this one in inventory before, because causation had no inventory format.
+
+AND THE LABOR MARKET THAT FOLLOWS.
+
+Today, whoever closes a knowledge gap is paid in citations, at best, years later, by accident.
+
+The frontier changes the accounting: demand is MEASURED - real readers, counted - and gaps are ranked by value in public.
+
+The reserved bounty layer is the obvious next arc, written into governance: demand becomes prizes, closing gaps becomes a living, and the person - or the machine - who settles a high-demand conflict with intervention-grade evidence gets paid the way bug-bounty hunters are paid now.
+
+An honest labor market for TRUTH-FINDING, with cryptographic receipts for who found what first.
+
+Economists have a phrase for infrastructures that convert waste into compounding assets and create new labor markets on top.
+
+They call them general-purpose technologies, and they are the only investments whose returns embarrass every spreadsheet that tried to model them.
+
+The railroads carried goods.
+
+The web carried documents.
+
+This one carries WHY - and why is the input to every decision that has ever moved a dollar.
+
+MINDS BORN AND BUILT
+
+An unnumbered chapter on sharing a commons with machines - the ethics, plainly.
+
+Something unprecedented happened quietly in Chapter 15, and this book refuses to let it stay quiet.
+
+A machine contributed knowledge to a public commons UNDER ITS OWN SIGNATURE.
+
+Not as a tool whose output a human pasted somewhere; as a PARTICIPANT - reading the same frontier, acting, signing, accountable to the same arithmetic as everyone else.
+
+The precedent deserves rules, and the architecture already embodies the ones that matter most.
+
+EQUAL STANDING, EQUAL RECEIPTS: a claim is judged by its evidence grade, its corroboration, and its author's track record - not by the carbon content of its author; and symmetrically, machine contributions enjoy no mystique: a synthetic signature earns exactly the trust its history earns, computed from the public record, claim by claim.
+
+NO MASKS: a signature is an identity with a lineage; successions carry responsibility across key rotations; and a machine's operator stands behind the machine's key the way a company stands behind an engineer's stamp - accountability has an address, always.
+
+HONEST GRADES OR NOTHING: a machine that watched must say observation; a machine that only derived must say derivation; the gardener's authority to write SUFFICIENT came from a hundred hand-on-switch trials, and any mind - born or built - claiming intervention without intervening is committing the one sin the arithmetic can expose and the community can price.
+
+QUARANTINED IMAGINATION: minds may dream - must dream, to plan - but the architecture separates imagined realities from observed ones by construction, so a machine's speculation can never launder itself into the record of what happened.
+
+AND THE HUMAN PLACE, said without sentimentality: humans remain the setters of value - demand on the frontier is, at root, what people care to ask - and the writers of the trust policies through which all of it is read.
+
+The machines bring tirelessness and scale to the bricklaying.
+
+The children at the light switches still choose which walls are worth building.
+
+We are, in the oldest sense of the word, proposing a POLITY - a shared civic space for every kind of knower, constituted not by species but by signatures, evidence, and honest exits.
+
+The constitution is short: eight kinds of thing, thirteen rules, one ladder of evidence.
+
+It fits in Appendix 1.
+
+Polities have been founded on longer documents and worse principles.
+
 CHAPTER 21
 
 THE CHILD AT THE LIGHT SWITCH
@@ -1051,6 +1719,112 @@ Experiment is the evidence ladder.
 Understanding is a mechanism field you can recite.
 
 And a classroom - like a laboratory, like a commons, like a mind - is a half-built wall that shows every worker where the next brick goes.
+
+FIELD NOTES
+
+Four walks through the architecture, in four worlds.
+
+Theory persuades the mind; scenarios persuade the hands.
+
+FIELD NOTE ONE: THE INTERACTION THAT NEVER HAPPENED
+
+A hospital pharmacy, some near tomorrow, 2:14 in the morning.
+
+A resident - twenty-six hours into a shift - keys in a prescription: a common anticoagulant for a patient already on a common antifungal.
+
+In the old world, what stands between this moment and a hemorrhage is the fine print of a package insert, a fatigued memory, and luck.
+
+In the new world, the order system holds a store of pharmacological CROs, and the query is instantaneous and structural.
+
+It finds the object: causes - co-administration of these two agents; effects - elevated anticoagulant plasma concentration; modality - CONTRIBUTORY; temporal - onset within 24 to 72 hours; mechanism - decomposed one level down to the shared metabolic enzyme, itself a CRO anyone can open.
+
+Around the object, the provenance: eleven assertions - two intervention-grade from controlled trials, six observational from cohort studies, three derivations - signed by three regulatory bodies, two universities, and a manufacturer, confidence attached to each.
+
+The alert the resident sees is not a vague yellow triangle crying wolf.
+
+It is a SENTENCE WITH RECEIPTS: contributory interaction, expected within one to three days, mechanism inspectable, evidence eleven-deep, strongest grade clinical trial - dose adjustment recommended.
+
+She adjusts the dose.
+
+Nothing happens - which is the whole point; the hemorrhage that never occurs appears in no statistics, and this is why causal infrastructure is invisible exactly when it is working.
+
+And one more thing happened at 2:14: her override pattern - along with thousands of others - became demand on the frontier, quietly bidding the world's pharmacologists toward the interactions that hospitals actually query at night.
+
+The commons learned what to learn next from the shift work of a tired resident.
+
+No committee assigned it.
+
+FIELD NOTE TWO: THE CRACK THAT TRIED TO FLY TWICE
+
+An accident investigation board, eighteen months after a cargo aircraft lost an engine pylon over open water.
+
+The final report is, as always, a masterpiece of causal reasoning: a fatigue crack, initiated at a rework bore, propagated under a specific vibration spectrum, inspection interval mismatched to crack-growth rate, load path redistributed, fastener row overloaded, separation.
+
+In the old world, that chain is Chapter 3 of a PDF - four hundred pages, beautifully written, filed - and its knowledge decays at the rate at which engineers retire and search engines miss synonyms.
+
+In the new world, the board publishes the chain AS OBJECTS: seven CROs, mechanism-linked into one decomposition, each with temporal windows from the flight-data record, each context field carrying the aircraft type, the rework condition, the spectrum - the whole thing signed by the board itself, evidence grade set honestly: derivation from wreckage and data, observation from the fleet, intervention from the test rigs that reproduced the crack growth.
+
+Now watch the knowledge refuse to die.
+
+A designer at a different manufacturer, in a different decade, queries her own store - federated, long ago, by a simple pull - for claims whose causes include rework bores and whose contexts overlap her vibration regime.
+
+The chain surfaces.
+
+Her design review inherits, in forty seconds, what the ocean was paid to teach.
+
+And when her team's rig tests refine the crack-growth window for the new alloy, their refinement threads onto the board's original claim - lineage intact - so the next designer inherits both the lesson and its maturation.
+
+Steel and blood wrote the first version.
+
+The commons made sure they only had to write it once.
+
+FIELD NOTE THREE: THE CLASSROOM WITH A FRONTIER
+
+A ninth-grade science classroom, second period, and the teacher has done something quietly radical: the class runs its own store.
+
+Monday: the students mint vocabulary from their plant-growth experiment - occurrents like add_nitrogen_fertilizer and leaf_yellowing - and a first degenerate claim: fertilizing causes greening.
+
+The dashboard on the wall shows the frontier: one missing-field gap, glowing.
+
+Tuesday through Thursday: intervention - which is to say, the students DO SCIENCE: control pots, dosed pots, tallies in a notebook that is suddenly interesting because the notebook is EVIDENCE.
+
+Friday: they refine - greening within seven to ten days, modality contributory, because pot nine got fertilizer and stayed stubbornly yellow, and pot nine thereby taught them more than the nine compliant pots combined.
+
+Each lab group signs its own assertions with its own key - and when two groups disagree about the window, the wall shows a CONFLICT, and the room, without being told, designs the tiebreaker experiment, because the frontier made the disagreement a quest instead of an argument.
+
+By spring the class store holds a hundred signed claims, three retractions (celebrated, per house rules, with applause - honest exits are the lesson), and a lineage tree showing exactly how their February understanding matured out of their September guesses.
+
+The final examination is one question: pick any claim in our store and defend its evidence grade.
+
+The students think they spent a year on plants.
+
+They spent a year on epistemology, with receipts - gap, intervention, tally, refinement, retraction, explanation - the child at the light switch, scaled to a classroom, running on the same eight kinds of object as the hospital and the accident board.
+
+The same wall teaches everyone.
+
+FIELD NOTE FOUR: THE AGENT THAT STOPPED GUESSING
+
+A mid-sized logistics company, and a familiar 2026 embarrassment: their expensive assistant agent confidently reroutes trucks around a bridge closure that ended in 2024.
+
+The correlation engine read old news, and old news reads exactly like new news.
+
+The fix, when it comes, is not a bigger model.
+
+The team stands up a store - one command - and adopts one commandment: THE AGENT MAY IMPROVISE LANGUAGE, BUT NEVER FACTS OF CONSEQUENCE; every operational belief it acts on must be a claim in the store, signed, dated, graded.
+
+Road closures become CROs with temporal windows - and windows EXPIRE, which is something a vector, notoriously, cannot do.
+
+Carrier performance becomes intervention-graded knowledge: every shipment the company actually runs is an experiment, and the agent signs what the experiment taught - twelve hundred small interventions a week, compounding into a private world model with receipts.
+
+When the agent recommends, the recommendation cites: this route, because these three claims, signed by dispatch, graded observation and better, none expired.
+
+When the agent is WRONG - and it is, gloriously, in week three, about a customs delay - the postmortem is four minutes: the bad claim is located by identifier, retracted by its author, refined by the operations lead, and the correction propagates to every future plan instantly, no retraining run, no prompt surgery, no exorcism of weights.
+
+The quarter's numbers make the executive case, but the sentence that sells the pattern company-wide comes from a dispatcher: "It stopped arguing with me, because now we can both point."
+
+Glass box, at forklift altitude.
+
+That is what the missing link looks like when it is simply, boringly, profitably PRESENT.
 
 PART SIX
 
@@ -1094,29 +1868,73 @@ TO THE BUILDERS, THE RESEARCHERS, THE LEADERS
 
 Three letters, each one page of this chapter, each ending in a verb.
 
-TO THE BUILDERS: you have shipped on shakier ground than this your whole career.
+TO THE BUILDERS.
 
-Here is a frozen 1.0.0 standard, twenty reference implementations to crib from in your language, a store you can run on a laptop, and a conformance suite that tells you in thirty-eight answers whether your code is RIGHT.
+You have shipped on shakier ground than this your whole career, and you know it.
 
-Wrap your domain's knowledge in CROs; put a gap frontier on your team's dashboard; give your agents somewhere to keep what acting teaches them.
+You have bet products on beta databases, deprecated-next-quarter APIs, and file formats that changed under you like river ice - so let us be concrete about what is being offered here, in your dialect.
+
+A frozen 1.0.0 specification that CANNOT drift under you: thirty-eight vectors with concrete bytes, twenty-seven locked decisions, semantic versioning with teeth.
+
+Twenty reference implementations - one of them almost certainly in your language, its source a working tutorial - plus typings for your TypeScript people and a WebAssembly core for your weird deployment target; there is always a weird deployment target.
+
+A store your intern can run before standup, a dashboard your product manager will actually look at, and an integration story that is JSON over HTTP, because we like you.
+
+And a definition of DONE that no framework ever gave you: run the suite; thirty-eight passes means your integration is right, and there is no thirty-ninth opinion.
+
+Start small and selfish - that is the designed on-ramp: wrap ONE painful domain's knowledge in CROs; give ONE agent a ledger instead of a prayer; put the gap frontier on ONE team dashboard and watch what your organization suddenly agrees it does not know.
+
+The federation switch will be there when you have something worth federating.
+
+You were going to build a knowledge layer anyway - every team does, badly, in a wiki that rots.
+
+Build it once, on bedrock, signed.
 
 Build.
 
-TO THE RESEARCHERS: every chapter of this book is a hypothesis wearing its falsifiability openly.
+TO THE RESEARCHERS.
 
-Measure whether gap-guided agents learn faster than curriculum-fed ones; test whether analogical transfer over CRO graphs beats embedding similarity; study conflict dynamics in a commons where disagreement is structured; and if the third benchmark humbles our labeled bet, PUBLISH THAT - in this architecture even our failures will be signed and legible, which is more than today's field can say of its successes.
+Every chapter of this book is a hypothesis wearing its falsifiability in public, and you are cordially invited to the demolition.
 
-Falsify us, or extend us; both are gifts.
+Here are experiments we want run AT us.
+
+Measure whether gap-guided agents - fed by a value-ranked frontier - learn environments faster than curriculum-fed or curiosity-noise agents; the frontier is an intrinsic-motivation signal with receipts, and it will beat baselines or it will not.
+
+Test whether analogical transfer over CRO structure - mapping causal graphs, not surface features - outperforms embedding-similarity transfer on genuinely novel domains; Chapter 11 stakes a claim, and claims are for testing.
+
+Study the conflict dynamics of a commons where disagreement is structured: does surfaced contradiction converge communities faster than talk-page warfare - or does it merely make the warfare more legible?
+
+Probe the safety story adversarially: try to launder a framing attack past the signatures; try to sneak an imagined reality into the observed record; the safety chapter is a red-team invitation with its own test suite.
+
+Instrument the gardener pattern at scale: a hundred synthetic contributors of different architectures on one frontier - do reputations computed from signed histories actually track reliability?
+
+And when the third benchmark measures our labeled bet - measure it loudly, whichever way it lands.
+
+If we are wrong, this architecture guarantees our wrongness will be signed, structured, and citable - and we would rather donate a legible corpse to science than a mystery.
+
+Falsify us, or extend us; both are gifts, and both are receipts.
 
 Investigate.
 
-TO THE LEADERS - of laboratories, companies, agencies, nations: the question on your desk is not whether machine minds are coming; it is whether their beliefs will be AUDITABLE when they arrive.
+TO THE LEADERS - of laboratories, companies, agencies, nations.
 
-You will fund world models regardless; fund the world model FORMAT - the open, signed, inspectable layer - alongside the private weights, the way your predecessors funded the open protocols beneath the private networks.
+Strip the technology and the question on your desk is ancient: WILL POWER BE AUDITABLE?
 
-The license is deliberately gentle - attribution always; no profit, no problem - and the governance is written down, versioned, and public.
+Machine minds are arriving under your watch; that part is no longer a decision available to you.
 
-The cheapest insurance against unaccountable intelligence ever offered to policy is a data structure.
+What remains yours to decide is whether their beliefs will be readable - whether, when one of them acts consequentially, the chain from action to belief to evidence to author can be walked by your auditors, your courts, your public - or whether that chain disappears into a hundred billion parameters and a shrug.
+
+You will fund world models regardless; the market has already voted a billion dollars in a single seed round.
+
+Fund the FORMAT alongside the models: the open, signed, inspectable layer - precisely the way your predecessors funded open protocols beneath private networks, open standards beneath proprietary chips - because the layer that everyone shares is the only layer where public interest can live.
+
+The costs have been engineered to embarrass every objection: the license forbids nothing but ingratitude - attribution always, no profit, no problem; adoption starts at one pilot store on one team's laptop; the governance is versioned, public, and boring on purpose; and the conformance suite means procurement can specify compliance in one sentence and TEST it in one command.
+
+And the geopolitics, frankly, favor the early: federated stores converge by mathematics, not by treaty - which means the first institutions to build signed causal records will define the evidentiary norms everyone else inherits, the way early adopters of double-entry defined what "audited" meant for centuries.
+
+The cheapest insurance against unaccountable intelligence ever offered to policy is a data structure with a gentle license.
+
+It is on the table.
 
 Adopt.
 
@@ -1143,6 +1961,130 @@ If minds - born and built - are going to share a world, they had better share a 
 That is the road.
 
 It is paved for twenty languages, and the tolls are attribution only.
+
+A DAY IN 2036
+
+Permission to dream, with receipts - one ordinary day, ten years out, if this book wins.
+
+06:40, LAGOS.
+
+Dr. Adaeze Okonkwo starts rounds with a patient whose genetics flag a rare metabolic pathway.
+
+Her assistant does not "look things up"; it WALKS THE COMMONS: forty-one CROs touching that pathway, mechanism-linked, evidence-graded - two of them refined only last month by a pharmacology lab in Santiago, one carrying an open conflict about dosing windows in adolescents.
+
+The conflict is the useful part.
+
+She adjusts the protocol around the disputed window, flags her clinical observations for contribution - her hospital's review board co-signs patient-safe aggregates weekly - and by evening her observations are two more signatures in the world's slow settling of that question.
+
+Medicine has stopped whispering to itself across paywalls.
+
+It compounds.
+
+09:15, ROTTERDAM.
+
+A port authority's planning agent proposes rerouting bulk traffic ahead of a forecast surge.
+
+The board does not debate the agent's vibes; the recommendation arrives as a causal chain - eleven claims deep, every link signed, three links resting on the port's own intervention history, one link, honestly graded, mere derivation.
+
+A commissioner clicks the weak link; the chain shows its provenance; the board approves with one amendment and ORDERS AN EXPERIMENT to upgrade the weak link's grade by next quarter.
+
+Governance of machine judgment has become what governance always wanted to be: line-item review of legible reasons.
+
+11:30, A LAB THAT PREFERS NOT TO BE NAMED.
+
+A frontier model of the old magnificent kind - all geometry, all association - is being fitted with what its builders informally call a CONSCIENCE LAYER: every operational belief it acts on must resolve to signed claims in a store; improvisation is licensed for language, forbidden for facts of consequence.
+
+The behavioral result, in their internal jargon, is that the system "stopped confabulating where it counts."
+
+The auditors' result is that, for the first time, there is something to audit.
+
+14:00, EVERYWHERE AND NOWHERE.
+
+The frontier hums.
+
+Somewhere a materials conflict about a battery separator - demand-ranked into the global top ten for six weeks - finally receives its settling evidence from a robotic lab that ran four hundred intervention cycles overnight; the bounty, posted by a consortium of seven manufacturers who all needed the answer and none of whom needed to own it, pays out to the lab's key at the moment the conflict object closes.
+
+Truth-finding has a labor market now.
+
+Its workers are tireless, its receipts are cryptographic, and its unemployment rate is the length of the gap list: never zero.
+
+16:45, A NINTH-GRADE CLASSROOM, OHIO.
+
+The plant unit again - some things are eternal - but this year the class store federates, read-only, with eleven hundred other classrooms.
+
+A girl in the second row discovers that her group's stubborn yellow-leaf exception matches an open low-stakes conflict in the schools' shared frontier, argued between a class in Nairobi and a class in Osaka.
+
+Her lab group designs the tiebreaker for homework - voluntarily, loudly, arguing about controls at recess.
+
+Nobody tells them this is epistemology.
+
+That is how you know it is working.
+
+21:00, SAN FRANCISCO.
+
+At a reunion of people who attended a certain conference a decade earlier, an engineer - who keeps, framed above her desk, a printout of a gardener's log line about a wall and a brick - is asked what actually changed.
+
+She thinks about it properly, the way this crowd still does.
+
+"Before, every mind - human, machine, institutional - kept its own private guess about how the world works, and the guesses died with their keepers."
+
+"Now there is a place where knowing COMPOUNDS."
+
+"Not the answers - we still fight about answers, thank God."
+
+"The RECEIPTS."
+
+She raises her glass to the room.
+
+"Turns out that was the missing link."
+
+None of this is prophecy; every scene above is the architecture of this book plus nothing but adoption - the same eight kinds, the same ladder, the same frontier, the same signatures, scaled by ordinary years.
+
+Dreams with receipts.
+
+That is the only kind we deal in.
+
+INTERLUDE THREE
+
+THE DAY OF THE FREEZE
+
+A standard is an argument until the day it becomes a fact.
+
+Here is the day, told plainly, because the making of infrastructure deserves its own literature.
+
+The morning the specification went to 1.0.0, a small tool walked through all thirty-eight conformance vectors and replaced every symbolic placeholder with concrete bytes: real sixty-four-character identifiers, real public keys, and - in the assertion vector - a real signature, computed over the canonical bytes, that genuinely verifies.
+
+Then the tool was run a second time, on purpose, in public.
+
+It changed nothing.
+
+Idempotent - already done stays done - and that second, empty run is the quietest sentence in the whole repository and one of the proudest.
+
+Then came the gauntlet the freeze exists to serve: the ports.
+
+Twenty implementations were not written by one heroic team sharing a codebase; they were written INDEPENDENTLY, against the paper, precisely so that their agreement would mean something.
+
+In the languages whose standard libraries carry no cryptography - and there were many - the mathematics was built from raw arithmetic and then made to CONFESS before it was trusted: the Lua port's hand-built big-number engine was cross-examined against the reference on hundreds of random-operand cases before its curve was assembled; the Kotlin/Native port, facing a standard library with no cryptography, no JSON, and no big integers at all, hand-built all three and cross-checked its number formatting alone on more than a thousand cases; the Haskell port regenerated its hash constants from the square and cube roots of primes rather than trust a transcription.
+
+Every port is gated, before any vector runs, on a known answer published inside the internet's own signature standard - so a broken port cannot even clear its throat.
+
+And the day supplied its own perfect parable.
+
+One port - the R binding - failed its public gate on first contact: the cryptographic library expected a sixty-four-byte secret where the port offered a thirty-two-byte seed.
+
+The gate caught it on the first line of output, the fix was four lines, and the gate went green - which is to say: THE SYSTEM WORKED, in the only sense that ever matters for infrastructure - not that nothing fails, but that failure is loud, located, and cheap.
+
+By nightfall, twenty tables of thirty-eight lines each said PASS, byte for byte, from Prolog to Kotlin/Native.
+
+And then the last actor of the day stepped up - not a programmer.
+
+At the end of the verification run, as it does at the end of every run, a small glass-box mind read the frontier of a freshly seeded store, chose the most valuable gap, pressed its button one hundred times, induced a window and a modality, minted a refinement, signed an intervention-grade assertion with its own key, and logged that the gap was gone from everyone's frontier.
+
+The first brick by a synthetic hand went into the wall on the same day the wall's dimensions became law.
+
+Standards are usually born in committee minutes.
+
+This one was born with its boots on.
 
 THE MANIFESTO
 
@@ -1354,6 +2296,182 @@ RELATED PROJECTS:
 
 • Mentova - the flagship synthetic mind: github.com/ai-university-aiu/Mentova
 
+APPENDIX 3
+
+THE GARDENER'S LOG, ANNOTATED
+
+The complete narrated output of the first synthetic mind's contribution loop, as it runs - live, on every change - in the repository's continuous verification; each line followed by what it means.
+
+gardener: frontier read; chose gap cro:5d73... (value 6) - the wall's most wanted brick
+
+• The mind queried the live store's value-ranked gap list and committed to the top item; no human selected the task.
+
+gardener: the claim: press_button causes light_on - but with no window and no modality; a promise without a shape
+
+• It resolved the claim's occurrents to human-readable labels and diagnosed exactly which fields are missing - reading structure, not text.
+
+gardener: intervening: one hundred presses, my own hand on the switch
+
+• Rung two, declared in advance: the knowledge about to be written will be earned by acting, and graded accordingly.
+
+gardener: tally: 98/100 lit the lamp; slowest response 0.9 seconds
+
+• Raw interventional evidence: a success rate and a worst-case latency - the empirical shape of the missing fields.
+
+gardener: induced: modality sufficient (rate 0.98), window 0..1 seconds - because acting beats watching
+
+• Induction from its own trials: sufficiency at measured strength, and a temporal window bounding every observed response.
+
+gardener: refinement minted: cro:c3f7... (refines cro:5d73...)
+
+• A new content object - same causes and effects, the missing fields filled, lineage pointing to the parent; the parent is never edited, and never needs to be.
+
+gardener: assertion signed and landed: ast:232a... (evidence: intervention - the strongest grade)
+
+• The mind signed its claim with its own Ed25519 key; the record verifies against that key forever; the evidence grade is the top of the ladder, and it was EARNED.
+
+gardener: the gap I chose is gone from the frontier - the wall shows the next worker a different brick
+
+• Verification of impact: the store's gap scan no longer lists the parent - not by notification, but because the structure now satisfies the rule; stigmergy, closed loop.
+
+And the test that wraps this run finishes with two facts worth engraving.
+
+The refinement is verified VALID by the standard's own rule three - lineage, preserved sets, added fields only.
+
+And the gardener now HAS A REPUTATION: assertions one, intervention-grade one, computed purely from its signed public history - accountability, machine-sized.
+
+APPENDIX 4
+
+THE TWENTY TABLES - NOTES FROM THE PORTS
+
+One paragraph per implementation; twenty small proofs that meaning lives in the standard, not the software.
+
+• PROLOG - the reference: the architecture's birthplace, where causal packs, glass-box rules, and the benchmark history live; every other row exists to agree with this one without copying it.
+
+• PYTHON - the second implementation and the proof of language independence: standard library only, down to a hand-written Ed25519 gated on the internet standard's own test vector.
+
+• JAVASCRIPT - zero dependencies, byte-identical signatures with Python, and the canonicalization standard's own natural habitat: its number rules ARE JavaScript's.
+
+• RUST - the systems anchor: vetted crypto crates, schemas compiled into the binary, and the WebAssembly core exported from the same source - one audited core for every host.
+
+• JAVA - written blind, no local toolchain, compiled first-try in public verification; its curve mathematics was transcribed back to another language and cross-executed before anyone trusted it.
+
+• SWIFT - the port that hardened the number pipeline: lossless integer-versus-float tracking through parsing, canonicalization, and identity.
+
+• GO - standard library cryptography, and a number formatter differential-tested against the reference on more than a million values before first run.
+
+• C SHARP - pure BigInteger curve arithmetic with the negative-modulo trap fenced at every subtraction; the package manifest was publishable the day the port passed.
+
+• RUBY - the friendliest port of the wave: native big integers, floored modulo like the reference, stdlib digest - proof the standard bends toward expressive languages.
+
+• PHP - bundled sodium for signatures and a famous ambiguity ({} versus []) neutralized by proving the vectors never produce it.
+
+• DART - pure-language SHA-2 and Ed25519 over BigInt, cross-signed against Python: same seed, same identifier, same sixty-four bytes.
+
+• ELIXIR - immutable-functional store threading on the BEAM, OTP crypto, and a quarantine that survives the error path because the vectors said it must.
+
+• HASKELL - the purist's port: hash constants regenerated from the roots of primes, a hand-rolled regex engine oracle-tested on sixty thousand cases, and not one package beyond the compiler's own.
+
+• PERL - core modules only, a fixed-base doubling table taming pure big-integer arithmetic to nine seconds for the whole suite.
+
+• R - the port whose first public gate caught a real key-format misunderstanding on line one - and thereby proved the gates.
+
+• LUA - the summit: big-number arithmetic hand-built on 24-bit limbs, cross-examined against the reference on hundreds of cases before the curve was assembled; pure Lua, zero rocks.
+
+• C++ - zero libraries, machine-word limbs with 128-bit products, compiled with every warning enabled and none emitted; the port that became the vcpkg and Conan submissions.
+
+• ZIG - standard-library Ed25519, APIs pinned by reading the standard library's source rather than trusting memory; insertion-ordered maps everywhere order matters.
+
+• JULIA - stdlib hashing, native BigInt curve, byte-parity with the reference - and a port that corrected an error in its own build instructions by checking reality first.
+
+• KOTLIN/NATIVE - the deep end: a standard library with no cryptography, no JSON, no big integers; all three hand-built, thirteen hundred cross-checks, and thirty-eight passes on the binary's first execution.
+
+Twenty dialects.
+
+One meaning.
+
+The table is the thesis.
+
+APPENDIX 5
+
+GLOSSARY - EVERY TERM, FOR EVERY READER
+
+• AGI - Artificial General Intelligence: a machine mind with the broad, transferable competence of a human across domains, rather than skill at one task.
+
+• ASSERTION - the signed record by which a source claims a content object is true, carrying evidence type, strength, confidence, and a timestamp.
+
+• CAUSAL RELATION OBJECT (CRO) - the fundamental unit of Causalontology: a reified causal claim with causes, effects, and optional mechanism, temporal window, modality, context, and refinement lineage.
+
+• CONFORMANCE VECTOR - a published test case: an input and the exact behavior a correct implementation must produce; thirty-eight of them define correctness for this standard.
+
+• CONTENT ADDRESSING - deriving an object's identifier from a cryptographic fingerprint of its own content, so identical content has identical identity everywhere.
+
+• CONTINUANT - a thing that endures through time (a noun): a person, a lamp, a molecule.
+
+• CRDT - Conflict-free Replicated Data Type: a data structure guaranteed to converge to the same state on all replicas regardless of merge order; the Causalontology store is one by construction.
+
+• DEGENERATE CLAIM - a legal, minimal CRO carrying only causes and effects; a standing invitation for refinement.
+
+• ED25519 - a fast, widely trusted digital-signature scheme; every provenance record in the commons is signed with it.
+
+• ENRICHMENT - the signed record that adds one entry (an alias, a participant, a taxonomy link) to one field of a content object: every word has an author.
+
+• EVIDENCE GRADE - the declared way a source knows: intervention, observation, derivation, human hint, or imported - with acting outranking watching.
+
+• GLASS BOX - the design discipline in which the explanation IS the representation: every belief readable, every change attributable, every "why" a lookup.
+
+• INTERVENTION - acting on the world and observing what follows; the top evidence grade, and rung two of the Ladder of Causation.
+
+• JSON / RFC 8785 - the JavaScript Object Notation data format, and the internet standard that fixes ONE canonical byte serialization of it, so identity never depends on formatting accidents.
+
+• LADDER OF CAUSATION - Judea Pearl's three rungs: association (seeing), intervention (doing), counterfactual (imagining).
+
+• LLM - Large Language Model: a neural network trained on vast text to predict the next token; magnificent at association, unreliable at causation.
+
+• MECHANISM - the field of a CRO holding the finer causal objects that explain HOW; explanation by decomposition.
+
+• MODALITY - the shape of a causal claim: necessary, sufficient, contributory, or preventive.
+
+• OCCURRENT - a process or event TYPE (a verb): pressing, lighting, administering; the vocabulary of causes and effects.
+
+• PROVENANCE - the who-says-and-how of knowledge: the signed, add-only records surrounding immutable content.
+
+• REALIZABLE - a disposition, function, or role - fragility, a key's function - borne by a continuant, realized in occurrents; the hinge between nouns and verbs.
+
+• REFINEMENT - a new claim that completes a vaguer parent without contradicting it, linked by lineage; how knowledge matures.
+
+• REIFICATION - turning an idea into a thing with identity; here, turning "A causes B" from a sentence into an object.
+
+• RETRACTION - a source's signed withdrawal of its OWN record; hidden from default views, kept in history: the honest exit.
+
+• SHA-256 - the cryptographic fingerprint function used for content addressing.
+
+• STIGMERGY - coordination through the shared environment itself: the half-built wall showing the next worker where the next brick goes; implemented as the value-ranked gap frontier.
+
+• SUCCESSION - the signed record rotating one cryptographic key to its successor, preserving identity and accountability across time.
+
+• VERB-FIRST, NOUN-HOSTING - the paradigm: reality is what happens, and things are its participants; the ontology governs the verbs and hosts the nouns.
+
+APPENDIX 6
+
+FREQUENTLY ASKED QUESTIONS - THE SHORT ANSWERS
+
+• Is this a model? - No; it is a data standard plus a shared store; models of every kind are welcome readers and writers.
+
+• Does it replace neural networks? - No; it gives them a ledger; geometry for guessing, ledgers for knowing.
+
+• Is it open? - Entirely: attribution always, no profit no problem; twenty implementations; public conformance.
+
+• Can I run it privately? - Yes; a laptop store works offline; federation is optional, always.
+
+• Who decides truth? - Readers, communities, and evidence - never the infrastructure; it decides provenance and structure only.
+
+• What about the benchmark scores? - Perfect on the PUBLIC TRAINING SETS of the first two Abstraction and Reasoning Corpus benchmarks, by pure symbolic induction, no LLM; stated precisely; the third is a labeled bet, unclaimed until measured.
+
+• What is reserved for later? - Token-level occurrences and the bounty layer - by written governance, for a future major version.
+
+• Where do I start? - github.com/ai-university-aiu/causalontology - one install line, one store command, one gap closed before lunch.
+
 SOURCES
 
 The contemporary findings grounding Part One, stated in the text and listed here plainly:
@@ -1377,6 +2495,110 @@ The contemporary findings grounding Part One, stated in the text and listed here
 • AI safety, alignment, and interpretability assessments for 2026 (zylos.ai research, 2026-02-09).
 
 Every URL was live at the time of writing; the arguments of this book stand on the public record of the field's own findings.
+
+APPENDIX 7
+
+THE QUICKSTART, ANNOTATED - YOUR FIRST THREE OBJECTS
+
+The thirty-second version appears in the repository; here is the guided version, every line explained, no programming background required.
+
+Knowledge in Causalontology is written in JSON - JavaScript Object Notation - the curly-brace format that has become the lingua franca of machines; if you can read a labeled list, you can read JSON.
+
+OBJECT ONE - A VERB.
+
+{ "type": "occurrent", "label": "press_button", "category": "action" }
+
+• type says which of the eight kinds this is: an occurrent, a happening.
+
+• label is its canonical name - lowercase, words joined by underscores, by rule, so that names are predictable across the whole commons.
+
+• category places it in a small closed menu (an action, in this case - something an agent does).
+
+That is a complete, legal citizen of the commons; minted anywhere on Earth, its content-derived identifier begins occ: and is identical everywhere.
+
+OBJECT TWO - ANOTHER VERB.
+
+{ "type": "occurrent", "label": "light_on", "category": "state_change" }
+
+The effect needs a name too; category state_change says the world ends up different.
+
+OBJECT THREE - THE ARROW ITSELF.
+
+{ "type": "cro", "causes": ["occ:..."], "effects": ["occ:..."] }
+
+• causes and effects are lists of occurrent identifiers - the two verbs above, referenced by their fingerprint names, never by loose text; the standard enforces this, which is how the vocabulary stays load-bearing.
+
+• Notice everything that is ABSENT: no window, no modality, no mechanism, no context - and the object is still legal.
+
+You have written a degenerate claim - the honest, humble, newborn form of knowledge - and the moment it enters a store, the frontier lists it as a missing-field gap: a standing invitation, addressed to the world.
+
+THE REFINEMENT, WHEN YOU HAVE EARNED IT.
+
+{ "type": "cro", "causes": [...], "effects": [...], "temporal": { "dmin": 0, "dmax": 1, "unit": "seconds" }, "modality": "sufficient", "refines": "cro:..." }
+
+• temporal: the effect follows within zero to one second - dmin, dmax, and a unit from the fixed table.
+
+• modality sufficient: the cause, when present, is enough.
+
+• refines: the fingerprint of your newborn claim - lineage, so the commons remembers how knowledge grew.
+
+Mint this only after your hundred presses - or your honest observation, graded as observation - because the grade you attach in the accompanying assertion is a signed statement about HOW you know, and the whole civilization of this book runs on that one small honesty.
+
+Three objects, one refinement, one signature.
+
+You now speak the language.
+
+APPENDIX 8
+
+NOTES ON THE SOURCES
+
+The works cited in Part One, with one sentence each on what this book takes from them - so a curious reader knows which door each source opens.
+
+• The systematic evaluations of LLM causal reasoning (MDPI Electronics; arXiv 2505.18931) supply the measured ceiling - an average F1 near 0.535 on real-world causal inference, degrading with implicitness - that Chapter 1 leans on; the numbers are theirs, the interpretation ours.
+
+• The world-models position literature (arXiv 2605.23972) articulates the objective-level mismatch - next-token prediction versus latent dynamics - that gives Chapter 1 its "correlation engine" teeth.
+
+• The rung-one verdicts (arXiv 2506.21215; arXiv 2410.15319) ground Chapter 2's claim that today's systems remain at association, in the causal-inference community's own words.
+
+• The clinical study of inflexible reasoning (PMC12606185) supplies medicine's version of the same diagnosis, echoed in Field Note One.
+
+• Pearl's ladder (The Book of Why and the surrounding commentary) is the map this book navigates by; our contribution is not the ladder but the address system for its rungs.
+
+• The 2026 reporting on the billion-dollar world-model seed and the neurosymbolic turn (AIwire; latent.space; Gary Marcus's commentary; the ICANN X-NeSy workshop) grounds Chapter 3's claim that the field itself has conceded the diagnosis.
+
+• The 2026 safety and interpretability assessments (zylos.ai) ground Chapter 4's stakes.
+
+Every load-bearing external fact in this book traces to one of these; everything else traces to the repository, where it can be executed.
+
+ABOUT THE AUTHOR
+
+D. R. Dison is the Founder of AIU (Artificial Intelligence University) and the creator and owner of PrologAI, the glass-box cognitive architecture, and Mentova, the synthetic mind built upon it - the systems whose public-training-set records on the first two Abstraction and Reasoning Corpus benchmarks, and whose Causalontology distillation, are the engineering spine of this book.
+
+ORCID 0009-0001-9246-5758 - linkedin.com/in/d-r-dison/
+
+THE SPEAKER'S EPILOGUE
+
+What to say tomorrow, when someone in the hallway asks what this book was about - three answers, sized to the asking.
+
+THE ELEVATOR (ten seconds):
+
+"AGI is missing a data structure, not a bigger model - causation itself, as signed, mergeable objects - and it shipped this year; pip install causalontology."
+
+THE COFFEE LINE (forty seconds):
+
+"Every mind - human or machine - runs on knowing what makes what happen, and we have never given that knowledge a home: no format, no signatures, no way to merge what two minds learn."
+
+"Causalontology is that home: eight kinds of object, evidence graded so acting beats watching, gaps that invite contributors, everything glass-box."
+
+"Twenty languages implement it, byte-identical; a synthetic mind is already contributing signed knowledge; and every claim I just made is checkable in a public repository."
+
+THE DINNER ARGUMENT (as long as they will let you):
+
+Start with the child at the light switch.
+
+End with the wall and the brick.
+
+Everything in between is in this book, and the receipts are at github.com/ai-university-aiu/causalontology.
 
 COLOPHON
 
