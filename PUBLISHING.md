@@ -17,6 +17,7 @@ stored on the build machine, by design).
 | LuaRocks | **live** (published 2026-07-14, via the publish workflow) | `luarocks install causalontology` — https://luarocks.org/modules/search?q=causalontology |
 | Packagist | **live** (published 2026-07-14) | `composer require causalontology/causalontology` — https://packagist.org/packages/causalontology/causalontology |
 | Maven Central (Kotlin klib) | **live** (published 2026-07-14) | `io.github.ai-university-aiu:causalontology-kotlin:1.0.0` — https://repo1.maven.org/maven2/io/github/ai-university-aiu/causalontology-kotlin/1.0.0/ |
+| pub.dev | **live** (published 2026-07-14) | `dart pub add causalontology` — https://pub.dev/packages/causalontology |
 | npm | **live** (published 2026-07-13) | `npm install causalontology` — https://www.npmjs.com/package/causalontology |
 | PyPI | **live** (published 2026-07-13) | `pip install causalontology` — https://pypi.org/project/causalontology/ |
 | crates.io | **live** (published 2026-07-13) | `cargo add causalontology` — https://crates.io/crates/causalontology |
@@ -48,7 +49,6 @@ machine; each publish is one account + one command.
 
 | Registry | Binding | The command (after logging in) |
 |---|---|---|
-| pub.dev | dart | `cd bindings/dart && dart pub publish` |
 | Hackage | haskell | `cd bindings/haskell && cabal sdist && cabal upload --publish dist-newstyle/sdist/*.tar.gz` |
 | CPAN | perl | PAUSE account, then upload the dist tarball at pause.perl.org |
 | CRAN | r | a human-review submission process (cran.r-project.org/submit.html) — stated plainly |
