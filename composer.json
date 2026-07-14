@@ -1,0 +1,11 @@
+{
+    "name": "causalontology/causalontology",
+    "description": "The PHP binding of the Causalontology standard - reified causation as a language-neutral standard and shared commons. Bundled sodium/hash extensions only; passes all 38 frozen conformance vectors. (Sources under bindings/php/; this root manifest exists because Packagist reads the repository root, like Package.swift for SwiftPM.)",
+    "type": "library",
+    "license": "Apache-2.0",
+    "authors": [{"name": "AI University (AIU)", "email": "ai.university.aiu@gmail.com"}],
+    "homepage": "https://github.com/ai-university-aiu/causalontology",
+    "require": {"php": ">=8.2", "ext-sodium": "*", "ext-json": "*"},
+    "autoload": {"psr-4": {"Causalontology\\": "bindings/php/src/"}},
+    "extra": {"license-note": "The attribution always; no profit, no problem license. (Apache License 2.0 text)"}
+}
