@@ -45,7 +45,7 @@
 
 <br>
 
-Each badge above is a claim, and every claim deserves a plain explanation. Here they are, row by row, written for a newcomer. (The colors follow a uniform code: **gold** marks the highest honors, **dark red** is the field color, **crimson** marks distinction, and the ambers and bronzes mark the standard's machinery.)
+Each badge above is a claim, and every claim deserves a plain explanation. Here they are, row by row, written for a newcomer. (The label side of each ribbon is a neutral grey, matching the PrologAI and Mentova badges; the colored right side follows a uniform code: **gold** marks the highest honors, **crimson** marks distinction, and the ambers and bronzes mark the standard's machinery.)
 
 **Row 1 — The Honors**
 
