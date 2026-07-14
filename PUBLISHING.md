@@ -11,6 +11,7 @@ stored on the build machine, by design).
 |---|---|---|
 | GitHub Release v1.0.0 | **live** - carries the wheel, sdist, npm tarball, crate, and the WebAssembly core | the repository's Releases page |
 | Swift Package Manager | **live** - SwiftPM resolves git tags directly | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "1.0.0")` |
+| NuGet | **live** (published 2026-07-14) | `dotnet add package causalontology` — https://www.nuget.org/packages/causalontology |
 | npm | **live** (published 2026-07-13) | `npm install causalontology` — https://www.npmjs.com/package/causalontology |
 | PyPI | **live** (published 2026-07-13) | `pip install causalontology` — https://pypi.org/project/causalontology/ |
 | crates.io | **live** (published 2026-07-13) | `cargo add causalontology` — https://crates.io/crates/causalontology |
@@ -42,7 +43,6 @@ machine; each publish is one account + one command.
 
 | Registry | Binding | The command (after logging in) |
 |---|---|---|
-| NuGet | csharp | `cd bindings/csharp/Causalontology && dotnet pack -c Release && dotnet nuget push bin/Release/causalontology.1.0.0.nupkg -s https://api.nuget.org/v3/index.json -k <key>` |
 | RubyGems | ruby | `cd bindings/ruby && gem build causalontology.gemspec && gem push causalontology-1.0.0.gem` |
 | Packagist | php | submit the repository URL at packagist.org (it reads composer.json) |
 | pub.dev | dart | `cd bindings/dart && dart pub publish` |
