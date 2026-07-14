@@ -16,6 +16,7 @@ stored on the build machine, by design).
 | Hex | **live** (published 2026-07-14, via the publish workflow) | `{:causalontology, "~> 1.0"}` — https://hex.pm/packages/causalontology |
 | LuaRocks | **live** (published 2026-07-14, via the publish workflow) | `luarocks install causalontology` — https://luarocks.org/modules/search?q=causalontology |
 | Packagist | **live** (published 2026-07-14) | `composer require causalontology/causalontology` — https://packagist.org/packages/causalontology/causalontology |
+| Maven Central (Kotlin klib) | **live** (published 2026-07-14) | `io.github.ai-university-aiu:causalontology-kotlin:1.0.0` — https://repo1.maven.org/maven2/io/github/ai-university-aiu/causalontology-kotlin/1.0.0/ |
 | npm | **live** (published 2026-07-13) | `npm install causalontology` — https://www.npmjs.com/package/causalontology |
 | PyPI | **live** (published 2026-07-13) | `pip install causalontology` — https://pypi.org/project/causalontology/ |
 | crates.io | **live** (published 2026-07-13) | `cargo add causalontology` — https://crates.io/crates/causalontology |
@@ -59,4 +60,3 @@ machine; each publish is one account + one command.
 | Zig packages | zig | **live by git tag** — Zig consumes git URLs + build.zig.zon; the v1.0.0 tag serves it |
 | C++ | cpp | source + GitHub release; vcpkg/Conan port manifests are a welcome contribution |
 | Julia General registry | julia | registration is a pull-request review process (JuliaRegistries/General) — stated plainly; Project.toml is ready |
-| Maven Central (klib) | kotlin | Kotlin/Native artifact publication pending — reuses the existing verified io.github.ai-university-aiu namespace |
