@@ -85,7 +85,7 @@ Each badge above is a claim, and every claim deserves a plain explanation. Here 
 
 - **`FLAGSHIP APPLICATION | MENTOVA PROLOGAI`** — **PrologAI** is the glass-box cognitive architecture that serves as Causalontology's reference implementation, and **Mentova** is the synthetic mind built on it — the first full application of this ontology, and one day the first machine mind to read the commons' gaps and contribute causal knowledge back. The badge links to Mentova.
 
-- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v13.txt`](Causalontology_Standalone_Design_v13.txt).
+- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v14.txt`](Causalontology_Standalone_Design_v14.txt).
 
 - **`LICENSE | ATTRIBUTION ALWAYS; NO PROFIT, NO PROBLEM`** — the project's license, in its own words: credit the source always, and using it without profit is never a problem. It is the friendly name for the Apache License 2.0 text (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)), one license covering everything here — the code, the data, the specification, and the architecture.
 
@@ -113,7 +113,7 @@ Causalontology's identity, stated from five angles — each the same claim, that
 
 And this repository adds a further first of its own: to our knowledge, the first specification to deliver reified, provenance-signed causation as a **language-neutral standard** with a **shared, stigmergic commons** — offered, glass-box style, with its evidence: the specification, the conformance vectors, and the running implementations, all inspectable.
 
-Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v13.txt`](Causalontology_Standalone_Design_v13.txt) — the complete, self-contained canon of this repository.
+Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v14.txt`](Causalontology_Standalone_Design_v14.txt) — the complete, self-contained canon of this repository.
 
 ---
 
@@ -168,16 +168,24 @@ That third document — a *degenerate* CRO, just cause and effect — is already
 | JavaScript / TypeScript | `npm install causalontology` (typings included) |
 | Rust | `cargo add causalontology` |
 | Java | `io.github.ai-university-aiu:causalontology:1.0.0` (Maven Central) |
+| Kotlin/Native | `io.github.ai-university-aiu:causalontology-kotlin:1.0.2` (Maven Central) |
+| C# / .NET | `dotnet add package causalontology` |
+| Ruby | `gem install causalontology` |
+| PHP | `composer require causalontology/causalontology` |
+| Dart | `dart pub add causalontology` |
+| Elixir / Erlang | `{:causalontology, "~> 1.0"}` (Hex) |
+| Lua | `luarocks install causalontology` |
 | Swift | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "1.0.0")` |
 | Go | `go get github.com/ai-university-aiu/causalontology/bindings/go@v1.0.0` |
+| Zig | git URL + tag in `build.zig.zon` |
 
-All published at **specification 1.0.0** (vectors frozen 2026-07-13). Reach, stated precisely: **Kotlin, Scala, Clojure, and Groovy** consume the Java artifact from Maven Central as-is; **Deno and Bun** consume the npm package directly; and **any WebAssembly host** (browsers, edge workers, wasmtime embeddings) can use the [WASM core attached to the v1.0.0 release](https://github.com/ai-university-aiu/causalontology/releases/tag/v1.0.0) — so six direct installs serve ten-plus languages in practice. Nine further implementations — **C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, and Lua** — are conformant in the repository (registry publications pending the owner's accounts; see PUBLISHING.md). C++, Zig, Julia, and Kotlin/Native joined in the second wave — twenty implementations now stand. Anything still missing (OCaml, Scala Native, Fortran, COBOL if you dare, ...) remains the open invitation: **the 38 frozen vectors are the gate**. Details and status: [PUBLISHING.md](PUBLISHING.md).
+All published at **specification 1.0.0** (vectors frozen 2026-07-13). Reach, stated precisely: **Kotlin, Scala, Clojure, and Groovy** consume the Java artifact from Maven Central as-is; **Deno and Bun** consume the npm package directly; and **any WebAssembly host** (browsers, edge workers, wasmtime embeddings) can use the [WASM core attached to the v1.0.0 release](https://github.com/ai-university-aiu/causalontology/releases/tag/v1.0.0) — so six direct installs serve ten-plus languages in practice. Nine further implementations — **C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, and Lua** — are conformant in the repository (registry publications pending the owner's accounts; see PUBLISHING.md). In review or ripening: **Julia** ([General#161292](https://github.com/JuliaRegistries/General/pull/161292), auto-merges in ~3 days if checks pass), **vcpkg** ([#52892](https://github.com/microsoft/vcpkg/pull/52892)) and **Conan** ([#30612](https://github.com/conan-io/conan-center-index/pull/30612)) for C++, plus Hackage (Haskell) and CPAN (Perl) awaiting their registrars, and CRAN (R) deferred to a quiet week — full status in [PUBLISHING.md](PUBLISHING.md). Anything still missing (OCaml, Scala Native, Fortran, COBOL if you dare, ...) remains the open invitation: **the 38 frozen vectors are the gate**. Details and status: [PUBLISHING.md](PUBLISHING.md).
 
 ## Repository layout
 
 ```
 causalontology/
-  Causalontology_Standalone_Design_v13.txt   the canon (complete, lay-readable)
+  Causalontology_Standalone_Design_v14.txt   the canon (complete, lay-readable)
   spec/                    normative core, identity, semantics, provenance,
                            store, safety; schema/ = 8 JSON Schemas + JSON-LD
                            context + Protobuf + the OWL mapping (BFO/RO/PROV)
@@ -225,7 +233,7 @@ causalontology/
   - Contributed implementations welcome — the 38 vectors are the gate (C#, Ruby, PHP, Kotlin, ...)
 - [x] Wave two — **C++, Zig, Julia, Kotlin/Native**: four more conformant implementations, ALL verified on the authoring machine (C++ with a hand-built bignum, 361/361 cross-checks; Zig on its standard-library crypto; Julia in pure stdlib; Kotlin/Native hand-building JSON + SHA-2 + bignum + Ed25519 with no stdlib crypto at all, 38/38 on the binary's first run) — **twenty implementations in twenty languages, twenty-one CI gates**
 - [x] The nine-language wave — **C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua**: nine more conformant implementations in one wave (four verified on the authoring machine — including pure-Lua Ed25519 over a hand-built bignum layer — five gated in CI), taking the standard to **sixteen implementations in sixteen languages**, all passing the same 38 frozen vectors under seventeen CI gates
-- [x] The ceremony — **specification 1.0.0**: the [vector freeze](conformance/freeze_1_0_0.py) pinned concrete bytes into all 38 vectors (real identifiers, real keys, a real verifying signature); every manifest bumped to 1.0.0; tagged `v1.0.0` with a GitHub Release carrying the built artifacts; SwiftPM and Go modules live via tags; and **all seven distribution channels live the same day** — crates.io, PyPI, npm, Maven Central, SwiftPM, Go modules, and the GitHub Release ([PUBLISHING.md](PUBLISHING.md))
+- [x] The ceremony — **specification 1.0.0**: the [vector freeze](conformance/freeze_1_0_0.py) pinned concrete bytes into all 38 vectors (real identifiers, real keys, a real verifying signature); every manifest bumped to 1.0.0; tagged `v1.0.0` with a GitHub Release carrying the built artifacts; SwiftPM and Go modules live via tags; and the distribution campaign that followed: **thirteen channels live** — PyPI, npm, crates.io, Maven Central (jar + Kotlin klib), NuGet, RubyGems, Hex, LuaRocks, Packagist, pub.dev, SwiftPM, Go, Zig — with Julia, vcpkg, and Conan in community review ([PUBLISHING.md](PUBLISHING.md))
 
 ## Governance
 
