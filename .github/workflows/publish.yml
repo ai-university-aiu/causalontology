@@ -1,0 +1,80 @@
+name: publish
+
+# One-shot registry publications, run on demand. Each job publishes one
+# binding using an encrypted repository secret; tokens never touch the
+# authoring machine's disk. Trigger: gh workflow run publish.yml -f registry=<name>
+
+on:
+  workflow_dispatch:
+    inputs:
+      registry:
+        description: "Which registry to publish"
+        required: true
+        type: choice
+        options: [rubygems, hex, luarocks, hackage]
+
+jobs:
+  rubygems:
+    if: inputs.registry == 'rubygems'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - name: conformance first (never publish unproven bytes)
+        run: ruby bindings/ruby/conformance.rb
+      - name: build and push the gem
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          cd bindings/ruby
+          gem build causalontology.gemspec
+          gem push causalontology-1.0.0.gem
+
+  hex:
+    if: inputs.registry == 'hex'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "26"
+          elixir-version: "1.16"
+      - name: conformance first
+        run: cd bindings/elixir && elixir conformance.exs
+      - name: publish to Hex
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+        run: cd bindings/elixir && mix hex.publish --yes
+
+  luarocks:
+    if: inputs.registry == 'luarocks'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install Lua + LuaRocks
+        run: sudo apt-get update && sudo apt-get install -y lua5.4 luarocks
+      - name: conformance first
+        run: lua5.4 bindings/lua/conformance.lua
+      - name: upload rockspec
+        run: cd bindings/lua && luarocks upload causalontology-1.0.0-1.rockspec --api-key="${{ secrets.LUAROCKS_API_KEY }}"
+
+  hackage:
+    if: inputs.registry == 'hackage'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: "9.6"
+      - name: conformance first
+        run: cd bindings/haskell && cabal update && cabal run -v0 conformance
+      - name: sdist and upload
+        env:
+          HACKAGE_USERNAME: ${{ secrets.HACKAGE_USERNAME }}
+          HACKAGE_PASSWORD: ${{ secrets.HACKAGE_PASSWORD }}
+        run: |
+          cd bindings/haskell
+          cabal sdist
+          cabal upload --publish -u "$HACKAGE_USERNAME" -p "$HACKAGE_PASSWORD" dist-newstyle/sdist/*.tar.gz
