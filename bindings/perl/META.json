@@ -1,0 +1,44 @@
+{
+   "abstract" : "The Perl binding of the Causalontology standard",
+   "author" : [
+      "AI University (AIU) <ai.university.aiu@gmail.com>"
+   ],
+   "dynamic_config" : 0,
+   "generated_by" : "the Causalontology project",
+   "license" : [
+      "apache_2_0"
+   ],
+   "meta-spec" : {
+      "url" : "https://metacpan.org/pod/CPAN::Meta::Spec",
+      "version" : 2
+   },
+   "name" : "Causalontology",
+   "prereqs" : {
+      "runtime" : {
+         "requires" : {
+            "Digest::SHA" : "0",
+            "Math::BigInt" : "0",
+            "perl" : "5.016"
+         }
+      }
+   },
+   "provides" : {
+      "Causalontology" : {
+         "file" : "lib/Causalontology.pm",
+         "version" : "1.0.0"
+      }
+   },
+   "release_status" : "stable",
+   "resources" : {
+      "license" : [
+         "http://www.apache.org/licenses/LICENSE-2.0"
+      ],
+      "repository" : {
+         "type" : "git",
+         "url" : "https://github.com/ai-university-aiu/causalontology.git",
+         "web" : "https://github.com/ai-university-aiu/causalontology"
+      }
+   },
+   "version" : "1.0.0",
+   "x_license_note" : "The attribution always; no profit, no problem license. (Apache 2.0 text)"
+}

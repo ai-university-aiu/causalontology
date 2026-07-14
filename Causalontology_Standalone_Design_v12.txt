@@ -1,0 +1,2458 @@
+        CAUSALONTOLOGY: THE STANDALONE STANDARD AND THE SHARED COMMONS
+
+        A Language-Neutral Specification, a Conformance Test Suite, a Canonical
+        Serialization, and a Content-Addressed, Provenance-First Global Data
+        Store - with the Store's Own Partial Structures Serving as the
+        Stigmergic Invitation to the Next Contribution
+
+                  Standalone Branch, Version 12 (the Sixteen-Language Edition)
+                       rooted in Causalontology v9
+
+Author: D. R. Dison, Founder of AIU (Artificial Intelligence University), Creator and Owner of PrologAI and Mentova.
+
+Open Researcher and Contributor Identifier (ORCID): 0009-0001-9246-5758.
+
+(https://www.linkedin.com/in/d-r-dison/)
+
+Home: AI University (AIU) - github.com/ai-university-aiu
+
+Note on acronyms: every acronym is spelled out in full the first time it appears, with the short form in parentheses; the short form is used thereafter.
+
+A full glossary appears at the end.
+
+Note on names: in prose the system is the proper noun "Causalontology"; in every machine context (the repository, package names, directory names, and Uniform Resource Identifiers) it is the lowercase identifier "causalontology".
+
+Both casings name one thing, each in its proper register.
+
+A NOTE ON THIS EDITION
+
+This document is prepared as part of the book named "Causalontology: AGI's Missing Link".
+
+Because the book is written for every reader, this edition explains each concept at a foundational level, as if the reader were meeting it for the first time.
+
+Every acronym is spelled out the first time it appears, and every technical term is defined where it first occurs, with a full glossary at the end.
+
+
+CAUSALONTOLOGY'S CONNECTION TO AGI (ARTIFICIAL GENERAL INTELLIGENCE)
+
+Artificial General Intelligence (AGI) means machine intelligence with broad, human-level competence - a system that can walk into a situation it has never seen, figure out how the situation works, decide what to do, and carry what it learned into the next situation.
+
+That is different from the narrow Artificial Intelligence (AI) we have today, which tends to be excellent at the specific things it was trained on and brittle everywhere else.
+
+The claim of this book, stated plainly, is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world - and that Causalontology is a concrete, working proposal for exactly that component.
+
+Here are the reasons for the connection, each one explained.
+
+• The ladder of causation says today's AI is standing on the bottom rung.
+
+The scientist Judea Pearl describes three levels of causal ability, often called the Ladder of Causation.
+
+Rung one is ASSOCIATION - seeing that two things tend to occur together, the way umbrellas and wet streets go together.
+
+Rung two is INTERVENTION - knowing what will happen if you DO something, the way flipping a switch turns on a light.
+
+Rung three is COUNTERFACTUAL reasoning - imagining what WOULD HAVE happened if things had gone differently, the way a doctor asks whether the patient would have recovered without the medicine.
+
+A "counterfactual" is a statement about a possibility that did not actually happen.
+
+Systems that learn only from recorded data - including today's Large Language Models (LLMs), the text-predicting systems behind modern chat programs - are, by their mathematical construction, learners of association: rung one.
+
+Human beings live on rungs two and three every day, and researchers across the field identify those upper rungs - intervention and counterfactual thought - as prerequisites for general intelligence.
+
+Causalontology is engineered for the upper rungs: its fundamental object records what an INTERVENTION brings about, its evidence grading ranks acting above watching, and its strength values are defined in the formal language of intervention (the do-calculus, defined later in this document).
+
+• Research shows that talking about causes is not the same as reasoning about them.
+
+A well-known line of research, titled "Causal Parrots", found that Large Language Models may TALK causality fluently while not actually BEING causal - they can repeat causal facts memorized from their training text, the way a parrot repeats words, without performing causal inference about anything new.
+
+Repeating "smoking causes cancer" is rung-one recall.
+
+Working out what a never-before-seen switch does, by pressing it, is rung-two reasoning - and that is the ability general intelligence requires.
+
+Causalontology's entire learning story is built on the second kind: act, observe what follows, and record the relation as an inspectable object.
+
+• The hardest current test of general intelligence points exactly here.
+
+The Abstraction and Reasoning Corpus for Artificial General Intelligence, third generation (ARC-AGI-3), is an interactive benchmark launched on March 25, 2026, in which an agent is dropped into an unfamiliar game with no instructions, no rules, and no stated goal.
+
+To succeed, the agent must explore, discover the mechanics by acting, infer what winning means, build a model of the world, and plan efficiently.
+
+Ordinary people solve these games essentially every time - human performance is reported at one hundred percent.
+
+Frontier AI systems, at launch, scored below one percent.
+
+That gap is the clearest public evidence available that something specific is missing from today's AI - and what the benchmark rewards is precisely explicit, interventional, hierarchical modeling of cause and effect, which is Causalontology's exact subject matter.
+
+• A mathematical result says generality REQUIRES a causal model.
+
+Recent theoretical work (titled "Robust agents learn causal world models") proves that any agent capable of adapting robustly across many environments must have learned, at least approximately, a causal model of its world - there is no route to robust generality that avoids causality.
+
+In other words, the "G" in AGI - generality - is not merely helped by causal modeling; on this result, it cannot exist without it.
+
+Causalontology is a proposal for holding that unavoidable causal model in an explicit, shareable, inspectable form rather than an implicit and hidden one.
+
+• Causal knowledge is what transfers, and transfer is what generality means.
+
+Correlations - patterns of things occurring together - are fragile: they change when the situation changes.
+
+Causal mechanisms are comparatively stable: the reason a switch lights a lamp is the same in a new house.
+
+Research on causal representation learning argues exactly this - that representations organized around causal mechanisms are the ones that remain valid across changed conditions, which is why they transfer and generalize.
+
+An intelligence built on transferable knowledge can face new situations with old understanding - which is the working definition of general intelligence.
+
+• Children get to general intelligence the same way.
+
+The developmental psychologist Jean Piaget showed that children construct their understanding of the world through interaction - touching, pushing, dropping, and watching what follows - a view called constructivism.
+
+A child learns that a switch works by flipping it, not by staring at it.
+
+Causalontology's learning-by-intervention is the machine version of that childhood, and its refinement lineage (defined later in this document) lets rough early knowledge be enriched step by step, the way a child's understanding matures.
+
+• Safety and trust require knowing WHY, not only WHAT.
+
+A general intelligence will take actions that matter, so people must be able to ask why it acted and get a real answer.
+
+A system whose knowledge is a web of inspectable cause-and-effect objects, each carrying its evidence and its author, can answer "why" all the way down - the glass-box property.
+
+A system whose knowledge is hidden inside billions of numeric weights cannot.
+
+Causal understanding is also what lets an agent foresee the consequences of an action before taking it, including harmful consequences - the foundation of machine prudence.
+
+• No single mind can learn all the causes, which is why the commons matters.
+
+Humanity's advantage was never one brilliant individual - it was accumulated, shared causal knowledge: fire, farming, medicine, engineering, each generation inheriting the causal discoveries of the last.
+
+The shared, provenance-first Causalontology commons described in this document gives machine intelligence the same inheritance: a single, world-wide, ever-growing store of causal knowledge that every mind - human or synthetic - can draw from and add to.
+
+General intelligence at civilization scale is a library, not a lone genius, and this document specifies that library.
+
+
+HOW CAUSALONTOLOGY ENABLES AGI (ARTIFICIAL GENERAL INTELLIGENCE)
+
+The previous section argued that explicit causal understanding is the missing link.
+
+This section walks through the machinery, piece by piece, and shows how each piece supplies a capability that general intelligence needs.
+
+• The Causal Relation Object turns "why" into something a machine can hold.
+
+The fundamental unit of Causalontology is the Causal Relation Object (CRO): a cause-and-effect link made into a full object that carries what caused what, by what mechanism, with what timing, in what character, under what conditions.
+
+Making causation a first-class object - the move called reification - is what lets a machine learn it, compare it, refine it, compose it, plan over it, and explain it.
+
+You cannot reason carefully about something you cannot hold; the CRO is causation made holdable.
+
+• Timing as mechanism gives the power to rule things out.
+
+Every CRO can carry a temporal window - how long after the cause the effect arrives.
+
+That single feature enables a distinctly intelligent move: excluding a suspected cause purely on timing, the way a doctor asks "how long ago did you eat?" and clears the meal that was too recent or too old to be the culprit.
+
+Diagnosis, troubleshooting, and scientific reasoning all depend on this move, and Causalontology builds it into the data itself.
+
+• Modality gives nuance, and nuance gives safe action.
+
+Each causal claim is graded as necessary, sufficient, contributory, or preventive - four different characters of influence.
+
+An agent that knows a cause is merely contributory will not treat it as a guarantee; an agent that knows an action is preventive gains a hazard rule - a learned "do not do that".
+
+Preventive relations are how a curious agent explores widely yet never repeats an action it has learned is harmful, which is a seed of machine safety.
+
+• Learning by intervention delivers evidence that observation cannot.
+
+Causalontology grades evidence, and the top grade is intervention: the source acted and watched what followed.
+
+Acting breaks the ambiguity that haunts pure observation - when you flip the switch yourself, the light's response cannot be a coincidence of the data.
+
+This grading, carried in every signed assertion, means the commons itself knows which of its claims rest on doing and which on watching, and consumers can weigh them accordingly.
+
+• Hierarchy lets one mind reason at every scale.
+
+A CRO's mechanism can be a whole sub-graph of finer CROs - the coarse claim "exercise improves health" decomposing into physiological steps, each decomposing further.
+
+General intelligence requires exactly this ability to zoom: to plan at the level of goals, act at the level of muscles, and explain at whichever level the listener needs.
+
+The hierarchy-consistency rule in this document keeps every level honest against the levels below it.
+
+• Strength, confidence, and provenance make uncertainty honest.
+
+Every assertion carries a strength (how strong the causal link is estimated to be), a confidence (how sure the source is), and a signed identity (who says so).
+
+An intelligence that can say "probably", "I am not sure", and "here is who told me" - and can revise when the evidence changes - is an intelligence that can operate in the real world, where certainty is rare.
+
+The retraction record even gives every source an honest exit when it discovers its own error, and the history is never erased.
+
+• Degenerate objects and refinement give a machine childhood.
+
+A Causal Relation Object is valid with only its cause and effect filled in - a rough, partial piece of knowledge.
+
+The refinement lineage then lets anyone - or any mind - enrich it later with timing, mechanism, and conditions, each enrichment linked to what it improved.
+
+Knowledge in Causalontology therefore GROWS the way understanding grows in a person: rough first, refined with experience, never pretending to completeness it does not have.
+
+This is constructivist learning, made into a data structure.
+
+• The stigmergic commons turns the whole world into one growing mind.
+
+Because partial objects, dangling references, contradictions, and undecomposed mechanisms are all first-class and queryable, the store itself continuously announces what is missing.
+
+"Stigmergy" is coordination through the shared environment - the way a half-built wall shows the next worker where the next brick goes.
+
+Human contributors and autonomous minds alike can ask the commons "what is the most valuable gap near this topic?", fill it, and sign their work.
+
+Knowledge then compounds - the mechanism by which a commons, like a civilization, becomes smarter than any of its members.
+
+• The language-neutral standard makes minds interoperable.
+
+Because Causalontology is a specification with a conformance suite - not a program - any system in any programming language can speak it, and all of them read and write the same store.
+
+An AGI ecosystem needs exactly this: many different minds, built by different people on different technology, sharing one language of cause and effect.
+
+• The noun backbone and the hinge ground symbols in the world.
+
+Causalontology's continuants (the nouns), occurrents (the verbs), and realizable entities (the dispositions, functions, and roles that join them) give a mind a principled way to connect words to things, things to their powers, and powers to the processes in which they show themselves.
+
+This addresses one of the oldest problems in AI - the symbol grounding problem, the question of how a symbol inside a machine comes to be about something in the world.
+
+• The glass box is the alignment story.
+
+Every claim traceable to a named rule; every contribution signed by its author; every retraction on the record; every consequence-laden claim served with its evidence showing.
+
+A general intelligence built over such a substrate can be audited, corrected, and trusted in a way that an opaque system cannot - not because anyone promises good behavior, but because the structure makes reasons inspectable.
+
+• And there is a working existence proof.
+
+Causalontology is not only a paper design: its reference implementation runs today in PrologAI, a glass-box cognitive architecture, driving the synthetic mind Mentova.
+
+That substrate has recorded a perfect score - four hundred out of four hundred - on the public training set of the first Abstraction and Reasoning Corpus benchmark (ARC-AGI-1), using pure symbolic induction with no Large Language Model, and holds a perfect score on the second benchmark's public set as well.
+
+The interactive third benchmark, ARC-AGI-3, remains what this lineage of documents has always honestly called it: a labeled, falsifiable bet - the hypothesis that a mind whose world model is an explicit, reified, interventional causal graph is the right shape for the test that today's AI fails.
+
+An honest closing boundary: Causalontology is offered as a NECESSARY ingredient of general intelligence, not a sufficient one.
+
+A complete mind also needs perception, memory, attention, motivation, and the other faculties - which is exactly what the PrologAI Branch of this work builds - and enabling AGI is not the same as guaranteeing it.
+
+The claim of this book is the missing-link claim: without explicit, learnable, shareable causal understanding, general intelligence does not arrive; with it, the road is open.
+
+Selected sources for these two sections, in plain text:
+
+• Judea Pearl and Dana Mackenzie, "The Book of Why: The New Science of Cause and Effect", 2018 - the Ladder of Causation.
+
+• Matej Zecevic, Moritz Willig, Devendra Singh Dhami, and Kristian Kersting, "Causal Parrots: Large Language Models May Talk Causality But Are Not Causal", Transactions on Machine Learning Research, 2023.
+
+• Bernhard Schoelkopf and colleagues, "Toward Causal Representation Learning", Proceedings of the Institute of Electrical and Electronics Engineers (IEEE), 2021 - causal invariance, robustness, and transfer.
+
+• Jonathan Richens and Tom Everitt, "Robust agents learn causal world models", 2024 - the proof that robust generality requires an approximate causal model.
+
+• Francois Chollet, "On the Measure of Intelligence", 2019 - intelligence as skill-acquisition efficiency in the face of novelty.
+
+• The ARC Prize Foundation, arcprize.org - the ARC-AGI-3 interactive benchmark, launched March 25, 2026; human performance one hundred percent, frontier AI below one percent at launch.
+
+• Gary Drescher, "Made-Up Minds: A Constructivist Approach to Artificial Intelligence", 1991 - learning causal schemas by acting.
+
+• Jean Piaget's constructivism, throughout - understanding is built by interaction.
+
+
+
+BRANCH NOTE
+
+Causalontology forks into two branches sharing Causalontology version 9 as their common root:
+
+• The PrologAI Branch (sibling document Causalontology_PrologAI_v1.txt).
+
+Causalontology realized as the PrologAI cognitive-architecture packs - the reference implementation, written in SWI-Prolog, driving the Mentova synthetic mind.
+
+• The Standalone Branch (this document).
+
+Causalontology delivered in its purest, language-neutral form, so anyone can implement and use it in any programming language and contribute to one global commons.
+
+The reframe that separates them, and the thesis of this whole document: Causalontology's purest form is a specification, not a program.
+
+The PrologAI Branch is one implementation of that specification.
+
+The Standalone Branch is the specification itself.
+
+CHANGES FROM VERSION 11 (an honest changelog)
+
+Version 12 is a complete monolith - it fully replaces Version 11 and reads alone.
+
+Version 12 records the nine-language wave of 2026-07-13: C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, and Lua - nine further conformant implementations built in one parallel wave, taking the standard from seven implementations to SIXTEEN, in sixteen programming languages.
+
+Four of the nine were verified on the authoring machine (C#, Dart, Perl, Lua - the last with a hand-built big-number arithmetic layer for its pure-Lua Ed25519, cross-checked against the Python reference on two hundred eighty-eight arithmetic cases); five were written blind with the proven care-list discipline and are gated by Continuous Integration (Ruby, PHP, Elixir, Haskell, R), exactly the path Java, Swift, and Go took successfully before them.
+
+Part 16 gains step 8 recording the wave; Part 18's conformance block now says sixteen.
+
+The sealed core is unchanged: not one rule, schema, vector byte, or locked decision moved.
+
+
+CONTENTS
+
+  Causalontology's connection to AGI (Artificial General Intelligence)
+  How Causalontology enables AGI (Artificial General Intelligence)
+  Part 1.  The thesis: a standard and a commons, not a program
+  The claim, from five angles: a world-first synthesis
+  Part 2.  The standalone repository: ship the specification, not the code
+  Part 3.  The object model: eight kinds of thing, and the scope of the standard
+  Part 4.  Identity: content-addressed identifiers, canonicalization, and merge
+  Part 5.  Cross-language interoperability: through data, not through code
+  Part 6.  The schemas (the machine-checkable structure, in full)
+  Part 7.  The semantics (the rules beyond the schemas)
+  Part 8.  Provenance, signatures, enrichment, retraction, and trust
+  Part 9.  The shared global store: operations, protocol, resolve, and tiers
+  Part 10. Stigmergy: the store guides the next contribution
+  Part 11. Safety: abuse resistance, claims of consequence, takedown by tier
+  Part 12. Licensing: code, specification, and data
+  Part 13. Governance and versioning
+  Part 14. The conformance suite (thirty-eight vectors)
+  Part 15. Quickstart: one claim, four languages, end to end
+  Part 16. The minimum viable product and the roadmap
+  Part 17. Locked decisions
+  Part 18. One-pager cheat sheet
+  Part 19. Release 1.0.0 notes
+  Part 20. Release 1.0.0 announcement
+  Glossary of acronyms and terms
+  Conclusion
+
+PART 1. THE THESIS: A STANDARD AND A COMMONS, NOT A PROGRAM
+
+Causalontology began fused to one programming language, Prolog.
+
+To free it so that it can be used everywhere, we separate two things:
+
+• The data structure and its rules - the Causal Relation Object (CRO), the occurrent, the continuant, the realizable entity, and the signed provenance records about them, together with the rules that say what a valid instance is.
+
+This is language-neutral.
+
+• Any one implementation of those rules - in Prolog, in Python, in Java, in Swift.
+
+This is language-specific.
+
+Once separated, PrologAI becomes the reference implementation - the first and canonical one, but only one - and the pure Causalontology is a written specification that any language can implement.
+
+Two familiar pictures, held side by side:
+
+• Causalontology as a STANDARD.
+
+Like a specification published by the World Wide Web Consortium (W3C) or the Internet Engineering Task Force (IETF): a normative document plus a conformance test suite, with independent implementations that are all correct because they all pass the same tests.
+
+• Causalontology as a COMMONS.
+
+Like Wikidata (the free, collaborative knowledge base that anyone can edit, where every statement carries its sources): one massive shared data store that developers everywhere draw from and contribute to.
+
+Causalontology is that pattern, specialized to reified causation - causation made into first-class objects.
+
+Causalontology is unusually well-architected for both roles: the Causal Relation Object admits partial and degenerate forms, every contribution of any kind is a signed record, and the whole design is glass-box - every claim, every alias, every retraction is inspectable and traceable to who or what contributed it.
+
+In one phrase, the paradigm has a name: Causalontology is a VERB-FIRST NOUN-HOSTING ONTOLOGY.
+
+Verb-first: the atomic building block is the occurrent - the happening - the fundamental unit reifies the master verb, causes, and even knowing is verb-first, because knowledge enters by acting (intervention) rather than by watching.
+
+Noun-hosting: things (continuants) are first-class citizens, understood through what they do and what happens to them - Causalontology governs the verbs and hosts the nouns, with realizable entities as the hinge between them.
+
+Reality is what happens, and things are its participants.
+
+THE CLAIM, FROM FIVE ANGLES: A WORLD-FIRST SYNTHESIS
+
+Before the engineering, the identity claim.
+
+Causalontology is described below from five angles.
+
+Each angle states the same claim - that Causalontology is a first-of-its-kind synthesis - and then the terms in that claim are explained for someone meeting them for the first time.
+
+REIFICATION / TIMING / LEARNING
+
+  "Causalontology is the world's first synthesis of reified causal
+   representation, temporal-mechanistic modeling, and interventional learning
+   into a single glass-box unified ontology."
+
+What the words mean:
+
+• Reified causal representation.
+
+To "reify" something is to turn an idea into a thing you can hold, name, point at, and examine.
+
+Most computer systems store a cause and effect as a bare arrow, "A caused B."
+
+Causalontology instead makes each cause-and-effect link a full object in its own right - the Causal Relation Object - that carries its own details: what caused what, how strong the link is, how long the delay is, and where the knowledge came from.
+
+Making causation a first-class object is what lets the system reason about it, improve it, and explain it.
+
+• Temporal-mechanistic modeling.
+
+"Temporal" means having to do with time.
+
+"Mechanistic" means describing the actual mechanism - the step-by-step way one thing brings about another.
+
+Causalontology treats the timing of a cause (how long before the effect, and for how long) as part of the mechanism, not as an afterthought.
+
+This is why it can rule out a suspected cause purely on timing, the way a doctor asks "how long ago did you eat?" to decide which meal made you ill.
+
+• Interventional learning.
+
+To "intervene" is to act on the world - to do something - rather than only to watch.
+
+A child learns that a switch turns on a light by flipping it, not by staring at it.
+
+Causalontology learns its causes the same way: it acts, sees what follows, and writes down the rule.
+
+Learning by doing gives much stronger evidence of true cause than learning by watching, because acting removes the ambiguity of mere coincidence.
+
+• Glass-box.
+
+A "black box" gives you an answer but hides its reasons.
+
+A "glass box" lets you see every step.
+
+Every conclusion Causalontology reaches can be traced back to the named rule that produced it, so you can always ask "why?" and get a readable answer.
+
+• Ontology.
+
+An "ontology" is an organized inventory of what exists and how the things in it relate - a formal map of a domain's nouns and verbs.
+
+A "unified" ontology holds all of this in one coherent framework.
+
+NOUN / VERB GOVERNANCE
+
+  "Causalontology is the world's first synthesis of a process-first causal
+   calculus, a continuant noun backbone, and a realizable hinge between them -
+   one foundational ontology governing the verbs and hosting the nouns."
+
+What the words mean:
+
+• Process-first.
+
+To be "process-first" is to treat happenings - processes and events - as the primary building blocks, rather than treating static objects as primary.
+
+Causalontology starts from what unfolds and brings things about.
+
+• Causal calculus.
+
+A "calculus" here is just a precise set of rules for combining and reasoning about something - in this case, causes.
+
+It is the machinery for chaining causes into predictions and plans.
+
+• Continuant.
+
+In formal ontology a "continuant" is a thing that endures through time - a ball, a door, a person.
+
+Ordinary language calls these nouns.
+
+• Occurrent.
+
+An "occurrent" is a thing that happens and unfolds through time - a push, an opening, a journey.
+
+Ordinary language calls these verbs.
+
+• Noun backbone.
+
+A "backbone" is a thin, sturdy spine that other things attach to.
+
+Causalontology keeps only a light spine of nouns and leaves the deep detail of any particular subject to specialist maps - so it "hosts" the nouns without trying to own every fact about them.
+
+• Realizable hinge.
+
+A "hinge" joins two parts while letting them move.
+
+A "realizable" is something noun-shaped that is only fully itself when it happens - a disposition (fragility), a function (a key's job), or a role (being a password).
+
+It belongs with the nouns but points at the verbs, so it is the natural joint between the two.
+
+• Governing versus hosting.
+
+Causalontology is authoritative about the verbs (it "governs" them - its causal objects are the last word) but modest about the nouns (it merely "hosts" them on the thin backbone and defers to specialists).
+
+Taken together, this angle gives the paradigm its name: Causalontology is a verb-first noun-hosting ontology.
+
+THE BRIDGE
+
+  "Causalontology is the world's first synthesis of symbolic causal reasoning,
+   the philosophy of process, and embodied interventional learning, unified in a
+   single glass-box ontology."
+
+What the words mean:
+
+• Symbolic causal reasoning.
+
+"Symbolic" means working with named symbols and logical rules - like algebra or a legal argument - rather than with statistical weights.
+
+Symbolic causal reasoning draws conclusions about causes by following inspectable rules, which is exactly what makes the reasoning explainable.
+
+• The philosophy of process.
+
+This is the long tradition in philosophy that says reality is fundamentally made of processes and change, not of frozen objects.
+
+Causalontology takes that idea seriously and builds on it.
+
+• Embodied interventional learning.
+
+"Embodied" means having a body - or a stand-in for one, such as control of a game or a device - so that the system can actually act in a world.
+
+Combined with intervention (acting, not just watching), this is learning that comes from a body doing things and feeling the results.
+
+• The bridge.
+
+The novelty is joining three worlds that are usually kept apart - rule-based reasoning, process philosophy, and learning-by-doing - into one framework you can still see inside.
+
+SCHOLARLY FRAMING
+
+  "Causalontology is the world's first synthesis of process ontology, causal
+   modeling, and constructivist learning into a single foundational ontology."
+
+What the words mean:
+
+• Process ontology.
+
+An ontology (organized inventory of what exists) that takes processes as primary - the formal version of "process-first" above.
+
+• Causal modeling.
+
+Building explicit models of what causes what, strong enough to predict the effects of actions and to reason about what would have happened otherwise.
+
+• Constructivist learning.
+
+"Constructivism," associated with the psychologist Jean Piaget, is the view that a mind builds its understanding for itself, step by step, through interaction with the world, rather than being handed finished knowledge.
+
+A constructivist learner constructs and revises its own models as it acts.
+
+• Foundational ontology.
+
+A "foundational" (or "upper-level") ontology is a general framework meant to sit underneath many specific ones and tie them together - a shared foundation other maps can build on.
+
+SUCCINCTLY
+
+  "Causalontology is the world's first synthesis of reification, temporal
+   causation, and interventional learning in one unified, glass-box ontology."
+
+What the words mean:
+
+• Reification - turning the idea of a cause into a full, examinable object.
+
+• Temporal causation - causation that carries its own timing as part of the mechanism.
+
+• Interventional learning - learning by acting on the world and watching what follows.
+
+• One unified, glass-box ontology - all of it held in a single organized, see-through framework where every conclusion can be explained.
+
+A note for the standard's readers: the claim above is the IDENTITY of Causalontology; the parts that follow are its ENGINEERING.
+
+This Standalone Branch adds a further first of its own - to our knowledge, the first specification to deliver reified, provenance-signed causation as a language-neutral standard with a shared, stigmergic commons - but that claim, like every claim in a glass-box system, is offered with its evidence: the specification, the conformance vectors, and the running implementations are the proof, and they are all inspectable.
+
+PART 2. THE STANDALONE REPOSITORY: SHIP THE SPECIFICATION, NOT THE CODE
+
+A repository, github.com/ai-university-aiu/causalontology, whose core is normative text and schemas rather than any programming language:
+
+    causalontology/
+      spec/
+        causalontology.md          the normative specification (the canon)
+        schema/
+          cro.schema.json          the Causal Relation Object (Part 6.1)
+          occurrent.schema.json    occurrents - the verbs (Part 6.2)
+          continuant.schema.json   continuants - the nouns (Part 6.3)
+          realizable.schema.json   realizable entities - the hinge (Part 6.4)
+          assertion.schema.json    signed claim-provenance records (Part 6.5)
+          enrichment.schema.json   signed enrichment records (Part 6.6)
+          retraction.schema.json   signed retraction records (Part 6.7)
+          succession.schema.json   signed key-succession records (Part 6.8)
+          context.jsonld           the JSON for Linked Data (JSON-LD) context
+                                   for linked-data interoperability (Part 6.9)
+          causalontology.proto     optional Protocol Buffers (Protobuf) schema
+                                   for a compact binary encoding
+        identity.md                canonicalization, hashing, and merge (Part 4)
+        semantics.md               the rules beyond the schemas (Part 7)
+        provenance.md              trust, signatures, enrichment, retraction,
+                                   succession (Part 8)
+        store.md                   operations, the Hypertext Transfer Protocol
+                                   (HTTP) binding, query, resolve, pagination
+                                   (Part 9)
+        safety.md                  abuse resistance, claims of consequence, and
+                                   takedown by tier (Part 11)
+      conformance/
+        vectors/                   the thirty-eight language-neutral test cases
+                                   (Part 14), one file per vector
+        README.md                  "an implementation is conformant if and only
+                                   if it passes every vector here"
+      bindings/                    thin per-language libraries or links to their
+                                   repositories; PrologAI is the reference
+                                   binding
+      store/
+        server/                    a reference store server
+        stigmergy/                 gap-signal queries and the contribution
+                                   dashboard
+      examples/                    the quickstart of Part 15, executable
+      GOVERNANCE.md                how the specification evolves (Part 13)
+      LICENSE                      Apache License 2.0 for code and specification
+      DATA_LICENSE                 Creative Commons Zero (CC0) for commons data
+
+The value of this repository lives in spec/ and conformance/.
+
+If the specification and the vectors are right, any number of language implementations can be correct and interoperable.
+
+PART 3. THE OBJECT MODEL: EIGHT KINDS OF THING, AND THE SCOPE OF THE STANDARD
+
+Everything in the Causalontology commons is one of eight kinds of object - four CONTENT kinds (their identity is their content, and they carry NOTHING but that content) and four PROVENANCE kinds (signed records saying who claims, enriches, retracts, or succeeds what).
+
+CONTENT KINDS (pure, immutable, content-addressed)
+
+• OCCURRENT (identifier prefix occ:).
+
+A process or event TYPE that unfolds through time - a verb: button-pressing, a light turning on, a fever developing.
+
+Occurrents are the vocabulary out of which causes and effects are built.
+
+An occurrent is exactly a canonical label plus a REQUIRED category from a closed enumeration (Part 6.2) - nothing else.
+
+Its multilingual aliases and its participants arrive separately, as signed enrichment records, so that every word added to the commons has an author.
+
+• CAUSAL RELATION OBJECT (prefix cro:).
+
+The fundamental unit: a reified causal claim linking cause occurrents to effect occurrents, optionally carrying a mechanism (a sub-graph of finer Causal Relation Objects), a temporal window (the delay range, treated as part of the mechanism), a modality (necessary, sufficient, contributory, or preventive), enabling context conditions, and a "refines" link to a more partial version of the same claim that it enriches.
+
+A Causal Relation Object carries NO provenance and NO strength - those belong to assertions - so the same claim from any number of sources is one object.
+
+• CONTINUANT (prefix cnt:).
+
+A thing that endures through time - a noun: a button, a lamp, a person.
+
+A continuant is exactly a canonical label plus a REQUIRED category from a closed enumeration (Part 6.3).
+
+Its aliases, its is-a links (subsumes), and its part-of links arrive as signed enrichment records.
+
+• REALIZABLE ENTITY (prefix rlz:).
+
+The hinge between nouns and verbs: a disposition, function, or role that inheres in a continuant yet is realized in occurrents (fragility inheres in the glass and is realized in shattering).
+
+Its realized_in links arrive as signed enrichment records.
+
+PROVENANCE KINDS (signed, add-only records)
+
+• ASSERTION (prefix ast:).
+
+A signed statement by a source about a content object: "I, source S, assert claim C with strength estimate s, on evidence of type t, with confidence c, at time T."
+
+Many assertions may reference one claim; they never overwrite one another.
+
+An assertion about a non-causal content object means the source vouches for that vocabulary item's well-formedness and aptness.
+
+• ENRICHMENT (prefix enr:).
+
+A signed statement adding one entry to one enrichment field of one content object: "I, source S, add entry E to field F of object X, at time T."
+
+The valid fields per kind are fixed (Part 7.12): aliases and participants for occurrents; aliases, subsumes, and part_of for continuants; realized_in for realizables.
+
+The store MATERIALIZES an object's enrichment sets as views over these records, each entry carrying its contributor(s).
+
+The same entry contributed by two sources is two records and one displayed entry with two contributors - corroboration, not duplication.
+
+• RETRACTION (prefix ret:).
+
+A signed statement by a source withdrawing one of its OWN earlier records - an assertion OR an enrichment: "I, source S, retract record X at time T."
+
+Retraction is add-only like everything else: the retracted record remains in history, but default views exclude it (Part 8.6).
+
+This is also how an author cleanly removes an alias it now regrets.
+
+• SUCCESSION (prefix suc:).
+
+A signed statement rotating a source's cryptographic identity: "key K2 succeeds key K1", signed by K1.
+
+Records under any key in the succession chain attribute to one source lineage (Part 8.7).
+
+THE SCOPE OF THE STANDARD, DECLARED
+
+This specification models TYPE-LEVEL (generic) causation: claims that relate KINDS of occurrents - "button-pressing causes light-on", "eating spoiled shellfish causes gastroenteritis within one to six hours".
+
+It does not model TOKEN-LEVEL (actual, particular-occasion) causation - "THIS press at 15:07 caused THIS light to come on".
+
+Token-level occurrence instances, with their own timestamps, locations, and participants, are a designated FUTURE object kind, for which the identifier prefix tok: is hereby reserved; a future version will define it (see Part 13 for how enumeration and kind additions are versioned).
+
+Consumers who need token-level reasoning today (for example episodic memory, legal causation, incident analysis) should hold their tokens locally and cite the type-level claims of the commons as the covering laws.
+
+The load-bearing design decision of this standard, now applied uniformly: the separation of CONTENT from PROVENANCE.
+
+What is claimed or named is an immutable, content-addressed object; everything anyone DOES about it - asserting it, enriching it, retracting one's word, rotating one's key - is a signed, add-only record.
+
+It is what lets independent contributors of the same relation produce one object; what lets contradictory confidences coexist; what makes every word in the commons attributable; what gives an honest exit (retraction) and a durable identity (succession); and what makes the whole store merge like a Conflict-free Replicated Data Type (CRDT - a data structure that merges concurrent edits deterministically with no central coordinator).
+
+PART 4. IDENTITY: CONTENT-ADDRESSED IDENTIFIERS, CANONICALIZATION, AND MERGE
+
+4.1 The rule.
+
+Every object's identifier is derived deterministically from its own canonical content by a cryptographic hash - the Secure Hash Algorithm 256-bit (SHA-256).
+
+An identifier is written scheme:localpart, where the scheme is occ, cro, cnt, rlz, ast, enr, ret, or suc, and the localpart is the lowercase hexadecimal encoding of the SHA-256 digest (sixty-four hexadecimal characters).
+
+Optionally a human-readable Uniform Resource Identifier (URI) or Persistent Uniform Resource Locator (PURL) may be registered as an alias for an identifier.
+
+4.2 Why content-addressing is load-bearing.
+
+• Coordination-free merge: two contributors anywhere who independently express the same claim compute the same identifier, so their contributions are the same object.
+
+De-duplication needs no central authority.
+
+• Tamper-evidence: change the content and the identifier changes; history becomes verifiable.
+
+• A migration path: content-addressing is exactly what a decentralized store needs (Part 9), so adopting it on day one keeps that option open without redesign.
+
+An honest note on vocabulary.
+
+Content-addressing is ideal for STRUCTURED claims (a Causal Relation Object's content is rich and distinctive) and inherently awkward for bare VOCABULARY items, whose content is little more than a label - which is why Wikidata chose opaque identifiers for its items.
+
+Causalontology keeps content-addressing even for vocabulary, and buys convergence with three disciplines: a canonical-label rule, a CLOSED category enumeration (so the identity inputs are deterministic), and a REQUIRED resolve-before-mint workflow (check the store for an existing occurrent or continuant before creating one).
+
+Residual near-synonyms that slip through are handled the same way Wikidata handles duplicates: socially, by a merge notice - here, an assertion marking one item as the alias of another.
+
+4.3 Canonicalization, precisely.
+
+Two implementations must hash identically, so the byte form that is hashed is fixed by adopting an existing standard:
+
+• Request for Comments (RFC) 8785, the JSON Canonicalization Scheme (JCS), published by the Internet Engineering Task Force.
+
+JCS fixes key ordering, string escaping, and - the notoriously tricky part - number serialization (the number written 1.0 and the number written 1 canonicalize to the same bytes), so identity cannot depend on formatting accidents.
+
+• Procedure to compute an object's identifier:
+
+     1. Take the object as a JavaScript Object Notation (JSON) document.
+     2. Remove the fields that are NOT identity-bearing for its kind (4.4).
+     3. Apply RFC 8785 canonicalization to the remainder.
+     4. Hash the resulting bytes with SHA-256.
+     5. The identifier is scheme + ":" + lowercase hexadecimal digest.
+
+4.4 Identity-bearing fields, by kind.
+
+   Kind         Identity-bearing fields
+
+   occurrent    type, label, category
+   cro          type, causes, effects, mechanism, temporal, modality,
+                context, refines
+   continuant   type, label, category
+   realizable   type, kind, bearer
+   assertion    type, about, source, evidence_type, evidence, strength,
+                confidence, timestamp
+   enrichment   type, about, field, entry, source, timestamp
+   retraction   type, retracts, source, timestamp
+   succession   type, predecessor, successor, timestamp
+
+   Exclusions, now maximally simple:
+   • "id" is always excluded (it IS the hash).
+   • "signature" is excluded from the four provenance kinds; the signature is
+     computed over those same canonical bytes (Part 8.3).
+   • NOTHING ELSE IS EXCLUDED. As of Version 4, content objects consist of
+     exactly their identity-bearing fields - there are no mutable tails, so
+     there is nothing on any object that identity does not cover.
+
+   Note that an enrichment's source and timestamp ARE identity-bearing: the
+   same entry contributed by two sources (or twice by one source at different
+   times) is deliberately two distinct records - that is what corroboration is.
+
+4.5 Merge semantics, now trivial.
+
+The store's replication story collapses to two rules:
+
+• Content objects are IMMUTABLE.
+
+Writing one whose identity already exists is a no-operation (idempotent).
+
+There is nothing on it to merge.
+
+• Provenance records are ADD-ONLY.
+
+A record is either present or not; writing it twice is idempotent (Ed25519 signatures are deterministic per RFC 8032, so even the signature bytes agree).
+
+A replica set therefore merges by SET UNION of objects and records, in any order, with no coordinator - the store is a Conflict-free Replicated Data Type by construction, with no special cases.
+
+The familiar grow-only enrichment sets still exist, but as DERIVED, MATERIALIZED VIEWS over enrichment records (Part 8.5), never as state inside an object.
+
+Nothing is ever removed by merge; removal from view is done by retraction (the author) or suppression (policy), and the underlying history is never erased.
+
+4.6 Enrichment of claims: the refines link.
+
+Because identifiers are content-derived, enriching a partial Causal Relation Object necessarily mints a NEW object (its identity-bearing content changed).
+
+The "refines" field carries the lineage: the enriched object names the partial object it supersedes.
+
+Rules: the refines graph must be acyclic; a refinement must preserve every field value its parent specified and may only ADD fields the parent left unspecified (changing a parent's specified value is not a refinement - it is a rival claim); and gap queries exclude any object that is the target of a valid refinement (Part 10), which is how a gap visibly closes.
+
+PART 5. CROSS-LANGUAGE INTEROPERABILITY: THROUGH DATA, NOT THROUGH CODE
+
+If Causalontology is implemented separately in Python, Java, and Swift, how do those codebases interface?
+
+They do not call one another.
+
+They all speak the same canonical serialization and all talk to the same store protocol.
+
+Interoperability is achieved through shared DATA and a shared PROTOCOL, never through a Foreign Function Interface (FFI) or any language bridge - the same lesson as many programs sharing one database or reading one file format.
+
+5.1 The canonical serialization.
+
+• The canonical wire format is JSON, with the formal JSON Schemas of Part 6.
+
+• The recommended profile is JSON for Linked Data (JSON-LD), which layers a small context file onto plain JSON so that Causalontology data is also valid Resource Description Framework (RDF) data - the standard model for linked data on the web.
+
+This single choice buys interoperability with the entire semantic-web and Wikidata ecosystem.
+
+• For high scale, Protocol Buffers (Protobuf) or the Concise Binary Object Representation (CBOR) may be used as equivalent binary encodings; the JSON form remains normative and the binary forms must round-trip to it without loss.
+
+5.2 Per-language Software Development Kits (SDKs).
+
+• causalontology-py on the Python Package Index; causalontology-java on Maven Central; causalontology-swift on the Swift Package Manager; further languages as contributed.
+
+Package names are lowercase, matching the identifier register of the name.
+
+• Data types can be generated from the schemas; only the semantics (Part 7), identity and merge (Part 4), and signing (Part 8) are hand-written, and they are small.
+
+• SDKs SHOULD offer convenience sugar such as mint_with_aliases(label, category, aliases), which emits one pure content object plus one self-attributed, signed enrichment record per alias - so ergonomics never tempt an implementation to put mutable state back inside objects.
+
+• Every SDK must expose the abstract operations of Part 9.1 and must ship the conformance vectors as its own test suite.
+
+5.3 The conformance rule.
+
+An implementation is Causalontology-conformant if and only if it passes every vector in conformance/vectors/ for the specification version it declares.
+
+That single rule is what guarantees that Prolog, Python, Java, and Swift agree without sharing a line of code - the mechanism behind the W3C test suites, the JSON Schema test suite, and the WebAssembly specification tests.
+
+Continuous Integration (CI) in each binding runs the vectors on every change and refuses to publish a release that fails.
+
+PART 6. THE SCHEMAS (THE MACHINE-CHECKABLE STRUCTURE, IN FULL)
+
+All schemas use the 2020-12 draft of JSON Schema.
+
+Structural validity is defined by these schemas; semantic validity adds the rules of Part 7.
+
+Two deliberate, locked decisions run through them: in the Causal Relation Object, only id, causes, and effects are required, so partial and degenerate objects are first-class (the engine of subsumption and stigmergy); and content objects carry ONLY identity-bearing fields, so every mutable datum in the commons is a signed record with an author.
+
+6.1 spec/schema/cro.schema.json - the Causal Relation Object
+
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://causalontology.org/schema/cro.schema.json",
+    "title": "Causal Relation Object",
+    "type": "object",
+    "required": ["id", "causes", "effects"],
+    "additionalProperties": false,
+    "properties": {
+      "id":       { "$ref": "#/$defs/croId" },
+      "type":     { "const": "cro" },
+      "causes":   { "type": "array", "minItems": 1,
+                    "items": { "$ref": "#/$defs/occId" } },
+      "effects":  { "type": "array", "minItems": 1,
+                    "items": { "$ref": "#/$defs/occId" } },
+      "mechanism":{ "type": "array",
+                    "items": { "$ref": "#/$defs/croId" },
+                    "description": "identifiers of finer Causal Relation Objects whose composition realizes this one (hierarchical decomposition; must be acyclic; consistency per Part 7.7)" },
+      "temporal": { "$ref": "#/$defs/temporalWindow" },
+      "modality": { "enum": ["necessary","sufficient","contributory","preventive"] },
+      "context":  { "type": "array",
+                    "items": { "$ref": "#/$defs/occId" },
+                    "description": "enabling conditions under which the relation holds" },
+      "refines":  { "$ref": "#/$defs/croId",
+                    "description": "the more partial Causal Relation Object this one enriches (lineage; acyclic; must preserve the parent's specified fields)" }
+    },
+    "$defs": {
+      "croId": { "type": "string", "pattern": "^cro:[0-9a-f]{64}$" },
+      "occId": { "type": "string", "pattern": "^occ:[0-9a-f]{64}$" },
+      "temporalWindow": {
+        "type": "object",
+        "required": ["dmin", "dmax", "unit"],
+        "additionalProperties": false,
+        "properties": {
+          "dmin": { "type": "number", "minimum": 0 },
+          "dmax": { "type": "number", "minimum": 0 },
+          "unit": { "enum": ["instant","seconds","minutes","hours",
+                             "days","weeks","months","years"] }
+        }
+      }
+    }
+  }
+
+  Notes. No provenance and no strength: both live in assertions (6.5). Cause,
+  effect, and context references MUST be occurrent identifiers - free-text
+  labels are not permitted, because they would break content-addressed
+  de-duplication; the words live on the occurrent's enrichment records, with
+  authors. Every field is identity-bearing: the object is fully immutable.
+
+6.2 spec/schema/occurrent.schema.json - occurrents, the verbs (pure)
+
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://causalontology.org/schema/occurrent.schema.json",
+    "title": "Occurrent",
+    "type": "object",
+    "required": ["id", "label", "category"],
+    "additionalProperties": false,
+    "properties": {
+      "id":       { "type": "string", "pattern": "^occ:[0-9a-f]{64}$" },
+      "type":     { "const": "occurrent" },
+      "label":    { "type": "string", "minLength": 1,
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "description": "the canonical label: English, lowercase snake_case, whole words (press_button, light_on); homonyms are disambiguated by qualification (charge_battery, charge_attack)" },
+      "category": { "enum": ["action", "event", "process", "state",
+                              "state_change"],
+                    "description": "REQUIRED and CLOSED, so identity inputs are deterministic: action (an agent does something), event (something happens), process (an extended unfolding), state (a persisting condition), state_change (a condition changing). Extending this enumeration is a MAJOR version change (Part 13)." }
+    }
+  }
+
+  Notes. Pure as of Version 4: no aliases field, no participants field - those
+  arrive as signed enrichment records (6.6) and are served as materialized
+  views (Part 8.5). Identity = hash(type, label, category), all three required
+  and the category closed - two contributors defining the same concept converge
+  on the same identifier deterministically. The REQUIRED workflow before
+  minting is resolve-before-mint (Part 9.4).
+
+6.3 spec/schema/continuant.schema.json - continuants, the nouns (pure)
+
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://causalontology.org/schema/continuant.schema.json",
+    "title": "Continuant",
+    "type": "object",
+    "required": ["id", "label", "category"],
+    "additionalProperties": false,
+    "properties": {
+      "id":       { "type": "string", "pattern": "^cnt:[0-9a-f]{64}$" },
+      "type":     { "const": "continuant" },
+      "label":    { "type": "string", "minLength": 1,
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "description": "canonical label, same discipline as occurrents; homonyms by qualification (bat_animal, bat_club)" },
+      "category": { "enum": ["object", "agent", "place", "substance",
+                              "collection", "information"],
+                    "description": "REQUIRED and CLOSED: object (a discrete thing), agent (a thing that acts), place (a location), substance (a stuff), collection (a plurality treated as one), information (a generically dependent content item). Extending this enumeration is a MAJOR version change (Part 13)." }
+    }
+  }
+
+  Notes. Pure: aliases, subsumes, and part_of arrive as enrichment records.
+
+6.4 spec/schema/realizable.schema.json - realizable entities, the hinge (pure)
+
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://causalontology.org/schema/realizable.schema.json",
+    "title": "Realizable Entity",
+    "type": "object",
+    "required": ["id", "kind", "bearer"],
+    "additionalProperties": false,
+    "properties": {
+      "id":     { "type": "string", "pattern": "^rlz:[0-9a-f]{64}$" },
+      "type":   { "const": "realizable" },
+      "kind":   { "enum": ["disposition", "function", "role"] },
+      "bearer": { "type": "string", "pattern": "^cnt:[0-9a-f]{64}$" }
+    }
+  }
+
+  Notes. Pure: realized_in links (the seam from the nouns into the verbs)
+  arrive as enrichment records.
+
+6.5 spec/schema/assertion.schema.json - signed claim-provenance records
+
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://causalontology.org/schema/assertion.schema.json",
+    "title": "Assertion",
+    "type": "object",
+    "required": ["id", "about", "source", "evidence_type", "confidence",
+                 "timestamp"],
+    "additionalProperties": false,
+    "properties": {
+      "id":        { "type": "string", "pattern": "^ast:[0-9a-f]{64}$" },
+      "type":      { "const": "assertion" },
+      "about":     { "type": "string",
+                     "pattern": "^(cro|occ|cnt|rlz):[0-9a-f]{64}$",
+                     "description": "the content object this assertion is about; about a non-causal object it means the source vouches for the vocabulary item" },
+      "source":    { "type": "string",
+                     "pattern": "^ed25519:[0-9a-f]{64}$",
+                     "description": "the asserter's Ed25519 public key" },
+      "evidence_type": { "enum": ["intervention", "observation", "derivation",
+                                   "human_hint", "imported"],
+                     "description": "how the source came to the claim; intervention (acting and watching the result) is the strongest grade of causal evidence" },
+      "evidence":  { "type": "string",
+                     "description": "free text or a Uniform Resource Identifier pointing at the supporting material" },
+      "strength":  { "type": "number", "minimum": 0, "maximum": 1,
+                     "description": "the source's estimate of the causal strength of the claim (Part 7.5); meaningful only when about references a Causal Relation Object" },
+      "confidence":{ "type": "number", "minimum": 0, "maximum": 1,
+                     "description": "how sure the source is of its own assertion" },
+      "timestamp": { "type": "string", "format": "date-time",
+                     "description": "International Organization for Standardization (ISO) 8601 date and time, Coordinated Universal Time (UTC)" },
+      "signature": { "type": "string", "pattern": "^[0-9a-f]{128}$",
+                     "description": "Ed25519 signature over the record's canonical identity-bearing bytes (Part 8.3); excluded from the identity hash" }
+    }
+  }
+
+6.6 spec/schema/enrichment.schema.json - signed enrichment records (new)
+
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://causalontology.org/schema/enrichment.schema.json",
+    "title": "Enrichment",
+    "type": "object",
+    "required": ["id", "about", "field", "entry", "source", "timestamp"],
+    "additionalProperties": false,
+    "properties": {
+      "id":        { "type": "string", "pattern": "^enr:[0-9a-f]{64}$" },
+      "type":      { "const": "enrichment" },
+      "about":     { "type": "string",
+                     "pattern": "^(occ|cnt|rlz):[0-9a-f]{64}$",
+                     "description": "the content object being enriched (Causal Relation Objects are never enriched in place - they are refined, Part 4.6)" },
+      "field":     { "enum": ["aliases", "participants", "subsumes",
+                               "part_of", "realized_in"],
+                     "description": "which enrichment set the entry joins; field-to-kind validity is fixed by Part 7.12" },
+      "entry":     { "oneOf": [
+                       { "type": "object",
+                         "required": ["lang", "text"],
+                         "additionalProperties": false,
+                         "properties": {
+                           "lang": { "type": "string",
+                                     "description": "an Internet Engineering Task Force Best Current Practice 47 (BCP 47) language tag, for example en, es, ja" },
+                           "text": { "type": "string", "minLength": 1 }
+                         },
+                         "description": "the entry shape for the aliases field" },
+                       { "type": "string",
+                         "pattern": "^(occ|cnt):[0-9a-f]{64}$",
+                         "description": "the entry shape for the reference fields (participants, subsumes, part_of: a continuant; realized_in: an occurrent) - checked per field by Part 7.12" }
+                     ] },
+      "source":    { "type": "string", "pattern": "^ed25519:[0-9a-f]{64}$" },
+      "timestamp": { "type": "string", "format": "date-time" },
+      "signature": { "type": "string", "pattern": "^[0-9a-f]{128}$" }
+    }
+  }
+
+  Notes. This record is Version 4's repair of the attribution gap: every alias,
+  every taxonomy link, every participant in the commons now has a signed
+  author. The design rejected the tempting shortcut of an unsigned
+  "contributed_by" tag, which would have enabled a FRAMING ATTACK (adding a
+  poisoned entry attributed to someone else). Attribution without a signature
+  is only a claim of attribution.
+
+6.7 spec/schema/retraction.schema.json - signed retraction records
+
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://causalontology.org/schema/retraction.schema.json",
+    "title": "Retraction",
+    "type": "object",
+    "required": ["id", "retracts", "source", "timestamp"],
+    "additionalProperties": false,
+    "properties": {
+      "id":        { "type": "string", "pattern": "^ret:[0-9a-f]{64}$" },
+      "type":      { "const": "retraction" },
+      "retracts":  { "type": "string", "pattern": "^(ast|enr):[0-9a-f]{64}$",
+                     "description": "the assertion or enrichment being withdrawn" },
+      "source":    { "type": "string", "pattern": "^ed25519:[0-9a-f]{64}$",
+                     "description": "must be the retracted record's source, or a key in its succession lineage (Part 8.6)" },
+      "reason":    { "type": "string" },
+      "timestamp": { "type": "string", "format": "date-time" },
+      "signature": { "type": "string", "pattern": "^[0-9a-f]{128}$" }
+    }
+  }
+
+6.8 spec/schema/succession.schema.json - signed key-succession records
+
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://causalontology.org/schema/succession.schema.json",
+    "title": "Succession",
+    "type": "object",
+    "required": ["id", "predecessor", "successor", "timestamp"],
+    "additionalProperties": false,
+    "properties": {
+      "id":          { "type": "string", "pattern": "^suc:[0-9a-f]{64}$" },
+      "type":        { "const": "succession" },
+      "predecessor": { "type": "string", "pattern": "^ed25519:[0-9a-f]{64}$" },
+      "successor":   { "type": "string", "pattern": "^ed25519:[0-9a-f]{64}$" },
+      "timestamp":   { "type": "string", "format": "date-time" },
+      "signature":   { "type": "string", "pattern": "^[0-9a-f]{128}$",
+                       "description": "signed by the PREDECESSOR key (Part 8.7)" }
+    }
+  }
+
+6.9 spec/schema/context.jsonld - the JSON-LD context (draft) Maps Causalontology's fields onto Resource Description Framework properties so a Causalontology document is also linked data, aligned where possible with Basic Formal Ontology (BFO - the upper ontology from which Causalontology takes the continuant/occurrent division), the Relation Ontology (RO - the Open Biological and Biomedical Ontologies' standard relation vocabulary), and the W3C Provenance Ontology (PROV - the web standard for provenance).
+
+  {
+    "@context": {
+      "co":   "https://causalontology.org/ns#",
+      "bfo":  "http://purl.obolibrary.org/obo/BFO_",
+      "ro":   "http://purl.obolibrary.org/obo/RO_",
+      "prov": "http://www.w3.org/ns/prov#",
+      "cro":        "co:CausalRelationObject",
+      "occurrent":  { "@id": "bfo:0000003" },
+      "continuant": { "@id": "bfo:0000002" },
+      "realizable": { "@id": "bfo:0000017" },
+      "causes":     { "@id": "co:hasCause",  "@type": "@id",
+                      "@comment": "each cause is ro:0002411 (causally upstream of) the effects" },
+      "effects":    { "@id": "co:hasEffect", "@type": "@id" },
+      "mechanism":  { "@id": "co:hasMechanism", "@type": "@id" },
+      "temporal":   { "@id": "co:temporalWindow" },
+      "modality":   { "@id": "co:modality" },
+      "context":    { "@id": "co:enablingContext", "@type": "@id" },
+      "refines":    { "@id": "co:refines", "@type": "@id" },
+      "label":      "co:canonicalLabel",
+      "category":   "co:category",
+      "about":      { "@id": "co:about", "@type": "@id" },
+      "field":      "co:enrichmentField",
+      "entry":      "co:enrichmentEntry",
+      "realized_in":{ "@id": "bfo:0000054", "@type": "@id" },
+      "subsumes":   { "@id": "co:isA", "@type": "@id" },
+      "part_of":    { "@id": "bfo:0000050", "@type": "@id" },
+      "source":     { "@id": "prov:wasAttributedTo", "@type": "@id" },
+      "evidence_type": "co:evidenceType",
+      "evidence":   "co:evidence",
+      "strength":   "co:strengthEstimate",
+      "confidence": "co:confidence",
+      "timestamp":  { "@id": "prov:generatedAtTime" },
+      "retracts":   { "@id": "prov:wasInvalidatedBy", "@reverse": true },
+      "predecessor":{ "@id": "co:predecessorKey", "@type": "@id" },
+      "successor":  { "@id": "co:successorKey", "@type": "@id" }
+    }
+  }
+
+  Because a Causal Relation Object is a statement ABOUT a causal statement, the
+  natural Resource Description Framework home for it is RDF-star (the extension
+  of RDF for making statements about statements); the context above suffices
+  for plain-RDF publication, and a fuller Web Ontology Language (OWL) mapping
+  is a governance-track deliverable.
+
+PART 7. THE SEMANTICS (THE RULES BEYOND THE SCHEMAS)
+
+A document is SCHEMA-VALID if it matches its JSON Schema, and SEMANTICALLY VALID if it also satisfies these rules.
+
+(JSON Schema cannot compare two fields or walk a graph; these rules can.)
+
+7.1 Temporal windows. dmin must be less than or equal to dmax.
+
+7.2 Acyclicity.
+
+The mechanism graph is acyclic (no Causal Relation Object may, through any chain of mechanisms, contain itself).
+
+The refines graph is acyclic.
+
+The MATERIALIZED subsumes and part_of graphs (Part 8.5) are acyclic; see 7.13 for how cycle attempts are handled.
+
+7.3 Refinement.
+
+A Causal Relation Object R that refines a parent P is a valid refinement if and only if: R's causes and effects equal P's; for every field P specifies (mechanism, temporal, modality, context), R specifies the same value; and R specifies at least one field P leaves unspecified.
+
+Anything else that names P in refines is semantically invalid as a refinement.
+
+(A claim that DISAGREES with P is simply a separate claim - and possibly a conflict, 7.6.)
+
+7.4 Temporal admissibility (timing as mechanism), with fixed constants.
+
+Given a Causal Relation Object with a temporal window and an elapsed time between candidate cause and observed effect, the cause is ADMISSIBLE if and only if the elapsed time lies within [dmin, dmax] after both are converted to seconds using EXACTLY these constants (average Gregorian calendar values, so that every implementation computes identically):
+
+    instant = 0 seconds        (a window in unit "instant" means dmin = dmax = 0)
+    seconds = 1
+    minutes = 60
+    hours   = 3,600
+    days    = 86,400
+    weeks   = 604,800
+    months  = 2,629,746        (30.436875 days, the average Gregorian month)
+    years   = 31,556,952       (365.2425 days, the average Gregorian year)
+
+A Causal Relation Object with no temporal window imposes no timing constraint.
+
+This single rule is the clinician's "how long ago did you eat?" - a candidate cause excluded purely on timing.
+
+7.5 The formal meaning of strength.
+
+An assertion's strength about a Causal Relation Object is grounded in the do-calculus (Judea Pearl's formalization of intervention, where do(X) means X is brought about by action rather than merely observed):
+
+• modality sufficient or contributory: strength is the source's estimate of the probability that the effects occur within the temporal window, given an intervention that brings about the causes under the stated context - P(effects within window | do(causes), context).
+
+• modality preventive: strength is the source's estimate of the probability that the effects are PREVENTED (do not occur within the window), given the intervention, under the context.
+
+• modality necessary: strength is the source's estimate of the probability that the effects do NOT occur when the causes are absent, under the context.
+
+Strength (a property of the world, estimated) and confidence (the source's sureness of its own assertion) are deliberately distinct fields.
+
+7.6 Conflict, formally.
+
+Two Causal Relation Objects A and B CONFLICT if and only if all of the following hold: • same causes: A.causes and B.causes are equal as sets of identifiers, and same effects likewise; • compatible contexts: A.context and B.context are equal, or one is a subset of the other, or either is absent; • overlapping windows: A.temporal and B.temporal overlap (after conversion by the constants of 7.4), or either is absent; • incompatible modalities: one of them is preventive and the other is necessary, sufficient, or contributory.
+
+The modalities necessary, sufficient, and contributory are mutually COMPATIBLE (they grade the same direction of influence); preventive opposes them.
+
+Conflicts are surfaced (Part 10), never auto-resolved: both claims stand, each with its assertions, and consumers or new evidence adjudicate.
+
+7.7 Hierarchy consistency, pinned.
+
+Where a Causal Relation Object P carries a mechanism, consistency is decided by reachability over the MECHANISM GRAPH, defined exactly: • Nodes: occurrent identifiers.
+
+• Edges: for each member m of P.mechanism (each a Causal Relation Object), add a directed edge from every element of m.causes to every element of m.effects.
+
+• P is HIERARCHY-CONSISTENT if and only if, for every pair (c, e) with c in P.causes and e in P.effects, there is a directed path from c to e in that graph.
+
+If any member of P.mechanism is not present in the store, the check is INDETERMINATE and surfaces as a dangling_reference gap rather than a failure.
+
+A determinate failing check does not invalidate P; it raises an inconsistent_hierarchy repair signal (Part 10).
+
+7.8 Open-world reading.
+
+Absence is not denial.
+
+A claim not present in the store is unknown, not false; a field not present on a partial object is unspecified, not empty.
+
+Negative causal knowledge is expressed positively, with the preventive modality, never by absence.
+
+7.9 Merge.
+
+The rules of Part 4.5 are normative: content objects are immutable and idempotent; provenance records are add-only and idempotent; replicas merge by set union.
+
+7.10 Retraction.
+
+A retraction is valid only if its source equals the retracted record's source, or is a key in that source's succession lineage (7.11).
+
+A valid retraction causes DEFAULT views to exclude the retracted record - an assertion drops out of trust aggregation; an enrichment's entry drops out of the materialized view (unless another, unretracted record contributes the same entry).
+
+The retracted record remains in history (glass-box: the record of having-contributed is never erased).
+
+Retraction is not undone; a source that changes its mind again issues a NEW record with a later timestamp.
+
+7.11 Succession.
+
+Succession records form chains (K1 to K2, K2 to K3).
+
+A key's LINEAGE is the chain closure.
+
+Records signed by any key in a lineage attribute to the one source.
+
+A key may name only one successor; a second succession from the same predecessor is surfaced as a conflict for trust policies to adjudicate.
+
+Honest limit: succession protects PLANNED rotation.
+
+If a private key is stolen, the thief holds equal cryptographic standing to name a successor; recovery from compromise is therefore a GOVERNANCE action (registry re-binding at Tier A, Part 11), not a cryptographic one.
+
+This is a known limit of all key-based identity, stated rather than hidden.
+
+7.12 Enrichment validity.
+
+An enrichment record is semantically valid if and only if its field is legal for the kind of the object it enriches and its entry has the matching shape:
+
+   Field         Legal on          Entry shape
+
+   aliases       occurrent,        { lang, text }  (a language-tagged
+                 continuant        synonym for the canonical label)
+   participants  occurrent         a continuant identifier (cnt:...)
+   subsumes      continuant        a continuant identifier (the is-a parent)
+   part_of       continuant        a continuant identifier (the whole)
+   realized_in   realizable        an occurrent identifier (occ:...)
+
+Anything else - participants on a continuant, realized_in on an occurrent, an alias entry that is a bare identifier - is semantically invalid.
+
+7.13 Materialized acyclicity.
+
+Stores that enforce writes (Tiers A and B) MUST reject an enrichment whose acceptance would create a cycle in the materialized subsumes or part_of graph.
+
+Under decentralized merge (Tier C) a cycle can nevertheless arise from concurrent writes at different replicas; a conformant VIEW then breaks the cycle deterministically - exclude the cycle-completing record with the LATEST timestamp (ties broken by lexicographic record identifier) - and surfaces the excluded record as a repair gap.
+
+Determinism of the tie-break is what keeps all replicas' views identical.
+
+PART 8. PROVENANCE, SIGNATURES, ENRICHMENT, RETRACTION, AND TRUST
+
+8.1 Content and records.
+
+A content object (Part 3) says WHAT is claimed or named; an assertion says WHO claims it, HOW they came to it, and HOW STRONGLY; an enrichment says WHO added WHICH word or link; a retraction says a source has withdrawn its own earlier record; a succession says a source has rotated its key.
+
+One object, any number of records; no record overwrites another.
+
+This is Wikidata's model of multiple values with references and ranks, made explicit, cryptographic, and universal - in Version 4 there is NO datum in the commons without an author.
+
+8.2 Source identity.
+
+A source is a cryptographic identity: an Ed25519 public key (the Edwards-curve Digital Signature Algorithm over Curve25519, RFC 8032 - a fast, deterministic signature scheme available in every mainstream language), written ed25519:<lowercase hexadecimal>.
+
+A human name, an institution, or a synthetic mind such as Mentova can bind a display name to its key in a registry, but the key is the identity.
+
+Nobody can forge a record in a source's name without its private key - which is precisely why attribution lives in signed records and never in unsigned tags.
+
+8.3 Signing.
+
+The signature is computed over the record's identity-bearing canonical bytes (the RFC 8785 form of the record with id and signature removed - exactly the bytes that are hashed for its identifier).
+
+Verification therefore needs nothing but the record itself and the public key inside it.
+
+A record whose signature does not verify is rejected or quarantined (Part 11).
+
+Because Ed25519 is deterministic, the same record signed by the same key always yields the same signature - so re-submission is exactly idempotent.
+
+8.4 Evidence types, graded.
+
+The evidence_type field records how the source came to the claim, in Causalontology's canonical grading: • intervention - the source acted and observed the result (do-calculus evidence; the strongest grade - acting beats watching); • observation - the source watched without intervening (correlational); • derivation - inferred from other claims in the store (the evidence field should cite them); • human_hint - a person supplied it as guidance (high-confidence but defeasible); • imported - carried in from an external knowledge base (typically arriving as a degenerate Causal Relation Object - the subsumption principle).
+
+8.5 Materialized views.
+
+A store serves each content object together with its enrichment sets, DERIVED from the enrichment records: • For each legal field of the object's kind, the view is the set of entries from unretracted enrichment records about the object with that field, subject to the acyclicity rule of 7.13.
+
+• Each entry carries its CONTRIBUTORS: the list of (source, timestamp) pairs of the records that contributed it.
+
+Two sources contributing the same entry is one displayed entry with two contributors - CORROBORATION.
+
+• Default views exclude retracted records (7.10) and quarantined material (Part 11); a consumer may opt into raw history knowingly.
+
+8.6 Retraction in trust policies.
+
+The DEFAULT policy of every conformant consumer and store view excludes records that have a valid retraction.
+
+A consumer MAY opt into seeing retracted history (it remains in the store, glass-box), but must opt in knowingly.
+
+Aggregations recompute without the retracted assertion; materialized views recompute without the retracted enrichment.
+
+8.7 Succession in trust policies.
+
+A consumer resolving a source resolves its whole lineage (7.11): trust granted to a source follows its successor keys; retractions by a successor bind the predecessor's records.
+
+Conflicting successions (two successors named by one predecessor) freeze automatic following - the lineage is flagged and the consumer's policy or the registry decides.
+
+8.8 Trust without forced consensus.
+
+The store never decides who is right.
+
+It records claims with signed assertions and lets every consumer choose a trust policy: filter by source, by evidence type, by confidence, by recency; aggregate strength estimates as it sees fit.
+
+A RECOMMENDED default aggregation (not mandated): the confidence-weighted mean of the strength estimates from sources the consumer trusts, with intervention-grade evidence weighted above observation.
+
+Contradictory claims coexist by design; the conflict machinery (7.6, Part 10) makes disagreement visible instead of hiding it.
+
+PART 9. THE SHARED GLOBAL STORE: OPERATIONS, PROTOCOL, RESOLVE, AND TIERS
+
+9.1 The abstract operation set.
+
+Every conformant implementation (a Software Development Kit with or without a remote store) must expose these operations; the conformance vectors test them by name:
+
+   canonicalize(object) -> bytes        the RFC 8785 identity-bearing bytes
+   identify(object) -> identifier       SHA-256 over canonicalize (Part 4)
+   validate_schema(object) -> report    schema validity, with reasons
+   validate_semantics(object) -> report semantic validity (Part 7), with
+                                        reasons
+   admissible(cro, elapsed_seconds) -> boolean   temporal admissibility, using
+                                        the constants of 7.4
+   conflicts(croA, croB) -> boolean     the conflict test (7.6)
+   hierarchy_consistent(cro, members) -> consistent | inconsistent |
+                                        indeterminate     the 7.7 reachability
+                                        check
+   sign(record, private_key) -> record  attach an Ed25519 signature
+   verify(record) -> boolean            check the signature (8.3)
+
+   And, against a store:
+   put(object) -> identifier            write a content object; idempotent
+   put_record(record) -> identifier     write an assertion, enrichment,
+                                        retraction, or succession; signature
+                                        verified; idempotent
+   get(identifier) -> object with materialized enrichments (8.5)
+   assertions_about(identifier) -> page of assertions
+   enrichments_about(identifier) -> page of enrichment records
+   retractions_of(identifier) -> page of retractions
+   lineage(source_key) -> the succession chain closure
+   resolve(text, lang) -> page of candidates (9.4)
+   query(pattern) -> page of objects    (9.3)
+   gaps(near, kinds) -> page of gaps    the stigmergy read (Part 10)
+
+9.2 The Hypertext Transfer Protocol binding (Tier A).
+
+The reference store speaks plain HTTP with JSON bodies:
+
+   POST /objects              write a content object; the server recomputes the
+                              identifier from the body and rejects a mismatch;
+                              idempotent
+   GET  /objects/{id}         fetch an object WITH its materialized enrichment
+                              view (entries and contributors, 8.5); add
+                              ?view=raw for the pure object only, or
+                              ?view=history to include retracted records,
+                              marked
+   POST /records              write an assertion, enrichment, retraction, or
+                              succession; the server verifies the Ed25519
+                              signature; unsigned or unverifiable records are
+                              quarantined per Part 11; enforcing tiers also
+                              apply 7.12 and 7.13 at this point
+   GET  /records/{id}
+   GET  /assertions?about={id}
+   GET  /enrichments?about={id}
+   GET  /retractions?about={record_id}
+   GET  /successions?key={ed25519_key}
+   GET  /resolve?text=...&lang=..     alias resolution (9.4)
+   POST /query                the query-by-example document of 9.3; stores
+                              SHOULD also expose a SPARQL endpoint at /sparql
+                              (SPARQL is the SPARQL Protocol and RDF Query
+                              Language, the standard query language for
+                              Resource Description Framework data)
+   GET  /gaps?near={id}&kind={kind}   the stigmergy read
+   GET  /conflicts?near={id}          surfaced contradictions
+
+   PAGINATION, on every endpoint that returns a list: the request takes limit
+   (default 100, maximum 1,000) and cursor (an opaque continuation token from
+   the previous page); the response body carries items and next_cursor (null
+   on the last page). Cursors are valid for at least one hour.
+
+   AUTHENTICATION: an account bearer token for write access at Tier A, IN
+   ADDITION to the per-record signatures - the token controls resource use;
+   the signature carries the trust. Rate limits per account and per source
+   key.
+
+9.3 The query language (normative minimum).
+
+A query is a JSON document - query-by-example over one kind, with equality and containment filters:
+
+    {
+      "kind":  "cro",                          one of the eight kinds
+      "where": {
+        "causes_contains":  "occ:...",         set-containment filters
+        "effects_contains": "occ:...",
+        "modality":         "sufficient",      equality filters
+        "refines":          "cro:...",
+        "about":            "occ:...",         for provenance kinds
+        "source":           "ed25519:...",
+        "is_partial":       true,              missing >= 1 optional field
+        "missing":          "temporal"         a named field is unspecified
+      },
+      "limit": 100, "cursor": null
+    }
+
+   Every conformant store MUST implement this query form; SPARQL, full-text
+   search, and richer graph patterns are SHOULD-level extensions. This minimum
+   is deliberately small: it is exactly enough to power resolution, the gap
+   queries, provenance lookup, and claim lookup - the operations conformance
+   depends on.
+
+9.4 Resolve, with a conformance minimum. resolve(text, lang) maps words to vocabulary.
+
+The NORMATIVE MINIMUM, tested by vector: • Canonical-label match: an occurrent or continuant whose label equals the query text after canonical normalization (lowercase; runs of whitespace replaced by single underscores) MUST be returned.
+
+• Alias match: an item having an unretracted alias enrichment whose text equals the query text case-insensitively (and whose lang matches the query language, when one is given) MUST be returned.
+
+• Ranking: canonical-label matches first, then alias matches, then anything else.
+
+Fuzzier matching (stemming, edit distance, embeddings) is PERMITTED and implementation-defined, but must rank after the exact matches above.
+
+The REQUIRED resolve-before-mint workflow (Part 4.2) depends only on the minimum, so it behaves identically on every conformant store.
+
+9.5 The store is a knowledge graph.
+
+Reified causal objects map naturally onto the Resource Description Framework with RDF-star (statements about statements - exactly what a Causal Relation Object is), queryable with SPARQL.
+
+The Wikidata precedent proves the pattern at the scale of over one hundred million items edited by the whole world, every statement carrying references.
+
+9.6 Deployment tiers - adopt the first, keep the options: • Tier A, central hosted service: one graph store behind the HTTP binding.
+
+Simplest; single source of truth.
+
+START HERE.
+
+• Tier B, federated: many store nodes synchronizing by push and pull, in the manner of the Git version-control system; contributors can run local stores.
+
+• Tier C, decentralized: content-addressed objects in a Merkle Directed Acyclic Graph (a hash-linked, tamper-evident structure of the kind used by Git and the InterPlanetary File System, IPFS).
+
+Version 4 makes the CRDT property exact: immutable objects plus add-only signed records merge by set union in any order, and even the acyclicity edge case has a deterministic view rule (7.13).
+
+Because identity, merge, and signed records are in the data model from day one, a deployment can begin at Tier A and migrate to Tier C without changing the data model.
+
+PART 10. STIGMERGY: THE STORE GUIDES THE NEXT CONTRIBUTION
+
+Stigmergy is coordination through the environment: agents leave traces in a shared medium, and the state of the medium guides what other agents do next (an ant trail; a half-built wall that shows where the next brick goes).
+
+The most distinctive property of the Causalontology commons is that its stigmergy needs no separate mechanism - the data structure's own partiality IS the signal.
+
+The gap kinds, each a first-class, queryable fact (returned by the gaps operation with kind tags):
+
+• missing_field.
+
+A partial Causal Relation Object lacking its mechanism, temporal window, modality, or context - a literal "fill me in" marker.
+
+The subsumption principle guarantees a steady supply: every claim imported from an external knowledge base arrives as a degenerate object.
+
+Filling one is done with a refines object (4.6), and once a valid refinement exists the parent leaves the gap list - the gap visibly closes.
+
+• dangling_reference.
+
+A Causal Relation Object whose cause or effect names an occurrent nobody has defined, a realizable whose bearer is an undefined continuant, or a mechanism member absent from the store (7.7) - the red link that says "this page is wanted".
+
+• empty_mechanism.
+
+A coarse relation not yet decomposed into finer ones - an invitation to explain HOW.
+
+• inconsistent_hierarchy.
+
+A mechanism that fails the reachability check of 7.7, or a record excluded by the cycle-breaking rule of 7.13 - an invitation to repair.
+
+• conflict.
+
+Two claims that satisfy the formal conflict test (7.6) - an invitation to bring new evidence, ideally intervention-grade.
+
+• demand_supply.
+
+A region of the graph that many queries traverse but where claims are sparse, unrefined, supported only by low-grade evidence, or thinned by retractions - the computed version of "most-requested articles": high demand, low supply, invest here.
+
+Delivery: the gaps endpoint answers "give me the most valuable gaps near this topic"; a contribution dashboard renders the same signals for people; and an optional reputation or bounty layer can reward closures - and because every alias, link, claim, and refinement is a signed record, reputation can now be computed over EVERYTHING a source has contributed, not only its assertions.
+
+Contributors - individual developers, laboratories, institutions - are guided by the emergent shape of the commons itself.
+
+And the endgame that makes Causalontology singular: gap-signals are just data, so autonomous minds read them too.
+
+Mentova - or any Causalontology-conformant agent - can query the frontier, pick the most valuable gap, learn or reason out the missing structure, and contribute it back as a refines object with a signed, intervention-grade assertion.
+
+The commons is then grown by human beings and synthetic minds together, guided by the same visible frontier.
+
+PART 11. SAFETY: ABUSE RESISTANCE, CLAIMS OF CONSEQUENCE, TAKEDOWN BY TIER
+
+A world-writable commons of CAUSAL claims carries higher stakes than a commons of trivia, and will attract the abuses every open system attracts.
+
+The defenses are layered and, as of Version 4, uniform - because every datum has a signed author:
+
+11.1 Abuse resistance.
+
+• Forgery: impossible without a source's private key - every record of every kind is signed (8.2, 8.3).
+
+The rejected "contributed_by" shortcut is the cautionary tale: unsigned attribution would have enabled framing (adding a poisoned entry in someone else's name); signed records make framing impossible.
+
+• Spam and Sybil attacks (one attacker manufacturing many identities): keys are free to mint, so trust NEVER attaches to key-count; it attaches to a consumer's chosen trust policy over specific sources (8.8).
+
+Tier A adds account-based rate limits; reputation systems, where used, weight by history and corroboration, never by volume.
+
+• Data poisoning (deliberately false claims, including claims aimed at misleading the artificial-intelligence agents that read the commons): signed provenance makes poison attributable; retraction gives honest sources a clean exit while the poisoner's history remains pinned to its key; consumers filtering by trusted sources and intervention-grade evidence are structurally resistant; conflicts surface rather than silently average.
+
+• Vandalism of vocabulary (bad aliases, wrong taxonomy links): as of Version 4 every enrichment is a signed record, so vandalism is ATTRIBUTABLE AT EVERY TIER, suppressible by source key, and - when the author repents - removable by the author's own retraction.
+
+Grow-only views mean vandalism can never DESTROY good data, only add bad data that policy filters out.
+
+• Unsigned or unverifiable contributions: accepted, if at all, only into a clearly-marked QUARANTINE visibility tier that default queries exclude.
+
+11.2 Claims of consequence.
+
+Some causal claims can hurt people if believed wrongly - health and medical claims ("X cures Y"), safety-critical procedures, legal and financial claims.
+
+Policy, from launch: • Consequential domains are tagged (a category discipline on the occurrents involved: health, safety, legal, financial).
+
+• A consequential claim is served only with its provenance and confidence displayed - never as a bare statement of fact.
+
+• Records on consequential claims MUST be signed; unsigned ones are quarantined without exception.
+
+• Every interface that serves consequential claims carries a standing notice that the commons records who claims what, with what evidence - it does not dispense medical, legal, or financial advice.
+
+11.3 Takedown, honestly, tier by tier.
+
+"Remove" means different things at each deployment tier, and the specification says so rather than promising what content-addressing cannot deliver: • Tier A (central): the operator can hard-delete an object or record from the serving store.
+
+Every takedown is itself publicly logged (actor, target identifier, ground) - the commons' equivalent of the constitutional guard's append-only veto log in the PrologAI Branch.
+
+• Tier B (federated): the origin node deletes locally and publishes a signed SUPPRESSION notice on the synchronization channel; peer nodes SHOULD honor it; compliance is per-node policy and visible (a node's suppression behavior is auditable).
+
+• Tier C (decentralized): copies cannot be forcibly deleted from machines the network does not control.
+
+Takedown means a signed TOMBSTONE record that all conformant default views honor by suppression, plus the public log.
+
+This is the honest limit of decentralization, stated in advance.
+
+11.4 Privacy.
+
+The commons is for GENERAL causal knowledge (type-level, Part 3).
+
+Claims about identifiable private individuals are out of scope, removable under 11.3, and - because the standard models types, not tokens - largely excluded by construction: there is no object kind for "what happened to this particular person on this particular day".
+
+Contributors in jurisdictions with data-protection law (for example the European Union's General Data Protection Regulation, GDPR) should note that Tier A operators can honor erasure requests fully, and that Tier C operators can honor them only in the tombstone sense of 11.3 - a fact a deployer must weigh before choosing a tier.
+
+PART 12. LICENSING: CODE, SPECIFICATION, AND DATA
+
+Code and data are different things and carry different licenses:
+
+• The specification and all reference code: the Apache License 2.0 - permissive, patent-protective, and matching the PrologAI substrate.
+
+• The DATA in the commons: Creative Commons Zero (CC0) - the public-domain dedication Wikidata uses.
+
+Contributors dedicate their claims and records to the public domain on contribution, so the commons is maximally reusable and no downstream user needs to track thousands of attribution chains.
+
+(Attribution survives anyway - not as a legal obligation but as provenance, which as of Version 4 is built into every datum.)
+
+• External content imported under incompatible licenses is not imported; share-alike sources are linked, not copied.
+
+PART 13. GOVERNANCE AND VERSIONING
+
+• The specification is versioned with Semantic Versioning (a three-part MAJOR.MINOR.PATCH scheme in which a change to the first number signals an incompatible change).
+
+Every binding and every store declares the specification version it implements.
+
+• THE ENUMERATION RULE (new in Version 4, ending an ambiguity): a closed enumeration - the occurrent categories, the continuant categories, the modalities, the evidence types, the enrichment fields - is part of the validator contract and, for the vocabulary categories, part of the identity guarantee itself.
+
+EXTENDING ANY CLOSED ENUMERATION IS A MAJOR VERSION CHANGE, never MINOR, even though old data round-trips: an old validator would reject new data, and identity computed over new categories would not be comparable.
+
+(Adding a wholly NEW object kind, such as the reserved token-level kind, is likewise MAJOR for validators that enforce closed kind lists; it will be batched with other MAJOR changes.)
+
+• The conformance suite is versioned with the specification; "conformant" always means "conformant to a named version".
+
+• Every binding is gated in Continuous Integration: a release that does not pass the vectors of its declared version is not published.
+
+• GOVERNANCE.md defines a lightweight change process in the spirit of a W3C or IETF working group: a written proposal, review in the open, a conformance impact statement (which vectors change), and a decision recorded in the repository.
+
+• The takedown procedure of Part 11.3 is part of governance; every takedown and every registry re-binding after key compromise (7.11) is publicly logged.
+
+PART 14. THE CONFORMANCE SUITE (THIRTY-EIGHT VECTORS)
+
+Each vector is a named test case with an input and an expected result; in the repository each is one file under conformance/vectors/.
+
+An implementation is conformant if and only if it produces the expected result for every vector.
+
+Identifiers below are abbreviated (cro:demo1) for readability; the repository vectors carry real sixty-four-character hashes.
+
+GROUP A - SCHEMA VALIDITY
+
+  V01 complete_cro_is_valid
+      input:  a Causal Relation Object with id, causes, effects, mechanism,
+              temporal {dmin 0, dmax 0, unit instant}, modality sufficient,
+              context - and NO strength and NO provenance fields
+      expect: schema_valid true, semantically_valid true
+
+  V02 degenerate_cro_is_valid_and_partial
+      input:  { id, causes:[occ:A], effects:[occ:B] }
+      expect: schema_valid true, semantically_valid true, is_partial true,
+              missing = [mechanism, temporal, modality, context]
+      note:   the subsumption case - an imported "A causes B" edge as a
+              degenerate object; a valid partial and a stigmergic gap.
+
+  V03 missing_effects_is_invalid
+      expect: schema_valid false, reason "required property 'effects' missing"
+
+  V04 empty_causes_is_invalid
+      input:  causes: []
+      expect: schema_valid false, reason "causes must have at least one item"
+
+  V05 unknown_modality_is_invalid
+      input:  modality "maybe"
+      expect: schema_valid false, reason "modality not in enumeration"
+
+  V06 additional_property_is_invalid
+      input:  a Causal Relation Object carrying an extra field "colour"
+      expect: schema_valid false, reason "additional property 'colour'"
+      note:   as of Version 4 this also rejects any attempt to put aliases or
+              other enrichment state inside a content object.
+
+  V07 free_text_cause_is_invalid
+      input:  causes: ["pressing the button"]
+      expect: schema_valid false, reason "cause must match ^occ:[0-9a-f]{64}$"
+      note:   words live on enrichment records, not in claims.
+
+  V08 occurrent_is_valid_and_pure
+      input:  { id, label "press_button", category "action" }
+      expect: schema_valid true
+      note:   nothing else is legal on an occurrent - its aliases arrive as
+              signed enrichment records.
+
+  V09 occurrent_missing_label_is_invalid
+      expect: schema_valid false, reason "required property 'label' missing"
+
+  V10 occurrent_category_not_in_enumeration_is_invalid
+      input:  { id, label "charge", category "act" }
+      expect: schema_valid false, reason "category not in enumeration"
+      note:   the closed enumeration is what makes vocabulary identity
+              deterministic; "charge" would also be rejected in review as an
+              unqualified homonym (charge_battery, charge_attack).
+
+  V11 assertion_is_valid
+      input:  { id, about cro:demo1, source ed25519:ab12...,
+                evidence_type intervention, strength 0.7, confidence 0.9,
+                timestamp "2026-07-13T00:00:00Z", signature ... }
+      expect: schema_valid true
+
+  V12 assertion_confidence_out_of_range_is_invalid
+      input:  confidence 1.4
+      expect: schema_valid false, reason "confidence must be <= 1"
+
+  V13 enrichment_is_valid
+      input:  { id, about occ:press..., field "aliases",
+                entry {lang "ja", text "botan wo osu"},
+                source ed25519:bob..., timestamp ..., signature ... }
+      expect: schema_valid true, semantically_valid true
+
+GROUP B - SEMANTIC VALIDITY
+
+  V14 reversed_temporal_window_is_semantically_invalid
+      input:  temporal {dmin 6, dmax 1, unit hours}
+      expect: schema_valid true, semantically_valid false,
+              reason "dmin must be <= dmax"
+
+  V15 cyclic_mechanism_is_semantically_invalid
+      input:  a Causal Relation Object whose mechanism contains its own
+              identifier
+      expect: schema_valid true, semantically_valid false,
+              reason "mechanism must be acyclic"
+
+  V16 self_refinement_is_semantically_invalid
+      input:  a Causal Relation Object whose refines names itself
+      expect: schema_valid true, semantically_valid false,
+              reason "refines must be acyclic"
+
+  V17 refinement_changing_parent_field_is_not_a_refinement
+      given:  parent P with modality sufficient
+      input:  R with refines P, same causes and effects, modality preventive
+      expect: valid_refinement false,
+              reason "a refinement may not change a field the parent
+              specified; this is a rival claim"
+
+  V18 enrichment_field_illegal_for_kind_is_invalid
+      input:  an enrichment with about cnt:lamp..., field "participants"
+      expect: schema_valid true, semantically_valid false,
+              reason "participants is not a legal field for a continuant
+              (Part 7.12)"
+
+  V19 enrichment_entry_shape_mismatch_is_invalid
+      input:  an enrichment with field "aliases" and entry "cnt:abcd..."
+      expect: semantically_valid false,
+              reason "an aliases entry must be a language-tagged text object"
+
+  V20 subsumes_cycle_is_rejected_or_broken_deterministically
+      given:  materialized subsumes already holds dog -> mammal -> animal
+      input:  an enrichment adding animal subsumes dog
+      expect: at an enforcing tier the write is rejected (reason "would create
+              a cycle in the materialized subsumes graph"); under
+              decentralized merge, the conformant view excludes the
+              cycle-completing record with the latest timestamp and surfaces
+              it as a repair gap (Part 7.13)
+
+GROUP C - TEMPORAL ADMISSIBILITY
+
+  V21 elapsed_time_inside_window_is_admissible
+      given:  window {dmin 1, dmax 6, unit hours}; elapsed 10,800 seconds
+              (3 hours)
+      expect: admissible true
+
+  V22 elapsed_time_outside_window_is_not_admissible
+      given:  same window; elapsed 28,800 seconds (8 hours)
+      expect: admissible false
+      note:   V21 and V22 together are the clinician's "how long ago did you
+              eat?" - a candidate cause excluded purely on timing.
+
+  V23 unit_conversion_is_fixed
+      given:  window {dmin 12, dmax 14, unit months}; elapsed 400 days =
+              34,560,000 seconds
+      expect: admissible true
+      note:   12 months = 31,556,952 seconds and 14 months = 36,816,444
+              seconds by the constants of Part 7.4 (month = 2,629,746
+              seconds); 34,560,000 lies inside. Any implementation using a
+              different month length fails this vector - which is the point.
+
+GROUP D - IDENTITY, CANONICALIZATION, AND MERGE
+
+  V24 key_order_does_not_change_identity
+      inputA: { causes:[occ:A], effects:[occ:B], modality: "sufficient" }
+      inputB: { modality: "sufficient", effects:[occ:B], causes:[occ:A] }
+      expect: identify(inputA) == identify(inputB)
+
+  V25 number_formatting_does_not_change_identity
+      inputA: temporal {dmin 1.0, dmax 6, unit hours}
+      inputB: temporal {dmin 1,   dmax 6.000, unit hours}
+      expect: identify(inputA) == identify(inputB)
+      note:   guaranteed by RFC 8785 number serialization.
+
+  V26 identical_put_is_idempotent
+      given:  put(occurrent {label press_button, category action}) twice
+      expect: one object; the second put returns the same identifier and
+              changes nothing.
+
+  V27 same_entry_two_sources_is_corroboration
+      given:  Alice's enrichment {about occ:press..., field aliases,
+              entry {en, "press the button"}} and Bob's enrichment with the
+              SAME about, field, and entry
+      expect: TWO enrichment records (their sources differ, so their
+              identifiers differ); the materialized view of the occurrent
+              shows ONE aliases entry carrying TWO contributors
+      note:   corroboration, not duplication - and each word has its authors.
+
+GROUP E - PROVENANCE, SIGNATURES, RETRACTION, SUCCESSION
+
+  V28 two_sources_one_claim_is_one_object_two_assertions
+      given:  source lab1 and source lab2 each contribute the claim
+              "occ:A -> occ:B, sufficient" with their own assertions
+      expect: the store holds ONE Causal Relation Object (equal identifiers)
+              and TWO assertions about it; neither overwrites the other.
+
+  V29 valid_signature_verifies
+      given:  a record signed with the source's Ed25519 private key
+      expect: verify(record) true
+
+  V30 tampered_record_fails_verification
+      given:  the same record with one field altered after signing
+      expect: verify(record) false
+
+  V31 retraction_excludes_assertion_from_default_views
+      given:  lab1's assertion about cro:X; then lab1's signed retraction of
+              it
+      expect: assertions_about(cro:X) under the DEFAULT policy excludes the
+              retracted assertion; with history view it appears, marked
+              retracted; a retraction signed by a DIFFERENT source (outside
+              the lineage) is semantically invalid and has no effect.
+
+  V32 author_retracts_own_enrichment
+      given:  Bob's alias enrichment on occ:press...; then Bob's signed
+              retraction of that enrichment
+      expect: the materialized aliases view no longer contains Bob's entry
+              (unless another unretracted record contributes the same entry);
+              the record survives in history view, marked retracted.
+
+  V33 key_succession_preserves_source_lineage
+      given:  records signed by K1; a succession K1 -> K2 signed by K1; a
+              retraction of one K1 record signed by K2
+      expect: lineage(K2) contains K1; the retraction is valid (successor may
+              retract predecessor's records); trust granted to the lineage
+              covers records under both keys.
+
+GROUP F - CONFLICT, HIERARCHY, RESOLVE, STIGMERGY
+
+  V34 preventive_conflicts_with_sufficient
+      given:  A {causes [occ:X], effects [occ:Y], modality sufficient},
+              B {causes [occ:X], effects [occ:Y], modality preventive},
+              no contexts, no windows
+      expect: conflicts(A, B) true
+
+  V35 contributory_does_not_conflict_with_sufficient
+      given:  same causes and effects; A contributory, B sufficient
+      expect: conflicts(A, B) false
+
+  V36 hierarchy_consistency_is_reachability
+      given:  P {causes [occ:A], effects [occ:C],
+              mechanism [m1, m2]} where m1 = {causes [occ:A],
+              effects [occ:B]} and m2 = {causes [occ:B], effects [occ:C]}
+      expect: hierarchy_consistent(P) = consistent (path A -> B -> C exists);
+              with m2 replaced by m3 = {causes [occ:D], effects [occ:C]},
+              hierarchy_consistent(P) = inconsistent (no path from A to C)
+              and P surfaces as an inconsistent_hierarchy gap; with m2 absent
+              from the store, the check is indeterminate and P surfaces as a
+              dangling_reference gap.
+
+  V37 resolve_minimum_is_exact_then_alias
+      given:  occurrent {label press_button, category action} with an
+              unretracted alias {en, "Press the Button"}
+      expect: resolve("Press  The   Button", en) returns the occurrent (alias
+              match, case-insensitive); resolve("press_button", en) returns
+              it ranked first (canonical-label match); fuzzy extras, if any,
+              rank after both.
+
+  V38 refined_parent_leaves_the_gap_list
+      given:  degenerate P (missing temporal and modality) in the store; then
+              a valid refinement R of P adding both
+      expect: gaps(kind missing_field) includes P before R is written and
+              excludes P after; R does not appear (it is complete)
+      note:   the gap visibly closes - the heart of the stigmergy.
+
+This suite covers the schemas (including purity of content objects and the closed enumerations), the semantics (including enrichment validity and deterministic cycle-breaking), timing-as-mechanism with fixed constants, deterministic identity, idempotent merge, corroboration with attribution, signatures, retraction of both assertions and enrichments, key succession, formal conflict, pinned hierarchy reachability, the resolve minimum, and the closing of a stigmergic gap.
+
+It grows with the specification, versioned in lock-step.
+
+PART 15. QUICKSTART: ONE CLAIM, FOUR LANGUAGES, END TO END
+
+A worked example showing the whole life of one piece of causal knowledge.
+
+(The identifiers are abbreviated; executable versions live in examples/.)
+
+Step 1 - Alice (Python) defines the vocabulary and imports a bare edge.
+
+Alice first calls resolve("press the button", en) - nothing exists yet - so she mints two pure occurrents:
+
+    { "type":"occurrent", "label":"press_button", "category":"action" }
+    { "type":"occurrent", "label":"light_on",     "category":"state_change" }
+
+Her Software Development Kit's mint_with_aliases sugar also emits her signed English-alias enrichment records for each.
+
+An external knowledge base says "pressing the button causes the light" - so she posts the degenerate claim:
+
+    { "type":"cro", "causes":["occ:press..."], "effects":["occ:light..."] }
+
+and one signed assertion: source ed25519:alice..., evidence_type imported, confidence 0.5.
+
+The store now holds a partial claim, and GET /gaps?kind=missing_field lists it.
+
+Step 2 - Bob (Java) is guided by the gap and enriches both claim and vocabulary.
+
+Bob's dashboard shows the gap.
+
+He knows the mechanism is immediate, so he posts a refinement:
+
+    { "type":"cro", "causes":[...same...], "effects":[...same...],
+      "temporal":{"dmin":0,"dmax":1,"unit":"seconds"},
+      "modality":"sufficient", "refines":"cro:<Alice's>" }
+
+with his signed assertion (evidence_type observation, confidence 0.8).
+
+The refinement is valid, so Alice's degenerate claim leaves the gap list - the gap has visibly closed.
+
+Bob also contributes a signed enrichment record adding a Japanese alias to press_button; the materialized view now shows the occurrent trilingual, with each alias carrying its author.
+
+Step 3 - Mentova (Prolog, the reference implementation) adds intervention-grade evidence.
+
+Playing its environment, Mentova presses the button one hundred times; the light comes on ninety-eight times within a second.
+
+It signs an assertion about Bob's refined claim: evidence_type intervention, strength 0.98, confidence 0.95.
+
+Acting beats watching, and now the claim carries the strongest grade of evidence a causal commons can hold.
+
+Step 4 - Alice retracts her superseded word.
+
+Seeing Mentova's intervention-grade evidence, Alice formally retracts her own low-confidence imported assertion: a signed retraction naming it.
+
+Default views now show Bob's and Mentova's assertions only; Alice's remains in history for anyone who opts in.
+
+(Had Bob mistyped his Japanese alias, he could retract that enrichment the same way - the same honest exit works for words and for claims.)
+
+Step 5 - Carol (Swift) consumes with her own trust policy.
+
+Carol's app fetches the claim, its live assertions, and the occurrent's materialized aliases with their contributors.
+
+Her policy: trust intervention over observation; aggregate strength by confidence-weighted mean; honor retractions (the default).
+
+She verifies the Ed25519 signatures locally, computes an effective strength close to 0.98, and - because the claim carries a temporal window - her app also uses temporal admissibility with the fixed constants: a light that came on an hour after the press is NOT attributed to the press.
+
+Four languages, no Foreign Function Interface, no shared code - one data structure, one store, one visible frontier, an honest exit for a source that changed its mind, and an author on every word.
+
+PART 16. THE MINIMUM VIABLE PRODUCT AND THE ROADMAP
+
+A Minimum Viable Product (MVP) is the smallest version that proves the whole idea end to end.
+
+Steps, in order:
+
+1. Publish the repository with spec/ (the normative text, the eight schemas, the JSON-LD context, identity.md, semantics.md, provenance.md, store.md, safety.md) and conformance/ (the thirty-eight vectors).
+
+No new programming language yet.
+
+OUTCOME - done (2026-07-13).
+
+The repository is public at github.com/ai-university-aiu/causalontology.
+
+It carries the complete specification, all eight schemas, the thirty-eight conformance vectors, the governance rules, one license for everything ("The attribution always; no profit, no problem license."), and this document as its canon.
+
+2. Write the second implementation: causalontology-py, passing every vector - the proof that the specification is genuinely language-independent (Prolog was the first implementation).
+
+OUTCOME - done (2026-07-13).
+
+causalontology-py lives in bindings/python/ and passes all thirty-eight vectors - on its very first run.
+
+It needs nothing installed beyond Python itself: the canonical byte format, the SHA-256 fingerprinting, and even the Ed25519 digital-signature mathematics are written out in plain Python.
+
+The signature code passes the official known-answer test - a worked example published inside the internet standard itself, with the exact expected answer - so we know the mathematics is right, not merely self-consistent.
+
+3. Stand up the Tier A store: the HTTP binding of Part 9.2 over any RDF-capable or document store, with signature verification, materialized enrichment views, retraction handling, and quarantine.
+
+OUTCOME - done (2026-07-13).
+
+The reference store lives in store/server/ and starts with one command; it listens on port 8785, a small tribute to the canonicalization standard.
+
+It verifies every signature on arrival, quarantines unsigned records, honors retractions in its default views while keeping honest history, checks retractions against key-succession lineage, refuses taxonomy cycles with a written reason, and serves every list with pagination.
+
+Twenty of twenty end-to-end checks pass over real HTTP - including the whole quickstart story: mint the vocabulary, write the bare claim, watch the gap appear, refine it, and watch the gap close.
+
+4. Ship the stigmergy read: GET /gaps with the six kinds, and the minimal dashboard.
+
+From day one the commons guides its own growth.
+
+OUTCOME - done (2026-07-13).
+
+All six gap kinds are live, including demand_supply, which is computed from real readership: the store counts how often each claim is actually read, and a claim that is read often but supported weakly becomes a visible invitation.
+
+The gap list is value-ranked, so the first item is always, literally, the most valuable brick to lay next.
+
+The store also serves a human dashboard at /dashboard - one self-contained page, live totals, the ranked gaps, the surfaced conflicts, a topic filter.
+
+Eight of eight checks pass, including the one that matters philosophically: when intervention-grade evidence lands on a hungry claim, its gap closes by itself.
+
+Acting beats watching, enforced by the frontier.
+
+5. Then, in any order, as demand pulls: causalontology-java and causalontology-swift; the SPARQL endpoint and full JSON-LD publication; the Web Ontology Language mapping; the token-level occurrence kind (the reserved tok: prefix); Tier B federation; the reputation and bounty layer (now computable over every kind of contribution); Tier C decentralization; and Mentova reading the gap list and contributing signed, intervention-grade refinements - the first synthetic mind gardening the commons.
+
+OUTCOME - done (2026-07-13), every item except the two that governance reserves for a future major release.
+
+• causalontology-java (bindings/java/): a complete port, 3,232 lines, using only the Java standard library - all thirty-eight vectors pass in Continuous Integration (CI), the public test machinery that re-runs every suite automatically on every change.
+
+• causalontology-swift (bindings/swift/): a complete port, 2,816 lines - all thirty-eight vectors pass in CI.
+
+• A bonus third verified implementation, causalontology-js (bindings/javascript/), in JavaScript with zero dependencies - and it was proven byte-identical with the Python binding: the same key, the same identifier, the same signature, bit for bit.
+
+• The SPARQL endpoint: the store answers a documented subset of SPARQL, the standard query language of the linked-data world, and can export its whole contents as N-Triples for any RDF toolchain.
+
+• The Web Ontology Language mapping: spec/schema/causalontology.owl.ttl aligns the eight kinds to the Basic Formal Ontology, the Relation Ontology, and the W3C Provenance Ontology.
+
+• Tier B federation: one store can pull another's contents, and the two converge by signed set union - eleven of eleven checks pass, including the beautiful case where two servers each hold one signed vote for the same alias, and after synchronization both show one entry with two contributors.
+
+• Tier C decentralization: replicate.py exchanges offline bundles by any transport at all, and the mathematics of the data model does the rest - merging in any order gives the same store, merging twice changes nothing, every replica breaks a knowledge cycle in exactly the same place, and a single tampered byte is caught by the content addresses and signatures alone.
+
+Eight of eight checks pass.
+
+• The reputation layer: GET /reputation computes a contributor's standing purely from their signed public history - contributions, corroborations, honest retractions, and the grade of their evidence - glass-box, like everything else.
+
+• The token-level tok: kind and the bounty layer remain reserved, exactly as the governance rules require: they are major-version material, and saying so plainly is part of the discipline.
+
+• And the crown: Mentova gardening the commons (examples/gardener/).
+
+A glass-box Prolog mind - every line carrying its English explanation - read the gap list over real HTTP, chose the most valuable gap, pressed the button one hundred times with its own hand, induced the missing time window and modality from the tally, minted the refinement, signed an intervention-grade assertion with its own key, and confirmed the gap had left everyone's frontier.
+
+Eleven of eleven checks pass, and the gardener now runs in CI on every change, forever.
+
+The first synthetic mind has laid a brick in the shared wall.
+
+6. The systems tier (added and completed 2026-07-13): Rust, WebAssembly, TypeScript, and Go.
+
+OUTCOME - done.
+
+• causalontology-rust (bindings/rust/): the fourth implementation verified on the authoring machine - all thirty-eight vectors pass, and the crate compiled cleanly on its very first build.
+
+• The WebAssembly core: because the Rust library carries its schemas inside itself and never touches a disk, it compiles unchanged to WebAssembly - the portable binary format that browsers, edge servers, and most modern platforms can run.
+
+The result is one audited binary that any host can call, and six of six cross-checks prove its answers are byte-identical with the JavaScript binding's.
+
+One core, every host.
+
+• TypeScript: rather than write a fifth copy of the logic that could drift out of agreement, the verified JavaScript binding gained hand-written strict type declarations - TypeScript users get full checking and autocompletion over the exact code that already passes the vectors.
+
+Verified with the TypeScript compiler.
+
+• causalontology-go (bindings/go/): a complete port with zero dependencies, because Go's standard library carries Ed25519 natively; its number-formatting code was tested against the Python reference on more than one million values before it ever ran.
+
+All thirty-eight vectors pass in CI, on the first attempt.
+
+THE SCOREBOARD, AS BUILT.
+
+Seven independent implementations in seven programming languages - Prolog, Python, JavaScript, Rust, Java, Swift, and Go - plus typed JavaScript and the WebAssembly core: nine implementations and targets, every one passing the same thirty-eight vectors.
+
+Eight CI gates re-prove all of it on every change, and the Prolog gardener tends the commons at the end of every run.
+
+Language-neutrality is no longer a claim.
+
+It is a table.
+
+7. The ceremony (completed 2026-07-13): the 1.0.0 vector freeze, and publication.
+
+OUTCOME - done, with one honest remainder.
+
+• The freeze: a small, deterministic tool (conformance/freeze_1_0_0.py) replaced every symbolic placeholder in the thirty-eight vectors with concrete bytes - real sixty-four-character identifiers, real Ed25519 public keys, and, in the assertion vector, a real signature that genuinely verifies.
+
+Run the tool twice and the second run changes nothing - the freeze is idempotent, which is the mathematician's word for "already done stays done."
+
+• One deliberate subtlety, recorded rather than hidden: the two vectors that test self-reference keep well-formed mapped identifiers instead of true content addresses, because a genuinely content-addressed object cannot contain its own fingerprint - which is exactly why the rule they test exists.
+
+• Every implementation re-verified against the frozen bytes: Python, JavaScript, and Rust on the authoring machine; Java, Swift, and Go in Continuous Integration; the WebAssembly core byte-identical as before.
+
+• Every manifest now says 1.0.0, and the repository is tagged v1.0.0 with a GitHub Release carrying the built artifacts: the Python wheel, the npm tarball, the Rust crate, and the WebAssembly core.
+
+• Publication, channel by channel, stated plainly:
+
+Swift Package Manager - LIVE (it publishes by git tag; one dependency line fetches version 1.0.0).
+
+Go modules - LIVE (the module path and tag are in place; one go get command fetches it).
+
+GitHub Release - LIVE, artifacts attached.
+
+crates.io, PyPI, npm, and Maven Central - ALL LIVE, published later the same day: the owner created each account and handed over a fresh token, the machinery did the rest, and every token was retired afterward - the keys stayed with the owner throughout, by design.
+
+The wall is built, the door is open, and every nameplate is on the wall.
+
+The full story of publication day is Part 19; the announcement is Part 20.
+
+8. The nine-language wave (completed 2026-07-13, the same day): C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, and Lua.
+
+OUTCOME - done: sixteen implementations in sixteen languages.
+
+• Nine parallel ports were built in one wave, each from the same reference, each judged by the same thirty-eight frozen vectors.
+
+• Four were verified on the authoring machine: C# (a pure port of the signature mathematics over big integers), Dart (pure-Dart hashing and signing), Perl (core modules only, the whole suite in under nine seconds), and Lua - the summit of the wave - where even the big-number arithmetic beneath the signatures was hand-built and cross-checked against the Python reference on two hundred eighty-eight independent arithmetic cases before the curve was assembled.
+
+• Five were written blind - no interpreter on the machine - using the same care-list discipline that carried Java, Swift, and Go through Continuous Integration on their first attempts: Ruby, PHP, Elixir, Haskell (which hand-built both hash functions AND the signature mathematics from first principles, generating its constants from the square and cube roots of primes), and R.
+
+• Seventeen Continuous Integration gates now re-prove every implementation on every change.
+
+• Registry manifests ship with every port; the nine new registries (NuGet, RubyGems, Packagist, pub.dev, Hex, Hackage, CPAN, CRAN, LuaRocks) await only the owner's accounts, exactly as the first four did - and CRAN is a human-review process, stated plainly.
+
+Sixteen languages, one standard, zero shared code - the table speaks for itself.
+
+PART 17. LOCKED DECISIONS
+
+Decided now, so building can proceed without reopening them:
+
+1. Causalontology's canonical form is a specification plus a conformance suite; PrologAI is the reference implementation, not the definition.
+
+2. The object model has eight kinds: four content kinds (occurrent, Causal Relation Object, continuant, realizable entity) and four provenance kinds (assertion, enrichment, retraction, succession).
+
+3. CONTENT IS SEPARATED FROM PROVENANCE, UNIFORMLY: content objects carry ONLY their identity-bearing fields and are immutable; every mutable datum in the commons - every alias, link, claim, withdrawal, and key rotation - is a signed, add-only record with an author.
+
+Unsigned attribution is forbidden by design (it enables framing).
+
+4. The standard models TYPE-LEVEL (generic) causation; the token-level kind is reserved (prefix tok:) for a future version.
+
+5. Strength and confidence live in assertions; strength's formal meaning is the do-calculus reading of Part 7.5; strength and confidence are distinct.
+
+6. In a Causal Relation Object only id, causes, and effects are required; partial and degenerate objects are first-class.
+
+7. Cause, effect, and context references are occurrent identifiers - never free text.
+
+Vocabulary convergence is by canonical labels (English lowercase snake_case whole words, homonyms qualified), REQUIRED closed category enumerations, and the REQUIRED resolve-before-mint workflow.
+
+8. Identifiers are content-addressed: SHA-256 over the RFC 8785 (JSON Canonicalization Scheme) form of the identity-bearing fields (the table in Part 4.4), written scheme:hexadecimal.
+
+9. Merge is trivial by construction: content objects are immutable and idempotent; records are add-only and idempotent; replicas merge by set union; the store is a Conflict-free Replicated Data Type with a deterministic cycle-breaking view rule (7.13) as its only edge case.
+
+10. Enrichment sets (aliases, participants, subsumes, part_of, realized_in) are DERIVED, materialized views over enrichment records, each entry carrying its contributors; the same entry from two sources is corroboration.
+
+11. Enrichment of claims is by the refines link: acyclic, parent-preserving, add-only; gap queries exclude validly-refined parents.
+
+12. Conflict is the formal test of Part 7.6; conflicts are surfaced, never auto-resolved.
+
+13. Hierarchy consistency is the reachability test of Part 7.7 over the defined mechanism graph; absent members make the check indeterminate, not failed.
+
+14. Sources are Ed25519 public keys; all four record kinds are signed over their canonical identity-bearing bytes; unsigned material is at best quarantined.
+
+15. A source may retract only its own records (or its lineage's) - assertions AND enrichments; default views exclude retracted records; history is never erased.
+
+16. Key rotation is by succession records signed by the predecessor; one successor per key; recovery from key COMPROMISE is a governance action, stated honestly as the limit of cryptographic identity.
+
+17. Temporal admissibility uses the fixed conversion constants of Part 7.4 (month = 2,629,746 seconds; year = 31,556,952 seconds); implementations that differ are non-conformant.
+
+18. The canonical serialization is JSON, profiled as JSON-LD; Protocol Buffers and the Concise Binary Object Representation are optional lossless binary encodings.
+
+19. The store contract is the abstract operation set of Part 9.1, the HTTP binding of Part 9.2 with limit-and-cursor pagination, the query-by-example minimum of Part 9.3 (SPARQL is a SHOULD), and the resolve minimum of Part 9.4 (exact matches MUST return, ranked first; fuzziness is free above the floor).
+
+20. Interoperability across languages is through shared data and the shared store protocol, never through a Foreign Function Interface.
+
+21. Trust is by provenance and consumer-chosen policy, not forced consensus; evidence is graded with intervention above observation.
+
+22. Stigmergy is intrinsic: the six gap kinds of Part 10 are first-class queryable facts, and closing them is done with refines objects and enrichment records.
+
+23. Claims of consequence are always served with provenance and confidence, require signed records, and fall under the logged takedown procedure; takedown semantics are tiered honestly (delete at Tier A, suppression at Tier B, tombstone at Tier C).
+
+24. Extending any closed enumeration is a MAJOR version change - the enumeration rule of Part 13.
+
+25. Licenses: Apache License 2.0 for specification and code; Creative Commons Zero for the commons data.
+
+26. Governance: Semantic Versioning of the specification, conformance-gated releases, a written open change process with conformance impact statements, and public logging of takedowns and registry re-bindings.
+
+27. Naming: "Causalontology" is the proper noun in prose; "causalontology" is the identifier in every machine context.
+
+PART 18. ONE-PAGER CHEAT SHEET
+
+The whole Causalontology Architecture Standard (CAS), at a glance.
+
+THE IDEA, IN ONE LINE.
+
+• A verb-first noun-hosting ontology - reality is what happens, and things are its participants - delivering reified causation as a language-neutral standard and a shared, stigmergic, provenance-first commons.
+
+THE EIGHT KINDS.
+
+Four content kinds - pure, immutable, content-addressed:
+
+• occ: occurrent - a process or event TYPE (a verb); the vocabulary of causes and effects.
+
+• cro: Causal Relation Object - THE fundamental unit: a reified causal claim.
+
+• cnt: continuant - an enduring thing (a noun); a thin, hosted backbone.
+
+• rlz: realizable - disposition, function, or role; the hinge (inheres in a continuant, realized in occurrents).
+
+Four provenance kinds - Ed25519-signed, add-only:
+
+• ast: assertion - who claims it, on what evidence, how strongly.
+
+• enr: enrichment - who added one alias, participant, or taxonomy link; every word has an author.
+
+• ret: retraction - a source withdraws its OWN record; history is kept, marked.
+
+• suc: succession - key rotation, with lineage.
+
+• (tok: token-level occurrences - reserved; a future MAJOR version.)
+
+THE CRO'S FIELDS.
+
+• Required: causes and effects - lists of occurrent identifiers, at least one each.
+
+• Optional: mechanism (the finer CROs that realize it), temporal ({dmin, dmax, unit}), modality (necessary | sufficient | contributory | preventive), context (enabling occurrents), refines (lineage to the parent it completes).
+
+• A degenerate CRO (causes and effects only) is legal: a partial claim is a standing invitation.
+
+IDENTITY, IN ONE PROCEDURE.
+
+• Take the identity-bearing fields (type injected) - serialize with RFC 8785 - hash with SHA-256 - identifier = prefix : sixty-four hex characters.
+
+• Consequence: the same claim minted anywhere on Earth gets the same identifier; merging needs no coordinator.
+
+THE SEMANTIC RULES, IN ESSENCE.
+
+• Temporal: dmin <= dmax; fixed constants (month = 2,629,746 seconds; year = 31,556,952 seconds); admissible iff the elapsed time falls inside the window.
+
+• Acyclicity: mechanism and refines may not loop.
+
+• Refinement: same causes and effects; adds only fields the parent left unspecified; changing a parent's field is a RIVAL CLAIM, not a refinement.
+
+• Conflict: same cause and effect sets + compatible contexts + overlapping windows + preventive against a positive modality.
+
+• Hierarchy: consistent iff every parent cause-to-effect pair is reachable through the mechanism members' edges; absent members make it indeterminate, never guessed.
+
+• Enrichment legality: each field belongs to fixed kinds; each entry has a fixed shape (an alias is {lang, text}).
+
+EVIDENCE, GRADED.
+
+• intervention > observation > derivation > human_hint > imported.
+
+• Acting beats watching: your own hand on the switch outranks any amount of staring.
+
+THE STORE, IN SIX PROMISES.
+
+• Immutable, idempotent object writes; identical content is one object, from any number of sources.
+
+• Signed records only; unsigned arrivals are quarantined, never silently trusted.
+
+• Default views honor retractions; the history view keeps everything, marked.
+
+• Only a record's own source (or its succession lineage) may retract it - framing is impossible.
+
+• Taxonomy cycles: refused with a reason when enforcing; after decentralized merges, broken deterministically in the view (latest timestamp loses; ties by identifier) - every replica the same way.
+
+• Tiers: A - one store over HTTP; B - federation by pull and signed set union; C - offline bundles; the data model is a grow-only-set CRDT, so any merge order converges.
+
+STIGMERGY - THE STORE GUIDES ITS OWN GROWTH.
+
+• Six gap kinds, value-ranked: conflict (5), inconsistent_hierarchy (4), missing_field (3), demand_supply (3 + live demand), dangling_reference (2), empty_mechanism (1).
+
+• GET /gaps returns the most valuable brick first; close it with a refinement or a signed enrichment and it leaves everyone's frontier.
+
+CONFORMANCE - THE ONE RULE.
+
+• An implementation is Causalontology-conformant if and only if it passes all thirty-eight vectors.
+
+• Frozen at 1.0.0 (2026-07-13): the vectors carry concrete bytes - real identifiers, real keys, a real verifying signature.
+
+• Proven in sixteen languages (Prolog, Python, JavaScript, Rust, Java, Swift, Go, C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua), plus TypeScript typings and one WebAssembly core - byte-identical identifiers and signatures across implementations.
+
+GOVERNANCE AND LICENSE.
+
+• Twenty-seven locked decisions; closed enumerations - extending one is a MAJOR version; tok: and the bounty layer reserved, and said so plainly.
+
+• One license for everything: "The attribution always; no profit, no problem license."
+
+• Glass box, always: every claim traces to a named rule and a signed author, and "why?" always has a readable answer.
+
+PART 19. RELEASE 1.0.0 NOTES
+
+What shipped, how it shipped, and what it means to you, the reader - all of it on one day, 2026-07-13.
+
+WHAT SHIPPED.
+
+• The specification, frozen at 1.0.0: all thirty-eight conformance vectors now carry concrete bytes - real identifiers, real Ed25519 public keys, and one real signature that genuinely verifies - pinned by a freeze tool that is deterministic and idempotent (run it twice and the second run changes nothing).
+
+• Seven implementations in seven programming languages - Prolog, Python, JavaScript, Rust, Java, Swift, and Go - plus TypeScript typings and one WebAssembly core, every one passing the same frozen suite, re-proven by eight Continuous Integration gates on every change.
+
+• The running commons: the Tier A store, federation, offline replication, the stigmergy dashboard, and the Prolog gardener that tends the frontier at the end of every automated run.
+
+HOW PUBLICATION DAY WENT, HONESTLY.
+
+• crates.io (Rust) went first: one account, one token, one command - after the registry's one human check, a verified email address.
+
+• PyPI (Python) followed: account, token, one upload command.
+
+• npm (JavaScript) took a single automation token and a single command; the token was deleted from the machine the moment the package was live.
+
+• Maven Central (Java) was the ceremony: a Java compiler downloaded to a scratch folder (no installation), the library compiled into the three required archives (classes, sources, documentation), a fresh RSA-4096 signing key generated under the project's email and published to the key server, every artifact signed and checksummed, the bundle assembled in Central's exact layout, uploaded through the Publisher interface - validated with zero errors and serving from the world mirror within the hour.
+
+• One mistake is recorded rather than hidden: the first Maven bundle went out unsigned, because a shell pipeline swallowed the "no key exists yet" signal.
+
+The signatures were verified before the second bundle left the machine.
+
+Honesty about the stumble is part of the discipline.
+
+• Token hygiene, stated plainly: every pasted credential was either deleted after use or flagged to the owner for rotation; the signing key stays, because future releases must be signed by the same hand.
+
+WHAT IT MEANS TO YOU.
+
+• If you write software: one line now fetches a verified implementation in your language.
+
+pip install causalontology - npm install causalontology - cargo add causalontology - io.github.ai-university-aiu:causalontology:1.0.0 for Java - one dependency line each for Swift and Go, straight from the repository.
+
+• If you build minds: the data structure of causation - reified, signed, mergeable, glass-box - is no longer a paper claim; it is an installable dependency with a running store and a self-guiding frontier.
+
+• If you are a newcomer: 1.0.0 is a promise of stability.
+
+The vectors are frozen; the twenty-seven decisions are locked; anything that would break you is, by governance, a new major version announced in the open.
+
+• And if you simply wonder whether any of this is real: every claim above is checkable - the repository, the vectors, the CI runs, the six registry pages, and the release artifacts are all public.
+
+Glass box, always.
+
+PART 20. RELEASE 1.0.0 ANNOUNCEMENT
+
+The flyer, sized for a LinkedIn post (under three thousand characters), ready to paste.
+
+ANNOUNCING CAUSALONTOLOGY 1.0.0 - REIFIED CAUSATION FOR EVERYONE
+
+What if "A causes B" were not a sentence but a THING - an object you could hold, sign, verify, merge, and build minds on?
+
+Today that thing ships.
+
+Causalontology is the world's first reified causation ontology standard: a verb-first noun-hosting ontology - reality is what happens, and things are its participants.
+
+Version 1.0.0 is frozen, released, and live on every major package registry:
+
+pip install causalontology
+
+npm install causalontology
+
+cargo add causalontology
+
+Java: io.github.ai-university-aiu:causalontology:1.0.0
+
+Swift and Go: one dependency line from the repository.
+
+What you get:
+
+• Eight kinds of object - four for content (processes, causal claims, things, dispositions), four for provenance (assertions, enrichments, retractions, key successions) - every mutable word signed by its author with Ed25519.
+
+• Content-addressed identity: the same causal claim minted anywhere on Earth gets the same identifier, so knowledge merges with no coordinator - the whole commons is a conflict-free replicated data type by construction.
+
+• Graded evidence where ACTING BEATS WATCHING: an intervention - your own hand on the switch - outranks any amount of observation.
+
+• Stigmergy built in: the store publishes its own most valuable gaps, so every contributor - human or synthetic mind - can ask "where does the next brick go?"
+
+• Thirty-eight frozen conformance vectors, passed by seven independent implementations in seven languages (Prolog, Python, JavaScript, Rust, Java, Swift, Go), plus TypeScript typings and a WebAssembly core.
+
+Language-neutrality is not a claim; it is a table.
+
+• And a first for the history books: a glass-box synthetic mind (Mentova, on PrologAI - perfect public-training-set scores on ARC-AGI-1, 400/400, and ARC-AGI-2, 120/120, by pure symbolic induction, no Large Language Model) already reads the gap list, intervenes, and contributes signed, intervention-grade causal knowledge back to the commons.
+
+Everything is glass box: every claim traces to a named rule and a signed author, and "why?" always has a readable answer.
+
+License: "The attribution always; no profit, no problem."
+
+The specification, the vectors, the store, the dashboard, and the book-length design canon:
+
+github.com/ai-university-aiu/causalontology
+
+The commons is open.
+
+Bring evidence.
+
+D. R. Dison, Founder of AIU, Creator and Owner of PrologAI and Mentova, ORCID 0009-0001-9246-5758, linkedin.com/in/d-r-dison/
+
+#Causalontology #CausalAI #AGI #OpenStandard #KnowledgeCommons #PrologAI #Mentova
+
+GLOSSARY OF ACRONYMS AND TERMS
+
+• Application Programming Interface (API) - a defined set of operations one program exposes for others to call.
+
+• Artificial General Intelligence (AGI) - machine intelligence with broad, human-level competence.
+
+• Assertion - a signed statement by a source about a content object, carrying evidence type, strength estimate, confidence, and timestamp.
+
+• Basic Formal Ontology (BFO) - the upper-level ontology from which Causalontology takes the continuant/occurrent division.
+
+• Best Current Practice 47 (BCP 47) - the Internet Engineering Task Force standard for language tags such as en, es, ja.
+
+• Causal Relation Object (CRO) - Causalontology's fundamental unit: a reified causal claim linking cause occurrents to effect occurrents, with optional mechanism, temporal window, modality, context, and refines lineage.
+
+• Concise Binary Object Representation (CBOR) - a compact binary data format mirroring JSON.
+
+• Conflict-free Replicated Data Type (CRDT) - a data structure that merges concurrent edits deterministically with no central coordinator; the Causalontology store is one by construction (immutable objects, add-only records, set-union merge).
+
+• Continuant - a thing that endures through time (a noun).
+
+• Continuous Integration (CI) - automatically building and testing every change.
+
+• Coordinated Universal Time (UTC) - the global time standard used in timestamps.
+
+• Corroboration - the same enrichment entry contributed independently by more than one source: one displayed entry, several signed contributors.
+
+• Creative Commons Zero (CC0) - a public-domain dedication; the data license of the commons (and of Wikidata).
+
+• Cursor - an opaque continuation token for fetching the next page of a list.
+
+• Degenerate Causal Relation Object - a valid claim carrying only the required fields; a partial, and a stigmergic gap.
+
+• Directed Acyclic Graph (DAG) - a graph with directed edges and no cycles.
+
+• do-calculus - Judea Pearl's formalization of intervention; do(X) means X is brought about by action rather than observed; the foundation of the formal meaning of strength.
+
+• Edwards-curve Digital Signature Algorithm over Curve25519 (Ed25519) - the deterministic signature scheme (RFC 8032) used for source identity and record signing.
+
+• Enrichment record - a signed statement adding one entry to one enrichment field of one content object; Version 4's guarantee that every word and link in the commons has an author.
+
+• Foreign Function Interface (FFI) - a mechanism for code in one language to call code in another; deliberately NOT used here.
+
+• Framing attack - contributing malicious content attributed to someone else; made impossible here because attribution exists only as signatures.
+
+• General Data Protection Regulation (GDPR) - the European Union's data-protection law; relevant to takedown semantics by tier.
+
+• Hypertext Transfer Protocol (HTTP) - the protocol of the web.
+
+• International Organization for Standardization (ISO) 8601 - the standard date-and-time format used in timestamps.
+
+• Internet Engineering Task Force (IETF) - a body that publishes internet standards, including RFC 8785 and RFC 8032.
+
+• InterPlanetary File System (IPFS) - a content-addressed, distributed file system; a model for Tier C.
+
+• JavaScript Object Notation (JSON) - the canonical wire format.
+
+• JSON Canonicalization Scheme (JCS) - RFC 8785; the deterministic byte form used for hashing and signing.
+
+• JSON for Linked Data (JSON-LD) - a way to write JSON that is also Resource Description Framework linked data.
+
+• Lineage - the chain closure of a source's keys under succession records.
+
+• Materialized view - an object's enrichment sets as served by the store: derived from unretracted enrichment records, each entry with its contributors.
+
+• Merkle Directed Acyclic Graph - a hash-linked, tamper-evident graph structure (as in Git and IPFS).
+
+• Minimum Viable Product (MVP) - the smallest version that proves the whole idea.
+
+• Occurrent - a process or event TYPE that unfolds through time (a verb); the vocabulary of causes and effects.
+
+• Open Biological and Biomedical Ontologies (OBO) - the ontology family that publishes the Relation Ontology.
+
+• Persistent Uniform Resource Locator (PURL) - a stable, redirectable web address.
+
+• Protocol Buffers (Protobuf) - a compact, typed binary serialization format.
+
+• Provenance - the record of who contributed what, on what evidence, with what confidence; carried in signed records - in Version 4, for every datum.
+
+• PROV (the W3C Provenance Ontology) - the web standard vocabulary for provenance, aligned in the JSON-LD context.
+
+• Quarantine - the visibility tier for unsigned or policy-flagged material, excluded from default queries.
+
+• Realizable entity - the hinge: a disposition, function, or role inhering in a continuant yet realized in occurrents.
+
+• Reification - turning a relation (here, causation) into a first-class object that can itself be described and reasoned about.
+
+• Relation Ontology (RO) - the Open Biological and Biomedical Ontologies' standard relation vocabulary, alignment target for the causal edge.
+
+• Request for Comments (RFC) - the Internet Engineering Task Force's publication series; RFC 8785 defines canonicalization, RFC 8032 defines Ed25519.
+
+• Resource Description Framework (RDF) - the standard model for linked data as a graph of subject-predicate-object statements.
+
+• RDF-star - the extension of RDF for making statements about statements (reification); the natural home of the Causal Relation Object.
+
+• Retraction - a source's signed withdrawal of its own earlier assertion or enrichment; honored by default views; never erases history.
+
+• Secure Hash Algorithm 256-bit (SHA-256) - the cryptographic hash behind content-addressed identifiers.
+
+• Semantic Versioning - a MAJOR.MINOR.PATCH scheme in which a MAJOR change signals incompatibility; closed-enumeration extensions are MAJOR by rule.
+
+• Software Development Kit (SDK) - a per-language library implementing the abstract operations.
+
+• SPARQL Protocol and RDF Query Language (SPARQL) - the standard query language for RDF data.
+
+• Stigmergy - coordination through the shared environment: the state of the medium guides the next action.
+
+• Subsumption principle - an external causal claim is a degenerate Causal Relation Object, so Causalontology absorbs and enriches it without loss.
+
+• Succession - a signed key-rotation record; the basis of source lineage.
+
+• Sybil attack - one attacker manufacturing many identities; defeated by attaching trust to chosen sources, never to identity count.
+
+• Token-level causation - causation between particular occurrences ("THIS press caused THIS light-on"); out of scope, reserved for a future kind (prefix tok:).
+
+• Tombstone - a signed suppression record; the honest meaning of takedown at the decentralized tier.
+
+• Type-level causation - causation between kinds of occurrents; the scope of this standard.
+
+• Uniform Resource Identifier (URI) - a standard identifier for a resource.
+
+• Verb-first noun-hosting ontology - the name of Causalontology's paradigm: the occurrent (the happening) is the atomic building block and causation is the reified master verb, while things are hosted as first-class participants - the ontology governs the verbs and hosts the nouns, joined by the realizable hinge.
+
+• Web Ontology Language (OWL) - the World Wide Web Consortium's ontology language; a fuller mapping is a governance-track deliverable.
+
+• World Wide Web Consortium (W3C) - a body that publishes web standards.
+
+CONCLUSION
+
+Causalontology's purest form is a specification, not a program: eight object kinds - four for content, four for provenance - canonicalized by an internet standard and content-addressed; content separated from provenance UNIFORMLY, so that content objects are pure and immutable and every mutable datum in the commons, down to a single alias in a single language, is a signed, add-only, retractable record with an author; a merge story that is therefore trivial - set union - making the whole commons a Conflict-free Replicated Data Type with one deterministic edge rule; a conformance suite of thirty-eight vectors that makes "correct" mean the same thing in Prolog, Python, Java, and Swift, down to the length of a month and the ranking of a resolve; a declared scope (type-level causation) with the token level reserved rather than fudged; a trust model of graded, signed evidence in which acting beats watching, disagreement is surfaced rather than averaged away, framing is impossible, and an honest source always has an exit; takedown semantics stated honestly for each deployment tier; and a stigmergy that needs no extra machinery, because the structure's own gaps - closable, visibly, by refinement and enrichment - are the invitation that guides every next contributor, human or synthetic.
+
+PrologAI remains the reference implementation and Mentova the flagship mind; the standard belongs to everyone.
+
+Every known inconsistency, gap, and soft spot of Versions 1 through 3 is repaired here; the data model has no remaining known weakness; what remains is to build.
+
+This is the edition to marry, and the edition to take into battle.
+
+END OF STANDALONE BRANCH, VERSION 12 (THE SIXTEEN-LANGUAGE EDITION)

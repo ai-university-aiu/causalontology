@@ -1,0 +1,25 @@
+{
+  "name": "causalontology/causalontology",
+  "version": "1.0.0",
+  "description": "The PHP binding of the Causalontology standard - a verb-first noun-hosting ontology; reified causation as a language-neutral standard and shared commons. Bundled extensions only; zero Composer dependencies.",
+  "type": "library",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/ai-university-aiu/causalontology",
+  "require": {
+    "php": ">=8.2",
+    "ext-sodium": "*",
+    "ext-hash": "*",
+    "ext-json": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Causalontology\\": "src/"
+    }
+  },
+  "scripts": {
+    "test": "@php conformance.php"
+  },
+  "extra": {
+    "license-name": "The attribution always; no profit, no problem license. (Apache License 2.0 text)"
+  }
+}

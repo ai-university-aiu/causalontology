@@ -1,0 +1,22 @@
+Package: causalontology
+Type: Package
+Title: R Binding of the Causalontology Standard
+Version: 1.0.0
+Authors@R: person("AI University (AIU)", email = "ai.university.aiu@gmail.com",
+    role = c("aut", "cre"))
+Description: The R binding of the Causalontology standard: content-addressed
+    identity over RFC 8785 (JSON Canonicalization Scheme) identity-bearing
+    bytes with SHA-256, Ed25519 record-level signing and verification
+    (RFC 8032), validation against the eight specification JSON Schemas,
+    the thirteen semantic rules (temporal admissibility with fixed unit
+    constants, the formal conflict test, refinement validity, hierarchy
+    reachability, enrichment field and shape rules), and an in-memory
+    conformant store with idempotent immutable puts, signed add-only
+    provenance records with quarantine, materialized enrichment views with
+    contributors, retraction and succession lineage, the resolve minimum,
+    the deterministic cycle-breaking view rule, and the stigmergy gap read.
+    Conformance is defined by the 38 vectors frozen at specification 1.0.0
+    in the standard's repository; run conformance.R against them.
+License: Apache License 2.0 | file LICENSE
+Encoding: UTF-8
+Imports: sodium, openssl

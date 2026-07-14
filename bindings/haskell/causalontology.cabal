@@ -1,0 +1,66 @@
+cabal-version:      2.4
+
+-- The Haskell binding of the Causalontology standard.
+name:               causalontology
+version:            1.0.0
+synopsis:           The Haskell binding of the Causalontology standard
+description:
+  The Haskell binding of the Causalontology standard - a verb-first
+  noun-hosting ontology; reified causation as a language-neutral standard
+  and shared commons. GHC-bundled packages only: RFC 8785 canonicalization,
+  SHA-256 identity, pure-Haskell Ed25519 (RFC 8032), schema and semantics
+  validation, and an in-memory conformant store.
+  .
+  License: "The attribution always; no profit, no problem license."
+  (Apache License 2.0 text; see the LICENSE file and the repository NOTICE.)
+author:             AI University (AIU)
+maintainer:         ai.university.aiu@gmail.com
+homepage:           https://github.com/ai-university-aiu/causalontology
+bug-reports:        https://github.com/ai-university-aiu/causalontology/issues
+license-file:       LICENSE
+category:           Data
+build-type:         Simple
+extra-doc-files:    README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/ai-university-aiu/causalontology
+
+common shared
+  default-language:   Haskell2010
+  default-extensions:
+    BangPatterns
+    LambdaCase
+    TupleSections
+  ghc-options:        -Wall
+
+library
+  import:          shared
+  hs-source-dirs:  src
+  exposed-modules:
+    Causalontology.Canonical
+    Causalontology.Ed25519
+    Causalontology.Jcs
+    Causalontology.Json
+    Causalontology.Schema
+    Causalontology.Semantics
+    Causalontology.Sha2
+    Causalontology.Signing
+    Causalontology.Store
+  build-depends:
+      base        >=4.14 && <5
+    , bytestring  >=0.10 && <0.13
+    , containers  >=0.6  && <0.9
+    , filepath    >=1.4  && <1.6
+
+executable conformance
+  import:         shared
+  hs-source-dirs: app
+  main-is:        Conformance.hs
+  build-depends:
+      base        >=4.14 && <5
+    , bytestring  >=0.10 && <0.13
+    , containers  >=0.6  && <0.9
+    , causalontology
+    , directory   >=1.3  && <1.4
+    , filepath    >=1.4  && <1.6

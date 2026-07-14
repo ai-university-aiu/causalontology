@@ -33,3 +33,21 @@ similar elsewhere) and record the chosen name in the bindings table.
 Every package embeds or reads the same schemas and passes the same 38
 frozen vectors; the conformance workflow re-proves all eight gates on every
 push. To verify locally: `python3 bindings/python/tests/run_conformance.py`.
+
+## The nine-language wave (2026-07-13): registries awaiting the owner's accounts
+
+All nine implementations are conformant (38/38) in the repository; each
+carries its registry manifest. As before: no credential lives on the build
+machine; each publish is one account + one command.
+
+| Registry | Binding | The command (after logging in) |
+|---|---|---|
+| NuGet | csharp | `cd bindings/csharp/Causalontology && dotnet pack -c Release && dotnet nuget push bin/Release/causalontology.1.0.0.nupkg -s https://api.nuget.org/v3/index.json -k <key>` |
+| RubyGems | ruby | `cd bindings/ruby && gem build causalontology.gemspec && gem push causalontology-1.0.0.gem` |
+| Packagist | php | submit the repository URL at packagist.org (it reads composer.json) |
+| pub.dev | dart | `cd bindings/dart && dart pub publish` |
+| Hex | elixir | `cd bindings/elixir && mix hex.publish` |
+| Hackage | haskell | `cd bindings/haskell && cabal sdist && cabal upload --publish dist-newstyle/sdist/*.tar.gz` |
+| CPAN | perl | PAUSE account, then upload the dist tarball at pause.perl.org |
+| CRAN | r | a human-review submission process (cran.r-project.org/submit.html) — stated plainly |
+| LuaRocks | lua | `cd bindings/lua && luarocks upload causalontology-1.0.0-1.rockspec --api-key=<key>` |
