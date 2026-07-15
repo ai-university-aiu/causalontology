@@ -12,7 +12,9 @@
 // stigmergy gap read with its five gap kinds.
 package org.causalontology
 
-val CONTENT_KINDS = setOf("occurrent", "causal_relation_object", "continuant", "realizable")
+val CONTENT_KINDS = setOf("occurrent", "causal_relation_object", "continuant",
+    "realizable", "stratum", "bridge", "port", "conduit", "quality",
+    "token_individual", "token_occurrence", "state_assertion", "token_causal_claim")
 val RECORD_KINDS = setOf("assertion", "enrichment", "retraction", "succession")
 
 // An enforcing store refused a write, with the reason as the message.

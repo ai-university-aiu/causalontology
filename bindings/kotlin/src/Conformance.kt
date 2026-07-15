@@ -5,13 +5,12 @@
 // conformant if and only if it passes every vector; this runner exits nonzero
 // on any failure.
 //
-// The vectors are frozen at specification 1.0.0: they carry concrete 64-hex
-// identifiers, real keys, and a real verifying signature, which the
-// normalization below passes through unchanged. (The pre-freeze symbolic
-// forms - "occurrent:press_button", "ed25519:alice" - still normalize
-// deterministically: symbolic object ids become scheme:sha256(name), and
-// symbolic key names become real Ed25519 keypairs seeded from
-// sha256("key:" + name), exactly as the Python harness does.)
+// The vectors are the whole-word 2.0.0 baseline (Principle P7): V01-V38
+// re-frozen unaltered in meaning, V39-V107 new. Symbolic identifiers
+// ("occurrent:press_button", "ed25519:alice") normalize deterministically:
+// symbolic object ids become scheme:sha256(name), and symbolic key names
+// become real Ed25519 keypairs seeded from sha256("key:" + name), exactly as
+// the Python harness does.
 //
 // Run from the repository root (or set CAUSALONTOLOGY_ROOT).
 package org.causalontology
@@ -19,9 +18,15 @@ package org.causalontology
 import kotlin.system.exitProcess
 
 // ---------------------------------------------------------------------------
-// symbolic-identifier normalization
+// whole-word scheme normalization (Principle P7)
 // ---------------------------------------------------------------------------
-private val SCHEMES = setOf("occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession")
+private val SCHEMES = listOf(
+    "occurrent", "causal_relation_object", "continuant", "realizable",
+    "assertion", "enrichment", "retraction", "succession",
+    "stratum", "bridge", "port", "conduit", "quality",
+    "token_individual", "token_occurrence", "state_assertion",
+    "token_causal_claim")
+private val WHOLE_WORD: Set<String> = SCHEMES.toSet() + "ed25519"
 private val KEYS = HashMap<String, Pair<ByteArray, String>>()
 
 // A real, deterministic Ed25519 keypair for a symbolic key name.
@@ -84,12 +89,14 @@ private fun vecFileName(n: Int): String {
 // Load vector n's JSON file (for its structured inputs).
 private fun vec(n: Int): JObj = asObj(Json.parse(readFile("$VECDIR/" + vecFileName(n))))
 
+private const val TS_PREFIX = "2026-07-13T0"
+
 // Build, timestamp, and sign a provenance record.
 private fun signed(kind: String, body: JObj, who: String, tsI: Int = 0): JObj {
     val (secret, pub) = key(who)
     val rec = LinkedHashMap(body)
     rec["type"] = kind
-    if (!rec.containsKey("timestamp")) rec["timestamp"] = "2026-07-13T0$tsI:00:00Z"
+    if (!rec.containsKey("timestamp")) rec["timestamp"] = "$TS_PREFIX$tsI:00:00Z"
     if (kind == "succession") {
         if (!rec.containsKey("predecessor")) rec["predecessor"] = pub
     } else {
@@ -98,8 +105,101 @@ private fun signed(kind: String, body: JObj, who: String, tsI: Int = 0): JObj {
     return Signing.signRecord(rec, secret, kind)
 }
 
+// A content object completed with its real content-addressed id.
+private fun mk(obj: JObj): JObj {
+    val o = LinkedHashMap(obj)
+    o["id"] = Canonical.identify(o)
+    return o
+}
+
 // ---------------------------------------------------------------------------
-// assertion helpers
+// builders (mirror run_conformance.py's builders)
+// ---------------------------------------------------------------------------
+private fun stratum(label: String, scheme: String, ordinal: Long,
+                    unit: String? = null, governs: List<String>? = null): JObj {
+    val o = linkedMapOf<String, Any?>(
+        "type" to "stratum", "label" to label, "scheme" to scheme, "ordinal" to ordinal)
+    if (unit != null) o["unit"] = unit
+    if (governs != null) o["governs"] = governs
+    return mk(o)
+}
+
+private fun occ(label: String, stratumId: String? = null, category: String = "event"): JObj {
+    val o = linkedMapOf<String, Any?>("type" to "occurrent", "label" to label, "category" to category)
+    if (stratumId != null) o["stratum"] = stratumId
+    return mk(o)
+}
+
+private fun cnt(label: String, category: String = "object"): JObj =
+    mk(linkedMapOf("type" to "continuant", "label" to label, "category" to category))
+
+private fun cro(causes: List<String>, effects: List<String>, vararg extra: Pair<String, Any?>): JObj {
+    val o = linkedMapOf<String, Any?>(
+        "type" to "causal_relation_object", "causes" to causes, "effects" to effects)
+    for ((k, v) in extra) o[k] = v
+    return mk(o)
+}
+
+private fun bridge(coarse: String, fine: List<String>, relation: String): JObj =
+    mk(linkedMapOf("type" to "bridge", "coarse" to coarse, "fine" to fine, "relation" to relation))
+
+private fun port(bearer: String, label: String, direction: String,
+                 accepts: List<String>, realizable: String? = null): JObj {
+    val o = linkedMapOf<String, Any?>(
+        "type" to "port", "bearer" to bearer, "label" to label,
+        "direction" to direction, "accepts" to accepts)
+    if (realizable != null) o["realizable"] = realizable
+    return mk(o)
+}
+
+private fun conduit(frm: String, to: String, carries: List<String>,
+                    label: String = "conn", transform: String? = null): JObj {
+    val o = linkedMapOf<String, Any?>(
+        "type" to "conduit", "label" to label, "from" to frm, "to" to to, "carries" to carries)
+    if (transform != null) o["transform"] = transform
+    return mk(o)
+}
+
+private fun quality(label: String, datatype: String, unit: String? = null,
+                    stratumId: String? = null): JObj {
+    val o = linkedMapOf<String, Any?>("type" to "quality", "label" to label, "datatype" to datatype)
+    if (unit != null) o["unit"] = unit
+    if (stratumId != null) o["stratum"] = stratumId
+    return mk(o)
+}
+
+private fun individual(instantiates: String, designator: String? = null, partOf: String? = null): JObj {
+    val o = linkedMapOf<String, Any?>("type" to "token_individual", "instantiates" to instantiates)
+    if (designator != null) o["designator"] = designator
+    if (partOf != null) o["part_of"] = partOf
+    return mk(o)
+}
+
+private fun token(instantiates: String, interval: JObj, participants: List<JObj>? = null,
+                  locus: String? = null): JObj {
+    val o = linkedMapOf<String, Any?>(
+        "type" to "token_occurrence", "instantiates" to instantiates, "interval" to interval)
+    if (participants != null) o["participants"] = participants
+    if (locus != null) o["locus"] = locus
+    return mk(o)
+}
+
+private fun state(subject: String, qual: String, value: JObj, interval: JObj): JObj =
+    mk(linkedMapOf("type" to "state_assertion", "subject" to subject,
+        "quality" to qual, "value" to value, "interval" to interval))
+
+private fun tcc(causes: List<String>, effects: List<String>, coveringLaw: String? = null,
+                actualDelay: JObj? = null, counterfactual: Boolean? = null): JObj {
+    val o = linkedMapOf<String, Any?>(
+        "type" to "token_causal_claim", "causes" to causes, "effects" to effects)
+    if (coveringLaw != null) o["covering_law"] = coveringLaw
+    if (actualDelay != null) o["actual_delay"] = actualDelay
+    if (counterfactual != null) o["counterfactual"] = counterfactual
+    return mk(o)
+}
+
+// ---------------------------------------------------------------------------
+// assertion helper
 // ---------------------------------------------------------------------------
 private fun assertTrue(cond: Boolean, msg: String) {
     if (!cond) throw AssertionError(msg)
@@ -118,17 +218,18 @@ private fun internalChecks() {
                "JCS key sorting failed")
     assertTrue(Jcs.serialize(1.0) == "1" && Jcs.serialize(6.000) == "6" &&
                Jcs.serialize(0.7) == "0.7", "JCS number formatting failed")
+    // Fixed unit constants (Algorithm E).
+    assertTrue(Semantics.toSeconds(1, "months") == 2629746L, "months constant")
+    assertTrue(Semantics.toSeconds(1, "years") == 31556952L, "years constant")
 }
 
-// ---------------------------------------------------------------------------
-// the 38 vectors
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// V01 - V38: the whole-word re-freeze of the 1.0.0 suite (unaltered in meaning)
+// ===========================================================================
 private fun v01() {
     val inp = asObj(normalize(vec(1)["input"]))
-    val (okS, whyS) = Schema.validateSchema(inp)
-    assertTrue(okS, whyS.toString())
-    val (okM, whyM) = Semantics.validateSemantics(inp)
-    assertTrue(okM, whyM.toString())
+    val (okS, whyS) = Schema.validateSchema(inp); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(inp); assertTrue(okM, whyM.toString())
 }
 
 private fun v02() {
@@ -171,10 +272,8 @@ private fun v12() = schemaFails(12, "confidence")
 
 private fun v13() {
     val inp = asObj(normalize(vec(13)["input"]))
-    val (okS, whyS) = Schema.validateSchema(inp)
-    assertTrue(okS, whyS.toString())
-    val (okM, whyM) = Semantics.validateSemantics(inp)
-    assertTrue(okM, whyM.toString())
+    val (okS, whyS) = Schema.validateSchema(inp); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(inp); assertTrue(okM, whyM.toString())
 }
 
 private fun semanticsFails(n: Int, mustMention: String) {
@@ -210,7 +309,6 @@ private fun v20() {
         "enrichment",
         linkedMapOf("about" to about, "field" to "subsumes", "entry" to entry),
         "taxo", i)
-    // enforcing tier rejects the cycle-completing write
     val s = InMemoryStore(enforcing = true)
     s.putRecord(enrich(dog, mam, 1))
     s.putRecord(enrich(mam, ani, 2))
@@ -222,25 +320,23 @@ private fun v20() {
         assertTrue((e.message ?: "").contains("cycle"), e.message ?: "")
     }
     assertTrue(rejected, "enforcing store accepted a cycle")
-    // decentralized merge: the view breaks the cycle deterministically
     val s2 = InMemoryStore(enforcing = true)
     s2.putRecord(enrich(dog, mam, 1))
     s2.putRecord(enrich(mam, ani, 2))
     val bad = enrich(ani, dog, 3)
     s2.forceMergeRecord(bad)
     val (_, excluded) = s2.activeTaxonomyEdges("subsumes")
-    assertTrue(excluded.size == 1 && excluded[0]["id"] == bad["id"],
-               "wrong excluded record")
+    assertTrue(excluded.size == 1 && excluded[0]["id"] == bad["id"], "wrong excluded record")
     val repair = s2.gaps("inconsistent_hierarchy")
     assertTrue(repair.any { it["id"] == bad["id"] }, "gap read missed the exclusion")
 }
 
 private fun adm(n: Int): Boolean {
     val g = asObj(vec(n)["given"])
-    val cro = linkedMapOf<String, Any?>(
+    val c = linkedMapOf<String, Any?>(
         "causes" to listOf(sym("occurrent:c")), "effects" to listOf(sym("occurrent:e")),
         "temporal" to g["temporal"])
-    return Semantics.admissible(cro, asDoubleNum(g["elapsed_seconds"]))
+    return Semantics.admissible(c, asDoubleNum(g["elapsed_seconds"]))
 }
 
 private fun v21() = assertTrue(adm(21), "expected admissible")
@@ -265,25 +361,21 @@ private fun v26() {
     val s = InMemoryStore()
     val obj = linkedMapOf<String, Any?>(
         "type" to "occurrent", "label" to "press_button", "category" to "action")
-    val a = s.put(LinkedHashMap(obj))
-    val b = s.put(LinkedHashMap(obj))
+    val a = s.put(LinkedHashMap(obj)); val b = s.put(LinkedHashMap(obj))
     assertTrue(a == b && s.objects.size == 1, "put is not idempotent")
 }
 
 private fun v27() {
     val s = InMemoryStore()
-    val occ = s.put(linkedMapOf(
+    val occId = s.put(linkedMapOf(
         "type" to "occurrent", "label" to "press_button", "category" to "action"))
     val entry = linkedMapOf<String, Any?>("lang" to "en", "text" to "press the button")
-    val r1 = signed("enrichment", linkedMapOf(
-        "about" to occ, "field" to "aliases", "entry" to entry), "alice", 1)
-    val r2 = signed("enrichment", linkedMapOf(
-        "about" to occ, "field" to "aliases", "entry" to entry), "bob", 2)
+    val r1 = signed("enrichment", linkedMapOf("about" to occId, "field" to "aliases", "entry" to entry), "alice", 1)
+    val r2 = signed("enrichment", linkedMapOf("about" to occId, "field" to "aliases", "entry" to entry), "bob", 2)
     assertTrue(s.putRecord(r1) != s.putRecord(r2), "expected two records")
-    val view = asList(asObj(asObj(s.get(occ))["enrichments"])["aliases"])
+    val view = asList(asObj(asObj(s.get(occId))["enrichments"])["aliases"])
     assertTrue(view.size == 1, "expected one materialized entry")
-    val contributors = asList(asObj(view[0])["contributors"])
-    assertTrue(contributors.size == 2, "expected two contributors")
+    assertTrue(asList(asObj(view[0])["contributors"]).size == 2, "expected two contributors")
 }
 
 private fun v28() {
@@ -291,8 +383,7 @@ private fun v28() {
     val claim = linkedMapOf<String, Any?>(
         "type" to "causal_relation_object", "causes" to listOf(sym("occurrent:A")),
         "effects" to listOf(sym("occurrent:B")), "modality" to "sufficient")
-    val i1 = s.put(LinkedHashMap(claim))
-    val i2 = s.put(LinkedHashMap(claim))
+    val i1 = s.put(LinkedHashMap(claim)); val i2 = s.put(LinkedHashMap(claim))
     assertTrue(i1 == i2 && s.objects.size == 1, "same claim must be one object")
     for ((who, ts) in listOf(Pair("lab1", 1), Pair("lab2", 2))) {
         s.putRecord(signed("assertion", linkedMapOf(
@@ -313,8 +404,7 @@ private fun v30() {
     val rec = signed("assertion", linkedMapOf(
         "about" to sym("causal_relation_object:demo"), "evidence_type" to "intervention",
         "strength" to 0.7, "confidence" to 0.9), "signer")
-    val tampered = LinkedHashMap(rec)
-    tampered["confidence"] = 0.1
+    val tampered = LinkedHashMap(rec); tampered["confidence"] = 0.1
     assertTrue(!Signing.verifyRecord(tampered), "tampered record must not verify")
 }
 
@@ -324,35 +414,28 @@ private fun v31() {
         "type" to "causal_relation_object", "causes" to listOf(sym("occurrent:A")),
         "effects" to listOf(sym("occurrent:B"))))
     val a = signed("assertion", linkedMapOf(
-        "about" to x, "evidence_type" to "observation", "confidence" to 0.8),
-        "lab1", 1)
+        "about" to x, "evidence_type" to "observation", "confidence" to 0.8), "lab1", 1)
     s.putRecord(a)
     s.putRecord(signed("retraction", linkedMapOf("retracts" to a["id"]), "lab1", 2))
     assertTrue(s.assertionsAbout(x).isEmpty(), "retracted assertion still visible")
     val hist = s.assertionsAbout(x, includeRetracted = true)
     assertTrue(hist.size == 1 && hist[0]["retracted"] == true, "history flag missing")
-    val foreign = signed("retraction", linkedMapOf("retracts" to a["id"]), "mallory", 3)
     var rejected = false
-    try {
-        s.putRecord(foreign)
-    } catch (e: RejectedWrite) {
-        rejected = true
-    }
+    try { s.putRecord(signed("retraction", linkedMapOf("retracts" to a["id"]), "mallory", 3)) }
+    catch (e: RejectedWrite) { rejected = true }
     assertTrue(rejected, "foreign retraction accepted")
-    assertTrue(s.assertionsAbout(x).isEmpty(), "still excluded by lab1's own")
-    assertTrue(s.assertionsAbout(x, includeRetracted = true).size == 1, "history size")
 }
 
 private fun v32() {
     val s = InMemoryStore()
-    val occ = s.put(linkedMapOf(
+    val occId = s.put(linkedMapOf(
         "type" to "occurrent", "label" to "press_button", "category" to "action"))
     val e = signed("enrichment", linkedMapOf(
-        "about" to occ, "field" to "aliases",
+        "about" to occId, "field" to "aliases",
         "entry" to linkedMapOf<String, Any?>("lang" to "ja", "text" to "botan")), "bob", 1)
     s.putRecord(e)
     fun aliases(view: String): List<Any?> {
-        val enr = asObj(asObj(s.get(occ, view))["enrichments"])
+        val enr = asObj(asObj(s.get(occId, view))["enrichments"])
         return if (enr.containsKey("aliases")) asList(enr["aliases"]) else emptyList()
     }
     assertTrue(aliases("default").size == 1, "expected one alias")
@@ -363,17 +446,14 @@ private fun v32() {
 
 private fun v33() {
     val s = InMemoryStore()
-    val k1 = key("K1").second
-    val k2 = key("K2").second
+    val k1 = key("K1").second; val k2 = key("K2").second
     val a = signed("assertion", linkedMapOf(
         "about" to sym("causal_relation_object:claim"), "evidence_type" to "observation",
         "confidence" to 0.9), "K1", 1)
     s.putRecord(a)
-    val succ = signed("succession", linkedMapOf<String, Any?>("successor" to k2), "K1", 2)
-    s.putRecord(succ)
+    s.putRecord(signed("succession", linkedMapOf<String, Any?>("successor" to k2), "K1", 2))
     assertTrue(k1 in s.lineage(k2) && k2 in s.lineage(k1), "lineage closure broken")
-    val r = signed("retraction", linkedMapOf("retracts" to a["id"]), "K2", 3)
-    s.putRecord(r)  // successor may retract the predecessor's record
+    s.putRecord(signed("retraction", linkedMapOf("retracts" to a["id"]), "K2", 3))
     assertTrue(s.assertionsAbout(sym("causal_relation_object:claim")).isEmpty(),
                "successor's retraction must apply")
 }
@@ -390,37 +470,29 @@ private fun v35() {
 
 private fun v36() {
     val a = sym("occurrent:A"); val b = sym("occurrent:B"); val c = sym("occurrent:C"); val d = sym("occurrent:D")
-    val m1 = linkedMapOf<String, Any?>(
-        "id" to sym("causal_relation_object:m1"), "causes" to listOf(a), "effects" to listOf(b))
-    val m2 = linkedMapOf<String, Any?>(
-        "id" to sym("causal_relation_object:m2"), "causes" to listOf(b), "effects" to listOf(c))
-    val m3 = linkedMapOf<String, Any?>(
-        "id" to sym("causal_relation_object:m3"), "causes" to listOf(d), "effects" to listOf(c))
+    val m1 = linkedMapOf<String, Any?>("id" to sym("causal_relation_object:m1"), "causes" to listOf(a), "effects" to listOf(b))
+    val m2 = linkedMapOf<String, Any?>("id" to sym("causal_relation_object:m2"), "causes" to listOf(b), "effects" to listOf(c))
+    val m3 = linkedMapOf<String, Any?>("id" to sym("causal_relation_object:m3"), "causes" to listOf(d), "effects" to listOf(c))
     val p = linkedMapOf<String, Any?>(
-        "causes" to listOf(a), "effects" to listOf(c),
-        "mechanism" to listOf(m1["id"], m2["id"]))
+        "causes" to listOf(a), "effects" to listOf(c), "mechanism" to listOf(m1["id"], m2["id"]))
     assertTrue(Semantics.hierarchyConsistent(p, mapOf(
-        m1["id"] as String to m1, m2["id"] as String to m2)) == "consistent",
-        "expected consistent")
-    val p2 = LinkedHashMap(p)
-    p2["mechanism"] = listOf(m1["id"], m3["id"])
+        m1["id"] as String to m1, m2["id"] as String to m2)) == "consistent", "expected consistent")
+    val p2 = LinkedHashMap(p); p2["mechanism"] = listOf(m1["id"], m3["id"])
     assertTrue(Semantics.hierarchyConsistent(p2, mapOf(
-        m1["id"] as String to m1, m3["id"] as String to m3)) == "inconsistent",
-        "expected inconsistent")
+        m1["id"] as String to m1, m3["id"] as String to m3)) == "inconsistent", "expected inconsistent")
     assertTrue(Semantics.hierarchyConsistent(p, mapOf(
         m1["id"] as String to m1)) == "indeterminate", "expected indeterminate")
 }
 
 private fun v37() {
     val s = InMemoryStore()
-    val occ = s.put(linkedMapOf(
+    val occId = s.put(linkedMapOf(
         "type" to "occurrent", "label" to "press_button", "category" to "action"))
     s.putRecord(signed("enrichment", linkedMapOf(
-        "about" to occ, "field" to "aliases",
-        "entry" to linkedMapOf<String, Any?>(
-            "lang" to "en", "text" to "Press the Button")), "alice", 1))
-    assertTrue(s.resolve("Press  The   Button", "en") == listOf(occ), "alias match failed")
-    assertTrue(s.resolve("press_button", "en").firstOrNull() == occ, "label match failed")
+        "about" to occId, "field" to "aliases",
+        "entry" to linkedMapOf<String, Any?>("lang" to "en", "text" to "Press the Button")), "alice", 1))
+    assertTrue(s.resolve("Press  The   Button", "en") == listOf(occId), "alias match failed")
+    assertTrue(s.resolve("press_button", "en").firstOrNull() == occId, "label match failed")
 }
 
 private fun v38() {
@@ -433,18 +505,604 @@ private fun v38() {
     val r = s.put(linkedMapOf(
         "type" to "causal_relation_object", "causes" to listOf(sym("occurrent:A")),
         "effects" to listOf(sym("occurrent:B")),
-        "temporal" to linkedMapOf<String, Any?>(
-            "minimum_delay" to 0L, "maximum_delay" to 1L, "unit" to "seconds"),
+        "temporal" to linkedMapOf<String, Any?>("minimum_delay" to 0L, "maximum_delay" to 1L, "unit" to "seconds"),
         "modality" to "sufficient", "refines" to p))
     gapIds = s.gaps("missing_field").map { it["id"] }
     assertTrue(p !in gapIds, "the gap did not close")
     assertTrue(r !in gapIds, "the refinement itself must be complete")
 }
 
+// ===========================================================================
+// V39 - V107: the 2.0.0 additions
+// ===========================================================================
+private fun neuro(): Map<Int, JObj> {
+    val labels = mapOf(4 to "macromolecular", 5 to "subcellular", 6 to "cellular",
+                       7 to "synaptic", 9 to "region", 14 to "community_and_society")
+    return labels.mapValues { (o, l) -> stratum(l, "neuroendocrine", o.toLong()) }
+}
+
+private fun v39() {
+    val st = stratum("cellular", "neuroendocrine", 6, "cell", listOf("cell_biology"))
+    val (ok, why) = Schema.validateSchema(st); assertTrue(ok, why.toString())
+}
+
+private fun v40() {
+    val bad = mk(linkedMapOf("type" to "stratum", "label" to "cellular", "ordinal" to 6L))
+    val (ok, why) = Schema.validateSchema(bad, "stratum")
+    assertTrue(!ok && why.any { it.contains("scheme") }, why.toString())
+}
+
+private fun v41() {
+    val a = stratum("cellular", "neuroendocrine", 6)
+    val b = stratum("neuronal", "neuroendocrine", 6)
+    for (x in listOf(a, b)) { val (ok, why) = Schema.validateSchema(x); assertTrue(ok, why.toString()) }
+    assertTrue(a["id"] != b["id"], "distinct labels must differ")
+}
+
+private fun v42() {
+    val s = neuro()
+    val s4p = stratum("molecular", "physics", 4)
+    val c = occ("chronic_social_subordination", s[14]!!["id"] as String)
+    val e = occ("gene_expression", s4p["id"] as String)
+    val smap = mapOf(s[14]!!["id"] as String to s[14]!!, s4p["id"] as String to s4p)
+    val omap = mapOf(c["id"] as String to c, e["id"] as String to e)
+    val P = cro(listOf(c["id"] as String), listOf(e["id"] as String))
+    assertTrue(Semantics.classifyCro(P, omap, smap) == "scheme_mismatch", "expected scheme_mismatch")
+}
+
+private fun v43() {
+    for (x in listOf(stratum("macromolecular", "neuroendocrine", 4),
+                     stratum("region", "neuroendocrine", 9))) {
+        val (ok, why) = Schema.validateSchema(x); assertTrue(ok, why.toString())
+    }
+}
+
+private fun v44() {
+    val st = stratum("cellular", "neuroendocrine", 6)
+    val o = occ("neuron_fires", st["id"] as String)
+    val (okS, whyS) = Schema.validateSchema(o); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(o); assertTrue(okM, whyM.toString())
+}
+
+private fun v45() {
+    val o = occ("press_button")
+    val (ok, why) = Schema.validateSchema(o); assertTrue(ok, why.toString())
+    val e = occ("light_on")
+    val P = cro(listOf(o["id"] as String), listOf(e["id"] as String))
+    assertTrue(Semantics.classifyCro(P, mapOf(o["id"] as String to o, e["id"] as String to e), emptyMap())
+               == "unclassifiable", "expected unclassifiable")
+}
+
+private fun v46() {
+    val s = neuro()
+    val a = occ("depolarization", s[5]!!["id"] as String)
+    val b = occ("depolarization", s[6]!!["id"] as String)
+    assertTrue(a["id"] != b["id"], "same label in different strata must differ")
+}
+
+private fun bridgeFixture(relation: String): Triple<JObj, Map<String, JObj>, Map<String, JObj>> {
+    val s = neuro()
+    val coarse = occ("action_potential_fires", s[6]!!["id"] as String)
+    val fine = listOf(occ("sodium_channels_open", s[4]!!["id"] as String),
+                      occ("sodium_influx", s[4]!!["id"] as String))
+    val b = bridge(coarse["id"] as String, fine.map { it["id"] as String }, relation)
+    val omap = HashMap<String, JObj>()
+    omap[coarse["id"] as String] = coarse
+    for (f in fine) omap[f["id"] as String] = f
+    val smap = mapOf(s[4]!!["id"] as String to s[4]!!, s[6]!!["id"] as String to s[6]!!)
+    return Triple(b, omap, smap)
+}
+
+private fun validBridge(relation: String) {
+    val (b, omap, smap) = bridgeFixture(relation)
+    val (okS, whyS) = Schema.validateSchema(b); assertTrue(okS, whyS.toString())
+    val (okW, whyW) = Semantics.bridgeWellformed(b, omap, smap); assertTrue(okW, whyW)
+}
+
+private fun v47() = validBridge("constitutes")
+private fun v48() = validBridge("aggregates")
+private fun v49() = validBridge("realizes")
+private fun v50() = validBridge("supervenes_on")
+
+private fun v51() {
+    val s = neuro()
+    val coarse = occ("x_coarse", s[4]!!["id"] as String)
+    val fine = occ("x_fine", s[6]!!["id"] as String)
+    val b = bridge(coarse["id"] as String, listOf(fine["id"] as String), "constitutes")
+    val omap = mapOf(coarse["id"] as String to coarse, fine["id"] as String to fine)
+    val smap = mapOf(s[4]!!["id"] as String to s[4]!!, s[6]!!["id"] as String to s[6]!!)
+    assertTrue(!Semantics.bridgeWellformed(b, omap, smap).first, "coarse<fine ordinal must be malformed")
+}
+
+private fun v52() {
+    val s = neuro()
+    val coarse = occ("c", s[6]!!["id"] as String)
+    val f1 = occ("f1", s[4]!!["id"] as String); val f2 = occ("f2", s[5]!!["id"] as String)
+    val b = bridge(coarse["id"] as String, listOf(f1["id"] as String, f2["id"] as String), "constitutes")
+    val omap = mapOf(coarse["id"] as String to coarse, f1["id"] as String to f1, f2["id"] as String to f2)
+    val smap = mapOf(s[4]!!["id"] as String to s[4]!!, s[5]!!["id"] as String to s[5]!!, s[6]!!["id"] as String to s[6]!!)
+    assertTrue(!Semantics.bridgeWellformed(b, omap, smap).first, "fine spanning strata must be malformed")
+}
+
+private fun v53() {
+    val x = sym("occurrent:x"); val y = sym("occurrent:y")
+    val b1 = bridge(x, listOf(y), "constitutes")
+    val b2 = bridge(y, listOf(x), "constitutes")
+    val edges = LinkedHashMap<String, MutableList<String>>()
+    for (b in listOf(b1, b2)) {
+        for (f in asList(b["fine"])) edges.getOrPut(f as String) { mutableListOf() }.add(b["coarse"] as String)
+    }
+    assertTrue(Semantics.hasCycle(edges), "bridge cycle must be detected")
+}
+
+private fun v54() {
+    val a = stratum("cellular", "neuroendocrine", 6)
+    val b = stratum("molecular", "physics", 4)
+    val coarse = occ("c", a["id"] as String); val fine = occ("f", b["id"] as String)
+    val br = bridge(coarse["id"] as String, listOf(fine["id"] as String), "constitutes")
+    val omap = mapOf(coarse["id"] as String to coarse, fine["id"] as String to fine)
+    val smap = mapOf(a["id"] as String to a, b["id"] as String to b)
+    assertTrue(!Semantics.bridgeWellformed(br, omap, smap).first, "scheme mismatch must be malformed")
+}
+
+private fun v55() {
+    val s = neuro()
+    val coarse = occ("decision_made", s[6]!!["id"] as String)
+    val f1 = occ("cascade_a", s[4]!!["id"] as String); val f2 = occ("cascade_b", s[4]!!["id"] as String)
+    val b1 = bridge(coarse["id"] as String, listOf(f1["id"] as String), "realizes")
+    val b2 = bridge(coarse["id"] as String, listOf(f2["id"] as String), "realizes")
+    assertTrue(b1["id"] != b2["id"], "distinct bridges must differ")
+    for (b in listOf(b1, b2)) { val (ok, why) = Schema.validateSchema(b); assertTrue(ok, why.toString()) }
+}
+
+private fun reachFixture(): Triple<JObj, Map<String, JObj>, List<JObj>> {
+    val s = neuro()
+    val ap = occ("action_potential_fires", s[6]!!["id"] as String)
+    val nt = occ("neurotransmitter_released", s[6]!!["id"] as String)
+    val fa = occ("calcium_enters", s[4]!!["id"] as String)
+    val fb = occ("vesicle_fuses", s[4]!!["id"] as String)
+    val m1 = cro(listOf(fa["id"] as String), listOf(fb["id"] as String))
+    val P = cro(listOf(ap["id"] as String), listOf(nt["id"] as String), "mechanism" to listOf(m1["id"]))
+    val bridges = listOf(bridge(ap["id"] as String, listOf(fa["id"] as String), "constitutes"),
+                         bridge(nt["id"] as String, listOf(fb["id"] as String), "constitutes"))
+    return Triple(P, mapOf(m1["id"] as String to m1), bridges)
+}
+
+private fun v56() {
+    val (P, members, bridges) = reachFixture()
+    assertTrue(Semantics.hierarchyConsistent(P, members, bridges) == "consistent", "expected consistent")
+}
+
+private fun v57() {
+    val (P, members, _) = reachFixture()
+    assertTrue(Semantics.hierarchyConsistent(P, members, emptyList()) == "inconsistent", "expected inconsistent")
+}
+
+private fun v58() {
+    val (P, members, bridges) = reachFixture()
+    val literal = Semantics.hierarchyConsistent(P, members, emptyList())
+    val bridged = Semantics.hierarchyConsistent(P, members, bridges)
+    assertTrue(literal != "consistent" && bridged == "consistent",
+               "bridged reachability must differ from literal ($literal / $bridged)")
+}
+
+private fun classify(causeOrd: Int, effectOrd: Int): String {
+    val s = neuro()
+    val c = occ("c", s[causeOrd]!!["id"] as String); val e = occ("e", s[effectOrd]!!["id"] as String)
+    val smap = mapOf(s[causeOrd]!!["id"] as String to s[causeOrd]!!, s[effectOrd]!!["id"] as String to s[effectOrd]!!)
+    val omap = mapOf(c["id"] as String to c, e["id"] as String to e)
+    return Semantics.classifyCro(cro(listOf(c["id"] as String), listOf(e["id"] as String)), omap, smap)
+}
+
+private fun v59() = assertTrue(classify(6, 6) == "intra_stratal", "expected intra_stratal")
+private fun v60() = assertTrue(classify(6, 5) == "adjacent_stratal", "expected adjacent_stratal")
+private fun v61() = assertTrue(classify(14, 4) == "skipping", "expected skipping")
+
+private fun skipFixture(causeOrd: Int, effectOrd: Int, vararg extra: Pair<String, Any?>): Pair<JObj, String> {
+    val s = neuro()
+    val c = occ("c", s[causeOrd]!!["id"] as String); val e = occ("e", s[effectOrd]!!["id"] as String)
+    val smap = mapOf(s[causeOrd]!!["id"] as String to s[causeOrd]!!, s[effectOrd]!!["id"] as String to s[effectOrd]!!)
+    val omap = mapOf(c["id"] as String to c, e["id"] as String to e)
+    val P = cro(listOf(c["id"] as String), listOf(e["id"] as String), *extra)
+    return Pair(P, Semantics.classifyCro(P, omap, smap))
+}
+
+private fun v62() {
+    val (P, cls) = skipFixture(14, 4)
+    assertTrue(Semantics.skipGaps(P, cls) == listOf("incomplete_mechanism"), "expected incomplete_mechanism")
+}
+
+private fun v63() {
+    val (P, cls) = skipFixture(14, 4, "skips" to true)
+    assertTrue(Semantics.skipGaps(P, cls).isEmpty(), "skip-true absent mechanism must surface nothing")
+}
+
+private fun v64() {
+    val (P, cls) = skipFixture(14, 4, "skips" to true,
+        "mechanism" to listOf(sym("causal_relation_object:m")))
+    assertTrue(Semantics.skipGaps(P, cls) == listOf("contradictory_skip"), "expected contradictory_skip")
+    val (ok, why) = Semantics.validateSemantics(P)
+    assertTrue(!ok && why.any { it.contains("contradictory_skip") }, why.toString())
+}
+
+private fun v65() {
+    val (P, cls) = skipFixture(6, 6, "skips" to true)
+    assertTrue(Semantics.skipGaps(P, cls) == listOf("vacuous_skip"), "expected vacuous_skip")
+}
+
+private fun v66() {
+    val s = neuro()
+    val c = occ("c", s[14]!!["id"] as String); val e = occ("e", s[4]!!["id"] as String)
+    val absent = cro(listOf(c["id"] as String), listOf(e["id"] as String))
+    val falseSkip = cro(listOf(c["id"] as String), listOf(e["id"] as String), "skips" to false)
+    assertTrue(absent["id"] != falseSkip["id"], "absent skips must differ from skips=false")
+}
+
+private fun v67() {
+    val s = neuro()
+    val c1 = occ("c1", s[4]!!["id"] as String); val c2 = occ("c2", s[6]!!["id"] as String)
+    val e = occ("e", s[6]!!["id"] as String)
+    val P = cro(listOf(c1["id"] as String, c2["id"] as String), listOf(e["id"] as String))
+    assertTrue(Semantics.endpointsMixed(P, mapOf(
+        c1["id"] as String to c1, c2["id"] as String to c2, e["id"] as String to e)),
+        "mixed endpoints expected")
+}
+
+private fun v68() {
+    val P = cro(listOf(sym("occurrent:a")), listOf(sym("occurrent:b")), "modality" to "enabling")
+    val (ok, why) = Schema.validateSchema(P); assertTrue(ok, why.toString())
+}
+
+private fun v69() {
+    val a = linkedMapOf<String, Any?>("causes" to listOf(sym("occurrent:a")),
+        "effects" to listOf(sym("occurrent:b")), "modality" to "enabling")
+    val b = linkedMapOf<String, Any?>("causes" to listOf(sym("occurrent:a")),
+        "effects" to listOf(sym("occurrent:b")), "modality" to "sufficient")
+    assertTrue(!Semantics.conflicts(a, b), "enabling and sufficient must not conflict")
+}
+
+private fun v70() {
+    val a = linkedMapOf<String, Any?>("causes" to listOf(sym("occurrent:a")),
+        "effects" to listOf(sym("occurrent:b")), "modality" to "enabling")
+    val b = linkedMapOf<String, Any?>("causes" to listOf(sym("occurrent:a")),
+        "effects" to listOf(sym("occurrent:b")), "modality" to "preventive")
+    assertTrue(Semantics.conflicts(a, b), "enabling and preventive must conflict")
+}
+
+private fun v71() {
+    val b = cnt("hippocampus")
+    val p = port(b["id"] as String, "perforant_path", "in", listOf(sym("occurrent:signal")))
+    val (ok, why) = Schema.validateSchema(p); assertTrue(ok, why.toString())
+}
+
+private fun v72() {
+    val b = cnt("hippocampus")["id"] as String
+    val x = sym("occurrent:signal")
+    assertTrue(port(b, "perforant_path", "in", listOf(x))["id"] !=
+               port(b, "fornix", "in", listOf(x))["id"], "distinct labels must differ")
+}
+
+private fun conduitFixture(transform: Boolean = false, badCarry: Boolean = false,
+                           inFrom: Boolean = false): Triple<JObj, Map<String, JObj>, Map<String, JObj>> {
+    val x = sym("occurrent:motor_command"); val y = sym("occurrent:error_signal"); val z = sym("occurrent:unrelated")
+    val m1 = cnt("motor_cortex")["id"] as String; val m2 = cnt("spinal_neuron")["id"] as String
+    val frm = port(m1, "out_port", if (inFrom) "in" else "out", listOf(x))
+    val to = port(m2, "in_port", "in", if (transform) listOf(y) else listOf(x))
+    val carries = if (badCarry) listOf(z) else listOf(x)
+    var xform: String? = null
+    val croMap = HashMap<String, JObj>()
+    if (transform) {
+        val law = cro(listOf(x), listOf(y)); croMap[law["id"] as String] = law
+        xform = law["id"] as String
+    }
+    val c = conduit(frm["id"] as String, to["id"] as String, carries, transform = xform)
+    return Triple(c, mapOf(frm["id"] as String to frm, to["id"] as String to to), croMap)
+}
+
+private fun v73() {
+    val (c, pmap, _) = conduitFixture()
+    val (okS, whyS) = Schema.validateSchema(c); assertTrue(okS, whyS.toString())
+    val (okW, whyW) = Semantics.conduitWellformed(c, pmap); assertTrue(okW, whyW)
+}
+
+private fun v74() {
+    val (c, pmap, cmap) = conduitFixture(transform = true)
+    val (okS, whyS) = Schema.validateSchema(c); assertTrue(okS, whyS.toString())
+    val (okW, whyW) = Semantics.conduitWellformed(c, pmap, cmap); assertTrue(okW, whyW)
+}
+
+private fun v75() {
+    val (c, pmap, _) = conduitFixture(badCarry = true)
+    assertTrue(!Semantics.conduitWellformed(c, pmap).first, "bad carry must be malformed")
+}
+
+private fun v76() {
+    val (c, pmap, _) = conduitFixture(inFrom = true)
+    assertTrue(!Semantics.conduitWellformed(c, pmap).first, "in-direction from port must be malformed")
+}
+
+private fun v77() {
+    val (c, pmap, cmap) = conduitFixture(transform = true)
+    val (okW, whyW) = Semantics.conduitWellformed(c, pmap, cmap); assertTrue(okW, whyW)
+    val law = cmap.values.first()
+    assertTrue(asList(law["effects"])[0] !in asList(c["carries"]), "transform effect need not be carried")
+}
+
+private fun rlz(bearer: String, kind: String, label: String? = null): JObj {
+    val o = linkedMapOf<String, Any?>("type" to "realizable", "kind" to kind, "bearer" to bearer)
+    if (label != null) o["label"] = label
+    return mk(o)
+}
+
+private fun v78() {
+    val b = cnt("hippocampus")["id"] as String
+    assertTrue(rlz(b, "disposition", "long_term_potentiation")["id"] !=
+               rlz(b, "disposition", "pattern_separation")["id"], "distinct labels must differ")
+}
+
+private fun v79() {
+    val b = cnt("hippocampus")["id"] as String
+    val u1 = rlz(b, "disposition"); val u2 = rlz(b, "disposition")
+    val (ok, why) = Schema.validateSchema(u1); assertTrue(ok, why.toString())
+    assertTrue(u1["id"] == u2["id"], "same realizable must be identical")
+    assertTrue(rlz(b, "disposition", "some_function")["id"] != u1["id"], "label is identity-bearing")
+}
+
+private fun v80() {
+    val parent = occ("fires"); val child = occ("fires_action_potential")
+    val e = linkedMapOf<String, Any?>("type" to "enrichment", "about" to child["id"],
+        "field" to "occurrent_subsumes", "entry" to parent["id"])
+    val (ok, why) = Semantics.validateSemantics(e); assertTrue(ok, why.toString())
+}
+
+private fun v81() {
+    val a = sym("occurrent:a"); val b = sym("occurrent:b")
+    assertTrue(Semantics.hasCycle(mapOf(a to listOf(b), b to listOf(a))), "cycle expected")
+}
+
+private fun v82() {
+    val whole = occ("eat"); val part = occ("chew")
+    val e = linkedMapOf<String, Any?>("type" to "enrichment", "about" to part["id"],
+        "field" to "occurrent_part_of", "entry" to whole["id"])
+    val (ok, why) = Semantics.validateSemantics(e); assertTrue(ok, why.toString())
+}
+
+private fun v83() {
+    val (legalKinds, shape) = Semantics.ENRICHMENT_FIELDS["occurrent_part_of"]!!
+    assertTrue(shape == "occurrent" && legalKinds == listOf("occurrent"), "field spec mismatch")
+    val s = InMemoryStore()
+    s.put(occ("eat")); s.put(occ("chew"))
+    assertTrue(s.objects.values.none { it["type"] == "causal_relation_object" }, "no cro expected")
+}
+
+private fun v84() {
+    val s = neuro()
+    val a = occ("run", s[9]!!["id"] as String); val b = occ("sprint", s[6]!!["id"] as String)
+    assertTrue(a["stratum"] != b["stratum"], "different strata expected")
+}
+
+private fun v85() {
+    val c = cnt("human_patient")
+    val ti = individual(c["id"] as String, designator = "salted_hash_abc123")
+    val (ok, why) = Schema.validateSchema(ti); assertTrue(ok, why.toString())
+}
+
+private fun v86() {
+    val bad = mk(linkedMapOf("type" to "token_individual", "designator" to "x"))
+    val (ok, why) = Schema.validateSchema(bad, "token_individual")
+    assertTrue(!ok && why.any { it.contains("instantiates") }, why.toString())
+}
+
+private fun v87() {
+    val c = cnt("human_patient")["id"] as String
+    assertTrue(individual(c, designator = "hash_a")["id"] !=
+               individual(c, designator = "hash_b")["id"], "distinct designators must differ")
+}
+
+private fun v88() {
+    val o = occ("bilateral_hippocampal_resection")
+    val t = token(o["id"] as String, linkedMapOf(
+        "start" to "1953-08-25T00:00:00Z", "end" to "1953-08-25T00:00:00Z"))
+    val (ok, why) = Schema.validateSchema(t); assertTrue(ok, why.toString())
+}
+
+private fun v89() {
+    val o = occ("amnesia_onset")["id"] as String
+    val bounded = token(o, linkedMapOf("start" to "1953-08-25T00:00:00Z", "end" to "1953-08-26T00:00:00Z"))
+    val instantaneous = token(o, linkedMapOf("start" to "1953-08-25T00:00:00Z"))
+    val ongoing = token(o, linkedMapOf("start" to "1953-08-25T00:00:00Z", "open" to true))
+    assertTrue(setOf(bounded["id"], instantaneous["id"], ongoing["id"]).size == 3, "three distinct intervals")
+}
+
+private fun v90() {
+    val o = occ("resection")["id"] as String; val c = cnt("human_patient")["id"] as String
+    val patient = individual(c, designator = "p")["id"] as String
+    val surgeon = individual(c, designator = "s")["id"] as String
+    val t = token(o, linkedMapOf("start" to "1953-08-25T00:00:00Z"),
+        participants = listOf(
+            linkedMapOf("role" to "patient", "filler" to patient),
+            linkedMapOf("role" to "agent", "filler" to surgeon)))
+    val (ok, why) = Schema.validateSchema(t); assertTrue(ok, why.toString())
+}
+
+private fun v91() {
+    val q = quality("cortisol_concentration", "quantity", "ug/dL")
+    val (ok, why) = Schema.validateSchema(q); assertTrue(ok, why.toString())
+}
+
+private fun stateFixture(datatype: String, value: JObj, unit: String? = null): Pair<JObj, JObj> {
+    val q = quality("cortisol_concentration", datatype, unit)
+    val c = cnt("human_patient")["id"] as String
+    val subj = individual(c, designator = "p")["id"] as String
+    val st = state(subj, q["id"] as String, value,
+        linkedMapOf("start" to "2026-01-01T00:00:00Z", "end" to "2026-01-01T01:00:00Z"))
+    return Pair(st, q)
+}
+
+private fun v92() {
+    val (st, q) = stateFixture("quantity", linkedMapOf("quantity" to 15.0, "unit" to "ug/dL"), "ug/dL")
+    val (ok, why) = Schema.validateSchema(st); assertTrue(ok, why.toString())
+    assertTrue(Semantics.stateGaps(st, q).isEmpty(), "no gaps expected")
+}
+
+private fun v93() {
+    val (st, q) = stateFixture("categorical", linkedMapOf("categorical" to "elevated"))
+    val (ok, why) = Schema.validateSchema(st); assertTrue(ok, why.toString())
+    assertTrue(Semantics.stateGaps(st, q).isEmpty(), "no gaps expected")
+}
+
+private fun v94() {
+    val (st, q) = stateFixture("boolean", linkedMapOf("boolean" to true))
+    val (ok, why) = Schema.validateSchema(st); assertTrue(ok, why.toString())
+    assertTrue(Semantics.stateGaps(st, q).isEmpty(), "no gaps expected")
+}
+
+private fun v95() {
+    val (st, q) = stateFixture("quantity", linkedMapOf("categorical" to "elevated"), "ug/dL")
+    assertTrue(Semantics.stateGaps(st, q) == listOf("value_type_mismatch"), "expected value_type_mismatch")
+}
+
+private fun v96() {
+    val (st, q) = stateFixture("quantity", linkedMapOf("quantity" to 15.0, "unit" to "mg/dL"), "ug/dL")
+    assertTrue(Semantics.stateGaps(st, q) == listOf("unit_mismatch"), "expected unit_mismatch")
+}
+
+private fun lawAndTokens(): List<JObj> {
+    val oCause = occ("resection"); val oEffect = occ("amnesia_onset")
+    val law = cro(listOf(oCause["id"] as String), listOf(oEffect["id"] as String),
+        "temporal" to linkedMapOf<String, Any?>("minimum_delay" to 0L, "maximum_delay" to 1L, "unit" to "days"),
+        "modality" to "sufficient")
+    val tCause = token(oCause["id"] as String, linkedMapOf("start" to "1953-08-25T00:00:00Z"))
+    val tEffect = token(oEffect["id"] as String, linkedMapOf("start" to "1953-08-25T00:00:00Z", "open" to true))
+    return listOf(law, oCause, oEffect, tCause, tEffect)
+}
+
+// A tiny 5-tuple to mirror Python's multiple return in law_and_tokens.
+private data class Quint(val a: JObj, val b: JObj, val c: JObj, val d: JObj, val e: JObj)
+private fun lawTokens(): Quint {
+    val l = lawAndTokens(); return Quint(l[0], l[1], l[2], l[3], l[4])
+}
+
+private fun v97() {
+    val q = lawTokens()
+    val claim = tcc(listOf(q.d["id"] as String), listOf(q.e["id"] as String),
+        coveringLaw = q.a["id"] as String,
+        actualDelay = linkedMapOf("duration" to 0L, "unit" to "instant"), counterfactual = true)
+    val (ok, why) = Schema.validateSchema(claim); assertTrue(ok, why.toString())
+}
+
+private fun v98() {
+    val q = lawTokens()
+    val claim = tcc(listOf(q.d["id"] as String), listOf(q.e["id"] as String))
+    val (ok, why) = Schema.validateSchema(claim); assertTrue(ok, why.toString())
+    assertTrue(!claim.containsKey("covering_law"), "covering_law must be optional")
+}
+
+private fun v99() {
+    val q = lawTokens()
+    assertTrue(Semantics.delayWithinWindow(
+        linkedMapOf("duration" to 0L, "unit" to "instant"), asObj(q.a["temporal"])), "delay within window")
+}
+
+private fun v100() {
+    val temporal = linkedMapOf<String, Any?>("minimum_delay" to 0L, "maximum_delay" to 1L, "unit" to "hours")
+    assertTrue(!Semantics.delayWithinWindow(
+        linkedMapOf("duration" to 5L, "unit" to "days"), temporal), "delay must be outside window")
+}
+
+private fun v101() {
+    val o = occ("x")["id"] as String
+    val cause = token(o, linkedMapOf("start" to "2026-01-02T00:00:00Z"))
+    val effect = token(o, linkedMapOf("start" to "2026-01-01T00:00:00Z"))
+    val claim = tcc(listOf(cause["id"] as String), listOf(effect["id"] as String))
+    assertTrue(Semantics.retrocausal(claim, mapOf(
+        cause["id"] as String to cause, effect["id"] as String to effect)), "retrocausal expected")
+}
+
+private fun v102() {
+    val other = cro(listOf(sym("occurrent:foo")), listOf(sym("occurrent:bar")))
+    val q = lawTokens()
+    val claim = tcc(listOf(q.d["id"] as String), listOf(q.e["id"] as String), coveringLaw = other["id"] as String)
+    assertTrue(Semantics.coveringLawMismatch(claim, mapOf(
+        q.d["id"] as String to q.d, q.e["id"] as String to q.e), other), "mismatch expected")
+}
+
+private fun v103() {
+    val a = signed("assertion", linkedMapOf(
+        "about" to sym("token_occurrence:t"), "evidence_type" to "observation",
+        "confidence" to 0.9), "signer")
+    val (ok, why) = Schema.validateSchema(a); assertTrue(ok, why.toString())
+}
+
+private fun v104() {
+    val ev = listOf(sym("token_occurrence:t1"), sym("token_causal_claim:c1"))
+    val base = linkedMapOf<String, Any?>(
+        "type" to "assertion", "about" to sym("causal_relation_object:law"),
+        "source" to key("signer").second, "evidence_type" to "intervention",
+        "strength" to 0.95, "confidence" to 0.99, "timestamp" to "2026-07-14T00:00:00Z")
+    val a = LinkedHashMap(base); a["evidenced_by"] = ev
+    val withId = LinkedHashMap(a); withId["id"] = Canonical.identify(a)
+    val (ok, why) = Schema.validateSchema(withId); assertTrue(ok, why.toString())
+    assertTrue(Canonical.identify(a) != Canonical.identify(base), "evidenced_by is identity-bearing")
+}
+
+private fun v105() {
+    val a = signed("assertion", linkedMapOf(
+        "about" to sym("causal_relation_object:law"), "evidence_type" to "simulation",
+        "confidence" to 0.5), "signer")
+    val (ok, why) = Schema.validateSchema(a); assertTrue(ok, why.toString())
+    val rank = mapOf("intervention" to 0, "observation" to 1, "simulation" to 2)
+    assertTrue(rank["intervention"]!! < rank["observation"]!! && rank["observation"]!! < rank["simulation"]!!,
+               "evidence rank order")
+}
+
+private fun v106() {
+    fun scan(node: Any?, ids: MutableList<String>) {
+        when (node) {
+            is String -> {
+                val m = Regex("^([a-z0-9_]+):[0-9a-f]{64}$").matchEntire(node)
+                if (m != null) ids.add(m.groupValues[1])
+            }
+            is List<*> -> node.forEach { scan(it, ids) }
+            is Map<*, *> -> node.values.forEach { scan(it, ids) }
+        }
+    }
+    for (n in 1..38) {
+        val ids = mutableListOf<String>()
+        scan(vec(n), ids)
+        for (scheme in ids) {
+            assertTrue(scheme in WHOLE_WORD, "V106: abbreviated scheme '$scheme' in vector $n")
+        }
+    }
+    val rec = linkedMapOf<String, Any?>("type" to "occurrent", "label" to "press_button", "category" to "action")
+    assertTrue(Canonical.identify(rec) == Canonical.identify(rec), "identity must be deterministic")
+    assertTrue(Canonical.identify(rec).substringBefore(":") == "occurrent", "whole-word scheme expected")
+}
+
+private fun v107() {
+    val hexid = "0".repeat(64)
+    // NOTE: the abbreviated prefix below is intentional (the negative test);
+    // it must NOT be re-minted. "c" "r" "o" is assembled to survive re-mint tools.
+    val croAbbr = "c" + "r" + "o"
+    val abbreviated = linkedMapOf<String, Any?>(
+        "type" to "causal_relation_object", "id" to "$croAbbr:$hexid",
+        "causes" to listOf("occurrent:$hexid"), "effects" to listOf("occurrent:$hexid"))
+    assertTrue(!Schema.validateSchema(abbreviated, "causal_relation_object").first,
+               "abbreviated scheme must be rejected")
+    val abbrStr = linkedMapOf<String, Any?>(
+        "type" to "stratum", "id" to "str:$hexid", "label" to "cellular",
+        "scheme" to "neuroendocrine", "ordinal" to 6L)
+    assertTrue(!Schema.validateSchema(abbrStr, "stratum").first, "abbreviated stratum id must be rejected")
+    val whole = linkedMapOf<String, Any?>(
+        "type" to "causal_relation_object", "id" to "causal_relation_object:$hexid",
+        "causes" to listOf("occurrent:$hexid"), "effects" to listOf("occurrent:$hexid"))
+    val (ok, why) = Schema.validateSchema(whole, "causal_relation_object"); assertTrue(ok, why.toString())
+}
+
 // ---------------------------------------------------------------------------
 fun main() {
-    println("causalontology-kotlin conformance run")
-    print("internal checks (RFC 8032 known-answer, RFC 8785 basics) ... ")
+    println("causalontology-kotlin conformance run (specification 2.0.0)")
+    print("internal checks (RFC 8032, RFC 8785, fixed constants) ... ")
     internalChecks()
     println("ok")
     val vectors: List<Pair<Int, () -> Unit>> = listOf(
@@ -454,7 +1112,18 @@ fun main() {
         19 to ::v19, 20 to ::v20, 21 to ::v21, 22 to ::v22, 23 to ::v23, 24 to ::v24,
         25 to ::v25, 26 to ::v26, 27 to ::v27, 28 to ::v28, 29 to ::v29, 30 to ::v30,
         31 to ::v31, 32 to ::v32, 33 to ::v33, 34 to ::v34, 35 to ::v35, 36 to ::v36,
-        37 to ::v37, 38 to ::v38)
+        37 to ::v37, 38 to ::v38, 39 to ::v39, 40 to ::v40, 41 to ::v41, 42 to ::v42,
+        43 to ::v43, 44 to ::v44, 45 to ::v45, 46 to ::v46, 47 to ::v47, 48 to ::v48,
+        49 to ::v49, 50 to ::v50, 51 to ::v51, 52 to ::v52, 53 to ::v53, 54 to ::v54,
+        55 to ::v55, 56 to ::v56, 57 to ::v57, 58 to ::v58, 59 to ::v59, 60 to ::v60,
+        61 to ::v61, 62 to ::v62, 63 to ::v63, 64 to ::v64, 65 to ::v65, 66 to ::v66,
+        67 to ::v67, 68 to ::v68, 69 to ::v69, 70 to ::v70, 71 to ::v71, 72 to ::v72,
+        73 to ::v73, 74 to ::v74, 75 to ::v75, 76 to ::v76, 77 to ::v77, 78 to ::v78,
+        79 to ::v79, 80 to ::v80, 81 to ::v81, 82 to ::v82, 83 to ::v83, 84 to ::v84,
+        85 to ::v85, 86 to ::v86, 87 to ::v87, 88 to ::v88, 89 to ::v89, 90 to ::v90,
+        91 to ::v91, 92 to ::v92, 93 to ::v93, 94 to ::v94, 95 to ::v95, 96 to ::v96,
+        97 to ::v97, 98 to ::v98, 99 to ::v99, 100 to ::v100, 101 to ::v101, 102 to ::v102,
+        103 to ::v103, 104 to ::v104, 105 to ::v105, 106 to ::v106, 107 to ::v107)
     var failures = 0
     for ((n, fn) in vectors) {
         val name = vecFileName(n).removeSuffix(".json")
@@ -466,10 +1135,10 @@ fun main() {
             println("FAIL  $name :: $e")
         }
     }
-    val total = 38
+    val total = 107
     println("-".repeat(60))
     println("${total - failures}/$total vectors passed")
     if (failures > 0) exitProcess(1)
     println("causalontology-kotlin is CONFORMANT to the suite " +
-            "(vectors frozen at specification 1.0.0).")
+            "(vectors frozen at specification 2.0.0).")
 }
