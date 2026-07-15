@@ -11,8 +11,8 @@
 
 <!-- ROW 2: THE STANDARD -->
 <p align="center">
-  <img src="https://img.shields.io/badge/CONFORMANCE_VECTORS-38-FA842F?style=for-the-badge" alt="Conformance Vectors 38">
-  <img src="https://img.shields.io/badge/OBJECT_KINDS-8-F47223?style=for-the-badge" alt="Object Kinds 8">
+  <img src="https://img.shields.io/badge/CONFORMANCE_VECTORS-107-FA842F?style=for-the-badge" alt="Conformance Vectors 107">
+  <img src="https://img.shields.io/badge/OBJECT_KINDS-17-F47223?style=for-the-badge" alt="Object Kinds 17">
   <img src="https://img.shields.io/badge/LOCKED_DECISIONS-27-EC5F1C?style=for-the-badge" alt="Locked Decisions 27">
 </p>
 
