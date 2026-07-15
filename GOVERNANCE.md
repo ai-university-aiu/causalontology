@@ -8,9 +8,18 @@
   continuant categories, modalities, evidence types, enrichment fields) are
   part of the validator contract and, for the vocabulary categories, part of
   the identity guarantee. **Extending any closed enumeration is a MAJOR
-  version change**, never MINOR. Adding a wholly new object kind (such as the
-  reserved token-level `tok:` kind) is likewise MAJOR for validators that
-  enforce closed kind lists.
+  version change**, never MINOR. Adding a wholly new object kind is likewise
+  MAJOR for validators that enforce closed kind lists.
+- **2.0.0 is MAJOR on both counts.** It adds nine object kinds (stratum,
+  bridge, port, conduit, quality, and the token tier: token_individual,
+  token_occurrence, state_assertion, token_causal_claim — the last discharging
+  the reserved token-level slot) and extends three closed enumerations
+  (`modality` gains `enabling`; `enrichment.field` gains `occurrent_subsumes`
+  and `occurrent_part_of`; `evidence_type` gains `simulation`). It also carries
+  the one-time whole-word re-mint of every identifier scheme and type value of
+  both the 1.0.0 and 2.0.0 lines (Principle P7): a naming change only, never a
+  change of mechanics, with the vectors re-frozen once under the whole-word
+  names.
 - Every binding is gated in Continuous Integration on the conformance
   vectors; a failing release is not published.
 - Change process (in the spirit of a W3C or IETF working group): a written
