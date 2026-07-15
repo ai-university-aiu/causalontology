@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://causalontology.org/schema/cro.schema.json",
+  "$id": "https://causalontology.org/schema/causal_relation_object.schema.json",
   "title": "Causal Relation Object",
   "type": "object",
   "required": [
@@ -35,7 +35,7 @@
       "items": {
         "$ref": "#/$defs/croId"
       },
-      "description": "identifiers of finer Causal Relation Objects whose composition realizes this one (hierarchical decomposition; must be acyclic; consistency per semantics.md rule 7)"
+      "description": "identifiers of finer Causal Relation Objects whose composition realizes this one (hierarchical decomposition; must be acyclic; consistency per semantics.md rule 7, amended to BRIDGED reachability in 2.0.0)"
     },
     "temporal": {
       "$ref": "#/$defs/temporalWindow"
@@ -45,7 +45,8 @@
         "necessary",
         "sufficient",
         "contributory",
-        "preventive"
+        "preventive",
+        "enabling"
       ]
     },
     "context": {
@@ -58,16 +59,20 @@
     "refines": {
       "$ref": "#/$defs/croId",
       "description": "the more partial Causal Relation Object this one enriches (lineage; acyclic; must preserve the parent's specified fields)"
+    },
+    "skips": {
+      "type": "boolean",
+      "description": "TRUE asserts that this relation crosses non-adjacent strata WITHOUT being re-encoded at the intervening strata: the absence of a mechanism is a POSITIVE FINDING, not a gap (2.0.0 4.4)"
     }
   },
   "$defs": {
     "croId": {
       "type": "string",
-      "pattern": "^cro:[0-9a-f]{64}$"
+      "pattern": "^causal_relation_object:[0-9a-f]{64}$"
     },
     "occId": {
       "type": "string",
-      "pattern": "^occ:[0-9a-f]{64}$"
+      "pattern": "^occurrent:[0-9a-f]{64}$"
     },
     "temporalWindow": {
       "type": "object",

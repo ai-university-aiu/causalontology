@@ -65,6 +65,16 @@ pub fn validate_semantics(obj: &Map<String, Value>, kind: Option<&str>)
                 errors.push("refines must be acyclic".to_string());
             }
         }
+        // Rule 16, clause 1 (contradictory_skip): a HARD, locally-decidable
+        // contradiction between skips:true and a non-empty mechanism.
+        if obj.get("skips") == Some(&Value::Bool(true)) {
+            let has_mech = matches!(obj.get("mechanism"),
+                Some(Value::Array(m)) if !m.is_empty());
+            if has_mech {
+                errors.push("contradictory_skip: skips is true but a \
+                    mechanism is present".to_string());
+            }
+        }
     }
 
     if kind == "enrichment" {
@@ -77,6 +87,8 @@ pub fn validate_semantics(obj: &Map<String, Value>, kind: Option<&str>)
             "subsumes" => Some((&["continuant"], "continuant")),
             "part_of" => Some((&["continuant"], "continuant")),
             "realized_in" => Some((&["realizable"], "occurrent")),
+            "occurrent_subsumes" => Some((&["occurrent"], "occurrent")),
+            "occurrent_part_of" => Some((&["occurrent"], "occurrent")),
             _ => None,
         };
         if let Some((legal_kinds, shape)) = spec {
@@ -178,7 +190,7 @@ pub fn conflicts(a: &Map<String, Value>, b: &Map<String, Value>) -> bool {
     if !window_overlap(a, b) {
         return false;
     }
-    let positive = ["necessary", "sufficient", "contributory"];
+    let positive = ["necessary", "sufficient", "contributory", "enabling"];
     let ma = a.get("modality").and_then(Value::as_str).unwrap_or("");
     let mb = b.get("modality").and_then(Value::as_str).unwrap_or("");
     (ma == "preventive" && positive.contains(&mb))
@@ -215,13 +227,77 @@ pub fn refinement_valid(child: &Map<String, Value>, parent: &Map<String, Value>)
     (true, "valid refinement".into())
 }
 
-/// Rule 7: "consistent" | "inconsistent" | "indeterminate".
+// ==========================================================================
+// 2.0.0 NORMATIVE ALGORITHMS (Section 12)
+// ==========================================================================
+
+fn str_list(v: Option<&Value>) -> Vec<String> {
+    match v {
+        Some(Value::Array(items)) => items.iter()
+            .filter_map(|x| x.as_str().map(String::from)).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// ALGORITHM A. Every finer occurrent an occurrent resolves to, following
+/// Bridges downward, transitively; includes the starting occurrent (N12.1.1).
+pub fn bridge_closure(occurrent_id: &str, bridges: &[Map<String, Value>])
+                      -> HashSet<String> {
+    let mut coarse_index: HashMap<String, Vec<&Map<String, Value>>> =
+        HashMap::new();
+    for b in bridges {
+        if let Some(c) = b.get("coarse").and_then(Value::as_str) {
+            coarse_index.entry(c.to_string()).or_default().push(b);
+        }
+    }
+    let mut result: HashSet<String> = HashSet::new();
+    result.insert(occurrent_id.to_string());
+    let mut frontier = vec![occurrent_id.to_string()];
+    let mut visited: HashSet<String> = HashSet::new();
+    while let Some(current) = frontier.pop() {
+        if !visited.insert(current.clone()) {
+            continue;
+        }
+        if let Some(bs) = coarse_index.get(&current) {
+            for b in bs {
+                for f in str_list(b.get("fine")) {
+                    result.insert(f.clone());
+                    frontier.push(f);
+                }
+            }
+        }
+    }
+    result
+}
+
+fn path_exists(edges: &HashMap<String, HashSet<String>>,
+               src: &str, dst: &str) -> bool {
+    let mut seen = HashSet::new();
+    let mut stack = vec![src.to_string()];
+    while let Some(node) = stack.pop() {
+        if node == dst {
+            return true;
+        }
+        if !seen.insert(node.clone()) {
+            continue;
+        }
+        if let Some(next) = edges.get(&node) {
+            stack.extend(next.iter().cloned());
+        }
+    }
+    false
+}
+
+/// ALGORITHM B (amended Rule 7): "consistent" | "inconsistent" |
+/// "indeterminate", ACROSS STRATA via bridged reachability. `bridges` empty
+/// -> 1.0.0 literal reachability (the degenerate case, N12.2.3).
 pub fn hierarchy_consistent(parent: &Map<String, Value>,
-                            members: &HashMap<String, Map<String, Value>>)
+                            members: &HashMap<String, Map<String, Value>>,
+                            bridges: &[Map<String, Value>])
                             -> &'static str {
     let mechanism = match parent.get("mechanism") {
         Some(Value::Array(m)) if !m.is_empty() => m,
-        _ => return "consistent", // nothing claimed, nothing to check
+        _ => return "consistent", // nothing claimed, nothing to check (N12.2.1)
     };
     let mut edges: HashMap<String, HashSet<String>> = HashMap::new();
     for mid in mechanism {
@@ -231,35 +307,360 @@ pub fn hierarchy_consistent(parent: &Map<String, Value>,
         };
         let member = match members.get(mid) {
             Some(m) => m,
-            None => return "indeterminate", // dangling_reference, not failure
+            None => return "indeterminate", // dangling; ignorance, not refutation
         };
         for c in id_set(member.get("causes")) {
             edges.entry(c).or_default()
                 .extend(id_set(member.get("effects")));
         }
     }
-    let reachable = |src: &str, dst: &str| -> bool {
-        let mut seen = HashSet::new();
-        let mut stack = vec![src.to_string()];
-        while let Some(node) = stack.pop() {
-            if node == dst {
-                return true;
-            }
-            if !seen.insert(node.clone()) {
-                continue;
-            }
-            if let Some(next) = edges.get(&node) {
-                stack.extend(next.iter().cloned());
-            }
-        }
-        false
-    };
-    for c in id_set(parent.get("causes")) {
-        for e in id_set(parent.get("effects")) {
-            if !reachable(&c, &e) {
+    let parent_causes = str_list(parent.get("causes"));
+    let parent_effects = str_list(parent.get("effects"));
+    let b_cause: HashMap<String, HashSet<String>> = parent_causes.iter()
+        .map(|c| (c.clone(), bridge_closure(c, bridges))).collect();
+    let b_effect: HashMap<String, HashSet<String>> = parent_effects.iter()
+        .map(|e| (e.clone(), bridge_closure(e, bridges))).collect();
+    for c in &parent_causes {
+        for e in &parent_effects {
+            let connected = b_cause[c].iter().any(|cp|
+                b_effect[e].iter().any(|ep| path_exists(&edges, cp, ep)));
+            if !connected {
                 return "inconsistent";
             }
         }
     }
     "consistent"
+}
+
+fn stratum_of<'a>(occ_id: &str,
+                  occ_map: &'a HashMap<String, Map<String, Value>>)
+                  -> Option<&'a str> {
+    occ_map.get(occ_id)
+        .and_then(|o| o.get("stratum"))
+        .and_then(Value::as_str)
+}
+
+/// ALGORITHM C (Rule 15): "intra_stratal" | "adjacent_stratal" | "skipping" |
+/// "mixed" | "unclassifiable" | "scheme_mismatch". Derived, never asserted.
+pub fn classify_cro(cro: &Map<String, Value>,
+                    occ_map: &HashMap<String, Map<String, Value>>,
+                    stratum_map: &HashMap<String, Map<String, Value>>)
+                    -> &'static str {
+    let causes = str_list(cro.get("causes"));
+    let effects = str_list(cro.get("effects"));
+    let cause_strata: Vec<Option<&str>> = causes.iter()
+        .map(|c| stratum_of(c, occ_map)).collect();
+    let effect_strata: Vec<Option<&str>> = effects.iter()
+        .map(|e| stratum_of(e, occ_map)).collect();
+    if cause_strata.iter().chain(effect_strata.iter()).any(|s| s.is_none()) {
+        return "unclassifiable"; // surface unstratified_occurrent (invitation)
+    }
+    let cause_strata: Vec<&str> = cause_strata.into_iter().flatten().collect();
+    let effect_strata: Vec<&str> = effect_strata.into_iter().flatten().collect();
+    let mut all_strata: HashSet<&str> = HashSet::new();
+    all_strata.extend(cause_strata.iter().copied());
+    all_strata.extend(effect_strata.iter().copied());
+    let scheme_of = |s: &str| -> String {
+        stratum_map.get(s).and_then(|st| st.get("scheme"))
+            .and_then(Value::as_str).unwrap_or("").to_string()
+    };
+    let schemes: HashSet<String> = all_strata.iter().map(|s| scheme_of(s))
+        .collect();
+    if schemes.len() > 1 {
+        return "scheme_mismatch"; // HARD
+    }
+    let ord_of = |s: &str| -> i64 {
+        stratum_map.get(s).and_then(|st| st.get("ordinal"))
+            .and_then(Value::as_i64).unwrap_or(0)
+    };
+    let c_ord: Vec<i64> = cause_strata.iter().map(|s| ord_of(s)).collect();
+    let e_ord: Vec<i64> = effect_strata.iter().map(|s| ord_of(s)).collect();
+    let (cmax, cmin) = (*c_ord.iter().max().unwrap(),
+                        *c_ord.iter().min().unwrap());
+    let (emax, emin) = (*e_ord.iter().max().unwrap(),
+                        *e_ord.iter().min().unwrap());
+    if cmax == cmin && cmin == emax && emax == emin {
+        return "intra_stratal";
+    }
+    let gap = c_ord.iter().flat_map(|i| e_ord.iter().map(move |j| (i - j).abs()))
+        .min().unwrap();
+    let span = c_ord.iter().flat_map(|i| e_ord.iter().map(move |j| (i - j).abs()))
+        .max().unwrap();
+    if span == 1 {
+        return "adjacent_stratal";
+    }
+    if gap > 1 {
+        return "skipping";
+    }
+    "mixed" // some pairs adjacent, some skipping
+}
+
+/// True iff causes or effects span more than one distinct stratum (surfaces
+/// mixed_stratal_endpoints, an invitation; N12.3.2).
+pub fn endpoints_mixed(cro: &Map<String, Value>,
+                       occ_map: &HashMap<String, Map<String, Value>>) -> bool {
+    let cs: Vec<Option<&str>> = str_list(cro.get("causes")).iter()
+        .map(|c| stratum_of(c, occ_map)).collect();
+    let es: Vec<Option<&str>> = str_list(cro.get("effects")).iter()
+        .map(|e| stratum_of(e, occ_map)).collect();
+    if cs.iter().chain(es.iter()).any(|s| s.is_none()) {
+        return false;
+    }
+    let cset: HashSet<&str> = cs.into_iter().flatten().collect();
+    let eset: HashSet<&str> = es.into_iter().flatten().collect();
+    cset.len() > 1 || eset.len() > 1
+}
+
+/// ALGORITHM D (Rule 16): the gaps a Causal Relation Object surfaces for the
+/// skip decision. THE ASYMMETRY (clause 3) is implemented exactly.
+pub fn skip_gaps(cro: &Map<String, Value>, classification: &str)
+                 -> Vec<String> {
+    let mut gaps = Vec::new();
+    let has_mech = matches!(cro.get("mechanism"),
+        Some(Value::Array(m)) if !m.is_empty());
+    let skips_true = cro.get("skips") == Some(&Value::Bool(true));
+    if skips_true && has_mech {
+        gaps.push("contradictory_skip".to_string()); // HARD
+        return gaps;
+    }
+    if skips_true && classification != "skipping"
+        && classification != "unclassifiable" {
+        gaps.push("vacuous_skip".to_string()); // invitation
+    }
+    if classification == "skipping" && !has_mech {
+        if skips_true {
+            // NOTHING: absence is a finding
+        } else {
+            gaps.push("incomplete_mechanism".to_string()); // invitation
+        }
+    }
+    gaps
+}
+
+/// ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+pub fn to_seconds(duration: f64, unit: &str) -> f64 {
+    if unit == "instant" {
+        return 0.0;
+    }
+    duration * unit_seconds(unit).unwrap_or(0.0)
+}
+
+/// ALGORITHM E (Rule 20): does an observed delay fall within a covering law's
+/// temporal window? Inclusive at both ends (N12.5.2).
+pub fn delay_within_window(actual_delay: Option<&Map<String, Value>>,
+                           temporal: Option<&Map<String, Value>>) -> bool {
+    let (ad, t) = match (actual_delay, temporal) {
+        (Some(a), Some(t)) => (a, t),
+        _ => return true, // nothing to check
+    };
+    let observed = to_seconds(
+        ad.get("duration").and_then(f64_of).unwrap_or(0.0),
+        ad.get("unit").and_then(Value::as_str).unwrap_or("instant"));
+    let unit = t.get("unit").and_then(Value::as_str).unwrap_or("instant");
+    let lo = to_seconds(
+        t.get("minimum_delay").and_then(f64_of).unwrap_or(0.0), unit);
+    let hi = to_seconds(
+        t.get("maximum_delay").and_then(f64_of).unwrap_or(0.0), unit);
+    lo <= observed && observed <= hi
+}
+
+/// Rule 14 / N3.2.1: Bridge well-formedness. (ok, reason).
+pub fn bridge_wellformed(bridge: &Map<String, Value>,
+                         occ_map: &HashMap<String, Map<String, Value>>,
+                         stratum_map: &HashMap<String, Map<String, Value>>)
+                         -> (bool, String) {
+    let coarse_id = bridge.get("coarse").and_then(Value::as_str).unwrap_or("");
+    let cs = match stratum_of(coarse_id, occ_map) {
+        Some(s) => s.to_string(),
+        None => return (false,
+            "malformed_bridge: coarse has no stratum (a)".into()),
+    };
+    let fine_ids = str_list(bridge.get("fine"));
+    let fine_strata: Vec<Option<String>> = fine_ids.iter()
+        .map(|f| stratum_of(f, occ_map).map(String::from)).collect();
+    if fine_strata.iter().any(|s| s.is_none()) {
+        return (false,
+            "malformed_bridge: a fine member has no stratum (b)".into());
+    }
+    let fine_strata: Vec<String> = fine_strata.into_iter().flatten().collect();
+    let unique: HashSet<&String> = fine_strata.iter().collect();
+    if unique.len() != 1 {
+        return (false,
+            "malformed_bridge: fine members span >1 stratum (c)".into());
+    }
+    let fs = &fine_strata[0];
+    let scheme = |s: &str| stratum_map.get(s).and_then(|x| x.get("scheme"))
+        .and_then(Value::as_str).unwrap_or("");
+    if scheme(&cs) != scheme(fs) {
+        return (false,
+            "malformed_bridge: coarse and fine differ in scheme (d)".into());
+    }
+    let ord = |s: &str| stratum_map.get(s).and_then(|x| x.get("ordinal"))
+        .and_then(Value::as_i64).unwrap_or(0);
+    if !(ord(&cs) > ord(fs)) {
+        return (false,
+            "malformed_bridge: coarse ordinal not > fine ordinal (e)".into());
+    }
+    (true, "well-formed bridge".into())
+}
+
+/// Rule 17 / N4.2.1-2: Conduit well-formedness. (ok, reason).
+pub fn conduit_wellformed(conduit: &Map<String, Value>,
+                          port_map: &HashMap<String, Map<String, Value>>,
+                          cro_map: &HashMap<String, Map<String, Value>>)
+                          -> (bool, String) {
+    let from_id = conduit.get("from").and_then(Value::as_str).unwrap_or("");
+    let to_id = conduit.get("to").and_then(Value::as_str).unwrap_or("");
+    let (frm, to) = match (port_map.get(from_id), port_map.get(to_id)) {
+        (Some(f), Some(t)) => (f, t),
+        _ => return (false,
+            "malformed_conduit: dangling port reference".into()),
+    };
+    let from_dir = frm.get("direction").and_then(Value::as_str).unwrap_or("");
+    if from_dir != "out" && from_dir != "bidirectional" {
+        return (false,
+            "malformed_conduit: from port is not out/bidirectional (a)".into());
+    }
+    let to_dir = to.get("direction").and_then(Value::as_str).unwrap_or("");
+    if to_dir != "in" && to_dir != "bidirectional" {
+        return (false,
+            "malformed_conduit: to port is not in/bidirectional (b)".into());
+    }
+    let carries = str_list(conduit.get("carries"));
+    let from_accepts: HashSet<String> = str_list(frm.get("accepts"))
+        .into_iter().collect();
+    if !carries.iter().all(|o| from_accepts.contains(o)) {
+        return (false,
+            "malformed_conduit: carries not accepted by from (c)".into());
+    }
+    let to_accepts: HashSet<String> = str_list(to.get("accepts"))
+        .into_iter().collect();
+    match conduit.get("transform").and_then(Value::as_str) {
+        None => {
+            if !carries.iter().all(|o| to_accepts.contains(o)) {
+                return (false,
+                    "malformed_conduit: carries not accepted by to (d)".into());
+            }
+        }
+        Some(transform) => {
+            if let Some(law) = cro_map.get(transform) {
+                let effects = str_list(law.get("effects"));
+                if !effects.iter().all(|o| to_accepts.contains(o)) {
+                    return (false, "malformed_conduit: transform effects not \
+                        accepted by to (d, relaxed per N4.2.2)".into());
+                }
+            }
+        }
+    }
+    (true, "well-formed conduit".into())
+}
+
+/// Rule 19 / N5.3.1-2: the HARD gaps a state assertion surfaces against its
+/// quality: value_type_mismatch and/or unit_mismatch.
+pub fn state_gaps(state: &Map<String, Value>, quality: &Map<String, Value>)
+                  -> Vec<String> {
+    let mut gaps = Vec::new();
+    let dt = quality.get("datatype").and_then(Value::as_str).unwrap_or("");
+    let empty = Map::new();
+    let v = match state.get("value") {
+        Some(Value::Object(v)) => v,
+        _ => &empty,
+    };
+    let shape = if v.contains_key("quantity") {
+        "quantity"
+    } else if v.contains_key("categorical") {
+        "categorical"
+    } else if v.contains_key("boolean") {
+        "boolean"
+    } else {
+        ""
+    };
+    if shape != dt {
+        gaps.push("value_type_mismatch".to_string());
+    } else if dt == "quantity"
+        && v.get("unit").and_then(Value::as_str)
+            != quality.get("unit").and_then(Value::as_str) {
+        gaps.push("unit_mismatch".to_string());
+    }
+    gaps
+}
+
+/// Rule 20: True iff the token claim's cause/effect tokens do not instantiate
+/// the covering law's causes/effects (surfaces covering_law_mismatch).
+pub fn covering_law_mismatch(tcc: &Map<String, Value>,
+                             token_map: &HashMap<String, Map<String, Value>>,
+                             law: Option<&Map<String, Value>>) -> bool {
+    let law = match law {
+        Some(l) => l,
+        None => return false,
+    };
+    let law_causes: HashSet<String> = str_list(law.get("causes"))
+        .into_iter().collect();
+    let law_effects: HashSet<String> = str_list(law.get("effects"))
+        .into_iter().collect();
+    for c in str_list(tcc.get("causes")) {
+        let inst = token_map.get(&c).and_then(|t| t.get("instantiates"))
+            .and_then(Value::as_str).unwrap_or("");
+        if !law_causes.contains(inst) {
+            return true;
+        }
+    }
+    for e in str_list(tcc.get("effects")) {
+        let inst = token_map.get(&e).and_then(|t| t.get("instantiates"))
+            .and_then(Value::as_str).unwrap_or("");
+        if !law_effects.contains(inst) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Rule 21: True iff any cause token starts after any effect token (HARD;
+/// retrocausal_claim). RFC 3339 UTC "Z" strings compare lexicographically.
+pub fn retrocausal(tcc: &Map<String, Value>,
+                   token_map: &HashMap<String, Map<String, Value>>) -> bool {
+    let start_of = |id: &str| -> String {
+        token_map.get(id).and_then(|t| t.get("interval"))
+            .and_then(|i| i.get("start"))
+            .and_then(Value::as_str).unwrap_or("").to_string()
+    };
+    for c in str_list(tcc.get("causes")) {
+        let cstart = start_of(&c);
+        for e in str_list(tcc.get("effects")) {
+            if cstart > start_of(&e) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Rules 4 / 6.1: True iff a directed graph (node -> successors) has a cycle.
+pub fn has_cycle(edges: &HashMap<String, Vec<String>>) -> bool {
+    const WHITE: u8 = 0;
+    const GREY: u8 = 1;
+    const BLACK: u8 = 2;
+    fn visit(node: &str, edges: &HashMap<String, Vec<String>>,
+             state: &mut HashMap<String, u8>) -> bool {
+        state.insert(node.to_string(), GREY);
+        if let Some(succ) = edges.get(node) {
+            for nxt in succ {
+                match *state.get(nxt).unwrap_or(&WHITE) {
+                    GREY => return true,
+                    WHITE => {
+                        if visit(nxt, edges, state) {
+                            return true;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        state.insert(node.to_string(), BLACK);
+        false
+    }
+    let mut state: HashMap<String, u8> = HashMap::new();
+    let nodes: Vec<String> = edges.keys().cloned().collect();
+    nodes.iter().any(|n| *state.get(n).unwrap_or(&WHITE) == WHITE
+                     && visit(n, edges, &mut state))
 }

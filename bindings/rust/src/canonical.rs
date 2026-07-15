@@ -5,15 +5,33 @@
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 
+/// The identity-bearing fields of each of the seventeen kinds (2.0.0, P7).
+/// "type" is always injected, so it is not listed here.
 pub fn identity_fields(kind: &str) -> Option<&'static [&'static str]> {
     match kind {
-        "occurrent" => Some(&["label", "category"]),
-        "causal_relation_object" => Some(&["causes", "effects", "mechanism", "temporal",
-                        "modality", "context", "refines"]),
+        // ---- type tier ----
+        "occurrent" => Some(&["label", "category", "stratum"]),
+        "causal_relation_object" => Some(&["causes", "effects", "mechanism",
+                        "temporal", "modality", "context", "refines", "skips"]),
         "continuant" => Some(&["label", "category"]),
-        "realizable" => Some(&["kind", "bearer"]),
+        "realizable" => Some(&["kind", "bearer", "label"]),
+        "stratum" => Some(&["label", "scheme", "ordinal", "unit", "governs"]),
+        "bridge" => Some(&["coarse", "fine", "relation"]),
+        "port" => Some(&["bearer", "label", "direction", "accepts",
+                         "realizable"]),
+        "conduit" => Some(&["label", "from", "to", "carries", "transform"]),
+        "quality" => Some(&["label", "datatype", "unit", "stratum"]),
+        // ---- token tier ----
+        "token_individual" => Some(&["instantiates", "designator", "part_of"]),
+        "token_occurrence" => Some(&["instantiates", "interval", "participants",
+                                     "locus", "observer"]),
+        "state_assertion" => Some(&["subject", "quality", "value", "interval"]),
+        "token_causal_claim" => Some(&["causes", "effects", "covering_law",
+                                       "actual_delay", "counterfactual"]),
+        // ---- provenance tier ----
         "assertion" => Some(&["about", "source", "evidence_type", "evidence",
-                              "strength", "confidence", "timestamp"]),
+                              "strength", "confidence", "timestamp",
+                              "evidenced_by"]),
         "enrichment" => Some(&["about", "field", "entry", "source",
                                "timestamp"]),
         "retraction" => Some(&["retracts", "source", "timestamp"]),
@@ -22,32 +40,22 @@ pub fn identity_fields(kind: &str) -> Option<&'static [&'static str]> {
     }
 }
 
+/// The seventeen whole-word schemes. scheme == type value == id prefix.
+pub const SCHEMES: [&str; 17] = [
+    "occurrent", "causal_relation_object", "continuant", "realizable",
+    "stratum", "bridge", "port", "conduit", "quality",
+    "token_individual", "token_occurrence", "state_assertion",
+    "token_causal_claim", "assertion", "enrichment", "retraction",
+    "succession",
+];
+
+/// Whole-word re-mint (P7): the scheme IS the type value for every kind.
 pub fn prefix_of(kind: &str) -> Option<&'static str> {
-    match kind {
-        "occurrent" => Some("occurrent"),
-        "causal_relation_object" => Some("causal_relation_object"),
-        "continuant" => Some("continuant"),
-        "realizable" => Some("realizable"),
-        "assertion" => Some("assertion"),
-        "enrichment" => Some("enrichment"),
-        "retraction" => Some("retraction"),
-        "succession" => Some("succession"),
-        _ => None,
-    }
+    SCHEMES.iter().find(|k| **k == kind).copied()
 }
 
 pub fn kind_of_prefix(prefix: &str) -> Option<&'static str> {
-    match prefix {
-        "occurrent" => Some("occurrent"),
-        "causal_relation_object" => Some("causal_relation_object"),
-        "continuant" => Some("continuant"),
-        "realizable" => Some("realizable"),
-        "assertion" => Some("assertion"),
-        "enrichment" => Some("enrichment"),
-        "retraction" => Some("retraction"),
-        "succession" => Some("succession"),
-        _ => None,
-    }
+    SCHEMES.iter().find(|k| **k == prefix).copied()
 }
 
 pub fn infer_kind(obj: &Map<String, Value>) -> Result<String, String> {
@@ -60,6 +68,9 @@ pub fn infer_kind(obj: &Map<String, Value>) -> Result<String, String> {
                 return Ok(kind.to_string());
             }
         }
+    }
+    if obj.contains_key("coarse") && obj.contains_key("fine") {
+        return Ok("bridge".to_string());
     }
     if obj.contains_key("causes") && obj.contains_key("effects") {
         return Ok("causal_relation_object".to_string());
