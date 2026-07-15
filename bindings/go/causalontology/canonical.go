@@ -19,41 +19,49 @@ import (
 
 // IdentityFields lists, per kind, exactly the fields that participate in
 // the identity hash; everything else (id, signature, annotations) is
-// excluded by construction.
+// excluded by construction. 2.0.0: all seventeen whole-word kinds.
 var IdentityFields = map[string][]string{
-	"occurrent":  {"label", "category"},
-	"causal_relation_object":        {"causes", "effects", "mechanism", "temporal", "modality", "context", "refines"},
+	// ---- type tier ----
+	"occurrent": {"label", "category", "stratum"},
+	"causal_relation_object": {"causes", "effects", "mechanism", "temporal",
+		"modality", "context", "refines", "skips"},
 	"continuant": {"label", "category"},
-	"realizable": {"kind", "bearer"},
-	"assertion":  {"about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp"},
+	"realizable": {"kind", "bearer", "label"},
+	"stratum":    {"label", "scheme", "ordinal", "unit", "governs"},
+	"bridge":     {"coarse", "fine", "relation"},
+	"port":       {"bearer", "label", "direction", "accepts", "realizable"},
+	"conduit":    {"label", "from", "to", "carries", "transform"},
+	"quality":    {"label", "datatype", "unit", "stratum"},
+	// ---- token tier ----
+	"token_individual":   {"instantiates", "designator", "part_of"},
+	"token_occurrence":   {"instantiates", "interval", "participants", "locus", "observer"},
+	"state_assertion":    {"subject", "quality", "value", "interval"},
+	"token_causal_claim": {"causes", "effects", "covering_law", "actual_delay", "counterfactual"},
+	// ---- provenance tier ----
+	"assertion":  {"about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp", "evidenced_by"},
 	"enrichment": {"about", "field", "entry", "source", "timestamp"},
 	"retraction": {"retracts", "source", "timestamp"},
 	"succession": {"predecessor", "successor", "timestamp"},
 }
 
-// Prefix maps each kind to its identifier scheme.
-var Prefix = map[string]string{
-	"occurrent":  "occurrent",
-	"causal_relation_object":        "causal_relation_object",
-	"continuant": "continuant",
-	"realizable": "realizable",
-	"assertion":  "assertion",
-	"enrichment": "enrichment",
-	"retraction": "retraction",
-	"succession": "succession",
-}
+// Prefix maps each kind to its identifier scheme; whole-word (P7): the
+// scheme IS the kind string.
+var Prefix = func() map[string]string {
+	out := map[string]string{}
+	for kind := range IdentityFields {
+		out[kind] = kind
+	}
+	return out
+}()
 
 // KindOfPrefix is the inverse of Prefix: identifier scheme to kind.
-var KindOfPrefix = map[string]string{
-	"occurrent": "occurrent",
-	"causal_relation_object": "causal_relation_object",
-	"continuant": "continuant",
-	"realizable": "realizable",
-	"assertion": "assertion",
-	"enrichment": "enrichment",
-	"retraction": "retraction",
-	"succession": "succession",
-}
+var KindOfPrefix = func() map[string]string {
+	out := map[string]string{}
+	for kind := range IdentityFields {
+		out[kind] = kind
+	}
+	return out
+}()
 
 // InferKind infers an object's kind from its type field, id prefix, or
 // shape, exactly as the Python binding does.
@@ -73,6 +81,9 @@ func InferKind(obj map[string]any) (string, error) {
 	has := func(field string) bool {
 		_, present := obj[field]
 		return present
+	}
+	if has("coarse") && has("fine") {
+		return "bridge", nil
 	}
 	if has("causes") && has("effects") {
 		return "causal_relation_object", nil

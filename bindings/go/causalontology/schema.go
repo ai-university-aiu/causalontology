@@ -10,6 +10,7 @@
 package causalontology
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,16 +21,31 @@ import (
 )
 
 // schemaFiles maps each kind to its schema file name under spec/schema.
+// Three token kinds keep their original 1.0.0-reserved file names
+// (individual/token/state); the id scheme is the whole word.
 var schemaFiles = map[string]string{
-	"causal_relation_object":        "cro.schema.json",
-	"occurrent":  "occurrent.schema.json",
-	"continuant": "continuant.schema.json",
-	"realizable": "realizable.schema.json",
-	"assertion":  "assertion.schema.json",
-	"enrichment": "enrichment.schema.json",
-	"retraction": "retraction.schema.json",
-	"succession": "succession.schema.json",
+	"occurrent":              "occurrent.schema.json",
+	"causal_relation_object": "causal_relation_object.schema.json",
+	"continuant":             "continuant.schema.json",
+	"realizable":             "realizable.schema.json",
+	"stratum":                "stratum.schema.json",
+	"bridge":                 "bridge.schema.json",
+	"port":                   "port.schema.json",
+	"conduit":                "conduit.schema.json",
+	"quality":                "quality.schema.json",
+	"token_individual":       "individual.schema.json",
+	"token_occurrence":       "token.schema.json",
+	"state_assertion":        "state.schema.json",
+	"token_causal_claim":     "token_causal_claim.schema.json",
+	"assertion":              "assertion.schema.json",
+	"enrichment":             "enrichment.schema.json",
+	"retraction":             "retraction.schema.json",
+	"succession":             "succession.schema.json",
 }
+
+// schemaBaseURI is the cross-file $ref prefix the schemas use
+// ("https://causalontology.org/schema/<file>.schema.json#/...").
+const schemaBaseURI = "https://causalontology.org/schema/"
 
 // schemaCache holds each parsed schema after its first load.
 var schemaCache = map[string]map[string]any{}
@@ -77,13 +93,19 @@ func resolveSchemaDir() (string, error) {
 		"cannot locate spec/schema: set CAUSALONTOLOGY_ROOT or run inside the repository")
 }
 
-// loadSchema reads and caches the schema for one kind.
+// loadSchema reads and caches the root schema for one kind.
 func loadSchema(kind string) (map[string]any, error) {
 	fileName, known := schemaFiles[kind]
 	if !known {
 		return nil, fmt.Errorf("unknown kind: %q", kind)
 	}
-	if cached, ok := schemaCache[kind]; ok {
+	return loadSchemaFile(fileName)
+}
+
+// loadSchemaFile reads and caches one schema file by name (used both for
+// a kind's root schema and for cross-file $ref resolution).
+func loadSchemaFile(fileName string) (map[string]any, error) {
+	if cached, ok := schemaCache[fileName]; ok {
 		return cached, nil
 	}
 	dir, err := resolveSchemaDir()
@@ -98,7 +120,7 @@ func loadSchema(kind string) (map[string]any, error) {
 	if !ok {
 		return nil, fmt.Errorf("schema %s is not a JSON object", fileName)
 	}
-	schemaCache[kind] = schema
+	schemaCache[fileName] = schema
 	return schema, nil
 }
 
@@ -115,43 +137,97 @@ func compiledPattern(pattern string) (*regexp.Regexp, error) {
 	return re, nil
 }
 
-// resolveRef follows local $ref chains ("#/$defs/...") within the root
-// schema document.
-func resolveRef(schema, root map[string]any) (map[string]any, error) {
+// navigate follows a JSON Pointer (slash-separated, leading empty parts
+// skipped) from a document to a nested schema node.
+func navigate(doc map[string]any, pointer string) (map[string]any, error) {
+	var node any = doc
+	for _, part := range strings.Split(pointer, "/") {
+		if part == "" {
+			continue
+		}
+		container, isObject := node.(map[string]any)
+		if !isObject {
+			return nil, fmt.Errorf("bad $ref path at %q", part)
+		}
+		next, found := container[part]
+		if !found {
+			return nil, fmt.Errorf("unresolved $ref part: %q", part)
+		}
+		node = next
+	}
+	target, isObject := node.(map[string]any)
+	if !isObject {
+		return nil, fmt.Errorf("$ref target is not a schema object")
+	}
+	return target, nil
+}
+
+// resolveRef follows local ("#/$defs/...") and cross-file
+// ("https://causalontology.org/schema/<file>#/...") $ref chains, returning
+// the concrete schema node and the root document it lives in (which
+// changes across a cross-file hop, so nested local refs resolve correctly).
+func resolveRef(schema, root map[string]any) (map[string]any, map[string]any, error) {
 	for {
 		refRaw, present := schema["$ref"]
 		if !present {
-			return schema, nil
+			return schema, root, nil
 		}
 		ref, ok := refRaw.(string)
-		if !ok || !strings.HasPrefix(ref, "#/") {
-			return nil, fmt.Errorf("only local $ref supported: %v", refRaw)
+		if !ok {
+			return nil, nil, fmt.Errorf("$ref must be a string: %v", refRaw)
 		}
-		var node any = root
-		for _, part := range strings.Split(ref[2:], "/") {
-			container, isObject := node.(map[string]any)
-			if !isObject {
-				return nil, fmt.Errorf("bad $ref path: %s", ref)
+		switch {
+		case strings.HasPrefix(ref, "#/"):
+			target, err := navigate(root, ref[2:])
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %w", ref, err)
 			}
-			next, found := container[part]
-			if !found {
-				return nil, fmt.Errorf("unresolved $ref: %s", ref)
+			schema = target
+		case strings.HasPrefix(ref, schemaBaseURI):
+			rest := ref[len(schemaBaseURI):]
+			fileName, pointer, _ := strings.Cut(rest, "#/")
+			loaded, err := loadSchemaFile(fileName)
+			if err != nil {
+				return nil, nil, err
 			}
-			node = next
+			root = loaded
+			if pointer == "" {
+				schema = loaded
+			} else {
+				target, err := navigate(root, pointer)
+				if err != nil {
+					return nil, nil, fmt.Errorf("%s: %w", ref, err)
+				}
+				schema = target
+			}
+		default:
+			return nil, nil, fmt.Errorf("unsupported $ref: %q", ref)
 		}
-		target, isObject := node.(map[string]any)
-		if !isObject {
-			return nil, fmt.Errorf("$ref target is not a schema: %s", ref)
-		}
-		schema = target
 	}
 }
 
 // isNumberValue reports whether a value is a JSON number in this
 // binding's value model (never a bool, which is its own type in Go).
 func isNumberValue(value any) bool {
+	if _, isBool := value.(bool); isBool {
+		return false
+	}
 	_, ok := AsFloat(value)
 	return ok
+}
+
+// isIntegerValue reports whether a value is a JSON integer in this
+// binding's value model: an integer-literal json.Number, or a Go int; a
+// bool (its own type) and a decimal are not integers, matching Python's
+// isinstance(value, int) and not isinstance(value, bool).
+func isIntegerValue(value any) bool {
+	switch n := value.(type) {
+	case int, int64:
+		return true
+	case json.Number:
+		return IsIntegerNumber(n)
+	}
+	return false
 }
 
 // checkSchema validates one value against one (sub)schema, appending
@@ -159,11 +235,12 @@ func isNumberValue(value any) bool {
 // schema problems (bad $ref, uncompilable pattern), not validation
 // failures.
 func checkSchema(value any, schema, root map[string]any, path string, reasons *[]string) error {
-	resolved, err := resolveRef(schema, root)
+	resolved, resolvedRoot, err := resolveRef(schema, root)
 	if err != nil {
 		return err
 	}
 	schema = resolved
+	root = resolvedRoot
 
 	if oneOfRaw, present := schema["oneOf"]; present {
 		branches, _ := oneOfRaw.([]any)
@@ -202,6 +279,8 @@ func checkSchema(value any, schema, root map[string]any, path string, reasons *[
 			_, ok = value.(bool)
 		case "number":
 			ok = isNumberValue(value)
+		case "integer":
+			ok = isIntegerValue(value)
 		}
 		if !ok {
 			*reasons = append(*reasons, fmt.Sprintf("%s: expected %s", path, typeName))
