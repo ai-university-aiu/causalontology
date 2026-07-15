@@ -92,8 +92,8 @@ const croId: string = co.identify(cro);
 
 const version: string = co.__version__;
 const identityFields: readonly string[] = co.IDENTITY_FIELDS.assertion;
-const croPrefix: co.IdPrefix = co.PREFIX.cro;
-const occKind: co.Kind = co.KIND_OF_PREFIX.occ;
+const croPrefix: co.IdPrefix = co.PREFIX.causal_relation_object;
+const occKind: co.Kind = co.KIND_OF_PREFIX.occurrent;
 const jcsText: string = co._jcs({ b: 1, a: [true, null, "x"] });
 
 /* ---------------------------------------------------------------- *

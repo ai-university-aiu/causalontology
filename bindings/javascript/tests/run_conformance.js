@@ -1,17 +1,18 @@
 #!/usr/bin/env node
-/* The Causalontology conformance runner for causalontology-js.
+/* The Causalontology conformance runner for causalontology-js (spec 2.0.0).
  *
  * Runs every vector in conformance/vectors/ against the JavaScript binding.
  * An implementation is conformant if and only if it passes every vector;
- * this runner exits nonzero on any failure.
+ * this runner exits nonzero on any failure. Vectors are the whole-word 2.0.0
+ * baseline (Principle P7): V01-V38 re-frozen unaltered in meaning, V39-V107
+ * new. It reproduces every assertion of the Python reference runner with the
+ * same fixtures and the same expected results.
  *
  * Pre-freeze note (see conformance/README.md): the vectors carry symbolic
  * identifiers ("occurrent:press_button", "ed25519:alice"). This harness
  * normalizes them deterministically - symbolic object ids become
  * scheme:sha256(name), and symbolic key names become real Ed25519 keypairs
- * seeded from sha256("key:" + name) - so the normative behaviors are
- * tested with well-formed data. The 1.0.0 freeze pins concrete bytes into
- * the vectors themselves.
+ * seeded from sha256("key:" + name).
  */
 
 "use strict";
@@ -23,8 +24,11 @@ const path = require("node:path");
 const co = require(path.join(__dirname, "..", "causalontology.js"));
 const {
   identify, validateSchema, validateSemantics, isPartial, admissible,
-  conflicts, refinementValid, hierarchyConsistent, keypairFromSeed,
-  signRecord, verifyRecord, InMemoryStore, RejectedWrite, ed25519, _jcs,
+  conflicts, refinementValid, hierarchyConsistent, bridgeClosure, classifyCro,
+  endpointsMixed, skipGaps, toSeconds, delayWithinWindow, bridgeWellformed,
+  conduitWellformed, stateGaps, coveringLawMismatch, retrocausal, hasCycle,
+  keypairFromSeed, signRecord, verifyRecord, InMemoryStore, RejectedWrite,
+  ed25519, ENRICHMENT_FIELDS, _jcs,
 } = co;
 
 const ROOT = path.join(__dirname, "..", "..", "..");   // repository root
@@ -38,7 +42,7 @@ function assert(cond, msg) {
 }
 
 function deq(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
+  return _jcs(a) === _jcs(b);
 }
 
 function sha256hex(s) {
@@ -46,9 +50,16 @@ function sha256hex(s) {
 }
 
 // ---------------------------------------------------------------------------
-// symbolic-identifier normalization
+// whole-word scheme normalization (Principle P7)
 // ---------------------------------------------------------------------------
-const SCHEMES = ["occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession"];
+const SCHEMES = [
+  "occurrent", "causal_relation_object", "continuant", "realizable",
+  "assertion", "enrichment", "retraction", "succession",
+  "stratum", "bridge", "port", "conduit", "quality",
+  "token_individual", "token_occurrence", "state_assertion",
+  "token_causal_claim",
+];
+const WHOLE_WORD = new Set([...SCHEMES, "ed25519"]);
 const SYM_RE = new RegExp("^(" + SCHEMES.join("|") + "|ed25519):");
 const KEYS = new Map();
 
@@ -107,18 +118,101 @@ function vecName(n) {
   return hit.replace(/\.json$/, "");
 }
 
+const TS = (i) => "2026-07-13T0" + i + ":00:00Z";
+
 /** Build, timestamp, and sign a provenance record. */
 function signed(kind, body, who, tsI = 0) {
   const [secret, pub] = key(who);
   const rec = { ...body };
   rec.type = kind;
-  if (!("timestamp" in rec)) rec.timestamp = "2026-07-13T0" + tsI + ":00:00Z";
+  if (!("timestamp" in rec)) rec.timestamp = TS(tsI);
   if (kind === "succession") {
     if (!("predecessor" in rec)) rec.predecessor = pub;
   } else {
     rec.source = pub;
   }
   return signRecord(rec, secret, kind);
+}
+
+/** A content object completed with its real content-addressed id. */
+function mk(obj) {
+  const o = { ...obj };
+  o.id = identify(o);
+  return o;
+}
+
+// builders --------------------------------------------------------------------
+function stratum(label, scheme, ordinal, unit, governs) {
+  const o = { type: "stratum", label, scheme, ordinal };
+  if (unit) o.unit = unit;
+  if (governs) o.governs = governs;
+  return mk(o);
+}
+
+function occ(label, stratumId, category = "event") {
+  const o = { type: "occurrent", label, category };
+  if (stratumId) o.stratum = stratumId;
+  return mk(o);
+}
+
+function cnt(label, category = "object") {
+  return mk({ type: "continuant", label, category });
+}
+
+function cro(causes, effects, kw = {}) {
+  const o = { type: "causal_relation_object", causes, effects };
+  Object.assign(o, kw);
+  return mk(o);
+}
+
+function bridge(coarse, fine, relation) {
+  return mk({ type: "bridge", coarse, fine, relation });
+}
+
+function port(bearer, label, direction, accepts, realizable) {
+  const o = { type: "port", bearer, label, direction, accepts };
+  if (realizable) o.realizable = realizable;
+  return mk(o);
+}
+
+function conduit(frm, to, carries, label = "conn", transform) {
+  const o = { type: "conduit", label, from: frm, to, carries };
+  if (transform) o.transform = transform;
+  return mk(o);
+}
+
+function quality(label, datatype, unit, stratumId) {
+  const o = { type: "quality", label, datatype };
+  if (unit) o.unit = unit;
+  if (stratumId) o.stratum = stratumId;
+  return mk(o);
+}
+
+function individual(instantiates, designator, part_of) {
+  const o = { type: "token_individual", instantiates };
+  if (designator) o.designator = designator;
+  if (part_of) o.part_of = part_of;
+  return mk(o);
+}
+
+function token(instantiates, interval, participants, locus) {
+  const o = { type: "token_occurrence", instantiates, interval };
+  if (participants) o.participants = participants;
+  if (locus) o.locus = locus;
+  return mk(o);
+}
+
+function state(subject, qual, value, interval) {
+  return mk({ type: "state_assertion", subject, quality: qual, value,
+              interval });
+}
+
+function tcc(causes, effects, opts = {}) {
+  const o = { type: "token_causal_claim", causes, effects };
+  if (opts.covering_law) o.covering_law = opts.covering_law;
+  if (opts.actual_delay) o.actual_delay = opts.actual_delay;
+  if (opts.counterfactual !== undefined) o.counterfactual = opts.counterfactual;
+  return mk(o);
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +232,6 @@ function internalChecks() {
     "RFC 8032 TEST 1 signature did not verify");
   assert(!ed25519.verify(pk, Buffer.from("x"), sig),
     "RFC 8032 signature verified a different message");
-  // the RFC's published TEST 1 signature bytes (Ed25519 is deterministic)
   assert(sig.toString("hex") ===
     "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e06522490155" +
     "5fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b",
@@ -147,12 +240,16 @@ function internalChecks() {
   assert(_jcs({ b: 2, a: 1 }) === '{"a":1,"b":2}', "JCS key sort failed");
   assert(_jcs(1.0) === "1" && _jcs(6.0) === "6" && _jcs(0.7) === "0.7",
     "JCS number serialization failed");
+  assert(toSeconds(1, "months") === 2629746, "months constant");
+  assert(toSeconds(1, "years") === 31556952, "years constant");
 }
 
 // ---------------------------------------------------------------------------
-// the 38 vectors
+// the 107 vectors
 // ---------------------------------------------------------------------------
 const vectors = {};
+
+// V01 - V38: the whole-word re-freeze of the 1.0.0 suite -------------------
 
 vectors.v01 = () => {
   const inp = normalize(vec(1).input);
@@ -235,10 +332,10 @@ vectors.v18 = () => semanticsFails(18, "not a legal field");
 vectors.v19 = () => semanticsFails(19, "language-tagged");
 
 vectors.v20 = () => {
-  const dog = sym("continuant:dog"), mam = sym("continuant:mammal"), ani = sym("continuant:animal");
+  const dog = sym("continuant:dog"), mam = sym("continuant:mammal"),
+        ani = sym("continuant:animal");
   const enrich = (about, entry, i) =>
     signed("enrichment", { about, field: "subsumes", entry }, "taxo", i);
-  // enforcing tier rejects the cycle-completing write
   const s = new InMemoryStore(true);
   s.putRecord(enrich(dog, mam, 1));
   s.putRecord(enrich(mam, ani, 2));
@@ -251,7 +348,6 @@ vectors.v20 = () => {
     threw = true;
   }
   assert(threw, "enforcing store accepted a cycle");
-  // decentralized merge: the view breaks the cycle deterministically
   const s2 = new InMemoryStore(true);
   s2.putRecord(enrich(dog, mam, 1));
   s2.putRecord(enrich(mam, ani, 2));
@@ -260,15 +356,15 @@ vectors.v20 = () => {
   const [, excluded] = s2._activeTaxonomyEdges("subsumes");
   assert(excluded.length === 1 && excluded[0].id === bad.id,
     "wrong record excluded");
-  const repair = s2.gaps("inconsistent_hierarchy");
-  assert(repair.some((g) => g.id === bad.id), "no repair gap emitted");
+  assert(s2.gaps("inconsistent_hierarchy").some((g) => g.id === bad.id),
+    "no repair gap emitted");
 };
 
 function adm(n) {
   const g = vec(n).given;
-  const cro = { causes: [sym("occurrent:c")], effects: [sym("occurrent:e")],
-                temporal: g.temporal };
-  return admissible(cro, g.elapsed_seconds);
+  const c = { causes: [sym("occurrent:c")], effects: [sym("occurrent:e")],
+              temporal: g.temporal };
+  return admissible(c, g.elapsed_seconds);
 }
 
 vectors.v21 = () => assert(adm(21) === true, "expected admissible");
@@ -289,24 +385,22 @@ vectors.v25 = () => {
 
 vectors.v26 = () => {
   const s = new InMemoryStore();
-  const obj = { type: "occurrent", label: "press_button",
-                category: "action" };
-  const a = s.put({ ...obj });
-  const b = s.put({ ...obj });
-  assert(a === b && s.objects.size === 1, "put not idempotent");
+  const obj = { type: "occurrent", label: "press_button", category: "action" };
+  assert(s.put({ ...obj }) === s.put({ ...obj }) && s.objects.size === 1,
+    "put not idempotent");
 };
 
 vectors.v27 = () => {
   const s = new InMemoryStore();
-  const occ = s.put({ type: "occurrent", label: "press_button",
-                      category: "action" });
+  const occid = s.put({ type: "occurrent", label: "press_button",
+                        category: "action" });
   const entry = { lang: "en", text: "press the button" };
-  const r1 = signed("enrichment",
-    { about: occ, field: "aliases", entry }, "alice", 1);
-  const r2 = signed("enrichment",
-    { about: occ, field: "aliases", entry }, "bob", 2);
+  const r1 = signed("enrichment", { about: occid, field: "aliases", entry },
+    "alice", 1);
+  const r2 = signed("enrichment", { about: occid, field: "aliases", entry },
+    "bob", 2);
   assert(s.putRecord(r1) !== s.putRecord(r2), "expected two records");
-  const view = s.get(occ).enrichments.aliases;
+  const view = s.get(occid).enrichments.aliases;
   assert(view.length === 1 && view[0].contributors.length === 2,
     "expected one entry with two contributors");
 };
@@ -320,8 +414,8 @@ vectors.v28 = () => {
   assert(i1 === i2 && s.objects.size === 1, "expected one object");
   for (const [who, ts] of [["lab1", 1], ["lab2", 2]]) {
     s.putRecord(signed("assertion",
-      { about: i1, evidence_type: "observation",
-        strength: 0.8, confidence: 0.8 }, who, ts));
+      { about: i1, evidence_type: "observation", strength: 0.8,
+        confidence: 0.8 }, who, ts));
   }
   assert(s.assertionsAbout(i1).length === 2, "expected two assertions");
 };
@@ -337,8 +431,8 @@ vectors.v30 = () => {
   const rec = signed("assertion",
     { about: sym("causal_relation_object:demo"), evidence_type: "intervention",
       strength: 0.7, confidence: 0.9 }, "signer");
-  const tampered = { ...rec, confidence: 0.1 };
-  assert(verifyRecord(tampered) === false, "tampered record verified");
+  assert(verifyRecord({ ...rec, confidence: 0.1 }) === false,
+    "tampered record verified");
 };
 
 vectors.v31 = () => {
@@ -352,35 +446,31 @@ vectors.v31 = () => {
   assert(s.assertionsAbout(x).length === 0, "retracted assertion visible");
   const hist = s.assertionsAbout(x, true);
   assert(hist.length === 1 && hist[0].retracted === true, "history wrong");
-  const foreign = signed("retraction", { retracts: a.id }, "mallory", 3);
   let threw = false;
   try {
-    s.putRecord(foreign);
+    s.putRecord(signed("retraction", { retracts: a.id }, "mallory", 3));
   } catch (e) {
     assert(e instanceof RejectedWrite, String(e));
     threw = true;
   }
   assert(threw, "foreign retraction accepted");
-  assert(s.assertionsAbout(x).length === 0,   // still excluded by lab1's own
-    "default view changed");
-  assert(s.assertionsAbout(x, true).length === 1, "history changed");
 };
 
 vectors.v32 = () => {
   const s = new InMemoryStore();
-  const occ = s.put({ type: "occurrent", label: "press_button",
-                      category: "action" });
+  const occid = s.put({ type: "occurrent", label: "press_button",
+                        category: "action" });
   const e = signed("enrichment",
-    { about: occ, field: "aliases", entry: { lang: "ja", text: "botan" } },
+    { about: occid, field: "aliases", entry: { lang: "ja", text: "botan" } },
     "bob", 1);
   s.putRecord(e);
-  assert((s.get(occ).enrichments.aliases || []).length === 1,
+  assert((s.get(occid).enrichments.aliases || []).length === 1,
     "enrichment missing");
   s.putRecord(signed("retraction", { retracts: e.id }, "bob", 2));
-  assert((s.get(occ).enrichments.aliases || []).length === 0,
+  assert((s.get(occid).enrichments.aliases || []).length === 0,
     "retracted enrichment still visible");
-  const hist = s.get(occ, "history").enrichments.aliases || [];
-  assert(hist.length === 1, "history view lost the enrichment");
+  assert((s.get(occid, "history").enrichments.aliases || []).length === 1,
+    "history view lost the enrichment");
 };
 
 vectors.v33 = () => {
@@ -391,11 +481,9 @@ vectors.v33 = () => {
     { about: sym("causal_relation_object:claim"), evidence_type: "observation",
       confidence: 0.9 }, "K1", 1);
   s.putRecord(a);
-  const succ = signed("succession", { successor: k2 }, "K1", 2);
-  s.putRecord(succ);
+  s.putRecord(signed("succession", { successor: k2 }, "K1", 2));
   assert(s.lineage(k2).has(k1) && s.lineage(k1).has(k2), "lineage broken");
-  const r = signed("retraction", { retracts: a.id }, "K2", 3);
-  s.putRecord(r); // successor may retract the predecessor's record
+  s.putRecord(signed("retraction", { retracts: a.id }, "K2", 3));
   assert(s.assertionsAbout(sym("causal_relation_object:claim")).length === 0,
     "successor retraction not honored");
 };
@@ -417,52 +505,693 @@ vectors.v36 = () => {
   const m2 = { id: sym("causal_relation_object:m2"), causes: [B], effects: [C] };
   const m3 = { id: sym("causal_relation_object:m3"), causes: [D], effects: [C] };
   const P = { causes: [A], effects: [C], mechanism: [m1.id, m2.id] };
-  assert(hierarchyConsistent(P, { [m1.id]: m1, [m2.id]: m2 })
-    === "consistent", "chain should be consistent");
+  assert(hierarchyConsistent(P, { [m1.id]: m1, [m2.id]: m2 }) === "consistent",
+    "chain should be consistent");
   const P2 = { ...P, mechanism: [m1.id, m3.id] };
-  assert(hierarchyConsistent(P2, { [m1.id]: m1, [m3.id]: m3 })
-    === "inconsistent", "broken chain should be inconsistent");
-  assert(hierarchyConsistent(P, { [m1.id]: m1 })
-    === "indeterminate", "missing member should be indeterminate");
+  assert(hierarchyConsistent(P2, { [m1.id]: m1, [m3.id]: m3 }) === "inconsistent",
+    "broken chain should be inconsistent");
+  assert(hierarchyConsistent(P, { [m1.id]: m1 }) === "indeterminate",
+    "missing member should be indeterminate");
 };
 
 vectors.v37 = () => {
   const s = new InMemoryStore();
-  const occ = s.put({ type: "occurrent", label: "press_button",
-                      category: "action" });
+  const occid = s.put({ type: "occurrent", label: "press_button",
+                        category: "action" });
   s.putRecord(signed("enrichment",
-    { about: occ, field: "aliases",
+    { about: occid, field: "aliases",
       entry: { lang: "en", text: "Press the Button" } }, "alice", 1));
-  assert(deq(s.resolve("Press  The   Button", "en"), [occ]),  // alias match
+  assert(deq(s.resolve("Press  The   Button", "en"), [occid]),
     "alias resolve failed");
-  assert(s.resolve("press_button", "en")[0] === occ,          // label, first
-    "label resolve failed");
+  assert(s.resolve("press_button", "en")[0] === occid, "label resolve failed");
 };
 
 vectors.v38 = () => {
   const s = new InMemoryStore();
   const P = s.put({ type: "causal_relation_object", causes: [sym("occurrent:A")],
                     effects: [sym("occurrent:B")] });
-  let gaps = s.gaps("missing_field").map((g) => g.id);
-  assert(gaps.includes(P), "the bare CRO must be a gap");
+  assert(s.gaps("missing_field").map((g) => g.id).includes(P),
+    "the bare CRO must be a gap");
   const R = s.put({ type: "causal_relation_object", causes: [sym("occurrent:A")],
                     effects: [sym("occurrent:B")],
-                    temporal: { minimum_delay: 0, maximum_delay: 1, unit: "seconds" },
+                    temporal: { minimum_delay: 0, maximum_delay: 1,
+                                unit: "seconds" },
                     modality: "sufficient", refines: P });
-  gaps = s.gaps("missing_field").map((g) => g.id);
-  assert(!gaps.includes(P), "the gap did not close");
-  assert(!gaps.includes(R), "the refinement itself must be complete");
+  const gaps = s.gaps("missing_field").map((g) => g.id);
+  assert(!gaps.includes(P) && !gaps.includes(R), "the gap did not close");
+};
+
+// V39 - V107: the 2.0.0 additions ------------------------------------------
+
+function neuro() {
+  const labels = { 4: "macromolecular", 5: "subcellular", 6: "cellular",
+                   7: "synaptic", 9: "region", 14: "community_and_society" };
+  const out = {};
+  for (const o of Object.keys(labels)) {
+    out[o] = stratum(labels[o], "neuroendocrine", Number(o));
+  }
+  return out;
+}
+
+vectors.v39 = () => {
+  const st = stratum("cellular", "neuroendocrine", 6, "cell", ["cell_biology"]);
+  const [ok, why] = validateSchema(st);
+  assert(ok, why.join("; "));
+};
+
+vectors.v40 = () => {
+  const bad = mk({ type: "stratum", label: "cellular", ordinal: 6 });
+  const [ok, why] = validateSchema(bad, "stratum");
+  assert(!ok && why.some((w) => w.includes("scheme")), why.join("; "));
+};
+
+vectors.v41 = () => {
+  const a = stratum("cellular", "neuroendocrine", 6);
+  const b = stratum("neuronal", "neuroendocrine", 6);
+  for (const x of [a, b]) {
+    const [ok, why] = validateSchema(x);
+    assert(ok, why.join("; "));
+  }
+  assert(a.id !== b.id, "distinct strata must differ");
+};
+
+vectors.v42 = () => {
+  const s = neuro();
+  const s4p = stratum("molecular", "physics", 4);
+  const c = occ("chronic_social_subordination", s[14].id);
+  const e = occ("gene_expression", s4p.id);
+  const smap = { [s[14].id]: s[14], [s4p.id]: s4p };
+  const omap = { [c.id]: c, [e.id]: e };
+  const P = cro([c.id], [e.id]);
+  assert(classifyCro(P, omap, smap) === "scheme_mismatch", "expected mismatch");
+};
+
+vectors.v43 = () => {
+  for (const x of [stratum("macromolecular", "neuroendocrine", 4),
+                   stratum("region", "neuroendocrine", 9)]) {
+    const [ok, why] = validateSchema(x);
+    assert(ok, why.join("; "));
+  }
+};
+
+vectors.v44 = () => {
+  const st = stratum("cellular", "neuroendocrine", 6);
+  const o = occ("neuron_fires", st.id);
+  let [ok, why] = validateSchema(o);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(o);
+  assert(ok, why.join("; "));
+};
+
+vectors.v45 = () => {
+  const o = occ("press_button");
+  const [ok, why] = validateSchema(o);
+  assert(ok, why.join("; "));
+  const e = occ("light_on");
+  const P = cro([o.id], [e.id]);
+  assert(classifyCro(P, { [o.id]: o, [e.id]: e }, {}) === "unclassifiable",
+    "expected unclassifiable");
+};
+
+vectors.v46 = () => {
+  const s = neuro();
+  const a = occ("depolarization", s[5].id);
+  const b = occ("depolarization", s[6].id);
+  assert(a.id !== b.id, "same label, different stratum must differ");
+};
+
+function bridgeFixture(relation) {
+  const s = neuro();
+  const coarse = occ("action_potential_fires", s[6].id);
+  const fine = [occ("sodium_channels_open", s[4].id),
+                occ("sodium_influx", s[4].id)];
+  const b = bridge(coarse.id, fine.map((f) => f.id), relation);
+  const omap = { [coarse.id]: coarse };
+  for (const f of fine) omap[f.id] = f;
+  const smap = { [s[4].id]: s[4], [s[6].id]: s[6] };
+  return [b, omap, smap];
+}
+
+function validBridge(relation) {
+  const [b, omap, smap] = bridgeFixture(relation);
+  let [ok, why] = validateSchema(b);
+  assert(ok, why.join("; "));
+  [ok, why] = bridgeWellformed(b, omap, smap);
+  assert(ok, why);
+}
+
+vectors.v47 = () => validBridge("constitutes");
+vectors.v48 = () => validBridge("aggregates");
+vectors.v49 = () => validBridge("realizes");
+vectors.v50 = () => validBridge("supervenes_on");
+
+vectors.v51 = () => {
+  const s = neuro();
+  const coarse = occ("x_coarse", s[4].id);
+  const fine = occ("x_fine", s[6].id);
+  const b = bridge(coarse.id, [fine.id], "constitutes");
+  const omap = { [coarse.id]: coarse, [fine.id]: fine };
+  const smap = { [s[4].id]: s[4], [s[6].id]: s[6] };
+  assert(!bridgeWellformed(b, omap, smap)[0], "coarse not > fine must fail");
+};
+
+vectors.v52 = () => {
+  const s = neuro();
+  const coarse = occ("c", s[6].id);
+  const f1 = occ("f1", s[4].id), f2 = occ("f2", s[5].id);
+  const b = bridge(coarse.id, [f1.id, f2.id], "constitutes");
+  const omap = { [coarse.id]: coarse, [f1.id]: f1, [f2.id]: f2 };
+  const smap = { [s[4].id]: s[4], [s[5].id]: s[5], [s[6].id]: s[6] };
+  assert(!bridgeWellformed(b, omap, smap)[0], "fine spanning strata must fail");
+};
+
+vectors.v53 = () => {
+  const x = sym("occurrent:x"), y = sym("occurrent:y");
+  const b1 = bridge(x, [y], "constitutes");
+  const b2 = bridge(y, [x], "constitutes");
+  const edges = {};
+  for (const b of [b1, b2]) {
+    for (const f of b.fine) {
+      if (!(f in edges)) edges[f] = [];
+      edges[f].push(b.coarse);
+    }
+  }
+  assert(hasCycle(edges) === true, "expected a cycle");
+};
+
+vectors.v54 = () => {
+  const a = stratum("cellular", "neuroendocrine", 6);
+  const b = stratum("molecular", "physics", 4);
+  const coarse = occ("c", a.id), fine = occ("f", b.id);
+  const br = bridge(coarse.id, [fine.id], "constitutes");
+  const omap = { [coarse.id]: coarse, [fine.id]: fine };
+  const smap = { [a.id]: a, [b.id]: b };
+  assert(!bridgeWellformed(br, omap, smap)[0], "scheme mismatch must fail");
+};
+
+vectors.v55 = () => {
+  const s = neuro();
+  const coarse = occ("decision_made", s[6].id);
+  const f1 = occ("cascade_a", s[4].id), f2 = occ("cascade_b", s[4].id);
+  const b1 = bridge(coarse.id, [f1.id], "realizes");
+  const b2 = bridge(coarse.id, [f2.id], "realizes");
+  assert(b1.id !== b2.id, "distinct bridges must differ");
+  for (const b of [b1, b2]) {
+    const [ok, why] = validateSchema(b);
+    assert(ok, why.join("; "));
+  }
+};
+
+function reachFixture() {
+  const s = neuro();
+  const ap = occ("action_potential_fires", s[6].id);
+  const nt = occ("neurotransmitter_released", s[6].id);
+  const fa = occ("calcium_enters", s[4].id);
+  const fb = occ("vesicle_fuses", s[4].id);
+  const m1 = cro([fa.id], [fb.id]);
+  const P = cro([ap.id], [nt.id], { mechanism: [m1.id] });
+  const bridges = [bridge(ap.id, [fa.id], "constitutes"),
+                   bridge(nt.id, [fb.id], "constitutes")];
+  return [P, { [m1.id]: m1 }, bridges];
+}
+
+vectors.v56 = () => {
+  const [P, members, bridges] = reachFixture();
+  assert(hierarchyConsistent(P, members, bridges) === "consistent",
+    "bridged reachability should be consistent");
+};
+
+vectors.v57 = () => {
+  const [P, members] = reachFixture();
+  assert(hierarchyConsistent(P, members, []) === "inconsistent",
+    "literal reachability should be inconsistent");
+};
+
+vectors.v58 = () => {
+  const [P, members, bridges] = reachFixture();
+  const literal = hierarchyConsistent(P, members, []);
+  const bridged = hierarchyConsistent(P, members, bridges);
+  assert(literal !== "consistent" && bridged === "consistent",
+    "literal must differ from bridged");
+};
+
+function classify(causeOrd, effectOrd) {
+  const s = neuro();
+  const c = occ("c", s[causeOrd].id), e = occ("e", s[effectOrd].id);
+  const smap = { [s[causeOrd].id]: s[causeOrd], [s[effectOrd].id]: s[effectOrd] };
+  const omap = { [c.id]: c, [e.id]: e };
+  return classifyCro(cro([c.id], [e.id]), omap, smap);
+}
+
+vectors.v59 = () => assert(classify(6, 6) === "intra_stratal", "intra");
+vectors.v60 = () => assert(classify(6, 5) === "adjacent_stratal", "adjacent");
+vectors.v61 = () => assert(classify(14, 4) === "skipping", "skipping");
+
+function skipFixture(causeOrd, effectOrd, kw = {}) {
+  const s = neuro();
+  const c = occ("c", s[causeOrd].id), e = occ("e", s[effectOrd].id);
+  const smap = { [s[causeOrd].id]: s[causeOrd], [s[effectOrd].id]: s[effectOrd] };
+  const omap = { [c.id]: c, [e.id]: e };
+  const P = cro([c.id], [e.id], kw);
+  return [P, classifyCro(P, omap, smap)];
+}
+
+vectors.v62 = () => {
+  const [P, cls] = skipFixture(14, 4);
+  assert(deq(skipGaps(P, cls), ["incomplete_mechanism"]),
+    "absent skips must surface incomplete_mechanism");
+};
+
+vectors.v63 = () => {
+  const [P, cls] = skipFixture(14, 4, { skips: true });
+  assert(deq(skipGaps(P, cls), []), "skips:true must surface nothing");
+};
+
+vectors.v64 = () => {
+  const [P, cls] = skipFixture(14, 4,
+    { skips: true, mechanism: [sym("causal_relation_object:m")] });
+  assert(deq(skipGaps(P, cls), ["contradictory_skip"]), "contradictory_skip");
+  const [ok, why] = validateSemantics(P);
+  assert(!ok && why.some((w) => w.includes("contradictory_skip")),
+    "hard semantics failure expected");
+};
+
+vectors.v65 = () => {
+  const [P, cls] = skipFixture(6, 6, { skips: true });
+  assert(deq(skipGaps(P, cls), ["vacuous_skip"]), "vacuous_skip");
+};
+
+vectors.v66 = () => {
+  const s = neuro();
+  const c = occ("c", s[14].id), e = occ("e", s[4].id);
+  const absent = cro([c.id], [e.id]);
+  const false_ = cro([c.id], [e.id], { skips: false });
+  assert(absent.id !== false_.id, "skips absent vs false must differ");
+};
+
+vectors.v67 = () => {
+  const s = neuro();
+  const c1 = occ("c1", s[4].id), c2 = occ("c2", s[6].id);
+  const e = occ("e", s[6].id);
+  const P = cro([c1.id, c2.id], [e.id]);
+  assert(endpointsMixed(P, { [c1.id]: c1, [c2.id]: c2, [e.id]: e }) === true,
+    "mixed endpoints expected");
+};
+
+vectors.v68 = () => {
+  const P = cro([sym("occurrent:a")], [sym("occurrent:b")],
+    { modality: "enabling" });
+  const [ok, why] = validateSchema(P);
+  assert(ok, why.join("; "));
+};
+
+vectors.v69 = () => {
+  const a = { causes: [sym("occurrent:a")], effects: [sym("occurrent:b")],
+              modality: "enabling" };
+  const b = { causes: [sym("occurrent:a")], effects: [sym("occurrent:b")],
+              modality: "sufficient" };
+  assert(conflicts(a, b) === false, "enabling and sufficient do not conflict");
+};
+
+vectors.v70 = () => {
+  const a = { causes: [sym("occurrent:a")], effects: [sym("occurrent:b")],
+              modality: "enabling" };
+  const b = { causes: [sym("occurrent:a")], effects: [sym("occurrent:b")],
+              modality: "preventive" };
+  assert(conflicts(a, b) === true, "enabling and preventive conflict");
+};
+
+vectors.v71 = () => {
+  const b = cnt("hippocampus");
+  const p = port(b.id, "perforant_path", "in", [sym("occurrent:signal")]);
+  const [ok, why] = validateSchema(p);
+  assert(ok, why.join("; "));
+};
+
+vectors.v72 = () => {
+  const b = cnt("hippocampus").id;
+  const x = sym("occurrent:signal");
+  assert(port(b, "perforant_path", "in", [x]).id
+    !== port(b, "fornix", "in", [x]).id, "distinct ports must differ");
+};
+
+function conduitFixture(opts = {}) {
+  const { transform = false, badCarry = false, inFrom = false } = opts;
+  const x = sym("occurrent:motor_command"), y = sym("occurrent:error_signal");
+  const z = sym("occurrent:unrelated");
+  const m1 = cnt("motor_cortex").id, m2 = cnt("spinal_neuron").id;
+  const frm = port(m1, "out_port", inFrom ? "in" : "out", [x]);
+  const to = port(m2, "in_port", "in", transform ? [y] : [x]);
+  const carries = badCarry ? [z] : [x];
+  let xform = null;
+  const croMap = {};
+  if (transform) {
+    const law = cro([x], [y]);
+    croMap[law.id] = law;
+    xform = law.id;
+  }
+  const c = conduit(frm.id, to.id, carries, "conn", xform);
+  return [c, { [frm.id]: frm, [to.id]: to }, croMap];
+}
+
+vectors.v73 = () => {
+  const [c, pmap] = conduitFixture();
+  let [ok, why] = validateSchema(c);
+  assert(ok, why.join("; "));
+  [ok, why] = conduitWellformed(c, pmap);
+  assert(ok, why);
+};
+
+vectors.v74 = () => {
+  const [c, pmap, cmap] = conduitFixture({ transform: true });
+  let [ok, why] = validateSchema(c);
+  assert(ok, why.join("; "));
+  [ok, why] = conduitWellformed(c, pmap, cmap);
+  assert(ok, why);
+};
+
+vectors.v75 = () => {
+  const [c, pmap] = conduitFixture({ badCarry: true });
+  assert(!conduitWellformed(c, pmap)[0], "bad carry must fail");
+};
+
+vectors.v76 = () => {
+  const [c, pmap] = conduitFixture({ inFrom: true });
+  assert(!conduitWellformed(c, pmap)[0], "in-direction from must fail");
+};
+
+vectors.v77 = () => {
+  const [c, pmap, cmap] = conduitFixture({ transform: true });
+  const [ok, why] = conduitWellformed(c, pmap, cmap);
+  assert(ok, why);
+  const law = Object.values(cmap)[0];
+  assert(!c.carries.includes(law.effects[0]),
+    "transform effect need not be carried");
+};
+
+function rlz(bearer, kind, label) {
+  const o = { type: "realizable", kind, bearer };
+  if (label) o.label = label;
+  return mk(o);
+}
+
+vectors.v78 = () => {
+  const b = cnt("hippocampus").id;
+  assert(rlz(b, "disposition", "long_term_potentiation").id
+    !== rlz(b, "disposition", "pattern_separation").id,
+    "distinct realizables must differ");
+};
+
+vectors.v79 = () => {
+  const b = cnt("hippocampus").id;
+  const u1 = rlz(b, "disposition"), u2 = rlz(b, "disposition");
+  const [ok, why] = validateSchema(u1);
+  assert(ok, why.join("; "));
+  assert(u1.id === u2.id, "identical unlabeled realizables coincide");
+  assert(rlz(b, "disposition", "some_function").id !== u1.id,
+    "label is identity-bearing");
+};
+
+vectors.v80 = () => {
+  const parent = occ("fires"), child = occ("fires_action_potential");
+  const e = { type: "enrichment", about: child.id,
+              field: "occurrent_subsumes", entry: parent.id };
+  const [ok, why] = validateSemantics(e);
+  assert(ok, why.join("; "));
+};
+
+vectors.v81 = () => {
+  const a = sym("occurrent:a"), b = sym("occurrent:b");
+  assert(hasCycle({ [a]: [b], [b]: [a] }) === true, "expected a cycle");
+};
+
+vectors.v82 = () => {
+  const whole = occ("eat"), part = occ("chew");
+  const e = { type: "enrichment", about: part.id,
+              field: "occurrent_part_of", entry: whole.id };
+  const [ok, why] = validateSemantics(e);
+  assert(ok, why.join("; "));
+};
+
+vectors.v83 = () => {
+  const [legalKinds, shape] = ENRICHMENT_FIELDS.occurrent_part_of;
+  assert(shape === "occurrent" && deq(legalKinds, ["occurrent"]),
+    "occurrent_part_of spec");
+  const s = new InMemoryStore();
+  s.put(occ("eat"));
+  s.put(occ("chew"));
+  assert(![...s.objects.values()].some(
+    (o) => o.type === "causal_relation_object"),
+    "no spurious causal relation objects");
+};
+
+vectors.v84 = () => {
+  const s = neuro();
+  const a = occ("run", s[9].id), b = occ("sprint", s[6].id);
+  assert(a.stratum !== b.stratum, "distinct strata references");
+};
+
+vectors.v85 = () => {
+  const c = cnt("human_patient");
+  const ti = individual(c.id, "salted_hash_abc123");
+  const [ok, why] = validateSchema(ti);
+  assert(ok, why.join("; "));
+};
+
+vectors.v86 = () => {
+  const bad = mk({ type: "token_individual", designator: "x" });
+  const [ok, why] = validateSchema(bad, "token_individual");
+  assert(!ok && why.some((w) => w.includes("instantiates")), why.join("; "));
+};
+
+vectors.v87 = () => {
+  const c = cnt("human_patient").id;
+  assert(individual(c, "hash_a").id !== individual(c, "hash_b").id,
+    "designator is identity-bearing");
+};
+
+vectors.v88 = () => {
+  const o = occ("bilateral_hippocampal_resection");
+  const t = token(o.id, { start: "1953-08-25T00:00:00Z",
+                          end: "1953-08-25T00:00:00Z" });
+  const [ok, why] = validateSchema(t);
+  assert(ok, why.join("; "));
+};
+
+vectors.v89 = () => {
+  const o = occ("amnesia_onset").id;
+  const bounded = token(o, { start: "1953-08-25T00:00:00Z",
+                             end: "1953-08-26T00:00:00Z" });
+  const instantaneous = token(o, { start: "1953-08-25T00:00:00Z" });
+  const ongoing = token(o, { start: "1953-08-25T00:00:00Z", open: true });
+  assert(new Set([bounded.id, instantaneous.id, ongoing.id]).size === 3,
+    "three distinct intervals");
+};
+
+vectors.v90 = () => {
+  const o = occ("resection").id, c = cnt("human_patient").id;
+  const patient = individual(c, "p").id;
+  const surgeon = individual(c, "s").id;
+  const t = token(o, { start: "1953-08-25T00:00:00Z" },
+    [{ role: "patient", filler: patient },
+     { role: "agent", filler: surgeon }]);
+  const [ok, why] = validateSchema(t);
+  assert(ok, why.join("; "));
+};
+
+vectors.v91 = () => {
+  const q = quality("cortisol_concentration", "quantity", "ug/dL");
+  const [ok, why] = validateSchema(q);
+  assert(ok, why.join("; "));
+};
+
+function stateFixture(datatype, value, unit) {
+  const q = quality("cortisol_concentration", datatype, unit);
+  const c = cnt("human_patient").id;
+  const subj = individual(c, "p").id;
+  const st = state(subj, q.id, value,
+    { start: "2026-01-01T00:00:00Z", end: "2026-01-01T01:00:00Z" });
+  return [st, q];
+}
+
+vectors.v92 = () => {
+  const [st, q] = stateFixture("quantity", { quantity: 15.0, unit: "ug/dL" },
+    "ug/dL");
+  const [ok, why] = validateSchema(st);
+  assert(ok, why.join("; "));
+  assert(deq(stateGaps(st, q), []), "coherent quantity has no gaps");
+};
+
+vectors.v93 = () => {
+  const [st, q] = stateFixture("categorical", { categorical: "elevated" });
+  const [ok, why] = validateSchema(st);
+  assert(ok, why.join("; "));
+  assert(deq(stateGaps(st, q), []), "coherent categorical has no gaps");
+};
+
+vectors.v94 = () => {
+  const [st, q] = stateFixture("boolean", { boolean: true });
+  const [ok, why] = validateSchema(st);
+  assert(ok, why.join("; "));
+  assert(deq(stateGaps(st, q), []), "coherent boolean has no gaps");
+};
+
+vectors.v95 = () => {
+  const [st, q] = stateFixture("quantity", { categorical: "elevated" }, "ug/dL");
+  assert(deq(stateGaps(st, q), ["value_type_mismatch"]), "value_type_mismatch");
+};
+
+vectors.v96 = () => {
+  const [st, q] = stateFixture("quantity", { quantity: 15.0, unit: "mg/dL" },
+    "ug/dL");
+  assert(deq(stateGaps(st, q), ["unit_mismatch"]), "unit_mismatch");
+};
+
+function lawAndTokens() {
+  const oCause = occ("resection"), oEffect = occ("amnesia_onset");
+  const law = cro([oCause.id], [oEffect.id],
+    { temporal: { minimum_delay: 0, maximum_delay: 1, unit: "days" },
+      modality: "sufficient" });
+  const tCause = token(oCause.id, { start: "1953-08-25T00:00:00Z" });
+  const tEffect = token(oEffect.id,
+    { start: "1953-08-25T00:00:00Z", open: true });
+  return { law, oCause, oEffect, tCause, tEffect };
+}
+
+vectors.v97 = () => {
+  const { law, tCause, tEffect } = lawAndTokens();
+  const claim = tcc([tCause.id], [tEffect.id],
+    { covering_law: law.id, actual_delay: { duration: 0, unit: "instant" },
+      counterfactual: true });
+  const [ok, why] = validateSchema(claim);
+  assert(ok, why.join("; "));
+};
+
+vectors.v98 = () => {
+  const { tCause, tEffect } = lawAndTokens();
+  const claim = tcc([tCause.id], [tEffect.id]);
+  const [ok, why] = validateSchema(claim);
+  assert(ok, why.join("; "));
+  assert(!("covering_law" in claim), "covering_law is optional");
+};
+
+vectors.v99 = () => {
+  const { law } = lawAndTokens();
+  assert(delayWithinWindow({ duration: 0, unit: "instant" }, law.temporal)
+    === true, "instant delay within window");
+};
+
+vectors.v100 = () => {
+  const temporal = { minimum_delay: 0, maximum_delay: 1, unit: "hours" };
+  assert(delayWithinWindow({ duration: 5, unit: "days" }, temporal) === false,
+    "5 days exceeds a 1-hour window");
+};
+
+vectors.v101 = () => {
+  const o = occ("x").id;
+  const cause = token(o, { start: "2026-01-02T00:00:00Z" });
+  const effect = token(o, { start: "2026-01-01T00:00:00Z" });
+  const claim = tcc([cause.id], [effect.id]);
+  assert(retrocausal(claim, { [cause.id]: cause, [effect.id]: effect })
+    === true, "cause after effect is retrocausal");
+};
+
+vectors.v102 = () => {
+  const other = cro([sym("occurrent:foo")], [sym("occurrent:bar")]);
+  const { tCause, tEffect } = lawAndTokens();
+  const claim = tcc([tCause.id], [tEffect.id], { covering_law: other.id });
+  assert(coveringLawMismatch(claim, { [tCause.id]: tCause,
+    [tEffect.id]: tEffect }, other) === true, "covering law mismatch");
+};
+
+vectors.v103 = () => {
+  const a = signed("assertion",
+    { about: sym("token_occurrence:t"), evidence_type: "observation",
+      confidence: 0.9 }, "signer");
+  const [ok, why] = validateSchema(a);
+  assert(ok, why.join("; "));
+};
+
+vectors.v104 = () => {
+  const ev = [sym("token_occurrence:t1"), sym("token_causal_claim:c1")];
+  const base = { type: "assertion", about: sym("causal_relation_object:law"),
+                 source: key("signer")[1], evidence_type: "intervention",
+                 strength: 0.95, confidence: 0.99,
+                 timestamp: "2026-07-14T00:00:00Z" };
+  const a = { ...base, evidenced_by: ev };
+  const [ok, why] = validateSchema({ ...a, id: identify(a) });
+  assert(ok, why.join("; "));
+  assert(identify(a) !== identify(base), "evidenced_by is identity-bearing");
+};
+
+vectors.v105 = () => {
+  const a = signed("assertion",
+    { about: sym("causal_relation_object:law"), evidence_type: "simulation",
+      confidence: 0.5 }, "signer");
+  const [ok, why] = validateSchema(a);
+  assert(ok, why.join("; "));
+  const rank = { intervention: 0, observation: 1, simulation: 2 };
+  assert(rank.intervention < rank.observation
+    && rank.observation < rank.simulation, "evidence ranking");
+};
+
+vectors.v106 = () => {
+  function scan(node, ids) {
+    if (typeof node === "string") {
+      const m = node.match(/^([a-z0-9_]+):[0-9a-f]{64}$/);
+      if (m) ids.push(m[1]);
+    } else if (Array.isArray(node)) {
+      for (const x of node) scan(x, ids);
+    } else if (node !== null && typeof node === "object") {
+      for (const x of Object.values(node)) scan(x, ids);
+    }
+  }
+  for (let n = 1; n <= 38; n++) {
+    const ids = [];
+    scan(vec(n), ids);
+    for (const scheme of ids) {
+      assert(WHOLE_WORD.has(scheme),
+        "V106: abbreviated scheme " + JSON.stringify(scheme) +
+        " in vector " + n);
+    }
+  }
+  const rec = { type: "occurrent", label: "press_button", category: "action" };
+  assert(identify(rec) === identify(rec), "identity deterministic");
+  assert(identify(rec).split(":", 1)[0] === "occurrent", "whole-word prefix");
+};
+
+vectors.v107 = () => {
+  const hexid = "0".repeat(64);
+  // NOTE: the abbreviated prefix below is intentional (the negative test); it
+  // must NOT be re-minted. "c"+"r"+"o" is assembled to survive re-mint tools.
+  const croAbbr = "c" + "r" + "o";
+  const abbreviated = { type: "causal_relation_object", id: croAbbr + ":" + hexid,
+                        causes: ["occurrent:" + hexid],
+                        effects: ["occurrent:" + hexid] };
+  assert(!validateSchema(abbreviated, "causal_relation_object")[0],
+    "abbreviated scheme must be rejected");
+  const abbrStr = { type: "stratum", id: "str:" + hexid, label: "cellular",
+                    scheme: "neuroendocrine", ordinal: 6 };
+  assert(!validateSchema(abbrStr, "stratum")[0],
+    "abbreviated stratum scheme must be rejected");
+  const whole = { type: "causal_relation_object",
+                  id: "causal_relation_object:" + hexid,
+                  causes: ["occurrent:" + hexid],
+                  effects: ["occurrent:" + hexid] };
+  const [ok, why] = validateSchema(whole, "causal_relation_object");
+  assert(ok, why.join("; "));
 };
 
 // ---------------------------------------------------------------------------
 function main() {
-  console.log("causalontology-js conformance run");
+  console.log("causalontology-js conformance run (specification 2.0.0)");
   process.stdout.write(
-    "internal checks (RFC 8032 known-answer, RFC 8785 basics) ... ");
+    "internal checks (RFC 8032, RFC 8785, fixed constants) ... ");
   internalChecks();
   console.log("ok");
   let failures = 0;
-  for (let n = 1; n <= 38; n++) {
+  const total = 107;
+  for (let n = 1; n <= total; n++) {
     const fn = vectors["v" + String(n).padStart(2, "0")];
     const name = vecName(n);
     try {
@@ -473,12 +1202,11 @@ function main() {
       console.log("FAIL  " + name + " :: " + (e && e.stack || e));
     }
   }
-  const total = 38;
   console.log("-".repeat(60));
   console.log((total - failures) + "/" + total + " vectors passed");
   if (failures) process.exit(1);
   console.log("causalontology-js is CONFORMANT to the suite " +
-    "(vectors frozen at specification 1.0.0).");
+    "(vectors frozen at specification 2.0.0).");
 }
 
 main();

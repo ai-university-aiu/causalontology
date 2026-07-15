@@ -15,7 +15,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const VERSION = "1.0.0"; // tracks specification version 7 (pre-1.0)
+const VERSION = "2.0.0"; // tracks specification version 2.0.0 (whole-word)
 
 /* ===========================================================================
  * Canonicalization and content-addressed identity (spec/identity.md)
@@ -32,22 +32,35 @@ const VERSION = "1.0.0"; // tracks specification version 7 (pre-1.0)
  */
 
 const IDENTITY_FIELDS = {
-  occurrent: ["label", "category"],
-  cro: ["causes", "effects", "mechanism", "temporal", "modality",
-        "context", "refines"],
+  // ---- type tier ----
+  occurrent: ["label", "category", "stratum"],
+  causal_relation_object: ["causes", "effects", "mechanism", "temporal",
+                           "modality", "context", "refines", "skips"],
   continuant: ["label", "category"],
-  realizable: ["kind", "bearer"],
+  realizable: ["kind", "bearer", "label"],
+  stratum: ["label", "scheme", "ordinal", "unit", "governs"],
+  bridge: ["coarse", "fine", "relation"],
+  port: ["bearer", "label", "direction", "accepts", "realizable"],
+  conduit: ["label", "from", "to", "carries", "transform"],
+  quality: ["label", "datatype", "unit", "stratum"],
+  // ---- token tier ----
+  token_individual: ["instantiates", "designator", "part_of"],
+  token_occurrence: ["instantiates", "interval", "participants",
+                     "locus", "observer"],
+  state_assertion: ["subject", "quality", "value", "interval"],
+  token_causal_claim: ["causes", "effects", "covering_law",
+                       "actual_delay", "counterfactual"],
+  // ---- provenance tier ----
   assertion: ["about", "source", "evidence_type", "evidence", "strength",
-              "confidence", "timestamp"],
+              "confidence", "timestamp", "evidenced_by"],
   enrichment: ["about", "field", "entry", "source", "timestamp"],
   retraction: ["retracts", "source", "timestamp"],
   succession: ["predecessor", "successor", "timestamp"],
 };
 
-const PREFIX = {
-  occurrent: "occurrent", cro: "causal_relation_object", continuant: "continuant", realizable: "realizable",
-  assertion: "assertion", enrichment: "enrichment", retraction: "retraction", succession: "succession",
-};
+// Whole-word re-mint (P7): the scheme IS the type value for every kind.
+const PREFIX = {};
+for (const k of Object.keys(IDENTITY_FIELDS)) PREFIX[k] = k;
 
 const KIND_OF_PREFIX = {};
 for (const [k, v] of Object.entries(PREFIX)) KIND_OF_PREFIX[v] = k;
@@ -63,6 +76,7 @@ function inferKind(obj) {
     const pre = obj.id.split(":", 1)[0];
     if (pre in KIND_OF_PREFIX) return KIND_OF_PREFIX[pre];
   }
+  if ("coarse" in obj && "fine" in obj) return "bridge";
   if ("causes" in obj && "effects" in obj) return "causal_relation_object";
   if ("retracts" in obj) return "retraction";
   if ("predecessor" in obj && "successor" in obj) return "succession";
@@ -264,18 +278,31 @@ function verifyRecord(record, kind) {
  * annotation, as the 2020-12 draft does by default.
  */
 
+// kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+// file names (individual/token/state); the id scheme is the whole word.
 const SCHEMA_FILES = {
-  cro: "cro.schema.json",
   occurrent: "occurrent.schema.json",
+  causal_relation_object: "causal_relation_object.schema.json",
   continuant: "continuant.schema.json",
   realizable: "realizable.schema.json",
+  stratum: "stratum.schema.json",
+  bridge: "bridge.schema.json",
+  port: "port.schema.json",
+  conduit: "conduit.schema.json",
+  quality: "quality.schema.json",
+  token_individual: "individual.schema.json",
+  token_occurrence: "token.schema.json",
+  state_assertion: "state.schema.json",
+  token_causal_claim: "token_causal_claim.schema.json",
   assertion: "assertion.schema.json",
   enrichment: "enrichment.schema.json",
   retraction: "retraction.schema.json",
   succession: "succession.schema.json",
 };
 
+const SCHEMA_BASE = "https://causalontology.org/schema/";
 const schemaCache = {};
+const fileCache = {};
 
 function schemaDir() {
   const env = process.env.CAUSALONTOLOGY_SPEC;
@@ -284,28 +311,51 @@ function schemaDir() {
   return path.join(__dirname, "..", "..", "spec", "schema");
 }
 
+function loadFile(filename) {
+  if (!(filename in fileCache)) {
+    const file = path.join(schemaDir(), filename);
+    fileCache[filename] = JSON.parse(fs.readFileSync(file, "utf-8"));
+  }
+  return fileCache[filename];
+}
+
 function loadSchema(kind) {
   if (!(kind in SCHEMA_FILES)) {
     throw new Error("unknown kind: " + JSON.stringify(kind));
   }
   if (!(kind in schemaCache)) {
-    const file = path.join(schemaDir(), SCHEMA_FILES[kind]);
-    schemaCache[kind] = JSON.parse(fs.readFileSync(file, "utf-8"));
+    schemaCache[kind] = loadFile(SCHEMA_FILES[kind]);
   }
   return schemaCache[kind];
 }
 
+function navigate(doc, pointer) {
+  let node = doc;
+  for (const part of pointer.split("/")) {
+    if (part === "") continue;
+    node = node[part];
+  }
+  return node;
+}
+
+/** Resolve local and cross-file $refs to a concrete schema node + its root. */
 function resolveRef(schema, root) {
   while (schema && typeof schema === "object" && "$ref" in schema) {
     const ref = schema.$ref;
-    if (!ref.startsWith("#/")) {
-      throw new Error("only local $ref supported: " + ref);
+    if (ref.startsWith("#/")) {
+      schema = navigate(root, ref.slice(2));
+    } else if (ref.startsWith(SCHEMA_BASE)) {
+      const rest = ref.slice(SCHEMA_BASE.length);
+      const hash = rest.indexOf("#/");
+      const filename = hash === -1 ? rest : rest.slice(0, hash);
+      const pointer = hash === -1 ? "" : rest.slice(hash + 2);
+      root = loadFile(filename);
+      schema = pointer ? navigate(root, pointer) : root;
+    } else {
+      throw new Error("unsupported $ref: " + ref);
     }
-    let node = root;
-    for (const part of ref.slice(2).split("/")) node = node[part];
-    schema = node;
   }
-  return schema;
+  return [schema, root];
 }
 
 function typeMatches(value, t) {
@@ -314,6 +364,8 @@ function typeMatches(value, t) {
     case "array": return Array.isArray(value);
     case "string": return typeof value === "string";
     case "number": return typeof value === "number";
+    case "integer":
+      return typeof value === "number" && Number.isInteger(value);
     case "boolean": return typeof value === "boolean";
     default: throw new Error("unsupported schema type: " + t);
   }
@@ -329,7 +381,7 @@ function deepEqual(a, b) {
 }
 
 function check(value, schema, root, at, errors) {
-  schema = resolveRef(schema, root);
+  [schema, root] = resolveRef(schema, root);
 
   if ("oneOf" in schema) {
     let passing = 0;
@@ -452,6 +504,8 @@ const ENRICHMENT_FIELDS = {
   subsumes: [["continuant"], "continuant"],
   part_of: [["continuant"], "continuant"],
   realized_in: [["realizable"], "occurrent"],
+  occurrent_subsumes: [["occurrent"], "occurrent"],
+  occurrent_part_of: [["occurrent"], "occurrent"],
 };
 
 const CRO_OPTIONAL_FIELDS = ["mechanism", "temporal", "modality", "context"];
@@ -477,6 +531,13 @@ function validateSemantics(obj, kind) {
     }
     if (oid && obj.refines === oid) {
       errors.push("refines must be acyclic");
+    }
+    // Rule 16, clause 1 (contradictory_skip): a HARD, locally-decidable
+    // contradiction between skips:true and a non-empty mechanism.
+    if (obj.skips === true && Array.isArray(obj.mechanism) &&
+        obj.mechanism.length > 0) {
+      errors.push("contradictory_skip: skips is true but a mechanism " +
+        "is present");
     }
   }
 
@@ -550,7 +611,8 @@ function contextsCompatible(a, b) {
   return setsEqual(sa, sb) || isSubset(sa, sb) || isSubset(sb, sa);
 }
 
-const POSITIVE = new Set(["necessary", "sufficient", "contributory"]);
+const POSITIVE = new Set(["necessary", "sufficient", "contributory",
+                          "enabling"]);
 
 /** Rule 6: the formal conflict test. */
 function conflicts(a, b) {
@@ -589,46 +651,304 @@ function refinementValid(child, parent) {
   return [true, "valid refinement"];
 }
 
-/** Rule 7: 'consistent' | 'inconsistent' | 'indeterminate'.
+/* ===========================================================================
+ * 2.0.0 NORMATIVE ALGORITHMS (Section 12)
+ * ===========================================================================
+ * The five places where an implementation can be subtly and silently wrong,
+ * implemented exactly as the reference (bindings/python) writes them.
+ */
+
+/** ALGORITHM A (bridge_closure). Every finer occurrent an occurrent resolves
+ * to, following Bridges downward, transitively; includes the start (N12.1.1).
+ * The visited guard (N12.1.2) prevents an infinite loop on cyclic data. */
+function bridgeClosure(occurrentId, bridges) {
+  const result = new Set([occurrentId]);
+  const frontier = [occurrentId];
+  const visited = new Set();
+  const coarseIndex = new Map();
+  for (const b of bridges || []) {
+    if (!coarseIndex.has(b.coarse)) coarseIndex.set(b.coarse, []);
+    coarseIndex.get(b.coarse).push(b);
+  }
+  while (frontier.length > 0) {
+    const current = frontier.pop();
+    if (visited.has(current)) continue;
+    visited.add(current);
+    for (const b of coarseIndex.get(current) || []) {
+      for (const f of b.fine) {
+        result.add(f);
+        frontier.push(f);
+      }
+    }
+  }
+  return result;
+}
+
+/** True iff dst is reachable from src in the directed graph `edges`
+ * (Map node -> iterable of successors). */
+function pathExists(edges, src, dst) {
+  const seen = new Set();
+  const stack = [src];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (node === dst) return true;
+    if (seen.has(node)) continue;
+    seen.add(node);
+    for (const next of edges.get(node) || []) stack.push(next);
+  }
+  return false;
+}
+
+/** ALGORITHM B (amended Rule 7): 'consistent' | 'inconsistent' |
+ * 'indeterminate', ACROSS STRATA via bridged reachability.
  *
  * members: a mapping (plain object or Map) from CRO identifier to CRO
- * object for the parent's mechanism entries (the store's view of them).
- */
-function hierarchyConsistent(parent, members) {
+ * object for the mechanism entries. bridges: the store's bridges (empty ->
+ * 1.0.0 literal reachability, the degenerate case, N12.2.3). */
+function hierarchyConsistent(parent, members, bridges = []) {
   const mechanism = parent.mechanism || [];
-  if (mechanism.length === 0) return "consistent"; // nothing claimed
+  if (mechanism.length === 0) return "consistent"; // nothing claimed (N12.2.1)
   const lookup = members instanceof Map
     ? (k) => members.get(k)
     : (k) => members[k];
   const edges = new Map();
   for (const mid of mechanism) {
     const m = lookup(mid);
-    if (m == null) return "indeterminate"; // a dangling_reference gap
+    if (m == null) return "indeterminate"; // dangling; ignorance, not refutation
     for (const c of m.causes) {
       if (!edges.has(c)) edges.set(c, new Set());
       for (const e of m.effects) edges.get(c).add(e);
     }
   }
-
-  function reachable(src, dst) {
-    const seen = new Set();
-    const stack = [src];
-    while (stack.length > 0) {
-      const node = stack.pop();
-      if (node === dst) return true;
-      if (seen.has(node)) continue;
-      seen.add(node);
-      for (const next of edges.get(node) || []) stack.push(next);
-    }
-    return false;
-  }
-
+  const bCause = new Map();
+  for (const c of parent.causes) bCause.set(c, bridgeClosure(c, bridges));
+  const bEffect = new Map();
+  for (const e of parent.effects) bEffect.set(e, bridgeClosure(e, bridges));
   for (const c of parent.causes) {
     for (const e of parent.effects) {
-      if (!reachable(c, e)) return "inconsistent";
+      let connected = false;
+      for (const cp of bCause.get(c)) {
+        for (const ep of bEffect.get(e)) {
+          if (pathExists(edges, cp, ep)) { connected = true; break; }
+        }
+        if (connected) break;
+      }
+      if (!connected) return "inconsistent";
     }
   }
   return "consistent";
+}
+
+/** ALGORITHM C (Rule 15): 'intra_stratal' | 'adjacent_stratal' | 'skipping' |
+ * 'mixed' | 'unclassifiable' | 'scheme_mismatch'. Derived, never asserted. */
+function classifyCro(cro, occMap, stratumMap) {
+  const stratumOf = (occId) =>
+    (occMap[occId] || {}).stratum;
+  const causeStrata = cro.causes.map(stratumOf);
+  const effectStrata = cro.effects.map(stratumOf);
+  if (causeStrata.concat(effectStrata).some((s) => s == null)) {
+    return "unclassifiable"; // surface unstratified_occurrent (invitation)
+  }
+  const allStrata = new Set([...causeStrata, ...effectStrata]);
+  const schemes = new Set();
+  for (const s of allStrata) schemes.add(stratumMap[s].scheme);
+  if (schemes.size > 1) return "scheme_mismatch"; // HARD
+  const cOrd = causeStrata.map((s) => stratumMap[s].ordinal);
+  const eOrd = effectStrata.map((s) => stratumMap[s].ordinal);
+  const maxC = Math.max(...cOrd), minC = Math.min(...cOrd);
+  const maxE = Math.max(...eOrd), minE = Math.min(...eOrd);
+  if (maxC === minC && minC === maxE && maxE === minE) return "intra_stratal";
+  let gap = Infinity, span = -Infinity;
+  for (const i of cOrd) {
+    for (const j of eOrd) {
+      const d = Math.abs(i - j);
+      if (d < gap) gap = d;
+      if (d > span) span = d;
+    }
+  }
+  if (span === 1) return "adjacent_stratal";
+  if (gap > 1) return "skipping";
+  return "mixed"; // some pairs adjacent, some skipping
+}
+
+/** True iff causes or effects span more than one distinct stratum
+ * (surfaces mixed_stratal_endpoints, an invitation; N12.3.2). */
+function endpointsMixed(cro, occMap) {
+  const stratumOf = (occId) => (occMap[occId] || {}).stratum;
+  const cs = new Set(cro.causes.map(stratumOf));
+  const es = new Set(cro.effects.map(stratumOf));
+  if (cs.has(undefined) || es.has(undefined) ||
+      cs.has(null) || es.has(null)) {
+    return false;
+  }
+  return cs.size > 1 || es.size > 1;
+}
+
+/** ALGORITHM D (Rule 16): the gaps a Causal Relation Object surfaces for the
+ * skip decision. THE ASYMMETRY (clause 3) is the whole point of the field. */
+function skipGaps(cro, classification) {
+  const gaps = [];
+  const hasMech = Array.isArray(cro.mechanism) && cro.mechanism.length > 0;
+  if (cro.skips === true && hasMech) {
+    gaps.push("contradictory_skip"); // HARD
+    return gaps;
+  }
+  if (cro.skips === true &&
+      classification !== "skipping" && classification !== "unclassifiable") {
+    gaps.push("vacuous_skip"); // invitation
+  }
+  if (classification === "skipping" && !hasMech) {
+    if (cro.skips === true) {
+      // NOTHING: absence is a finding
+    } else {
+      gaps.push("incomplete_mechanism"); // invitation
+    }
+  }
+  return gaps;
+}
+
+/** ALGORITHM E helper: normalize a delay to seconds by the fixed table. */
+function toSeconds(duration, unit) {
+  if (unit === "instant") return 0;
+  return duration * UNIT_SECONDS[unit];
+}
+
+/** ALGORITHM E (Rule 20): does an observed delay fall within a covering
+ * law's temporal window? Inclusive at both ends (N12.5.2). */
+function delayWithinWindow(actualDelay, temporal) {
+  if (!actualDelay || !temporal) return true; // nothing to check
+  const observed = toSeconds(actualDelay.duration, actualDelay.unit);
+  const lo = toSeconds(temporal.minimum_delay, temporal.unit);
+  const hi = toSeconds(temporal.maximum_delay, temporal.unit);
+  return lo <= observed && observed <= hi;
+}
+
+/** Rule 14 / N3.2.1: Bridge well-formedness. [ok, reason]; all of (a)-(e)
+ * must hold, else malformed_bridge. */
+function bridgeWellformed(bridge, occMap, stratumMap) {
+  const coarse = occMap[bridge.coarse] || {};
+  const cs = coarse.stratum;
+  if (cs == null) return [false, "malformed_bridge: coarse has no stratum (a)"];
+  const fineStrata = bridge.fine.map((f) => (occMap[f] || {}).stratum);
+  if (fineStrata.some((s) => s == null)) {
+    return [false, "malformed_bridge: a fine member has no stratum (b)"];
+  }
+  if (new Set(fineStrata).size !== 1) {
+    return [false, "malformed_bridge: fine members span >1 stratum (c)"];
+  }
+  const fs = fineStrata[0];
+  if (stratumMap[cs].scheme !== stratumMap[fs].scheme) {
+    return [false, "malformed_bridge: coarse and fine differ in scheme (d)"];
+  }
+  if (!(stratumMap[cs].ordinal > stratumMap[fs].ordinal)) {
+    return [false, "malformed_bridge: coarse ordinal not > fine ordinal (e)"];
+  }
+  return [true, "well-formed bridge"];
+}
+
+/** Rule 17 / N4.2.1-2: Conduit well-formedness. [ok, reason] with the
+ * transform exception of N4.2.2. */
+function conduitWellformed(conduit, portMap, croMap) {
+  const frm = portMap[conduit.from];
+  const to = portMap[conduit.to];
+  if (frm == null || to == null) {
+    return [false, "malformed_conduit: dangling port reference"];
+  }
+  if (frm.direction !== "out" && frm.direction !== "bidirectional") {
+    return [false, "malformed_conduit: from port is not out/bidirectional (a)"];
+  }
+  if (to.direction !== "in" && to.direction !== "bidirectional") {
+    return [false, "malformed_conduit: to port is not in/bidirectional (b)"];
+  }
+  const carries = conduit.carries;
+  if (!carries.every((o) => frm.accepts.includes(o))) {
+    return [false, "malformed_conduit: carries not accepted by from (c)"];
+  }
+  const transform = conduit.transform;
+  if (transform == null) {
+    if (!carries.every((o) => to.accepts.includes(o))) {
+      return [false, "malformed_conduit: carries not accepted by to (d)"];
+    }
+  } else {
+    const law = (croMap || {})[transform];
+    if (law != null) {
+      if (!law.effects.every((o) => to.accepts.includes(o))) {
+        return [false, "malformed_conduit: transform effects not " +
+          "accepted by to (d, relaxed per N4.2.2)"];
+      }
+    }
+  }
+  return [true, "well-formed conduit"];
+}
+
+/** Rule 19 / N5.3.1-2: the HARD gaps a state assertion surfaces against its
+ * quality: value_type_mismatch and/or unit_mismatch. */
+function stateGaps(state, quality) {
+  const gaps = [];
+  const dt = quality.datatype;
+  const v = state.value || {};
+  const shape = "quantity" in v ? "quantity"
+    : "categorical" in v ? "categorical"
+      : "boolean" in v ? "boolean"
+        : null;
+  if (shape !== dt) {
+    gaps.push("value_type_mismatch");
+  } else if (dt === "quantity" && v.unit !== quality.unit) {
+    gaps.push("unit_mismatch");
+  }
+  return gaps;
+}
+
+/** Rule 20: true iff the token claim's cause/effect tokens do not instantiate
+ * the covering law's causes/effects (surfaces covering_law_mismatch). */
+function coveringLawMismatch(tcc, tokenMap, law) {
+  if (!law) return false;
+  const lawCauses = new Set(law.causes);
+  const lawEffects = new Set(law.effects);
+  for (const c of tcc.causes) {
+    if (!lawCauses.has(tokenMap[c].instantiates)) return true;
+  }
+  for (const e of tcc.effects) {
+    if (!lawEffects.has(tokenMap[e].instantiates)) return true;
+  }
+  return false;
+}
+
+/** Rule 21: true iff any cause token starts after any effect token (HARD;
+ * retrocausal_claim). RFC 3339 UTC 'Z' strings compare lexicographically. */
+function retrocausal(tcc, tokenMap) {
+  for (const c of tcc.causes) {
+    const cstart = tokenMap[c].interval.start;
+    for (const e of tcc.effects) {
+      const estart = tokenMap[e].interval.start;
+      if (cstart > estart) return true;
+    }
+  }
+  return false;
+}
+
+/** Rules 4 / 6.1: true iff a directed graph (Map or plain object node ->
+ * iterable of successors) has a cycle. */
+function hasCycle(edges) {
+  const WHITE = 0, GREY = 1, BLACK = 2;
+  const state = new Map();
+  const get = edges instanceof Map
+    ? (n) => edges.get(n)
+    : (n) => edges[n];
+  const nodes = edges instanceof Map ? [...edges.keys()] : Object.keys(edges);
+
+  function visit(node) {
+    state.set(node, GREY);
+    for (const nxt of get(node) || []) {
+      const s = state.get(nxt) || WHITE;
+      if (s === GREY) return true;
+      if (s === WHITE && visit(nxt)) return true;
+    }
+    state.set(node, BLACK);
+    return false;
+  }
+
+  return nodes.some((n) => (state.get(n) || WHITE) === WHITE && visit(n));
 }
 
 /* ===========================================================================
@@ -641,7 +961,11 @@ function hierarchyConsistent(parent, members) {
  * gap read.
  */
 
-const CONTENT_KINDS = new Set(["occurrent", "causal_relation_object", "continuant", "realizable"]);
+const CONTENT_KINDS = new Set([
+  "occurrent", "causal_relation_object", "continuant", "realizable",
+  "stratum", "bridge", "port", "conduit", "quality",
+  "token_individual", "token_occurrence", "state_assertion",
+  "token_causal_claim"]);
 const RECORD_KINDS = new Set(["assertion", "enrichment", "retraction",
                               "succession"]);
 
@@ -1007,7 +1331,11 @@ module.exports = {
   validateSchema,
   // semantics
   validateSemantics, isPartial, admissible, conflicts,
-  refinementValid, hierarchyConsistent, UNIT_SECONDS,
+  refinementValid, hierarchyConsistent, UNIT_SECONDS, ENRICHMENT_FIELDS,
+  // 2.0.0 normative algorithms
+  bridgeClosure, classifyCro, endpointsMixed, skipGaps, toSeconds,
+  delayWithinWindow, bridgeWellformed, conduitWellformed, stateGaps,
+  coveringLawMismatch, retrocausal, hasCycle,
   // signing
   keypairFromSeed, signRecord, verifyRecord, ed25519,
   // store
