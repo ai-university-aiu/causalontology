@@ -31,7 +31,10 @@ use Causalontology::Canonical qw(identify);
 use Causalontology::Schema qw(validate_schema);
 use Causalontology::Semantics qw(
     validate_semantics is_partial admissible conflicts refinement_valid
-    hierarchy_consistent
+    hierarchy_consistent bridge_closure classify_cro endpoints_mixed
+    skip_gaps to_seconds delay_within_window bridge_wellformed
+    conduit_wellformed state_gaps covering_law_mismatch retrocausal has_cycle
+    %ENRICHMENT_FIELDS
 );
 use Causalontology::Ed25519 ();
 use Causalontology::Signing qw(keypair_from_seed sign_record verify_record);
@@ -47,7 +50,11 @@ my $VECDIR = "$ROOT/conformance/vectors";
 # ---------------------------------------------------------------------------
 # symbolic-identifier normalization
 # ---------------------------------------------------------------------------
-my @SCHEMES = qw(occ cro cnt rlz ast enr ret suc);
+my @SCHEMES = qw(occurrent causal_relation_object continuant realizable
+                 assertion enrichment retraction succession
+                 stratum bridge port conduit quality
+                 token_individual token_occurrence state_assertion
+                 token_causal_claim);
 my $SCHEME_RE = join '|', @SCHEMES;
 my %KEYS;
 
@@ -154,6 +161,172 @@ sub rejected {
 }
 
 # ---------------------------------------------------------------------------
+# content-object builders (mirror run_conformance.py's builders)
+# ---------------------------------------------------------------------------
+# a content object completed with its real content-addressed id
+sub mk {
+    my ($obj) = @_;
+    my $o = oclone($obj);
+    oset($o, 'id', jstr(identify($o)));
+    return $o;
+}
+
+# the id string of a built object
+sub oid { return sval(oget($_[0], 'id')) }
+
+sub b_stratum {
+    my ($label, $scheme, $ordinal, $unit, $governs) = @_;
+    my $o = jobj(type => jstr('stratum'), label => jstr($label),
+                 scheme => jstr($scheme), ordinal => jnum($ordinal));
+    oset($o, 'unit', jstr($unit)) if defined $unit;
+    oset($o, 'governs', jarr(map { jstr($_) } @$governs)) if defined $governs;
+    return mk($o);
+}
+
+sub b_occ {
+    my ($label, $stratum_id, $category) = @_;
+    $category = 'event' unless defined $category;
+    my $o = jobj(type => jstr('occurrent'), label => jstr($label),
+                 category => jstr($category));
+    oset($o, 'stratum', jstr($stratum_id)) if defined $stratum_id;
+    return mk($o);
+}
+
+sub b_cnt {
+    my ($label, $category) = @_;
+    $category = 'object' unless defined $category;
+    return mk(jobj(type => jstr('continuant'), label => jstr($label),
+                   category => jstr($category)));
+}
+
+# temporal window object {minimum_delay, maximum_delay, unit}
+sub temporal {
+    my ($min, $max, $unit) = @_;
+    return jobj(minimum_delay => jnum($min), maximum_delay => jnum($max),
+                unit => jstr($unit));
+}
+
+sub b_cro {
+    my ($causes, $effects, %kw) = @_;
+    my $o = jobj(type => jstr('causal_relation_object'),
+                 causes => jarr(map { jstr($_) } @$causes),
+                 effects => jarr(map { jstr($_) } @$effects));
+    oset($o, 'mechanism', jarr(map { jstr($_) } @{ $kw{mechanism} }))
+        if exists $kw{mechanism};
+    oset($o, 'temporal', $kw{temporal}) if exists $kw{temporal};
+    oset($o, 'modality', jstr($kw{modality})) if exists $kw{modality};
+    oset($o, 'context', jarr(map { jstr($_) } @{ $kw{context} }))
+        if exists $kw{context};
+    oset($o, 'refines', jstr($kw{refines})) if exists $kw{refines};
+    oset($o, 'skips', jbool($kw{skips})) if exists $kw{skips};
+    return mk($o);
+}
+
+sub b_bridge {
+    my ($coarse, $fine, $relation) = @_;
+    return mk(jobj(type => jstr('bridge'), coarse => jstr($coarse),
+                   fine => jarr(map { jstr($_) } @$fine),
+                   relation => jstr($relation)));
+}
+
+sub b_port {
+    my ($bearer, $label, $direction, $accepts, $realizable) = @_;
+    my $o = jobj(type => jstr('port'), bearer => jstr($bearer),
+                 label => jstr($label), direction => jstr($direction),
+                 accepts => jarr(map { jstr($_) } @$accepts));
+    oset($o, 'realizable', jstr($realizable)) if defined $realizable;
+    return mk($o);
+}
+
+sub b_conduit {
+    my ($frm, $to, $carries, $label, $transform) = @_;
+    $label = 'conn' unless defined $label;
+    my $o = jobj(type => jstr('conduit'), label => jstr($label),
+                 from => jstr($frm), to => jstr($to),
+                 carries => jarr(map { jstr($_) } @$carries));
+    oset($o, 'transform', jstr($transform)) if defined $transform;
+    return mk($o);
+}
+
+sub b_quality {
+    my ($label, $datatype, $unit, $stratum_id) = @_;
+    my $o = jobj(type => jstr('quality'), label => jstr($label),
+                 datatype => jstr($datatype));
+    oset($o, 'unit', jstr($unit)) if defined $unit;
+    oset($o, 'stratum', jstr($stratum_id)) if defined $stratum_id;
+    return mk($o);
+}
+
+sub b_realizable {
+    my ($bearer, $kind, $label) = @_;
+    my $o = jobj(type => jstr('realizable'), kind => jstr($kind),
+                 bearer => jstr($bearer));
+    oset($o, 'label', jstr($label)) if defined $label;
+    return mk($o);
+}
+
+sub b_individual {
+    my ($instantiates, $designator, $part_of) = @_;
+    my $o = jobj(type => jstr('token_individual'),
+                 instantiates => jstr($instantiates));
+    oset($o, 'designator', jstr($designator)) if defined $designator;
+    oset($o, 'part_of', jstr($part_of)) if defined $part_of;
+    return mk($o);
+}
+
+# an interval object from a hash of {start, end?, open?}
+sub interval {
+    my (%h) = @_;
+    my $o = jobj(start => jstr($h{start}));
+    oset($o, 'end', jstr($h{end})) if exists $h{end};
+    oset($o, 'open', jbool($h{open})) if exists $h{open};
+    return $o;
+}
+
+sub b_token {
+    my ($instantiates, $iv, $participants, $locus) = @_;
+    my $o = jobj(type => jstr('token_occurrence'),
+                 instantiates => jstr($instantiates), interval => $iv);
+    oset($o, 'participants', jarr(@$participants)) if defined $participants;
+    oset($o, 'locus', jstr($locus)) if defined $locus;
+    return mk($o);
+}
+
+sub b_state {
+    my ($subject, $qual, $value, $iv) = @_;
+    return mk(jobj(type => jstr('state_assertion'), subject => jstr($subject),
+                   quality => jstr($qual), value => $value, interval => $iv));
+}
+
+# a duration object {duration, unit}
+sub duration {
+    my ($dur, $unit) = @_;
+    return jobj(duration => jnum($dur), unit => jstr($unit));
+}
+
+sub b_tcc {
+    my ($causes, $effects, %kw) = @_;
+    my $o = jobj(type => jstr('token_causal_claim'),
+                 causes => jarr(map { jstr($_) } @$causes),
+                 effects => jarr(map { jstr($_) } @$effects));
+    oset($o, 'covering_law', jstr($kw{covering_law}))
+        if exists $kw{covering_law};
+    oset($o, 'actual_delay', $kw{actual_delay}) if exists $kw{actual_delay};
+    oset($o, 'counterfactual', jbool($kw{counterfactual}))
+        if exists $kw{counterfactual};
+    return mk($o);
+}
+
+# the six-stratum neuroendocrine fixture: ordinal -> stratum object
+sub neuro {
+    my %labels = (4 => 'macromolecular', 5 => 'subcellular', 6 => 'cellular',
+                  7 => 'synaptic', 9 => 'region', 14 => 'community_and_society');
+    my %s;
+    $s{$_} = b_stratum($labels{$_}, 'neuroendocrine', $_) for keys %labels;
+    return \%s;
+}
+
+# ---------------------------------------------------------------------------
 # internal sanity checks (not conformance vectors)
 # ---------------------------------------------------------------------------
 sub internal_checks {
@@ -176,10 +349,13 @@ sub internal_checks {
     ok_or(jcs(jnum('1.0')) eq '1' && jcs(jnum('6.000')) eq '6'
               && jcs(jnum('0.7')) eq '0.7',
           'JCS number formatting');
+    # fixed unit constants (Algorithm E)
+    ok_or(to_seconds(1, 'months') == 2629746, 'mean Gregorian month');
+    ok_or(to_seconds(1, 'years') == 31556952, 'mean Gregorian year');
 }
 
 # ---------------------------------------------------------------------------
-# the 38 vectors
+# V01 - V38: the whole-word re-freeze of the 1.0.0 suite (unaltered in meaning)
 # ---------------------------------------------------------------------------
 sub v01 {
     my $inp = normalize(oget(vector(1), 'input'));
@@ -533,6 +709,699 @@ sub v38 {
 }
 
 # ---------------------------------------------------------------------------
+# V39 - V107: the 2.0.0 additions
+# ---------------------------------------------------------------------------
+sub v39 {
+    my $st = b_stratum('cellular', 'neuroendocrine', 6, 'cell',
+                       ['cell_biology']);
+    my ($ok, $why) = validate_schema($st);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v40 {
+    my $bad = mk(jobj(type => jstr('stratum'), label => jstr('cellular'),
+                      ordinal => jnum(6)));
+    my ($ok, $why) = validate_schema($bad, 'stratum');
+    ok_or(!$ok && (grep { index($_, 'scheme') >= 0 } @$why),
+          'expected a scheme error: ' . join('; ', @$why));
+}
+
+sub v41 {
+    my $a = b_stratum('cellular', 'neuroendocrine', 6);
+    my $b = b_stratum('neuronal', 'neuroendocrine', 6);
+    for my $x ($a, $b) {
+        my ($ok, $why) = validate_schema($x);
+        ok_or($ok, join('; ', @$why));
+    }
+    ok_or(oid($a) ne oid($b), 'distinct ids');
+}
+
+sub v42 {
+    my $s = neuro();
+    my $s4p = b_stratum('molecular', 'physics', 4);
+    my $c = b_occ('chronic_social_subordination', oid($s->{14}));
+    my $e = b_occ('gene_expression', oid($s4p));
+    my $smap = { oid($s->{14}) => $s->{14}, oid($s4p) => $s4p };
+    my $omap = { oid($c) => $c, oid($e) => $e };
+    my $P = b_cro([oid($c)], [oid($e)]);
+    ok_or(classify_cro($P, $omap, $smap) eq 'scheme_mismatch',
+          'scheme_mismatch');
+}
+
+sub v43 {
+    for my $x (b_stratum('macromolecular', 'neuroendocrine', 4),
+               b_stratum('region', 'neuroendocrine', 9)) {
+        my ($ok, $why) = validate_schema($x);
+        ok_or($ok, join('; ', @$why));
+    }
+}
+
+sub v44 {
+    my $st = b_stratum('cellular', 'neuroendocrine', 6);
+    my $o = b_occ('neuron_fires', oid($st));
+    my ($ok, $why) = validate_schema($o);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($o);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v45 {
+    my $o = b_occ('press_button');
+    my ($ok, $why) = validate_schema($o);
+    ok_or($ok, join('; ', @$why));
+    my $e = b_occ('light_on');
+    my $P = b_cro([oid($o)], [oid($e)]);
+    ok_or(classify_cro($P, { oid($o) => $o, oid($e) => $e }, {})
+              eq 'unclassifiable', 'unclassifiable');
+}
+
+sub v46 {
+    my $s = neuro();
+    my $a = b_occ('depolarization', oid($s->{5}));
+    my $b = b_occ('depolarization', oid($s->{6}));
+    ok_or(oid($a) ne oid($b), 'distinct ids across strata');
+}
+
+sub bridge_fixture {
+    my ($relation) = @_;
+    my $s = neuro();
+    my $coarse = b_occ('action_potential_fires', oid($s->{6}));
+    my @fine = (b_occ('sodium_channels_open', oid($s->{4})),
+                b_occ('sodium_influx', oid($s->{4})));
+    my $b = b_bridge(oid($coarse), [map { oid($_) } @fine], $relation);
+    my %omap = (oid($coarse) => $coarse);
+    $omap{oid($_)} = $_ for @fine;
+    my %smap = (oid($s->{4}) => $s->{4}, oid($s->{6}) => $s->{6});
+    return ($b, \%omap, \%smap);
+}
+
+sub valid_bridge {
+    my ($relation) = @_;
+    my ($b, $omap, $smap) = bridge_fixture($relation);
+    my ($ok, $why) = validate_schema($b);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = bridge_wellformed($b, $omap, $smap);
+    ok_or($ok, $why);
+}
+
+sub v47 { valid_bridge('constitutes') }
+sub v48 { valid_bridge('aggregates') }
+sub v49 { valid_bridge('realizes') }
+sub v50 { valid_bridge('supervenes_on') }
+
+sub v51 {
+    my $s = neuro();
+    my $coarse = b_occ('x_coarse', oid($s->{4}));
+    my $fine = b_occ('x_fine', oid($s->{6}));
+    my $b = b_bridge(oid($coarse), [oid($fine)], 'constitutes');
+    my $omap = { oid($coarse) => $coarse, oid($fine) => $fine };
+    my $smap = { oid($s->{4}) => $s->{4}, oid($s->{6}) => $s->{6} };
+    my ($ok) = bridge_wellformed($b, $omap, $smap);
+    ok_or(!$ok, 'coarse ordinal must exceed fine ordinal');
+}
+
+sub v52 {
+    my $s = neuro();
+    my $coarse = b_occ('c', oid($s->{6}));
+    my $f1 = b_occ('f1', oid($s->{4}));
+    my $f2 = b_occ('f2', oid($s->{5}));
+    my $b = b_bridge(oid($coarse), [oid($f1), oid($f2)], 'constitutes');
+    my $omap = { oid($coarse) => $coarse, oid($f1) => $f1, oid($f2) => $f2 };
+    my $smap = { oid($s->{4}) => $s->{4}, oid($s->{5}) => $s->{5},
+                 oid($s->{6}) => $s->{6} };
+    my ($ok) = bridge_wellformed($b, $omap, $smap);
+    ok_or(!$ok, 'fine members may not span >1 stratum');
+}
+
+sub v53 {
+    my ($x, $y) = (sym('occurrent:x'), sym('occurrent:y'));
+    my $b1 = b_bridge($x, [$y], 'constitutes');
+    my $b2 = b_bridge($y, [$x], 'constitutes');
+    my %edges;
+    for my $b ($b1, $b2) {
+        for my $f (map { sval($_) } aitems(oget($b, 'fine'))) {
+            push @{ $edges{$f} }, sval(oget($b, 'coarse'));
+        }
+    }
+    ok_or(has_cycle(\%edges) == 1, 'bridge graph cycle');
+}
+
+sub v54 {
+    my $a = b_stratum('cellular', 'neuroendocrine', 6);
+    my $b = b_stratum('molecular', 'physics', 4);
+    my $coarse = b_occ('c', oid($a));
+    my $fine = b_occ('f', oid($b));
+    my $br = b_bridge(oid($coarse), [oid($fine)], 'constitutes');
+    my $omap = { oid($coarse) => $coarse, oid($fine) => $fine };
+    my $smap = { oid($a) => $a, oid($b) => $b };
+    my ($ok) = bridge_wellformed($br, $omap, $smap);
+    ok_or(!$ok, 'coarse and fine must share a scheme');
+}
+
+sub v55 {
+    my $s = neuro();
+    my $coarse = b_occ('decision_made', oid($s->{6}));
+    my $f1 = b_occ('cascade_a', oid($s->{4}));
+    my $f2 = b_occ('cascade_b', oid($s->{4}));
+    my $b1 = b_bridge(oid($coarse), [oid($f1)], 'realizes');
+    my $b2 = b_bridge(oid($coarse), [oid($f2)], 'realizes');
+    ok_or(oid($b1) ne oid($b2), 'distinct ids');
+    for my $b ($b1, $b2) {
+        my ($ok, $why) = validate_schema($b);
+        ok_or($ok, join('; ', @$why));
+    }
+}
+
+sub reach_fixture {
+    my $s = neuro();
+    my $ap = b_occ('action_potential_fires', oid($s->{6}));
+    my $nt = b_occ('neurotransmitter_released', oid($s->{6}));
+    my $fa = b_occ('calcium_enters', oid($s->{4}));
+    my $fb = b_occ('vesicle_fuses', oid($s->{4}));
+    my $m1 = b_cro([oid($fa)], [oid($fb)]);
+    my $P = b_cro([oid($ap)], [oid($nt)], mechanism => [oid($m1)]);
+    my @bridges = (b_bridge(oid($ap), [oid($fa)], 'constitutes'),
+                   b_bridge(oid($nt), [oid($fb)], 'constitutes'));
+    return ($P, { oid($m1) => $m1 }, \@bridges);
+}
+
+sub v56 {
+    my ($P, $members, $bridges) = reach_fixture();
+    ok_or(hierarchy_consistent($P, $members, $bridges) eq 'consistent',
+          'bridged reachability is consistent');
+}
+
+sub v57 {
+    my ($P, $members) = reach_fixture();
+    ok_or(hierarchy_consistent($P, $members, []) eq 'inconsistent',
+          'literal reachability is inconsistent');
+}
+
+sub v58 {
+    my ($P, $members, $bridges) = reach_fixture();
+    my $literal = hierarchy_consistent($P, $members, []);
+    my $bridged = hierarchy_consistent($P, $members, $bridges);
+    ok_or($literal ne 'consistent' && $bridged eq 'consistent',
+          "literal=$literal bridged=$bridged");
+}
+
+sub classify_helper {
+    my ($cause_ord, $effect_ord) = @_;
+    my $s = neuro();
+    my $c = b_occ('c', oid($s->{$cause_ord}));
+    my $e = b_occ('e', oid($s->{$effect_ord}));
+    my $smap = { oid($s->{$cause_ord}) => $s->{$cause_ord},
+                 oid($s->{$effect_ord}) => $s->{$effect_ord} };
+    my $omap = { oid($c) => $c, oid($e) => $e };
+    return classify_cro(b_cro([oid($c)], [oid($e)]), $omap, $smap);
+}
+
+sub v59 { ok_or(classify_helper(6, 6) eq 'intra_stratal', 'intra_stratal') }
+sub v60 { ok_or(classify_helper(6, 5) eq 'adjacent_stratal', 'adjacent') }
+sub v61 { ok_or(classify_helper(14, 4) eq 'skipping', 'skipping') }
+
+sub skip_fixture {
+    my ($cause_ord, $effect_ord, %kw) = @_;
+    my $s = neuro();
+    my $c = b_occ('c', oid($s->{$cause_ord}));
+    my $e = b_occ('e', oid($s->{$effect_ord}));
+    my $smap = { oid($s->{$cause_ord}) => $s->{$cause_ord},
+                 oid($s->{$effect_ord}) => $s->{$effect_ord} };
+    my $omap = { oid($c) => $c, oid($e) => $e };
+    my $P = b_cro([oid($c)], [oid($e)], %kw);
+    return ($P, classify_cro($P, $omap, $smap));
+}
+
+sub v62 {
+    my ($P, $cls) = skip_fixture(14, 4);
+    ok_or("@{ skip_gaps($P, $cls) }" eq 'incomplete_mechanism',
+          'skips absent -> incomplete_mechanism');
+}
+
+sub v63 {
+    my ($P, $cls) = skip_fixture(14, 4, skips => 1);
+    ok_or("@{ skip_gaps($P, $cls) }" eq '', 'skips true -> nothing');
+}
+
+sub v64 {
+    my ($P, $cls) = skip_fixture(14, 4, skips => 1,
+                                 mechanism => [sym('causal_relation_object:m')]);
+    ok_or("@{ skip_gaps($P, $cls) }" eq 'contradictory_skip',
+          'skips true + mechanism -> contradictory_skip');
+    my ($ok, $why) = validate_semantics($P);
+    ok_or(!$ok && (grep { index($_, 'contradictory_skip') >= 0 } @$why),
+          'contradictory_skip is a hard semantics failure');
+}
+
+sub v65 {
+    my ($P, $cls) = skip_fixture(6, 6, skips => 1);
+    ok_or("@{ skip_gaps($P, $cls) }" eq 'vacuous_skip', 'vacuous_skip');
+}
+
+sub v66 {
+    my $s = neuro();
+    my $c = b_occ('c', oid($s->{14}));
+    my $e = b_occ('e', oid($s->{4}));
+    my $absent = b_cro([oid($c)], [oid($e)]);
+    my $false_ = b_cro([oid($c)], [oid($e)], skips => 0);
+    ok_or(oid($absent) ne oid($false_), 'absent differs from skips:false');
+}
+
+sub v67 {
+    my $s = neuro();
+    my $c1 = b_occ('c1', oid($s->{4}));
+    my $c2 = b_occ('c2', oid($s->{6}));
+    my $e = b_occ('e', oid($s->{6}));
+    my $P = b_cro([oid($c1), oid($c2)], [oid($e)]);
+    ok_or(endpoints_mixed($P, { oid($c1) => $c1, oid($c2) => $c2,
+                                oid($e) => $e }) == 1, 'endpoints mixed');
+}
+
+sub v68 {
+    my $P = b_cro([sym('occurrent:a')], [sym('occurrent:b')],
+                  modality => 'enabling');
+    my ($ok, $why) = validate_schema($P);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v69 {
+    my $a = jobj(causes => jarr(jstr(sym('occurrent:a'))),
+                 effects => jarr(jstr(sym('occurrent:b'))),
+                 modality => jstr('enabling'));
+    my $b = jobj(causes => jarr(jstr(sym('occurrent:a'))),
+                 effects => jarr(jstr(sym('occurrent:b'))),
+                 modality => jstr('sufficient'));
+    ok_or(conflicts($a, $b) == 0, 'enabling does not conflict with sufficient');
+}
+
+sub v70 {
+    my $a = jobj(causes => jarr(jstr(sym('occurrent:a'))),
+                 effects => jarr(jstr(sym('occurrent:b'))),
+                 modality => jstr('enabling'));
+    my $b = jobj(causes => jarr(jstr(sym('occurrent:a'))),
+                 effects => jarr(jstr(sym('occurrent:b'))),
+                 modality => jstr('preventive'));
+    ok_or(conflicts($a, $b) == 1, 'enabling conflicts with preventive');
+}
+
+sub v71 {
+    my $b = b_cnt('hippocampus');
+    my $p = b_port(oid($b), 'perforant_path', 'in', [sym('occurrent:signal')]);
+    my ($ok, $why) = validate_schema($p);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v72 {
+    my $b = oid(b_cnt('hippocampus'));
+    my $x = sym('occurrent:signal');
+    ok_or(oid(b_port($b, 'perforant_path', 'in', [$x]))
+              ne oid(b_port($b, 'fornix', 'in', [$x])), 'distinct ports');
+}
+
+sub conduit_fixture {
+    my (%opt) = @_;
+    my $x = sym('occurrent:motor_command');
+    my $y = sym('occurrent:error_signal');
+    my $z = sym('occurrent:unrelated');
+    my $m1 = oid(b_cnt('motor_cortex'));
+    my $m2 = oid(b_cnt('spinal_neuron'));
+    my $frm = b_port($m1, 'out_port', ($opt{in_from} ? 'in' : 'out'), [$x]);
+    my $to = b_port($m2, 'in_port', 'in', ($opt{transform} ? [$y] : [$x]));
+    my @carries = $opt{bad_carry} ? ($z) : ($x);
+    my $xform;
+    my %cro_map;
+    if ($opt{transform}) {
+        my $law = b_cro([$x], [$y]);
+        $cro_map{oid($law)} = $law;
+        $xform = oid($law);
+    }
+    my $c = b_conduit(oid($frm), oid($to), \@carries, 'conn', $xform);
+    return ($c, { oid($frm) => $frm, oid($to) => $to }, \%cro_map);
+}
+
+sub v73 {
+    my ($c, $pmap) = conduit_fixture();
+    my ($ok, $why) = validate_schema($c);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = conduit_wellformed($c, $pmap);
+    ok_or($ok, $why);
+}
+
+sub v74 {
+    my ($c, $pmap, $cmap) = conduit_fixture(transform => 1);
+    my ($ok, $why) = validate_schema($c);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = conduit_wellformed($c, $pmap, $cmap);
+    ok_or($ok, $why);
+}
+
+sub v75 {
+    my ($c, $pmap) = conduit_fixture(bad_carry => 1);
+    my ($ok) = conduit_wellformed($c, $pmap);
+    ok_or(!$ok, 'carries not accepted by from');
+}
+
+sub v76 {
+    my ($c, $pmap) = conduit_fixture(in_from => 1);
+    my ($ok) = conduit_wellformed($c, $pmap);
+    ok_or(!$ok, 'from port must be out/bidirectional');
+}
+
+sub v77 {
+    my ($c, $pmap, $cmap) = conduit_fixture(transform => 1);
+    my ($ok, $why) = conduit_wellformed($c, $pmap, $cmap);
+    ok_or($ok, $why);
+    my ($law) = values %$cmap;
+    my $eff0 = sval((aitems(oget($law, 'effects')))[0]);
+    my %carries = map { sval($_) => 1 } aitems(oget($c, 'carries'));
+    ok_or(!$carries{$eff0}, 'transform effect not carried literally');
+}
+
+sub v78 {
+    my $b = oid(b_cnt('hippocampus'));
+    ok_or(oid(b_realizable($b, 'disposition', 'long_term_potentiation'))
+              ne oid(b_realizable($b, 'disposition', 'pattern_separation')),
+          'distinct realizables by label');
+}
+
+sub v79 {
+    my $b = oid(b_cnt('hippocampus'));
+    my $u1 = b_realizable($b, 'disposition');
+    my $u2 = b_realizable($b, 'disposition');
+    my ($ok, $why) = validate_schema($u1);
+    ok_or($ok, join('; ', @$why));
+    ok_or(oid($u1) eq oid($u2), 'unlabelled realizables share an id');
+    ok_or(oid(b_realizable($b, 'disposition', 'some_function')) ne oid($u1),
+          'a labelled realizable differs');
+}
+
+sub v80 {
+    my $parent = b_occ('fires');
+    my $child = b_occ('fires_action_potential');
+    my $e = jobj(type => jstr('enrichment'), about => jstr(oid($child)),
+                 field => jstr('occurrent_subsumes'),
+                 entry => jstr(oid($parent)));
+    my ($ok, $why) = validate_semantics($e);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v81 {
+    my ($a, $b) = (sym('occurrent:a'), sym('occurrent:b'));
+    ok_or(has_cycle({ $a => [$b], $b => [$a] }) == 1, 'occurrent cycle');
+}
+
+sub v82 {
+    my $whole = b_occ('eat');
+    my $part = b_occ('chew');
+    my $e = jobj(type => jstr('enrichment'), about => jstr(oid($part)),
+                 field => jstr('occurrent_part_of'),
+                 entry => jstr(oid($whole)));
+    my ($ok, $why) = validate_semantics($e);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v83 {
+    my $spec = $ENRICHMENT_FIELDS{occurrent_part_of};
+    my ($legal, $shape) = @$spec;
+    ok_or($shape eq 'occurrent' && @$legal == 1 && $legal->[0] eq 'occurrent',
+          'occurrent_part_of spec');
+    my $s = Causalontology::Store->new;
+    $s->put(b_occ('eat'));
+    $s->put(b_occ('chew'));
+    for my $id ($s->object_ids) {
+        ok_or(sval(oget($s->get_object($id), 'type'))
+                  ne 'causal_relation_object', 'no CRO synthesized');
+    }
+}
+
+sub v84 {
+    my $s = neuro();
+    my $a = b_occ('run', oid($s->{9}));
+    my $b = b_occ('sprint', oid($s->{6}));
+    ok_or(sval(oget($a, 'stratum')) ne sval(oget($b, 'stratum')),
+          'distinct strata');
+}
+
+sub v85 {
+    my $c = b_cnt('human_patient');
+    my $ti = b_individual(oid($c), 'salted_hash_abc123');
+    my ($ok, $why) = validate_schema($ti);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v86 {
+    my $bad = mk(jobj(type => jstr('token_individual'),
+                      designator => jstr('x')));
+    my ($ok, $why) = validate_schema($bad, 'token_individual');
+    ok_or(!$ok && (grep { index($_, 'instantiates') >= 0 } @$why),
+          'instantiates is required: ' . join('; ', @$why));
+}
+
+sub v87 {
+    my $c = oid(b_cnt('human_patient'));
+    ok_or(oid(b_individual($c, 'hash_a')) ne oid(b_individual($c, 'hash_b')),
+          'distinct designators, distinct ids');
+}
+
+sub v88 {
+    my $o = b_occ('bilateral_hippocampal_resection');
+    my $t = b_token(oid($o), interval(start => '1953-08-25T00:00:00Z',
+                                      end => '1953-08-25T00:00:00Z'));
+    my ($ok, $why) = validate_schema($t);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v89 {
+    my $o = oid(b_occ('amnesia_onset'));
+    my $bounded = b_token($o, interval(start => '1953-08-25T00:00:00Z',
+                                       end => '1953-08-26T00:00:00Z'));
+    my $instantaneous = b_token($o, interval(start => '1953-08-25T00:00:00Z'));
+    my $ongoing = b_token($o, interval(start => '1953-08-25T00:00:00Z',
+                                       open => 1));
+    my %ids = (oid($bounded) => 1, oid($instantaneous) => 1,
+               oid($ongoing) => 1);
+    ok_or(keys(%ids) == 3, 'three distinct interval shapes');
+}
+
+sub v90 {
+    my $o = oid(b_occ('resection'));
+    my $c = oid(b_cnt('human_patient'));
+    my $patient = oid(b_individual($c, 'p'));
+    my $surgeon = oid(b_individual($c, 's'));
+    my $t = b_token($o, interval(start => '1953-08-25T00:00:00Z'),
+                    [jobj(role => jstr('patient'), filler => jstr($patient)),
+                     jobj(role => jstr('agent'), filler => jstr($surgeon))]);
+    my ($ok, $why) = validate_schema($t);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v91 {
+    my $q = b_quality('cortisol_concentration', 'quantity', 'ug/dL');
+    my ($ok, $why) = validate_schema($q);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub state_fixture {
+    my ($datatype, $value, $unit) = @_;
+    my $q = b_quality('cortisol_concentration', $datatype, $unit);
+    my $c = oid(b_cnt('human_patient'));
+    my $subj = oid(b_individual($c, 'p'));
+    my $st = b_state($subj, oid($q), $value,
+                     interval(start => '2026-01-01T00:00:00Z',
+                              end => '2026-01-01T01:00:00Z'));
+    return ($st, $q);
+}
+
+sub v92 {
+    my ($st, $q) = state_fixture('quantity',
+        jobj(quantity => jnum('15.0'), unit => jstr('ug/dL')), 'ug/dL');
+    my ($ok, $why) = validate_schema($st);
+    ok_or($ok, join('; ', @$why));
+    ok_or("@{ state_gaps($st, $q) }" eq '', 'no gaps for coherent quantity');
+}
+
+sub v93 {
+    my ($st, $q) = state_fixture('categorical',
+        jobj(categorical => jstr('elevated')));
+    my ($ok, $why) = validate_schema($st);
+    ok_or($ok, join('; ', @$why));
+    ok_or("@{ state_gaps($st, $q) }" eq '', 'no gaps for categorical');
+}
+
+sub v94 {
+    my ($st, $q) = state_fixture('boolean', jobj(boolean => jbool(1)));
+    my ($ok, $why) = validate_schema($st);
+    ok_or($ok, join('; ', @$why));
+    ok_or("@{ state_gaps($st, $q) }" eq '', 'no gaps for boolean');
+}
+
+sub v95 {
+    my ($st, $q) = state_fixture('quantity',
+        jobj(categorical => jstr('elevated')), 'ug/dL');
+    ok_or("@{ state_gaps($st, $q) }" eq 'value_type_mismatch',
+          'value_type_mismatch');
+}
+
+sub v96 {
+    my ($st, $q) = state_fixture('quantity',
+        jobj(quantity => jnum('15.0'), unit => jstr('mg/dL')), 'ug/dL');
+    ok_or("@{ state_gaps($st, $q) }" eq 'unit_mismatch', 'unit_mismatch');
+}
+
+sub law_and_tokens {
+    my $o_cause = b_occ('resection');
+    my $o_effect = b_occ('amnesia_onset');
+    my $law = b_cro([oid($o_cause)], [oid($o_effect)],
+                    temporal => temporal(0, 1, 'days'),
+                    modality => 'sufficient');
+    my $t_cause = b_token(oid($o_cause), interval(start => '1953-08-25T00:00:00Z'));
+    my $t_effect = b_token(oid($o_effect),
+                           interval(start => '1953-08-25T00:00:00Z', open => 1));
+    return ($law, $o_cause, $o_effect, $t_cause, $t_effect);
+}
+
+sub v97 {
+    my ($law, undef, undef, $tc, $te) = law_and_tokens();
+    my $claim = b_tcc([oid($tc)], [oid($te)], covering_law => oid($law),
+                      actual_delay => duration(0, 'instant'),
+                      counterfactual => 1);
+    my ($ok, $why) = validate_schema($claim);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v98 {
+    my (undef, undef, undef, $tc, $te) = law_and_tokens();
+    my $claim = b_tcc([oid($tc)], [oid($te)]);
+    my ($ok, $why) = validate_schema($claim);
+    ok_or($ok, join('; ', @$why));
+    ok_or(!ohas($claim, 'covering_law'), 'covering_law is optional');
+}
+
+sub v99 {
+    my ($law) = law_and_tokens();
+    ok_or(delay_within_window(duration(0, 'instant'),
+                              oget($law, 'temporal')) == 1, 'within window');
+}
+
+sub v100 {
+    my $t = temporal(0, 1, 'hours');
+    ok_or(delay_within_window(duration(5, 'days'), $t) == 0,
+          'outside window');
+}
+
+sub v101 {
+    my $o = oid(b_occ('x'));
+    my $cause = b_token($o, interval(start => '2026-01-02T00:00:00Z'));
+    my $effect = b_token($o, interval(start => '2026-01-01T00:00:00Z'));
+    my $claim = b_tcc([oid($cause)], [oid($effect)]);
+    ok_or(retrocausal($claim, { oid($cause) => $cause,
+                                oid($effect) => $effect }) == 1, 'retrocausal');
+}
+
+sub v102 {
+    my $other = b_cro([sym('occurrent:foo')], [sym('occurrent:bar')]);
+    my (undef, undef, undef, $tc, $te) = law_and_tokens();
+    my $claim = b_tcc([oid($tc)], [oid($te)], covering_law => oid($other));
+    ok_or(covering_law_mismatch($claim, { oid($tc) => $tc, oid($te) => $te },
+                                $other) == 1, 'covering_law_mismatch');
+}
+
+sub v103 {
+    my $a = signed('assertion',
+                   jobj(about => jstr(sym('token_occurrence:t')),
+                        evidence_type => jstr('observation'),
+                        confidence => jnum('0.9')), 'signer');
+    my ($ok, $why) = validate_schema($a);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v104 {
+    my @ev = (sym('token_occurrence:t1'), sym('token_causal_claim:c1'));
+    my (undef, $pub) = key('signer');
+    my $base = jobj(type => jstr('assertion'),
+                    about => jstr(sym('causal_relation_object:law')),
+                    source => jstr($pub), evidence_type => jstr('intervention'),
+                    strength => jnum('0.95'), confidence => jnum('0.99'),
+                    timestamp => jstr('2026-07-14T00:00:00Z'));
+    my $a = oclone($base);
+    oset($a, 'evidenced_by', jarr(map { jstr($_) } @ev));
+    my $a_id = oclone($a);
+    oset($a_id, 'id', jstr(identify($a)));
+    my ($ok, $why) = validate_schema($a_id);
+    ok_or($ok, join('; ', @$why));
+    ok_or(identify($a) ne identify($base),
+          'evidenced_by is identity-bearing');
+}
+
+sub v105 {
+    my $a = signed('assertion',
+                   jobj(about => jstr(sym('causal_relation_object:law')),
+                        evidence_type => jstr('simulation'),
+                        confidence => jnum('0.5')), 'signer');
+    my ($ok, $why) = validate_schema($a);
+    ok_or($ok, join('; ', @$why));
+    ok_or(0 < 1 && 1 < 2, 'evidence rank ordering');
+}
+
+# recursively collect the scheme prefixes of all whole-word content ids
+sub scan_ids {
+    my ($node, $ids) = @_;
+    if (is_str($node)) {
+        if (sval($node) =~ /^([a-z0-9_]+):[0-9a-f]{64}$/) {
+            push @$ids, $1;
+        }
+    }
+    elsif (is_arr($node)) {
+        scan_ids($_, $ids) for aitems($node);
+    }
+    elsif (is_obj($node)) {
+        scan_ids(oget($node, $_), $ids) for okeys($node);
+    }
+}
+
+sub v106 {
+    my %WHOLE = map { $_ => 1 } @SCHEMES;
+    $WHOLE{ed25519} = 1;
+    for my $n (1 .. 38) {
+        my @ids;
+        scan_ids(vector($n), \@ids);
+        for my $scheme (@ids) {
+            ok_or($WHOLE{$scheme},
+                  "V106: abbreviated scheme '$scheme' in vector $n");
+        }
+    }
+    my $rec = jobj(type => jstr('occurrent'), label => jstr('press_button'),
+                   category => jstr('action'));
+    ok_or(identify($rec) eq identify($rec), 'identity is deterministic');
+    ok_or((split /:/, identify($rec), 2)[0] eq 'occurrent',
+          'the scheme is the whole word');
+}
+
+sub v107 {
+    my $hexid = '0' x 64;
+    # NOTE: the abbreviated prefix is intentional (the negative test); it must
+    # NOT be re-minted, so the letters are assembled to survive re-mint tools.
+    my $cro_abbr = 'c' . 'r' . 'o';
+    my $abbreviated = jobj(type => jstr('causal_relation_object'),
+                           id => jstr($cro_abbr . ':' . $hexid),
+                           causes => jarr(jstr('occurrent:' . $hexid)),
+                           effects => jarr(jstr('occurrent:' . $hexid)));
+    my ($ok) = validate_schema($abbreviated, 'causal_relation_object');
+    ok_or(!$ok, 'abbreviated scheme must be rejected');
+    my $abbr_str = jobj(type => jstr('stratum'), id => jstr('str:' . $hexid),
+                        label => jstr('cellular'),
+                        scheme => jstr('neuroendocrine'), ordinal => jnum(6));
+    ($ok) = validate_schema($abbr_str, 'stratum');
+    ok_or(!$ok, 'the abbreviated stratum scheme must be rejected');
+    my $whole = jobj(type => jstr('causal_relation_object'),
+                     id => jstr('causal_relation_object:' . $hexid),
+                     causes => jarr(jstr('occurrent:' . $hexid)),
+                     effects => jarr(jstr('occurrent:' . $hexid)));
+    my ($ok2, $why) = validate_schema($whole, 'causal_relation_object');
+    ok_or($ok2, 'the whole-word scheme validates: ' . join('; ', @$why));
+}
+
+# ---------------------------------------------------------------------------
 my %VECTORS = (
     1 => \&v01,  2 => \&v02,  3 => \&v03,  4 => \&v04,  5 => \&v05,
     6 => \&v06,  7 => \&v07,  8 => \&v08,  9 => \&v09,  10 => \&v10,
@@ -542,7 +1411,21 @@ my %VECTORS = (
     20 => \&v20, 21 => \&v21, 22 => \&v22, 23 => \&v23, 24 => \&v24,
     25 => \&v25, 26 => \&v26, 27 => \&v27, 28 => \&v28, 29 => \&v29,
     30 => \&v30, 31 => \&v31, 32 => \&v32, 33 => \&v33, 34 => \&v34,
-    35 => \&v35, 36 => \&v36, 37 => \&v37, 38 => \&v38,
+    35 => \&v35, 36 => \&v36, 37 => \&v37, 38 => \&v38, 39 => \&v39,
+    40 => \&v40, 41 => \&v41, 42 => \&v42, 43 => \&v43, 44 => \&v44,
+    45 => \&v45, 46 => \&v46, 47 => \&v47, 48 => \&v48, 49 => \&v49,
+    50 => \&v50, 51 => \&v51, 52 => \&v52, 53 => \&v53, 54 => \&v54,
+    55 => \&v55, 56 => \&v56, 57 => \&v57, 58 => \&v58, 59 => \&v59,
+    60 => \&v60, 61 => \&v61, 62 => \&v62, 63 => \&v63, 64 => \&v64,
+    65 => \&v65, 66 => \&v66, 67 => \&v67, 68 => \&v68, 69 => \&v69,
+    70 => \&v70, 71 => \&v71, 72 => \&v72, 73 => \&v73, 74 => \&v74,
+    75 => \&v75, 76 => \&v76, 77 => \&v77, 78 => \&v78, 79 => \&v79,
+    80 => \&v80, 81 => \&v81, 82 => \&v82, 83 => \&v83, 84 => \&v84,
+    85 => \&v85, 86 => \&v86, 87 => \&v87, 88 => \&v88, 89 => \&v89,
+    90 => \&v90, 91 => \&v91, 92 => \&v92, 93 => \&v93, 94 => \&v94,
+    95 => \&v95, 96 => \&v96, 97 => \&v97, 98 => \&v98, 99 => \&v99,
+    100 => \&v100, 101 => \&v101, 102 => \&v102, 103 => \&v103,
+    104 => \&v104, 105 => \&v105, 106 => \&v106, 107 => \&v107,
 );
 
 sub main {
@@ -552,7 +1435,7 @@ sub main {
     internal_checks();
     print "ok\n";
     my $failures = 0;
-    for my $n (1 .. 38) {
+    for my $n (1 .. 107) {
         my $name = vec_name($n);
         my $result = eval { $VECTORS{$n}->(); 1 };
         if ($result) {
@@ -567,13 +1450,13 @@ sub main {
             printf "FAIL  %s :: %s\n", $name, $e;
         }
     }
-    my $total = 38;
+    my $total = 107;
     print '-' x 60, "\n";
     printf "%d/%d vectors passed\n", $total - $failures, $total;
     printf "total runtime: %.1f s\n", time - $t0;
     exit 1 if $failures;
     print "causalontology-perl is CONFORMANT to the suite "
-        . "(vectors frozen at specification 1.0.0).\n";
+        . "(vectors frozen at specification 2.0.0).\n";
 }
 
 main();

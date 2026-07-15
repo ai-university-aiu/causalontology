@@ -26,7 +26,8 @@ use Causalontology::Semantics qw(
 use Causalontology::Signing qw(verify_record);
 use Causalontology::JCS qw(jcs);
 
-my %CONTENT_KINDS = map { $_ => 1 } qw(occurrent cro continuant realizable);
+my %CONTENT_KINDS = map { $_ => 1 } qw(occurrent causal_relation_object
+                                       continuant realizable);
 my %RECORD_KINDS  = map { $_ => 1 } qw(assertion enrichment retraction
                                        succession);
 
