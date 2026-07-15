@@ -20,9 +20,22 @@ export 'semantics.dart'
         conflicts,
         refinementValid,
         hierarchyConsistent,
+        bridgeClosure,
+        classifyCro,
+        endpointsMixed,
+        skipGaps,
+        toSeconds,
+        delayWithinWindow,
+        bridgeWellformed,
+        conduitWellformed,
+        stateGaps,
+        coveringLawMismatch,
+        retrocausal,
+        hasCycle,
+        enrichmentFields,
         unitSeconds;
 export 'signing.dart' show keypairFromSeed, signRecord, verifyRecord;
 export 'store.dart' show InMemoryStore, RejectedWrite;
 
-/// Specification 1.0.0 (vectors frozen 2026-07-13).
-const String causalontologyVersion = '1.0.0';
+/// Specification 2.0.0 (whole-word re-mint; vectors frozen 2026-07-15).
+const String causalontologyVersion = '2.0.0';
