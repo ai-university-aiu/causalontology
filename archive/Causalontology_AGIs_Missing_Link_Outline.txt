@@ -1,0 +1,191 @@
+CAUSALONTOLOGY: AGI'S MISSING LINK
+
+THE MANIFESTO - OUTLINE
+
+For THE AGI 2026 conference, San Francisco.
+
+D. R. Dison, Founder of AIU, Creator and Owner of PrologAI and Mentova, ORCID 0009-0001-9246-5758, linkedin.com/in/d-r-dison/
+
+Working thesis, held as the frame of every chapter: Causalontology is important to achieve Artificial General Intelligence (AGI) - not as one more model, but as the missing DATA STRUCTURE: causation itself, reified into signed, mergeable, inspectable objects that any mind, human or synthetic, can read, write, and verify.
+
+Three arguments braided through the whole book:
+
+• Causalontology is important TO AGI: the faculties AGI needs - planning, imagination, transfer, explanation, agency - are all operations OVER causal structure, and today's systems have nowhere to keep it.
+
+• Causalontology is an ENABLER of AGI: it does not compete with neural networks or language models; it gives them the missing organ - a shared, verifiable world model layer - and it climbs Pearl's ladder by data structure rather than by hope.
+
+• Causalontology is important IN GENERAL: signed, provenance-first causal knowledge is what science, medicine, engineering, and a misinformation-soaked civilization need, with or without AGI.
+
+FRONT MATTER
+
+• Title page, byline, epigraph.
+
+• THE CLAIM - one page, five angles: the world-first synthesis, stated up front and defended for the rest of the book.
+
+PART ONE - THE WALL (why the current road does not reach AGI)
+
+Chapter 1. The Age of Miracles That Cannot Reason.
+
+• The paradox of 2026: systems that write sonnets and pass bar exams, yet fail at cause and effect a child masters at a light switch.
+
+• Grounding from the current literature: state-of-the-art Large Language Models (LLMs) score an average F1 of roughly 0.535 at inferring causal relationships from real-world text; performance collapses as causal information becomes implicit.
+
+• Next-token prediction captures statistical patterns, not mechanisms - the correlation engine at civilization's center.
+
+Chapter 2. The Ladder They Cannot Climb.
+
+• Judea Pearl's Ladder of Causation: association, intervention, counterfactual.
+
+• The verdict from the causal-inference community: machine learning remains at rung one; LLMs are sophisticated statistical approximators stuck at the bottom.
+
+• Why scale does not climb ladders: more association is still association.
+
+Chapter 3. The Billion-Dollar Admission.
+
+• The field's own pivot: world-model startups with billion-dollar seeds; deep-learning pioneers conceding that symbol manipulation is necessary; the neurosymbolic turn now mainstream.
+
+• The concession read honestly: everyone now agrees SOMETHING is missing - the fight is over what.
+
+• Our answer: what is missing is not another model; it is a missing DATA STRUCTURE.
+
+Chapter 4. The Black Box Crisis.
+
+• You cannot align what you cannot read: interpretability as the bottleneck of safety.
+
+• Explanations bolted on after the fact versus explanations that ARE the representation.
+
+• The stakes: minds we can audit versus minds we can only hope about.
+
+PART TWO - THE MISSING LINK (what Causalontology is)
+
+Chapter 5. What If Causation Were a Thing?
+
+• Reification, explained for everyone: turning "A causes B" from a sentence into an OBJECT with fields - causes, effects, mechanism, timing, modality, context, lineage.
+
+• The Causal Relation Object (CRO): the atom of understanding.
+
+Chapter 6. A Verb-First, Noun-Hosting Ontology.
+
+• Reality is what happens; things are its participants.
+
+• Governing the verbs, hosting the nouns; the realizable hinge (fragility is only fully itself in the shattering).
+
+• Why verb-first inverts the entire noun-first history of computing - databases, objects, knowledge graphs.
+
+Chapter 7. Eight Kinds of Thing.
+
+• Four content kinds (occurrent, CRO, continuant, realizable) - pure, immutable, content-addressed.
+
+• Four provenance kinds (assertion, enrichment, retraction, succession) - signed, add-only.
+
+• The load-bearing separation: content versus provenance, uniformly; disagreement lives in provenance, never in contested cells.
+
+Chapter 8. Identity Without a Committee.
+
+• Content addressing: the same claim minted anywhere on Earth gets the same identifier.
+
+• Merge is set union; the commons is a Conflict-free Replicated Data Type (CRDT) by construction; no coordinator, no gatekeeper, no vote.
+
+Chapter 9. Every Word Has an Author.
+
+• Ed25519 signatures on every mutable datum, down to a single alias in a single language.
+
+• Retraction as the honest exit; succession as institutional memory; framing made impossible.
+
+• Acting beats watching: the evidence ladder with intervention on top - your own hand on the switch outranks any amount of staring.
+
+PART THREE - THE ENABLER (how Causalontology powers AGI)
+
+Chapter 10. Climbing the Ladder by Data Structure.
+
+• Rung one lives in the assertion's evidence grades; rung two lives in intervention-graded CROs; rung three lives in refinement, context, and quarantined imagined realities.
+
+• The ladder is not climbed by bigger models but by a representation in which every rung is a first-class object.
+
+Chapter 11. The Faculties of a General Mind.
+
+• Planning is search over causal chains; imagination is counterfactual composition of CROs; transfer is analogy over relation structure; explanation is reading the mechanism field aloud; agency is choosing interventions; memory consolidation is refinement lineage.
+
+• Each faculty, shown as an OPERATION over the same eight kinds - one substrate, many faculties.
+
+Chapter 12. The Glass Box Mind.
+
+• Alignment transformed: a mind whose beliefs are signed, inspectable causal objects can be audited claim by claim.
+
+• "Why?" always has a readable answer - by construction, not by interpretability archaeology.
+
+Chapter 13. The Commons: A World Model for Everyone.
+
+• One shared, provenance-first store of causal knowledge - Wikidata's lesson, specialized to causation.
+
+• Federation and offline replication; convergence without consensus machinery.
+
+Chapter 14. Stigmergy: The Wall That Teaches.
+
+• The half-built wall shows the next worker where the next brick goes.
+
+• Six gap kinds, value-ranked; the store announces its own most valuable next contribution; demand measured from real readership.
+
+Chapter 15. The First Gardener.
+
+• The receipts from the reference implementation: perfect public-training-set scores on the first two Abstraction and Reasoning Corpus benchmarks (ARC-AGI-1: 400 of 400; ARC-AGI-2: 120 of 120) by pure symbolic induction, no LLM - stated precisely, never inflated.
+
+• The live demonstration: a glass-box synthetic mind (Mentova, on PrologAI) reads the gap list, intervenes a hundred times with its own hand on the switch, induces the missing fields, signs an intervention-grade assertion, and the gap closes on everyone's frontier.
+
+• The first brick laid in the shared wall by a machine - and every step of it narrated.
+
+PART FOUR - THE PROOF (why you can believe any of this)
+
+Chapter 16. The Freeze.
+
+• Thirty-eight conformance vectors with concrete bytes; a deterministic, idempotent freeze; twenty-seven locked decisions; specification 1.0.0.
+
+Chapter 17. Twenty Languages, Zero Shared Code.
+
+• Twenty independent implementations - Prolog, Python, JavaScript, Rust, Java, Swift, Go, C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua, C++, Zig, Julia, Kotlin/Native - agreeing byte for byte, down to the length of a month and the bytes of a signature.
+
+• Language-neutrality is not a claim; it is a table.
+
+Chapter 18. Install It Before Breakfast.
+
+• Thirteen live distribution channels; one-line installs; twenty-one Continuous Integration gates re-proving everything on every change; every claim in this book checkable in public.
+
+PART FIVE - THE WORLD (why this matters beyond AGI)
+
+Chapter 19. Science, Medicine, Engineering.
+
+• Fields that run on causation but store it as prose; what signed, mergeable causal claims do for reproducibility, drug interactions, failure analysis.
+
+Chapter 20. Truth in the Age of Noise.
+
+• Provenance-first knowledge against misinformation: no anonymous edits, honest retraction, disagreement surfaced rather than averaged away.
+
+Chapter 21. The Child at the Light Switch.
+
+• Education and human understanding: the same structure that teaches machines teaches us; curiosity as gap-reading.
+
+PART SIX - THE INVITATION
+
+Chapter 22. Monday Morning.
+
+• The one-line installs, the quickstart, the first gap you can close this week.
+
+Chapter 23. To the Builders, the Researchers, the Leaders.
+
+• Three letters: what each audience can do, concretely, starting now.
+
+Chapter 24. The Road Ahead.
+
+• The reserved future (token-level occurrences, the bounty layer), federation of minds, and the labeled bet on the third benchmark.
+
+THE MANIFESTO - the declarations, numbered, one page of thunder.
+
+CODA - the closing image: the wall, the door, the bricks, the hands - human and synthetic - building together.
+
+APPENDIX 1 - THE SPECIFICATION, COMPLETE AND TERSE: the eight kinds, the identity procedure, the thirteen semantic rules, the evidence grades, the store operations, the conformance rule - the whole standard on a few pages.
+
+APPENDIX 2 - THE REPOSITORY AND THE RECEIPTS: github.com/ai-university-aiu/causalontology; every install line; the release, the dashboard, the gardener; how to verify every claim made in this book.
+
+SOURCES - the contemporary literature grounding Part One, listed plainly.
+
+COLOPHON.
