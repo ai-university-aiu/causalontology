@@ -7,24 +7,37 @@
 #   4. hash with SHA-256,
 #   5. identifier = scheme * ":" * lowercase hex digest.
 
+# The identity-bearing fields of each of the seventeen kinds.  "type" is always
+# injected, so it is not listed here.  Order does not matter (JCS sorts keys).
 const IDENTITY_FIELDS = Dict{String,Vector{String}}(
-    "occurrent"  => ["label", "category"],
-    "causal_relation_object"        => ["causes", "effects", "mechanism", "temporal", "modality",
-                     "context", "refines"],
+    # ---- type tier ----
+    "occurrent"  => ["label", "category", "stratum"],
+    "causal_relation_object" => ["causes", "effects", "mechanism", "temporal",
+                                 "modality", "context", "refines", "skips"],
     "continuant" => ["label", "category"],
-    "realizable" => ["kind", "bearer"],
-    "assertion"  => ["about", "source", "evidence_type", "evidence",
-                     "strength", "confidence", "timestamp"],
+    "realizable" => ["kind", "bearer", "label"],
+    "stratum"    => ["label", "scheme", "ordinal", "unit", "governs"],
+    "bridge"     => ["coarse", "fine", "relation"],
+    "port"       => ["bearer", "label", "direction", "accepts", "realizable"],
+    "conduit"    => ["label", "from", "to", "carries", "transform"],
+    "quality"    => ["label", "datatype", "unit", "stratum"],
+    # ---- token tier ----
+    "token_individual"   => ["instantiates", "designator", "part_of"],
+    "token_occurrence"   => ["instantiates", "interval", "participants",
+                             "locus", "observer"],
+    "state_assertion"    => ["subject", "quality", "value", "interval"],
+    "token_causal_claim" => ["causes", "effects", "covering_law",
+                             "actual_delay", "counterfactual"],
+    # ---- provenance tier ----
+    "assertion"  => ["about", "source", "evidence_type", "evidence", "strength",
+                     "confidence", "timestamp", "evidenced_by"],
     "enrichment" => ["about", "field", "entry", "source", "timestamp"],
     "retraction" => ["retracts", "source", "timestamp"],
     "succession" => ["predecessor", "successor", "timestamp"],
 )
 
-const PREFIX = Dict{String,String}(
-    "occurrent" => "occurrent", "causal_relation_object" => "causal_relation_object", "continuant" => "continuant",
-    "realizable" => "realizable", "assertion" => "assertion", "enrichment" => "enrichment",
-    "retraction" => "retraction", "succession" => "succession",
-)
+# Whole-word re-mint (P7): the scheme IS the type value for every kind.
+const PREFIX = Dict{String,String}(k => k for k in keys(IDENTITY_FIELDS))
 const KIND_OF_PREFIX = Dict{String,String}(v => k for (k, v) in PREFIX)
 
 "Infer an object's kind from its type field, id prefix, or shape."
@@ -37,6 +50,7 @@ function infer_kind(obj::JObj)
             haskey(KIND_OF_PREFIX, pre) && return KIND_OF_PREFIX[pre]
         end
     end
+    jhas(obj, "coarse") && jhas(obj, "fine") && return "bridge"
     jhas(obj, "causes") && jhas(obj, "effects") && return "causal_relation_object"
     jhas(obj, "retracts") && return "retraction"
     jhas(obj, "predecessor") && jhas(obj, "successor") && return "succession"
