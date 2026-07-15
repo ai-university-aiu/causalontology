@@ -4,18 +4,18 @@
   "group": "A - schema validity",
   "operation": "validate_schema + validate_semantics",
   "input": {
-    "id": "cro:61ea51136a1eb39db39c889c9c53ebd21e5ce9e78721a6c2c40f8e16b782a879",
-    "type": "cro",
+    "id": "causal_relation_object:61ea51136a1eb39db39c889c9c53ebd21e5ce9e78721a6c2c40f8e16b782a879",
+    "type": "causal_relation_object",
     "causes": [
-      "occ:9f0bcb9398b3570eeab0e76fdd77f61348c3d20df616de30a6d5db642f26802f"
+      "occurrent:9f0bcb9398b3570eeab0e76fdd77f61348c3d20df616de30a6d5db642f26802f"
     ],
     "effects": [
-      "occ:317cd8117e4b773a4ee5d8749d1c88765b8ededcb5ad8f87e6b23f308aa74cac"
+      "occurrent:317cd8117e4b773a4ee5d8749d1c88765b8ededcb5ad8f87e6b23f308aa74cac"
     ],
     "mechanism": [],
     "temporal": {
-      "dmin": 0,
-      "dmax": 0,
+      "minimum_delay": 0,
+      "maximum_delay": 0,
       "unit": "instant"
     },
     "modality": "sufficient",

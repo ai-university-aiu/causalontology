@@ -5,8 +5,8 @@
   "operation": "admissible",
   "given": {
     "temporal": {
-      "dmin": 12,
-      "dmax": 14,
+      "minimum_delay": 12,
+      "maximum_delay": 14,
       "unit": "months"
     },
     "elapsed_seconds": 34560000

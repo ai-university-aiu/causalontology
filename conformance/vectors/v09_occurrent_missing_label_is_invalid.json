@@ -4,7 +4,7 @@
   "group": "A - schema validity",
   "operation": "validate_schema",
   "input": {
-    "id": "occ:925bbaf6094520d2f1a3c31bac637fdd5eae62c6d636733e1ec1c85528a5a382",
+    "id": "occurrent:925bbaf6094520d2f1a3c31bac637fdd5eae62c6d636733e1ec1c85528a5a382",
     "category": "action"
   },
   "expect": {

@@ -7,33 +7,48 @@ Implements the identity procedure of spec/identity.md:
   4. hash with SHA-256,
   5. identifier = scheme + ":" + lowercase hex digest.
 
-The number serialization implements the RFC 8785 rules for the value ranges
+2.0.0: every identifier scheme is a whole English word (Principle P7); the
+scheme, the type value, and the id prefix are one and the same string. The
+number serialization implements the RFC 8785 rules for the value ranges
 Causalontology uses (integers, integer-valued floats, and short decimals);
 full ECMAScript exponent formatting for extreme magnitudes is pinned at the
-1.0.0 conformance freeze.
+2.0.0 conformance freeze.
 """
 
 import hashlib
 import math
 
+# The identity-bearing fields of each of the seventeen kinds. "type" is always
+# injected, so it is not listed here. Order does not matter (JCS sorts keys).
 IDENTITY_FIELDS = {
-    "occurrent":  ["label", "category"],
-    "cro":        ["causes", "effects", "mechanism", "temporal", "modality",
-                   "context", "refines"],
+    # ---- type tier ----
+    "occurrent":  ["label", "category", "stratum"],
+    "causal_relation_object": ["causes", "effects", "mechanism", "temporal",
+                               "modality", "context", "refines", "skips"],
     "continuant": ["label", "category"],
-    "realizable": ["kind", "bearer"],
+    "realizable": ["kind", "bearer", "label"],
+    "stratum":    ["label", "scheme", "ordinal", "unit", "governs"],
+    "bridge":     ["coarse", "fine", "relation"],
+    "port":       ["bearer", "label", "direction", "accepts", "realizable"],
+    "conduit":    ["label", "from", "to", "carries", "transform"],
+    "quality":    ["label", "datatype", "unit", "stratum"],
+    # ---- token tier ----
+    "token_individual":   ["instantiates", "designator", "part_of"],
+    "token_occurrence":   ["instantiates", "interval", "participants",
+                           "locus", "observer"],
+    "state_assertion":    ["subject", "quality", "value", "interval"],
+    "token_causal_claim": ["causes", "effects", "covering_law",
+                           "actual_delay", "counterfactual"],
+    # ---- provenance tier ----
     "assertion":  ["about", "source", "evidence_type", "evidence", "strength",
-                   "confidence", "timestamp"],
+                   "confidence", "timestamp", "evidenced_by"],
     "enrichment": ["about", "field", "entry", "source", "timestamp"],
     "retraction": ["retracts", "source", "timestamp"],
     "succession": ["predecessor", "successor", "timestamp"],
 }
 
-PREFIX = {
-    "occurrent": "occ", "cro": "cro", "continuant": "cnt", "realizable": "rlz",
-    "assertion": "ast", "enrichment": "enr", "retraction": "ret",
-    "succession": "suc",
-}
+# Whole-word re-mint (P7): the scheme IS the type value for every kind.
+PREFIX = {k: k for k in IDENTITY_FIELDS}
 KIND_OF_PREFIX = {v: k for k, v in PREFIX.items()}
 
 
@@ -45,8 +60,10 @@ def infer_kind(obj):
         pre = obj["id"].split(":", 1)[0]
         if pre in KIND_OF_PREFIX:
             return KIND_OF_PREFIX[pre]
+    if "coarse" in obj and "fine" in obj:
+        return "bridge"
     if "causes" in obj and "effects" in obj:
-        return "cro"
+        return "causal_relation_object"
     if "retracts" in obj:
         return "retraction"
     if "predecessor" in obj and "successor" in obj:

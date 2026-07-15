@@ -1,10 +1,11 @@
 """Schema validation against spec/schema/*.schema.json.
 
 A deliberately small interpreter for exactly the JSON Schema keywords the
-eight Causalontology schemas use: type, const, enum, pattern, required,
+seventeen Causalontology schemas use: type, const, enum, pattern, required,
 properties, additionalProperties, items, minItems, minLength, minimum,
-maximum, oneOf, and local $ref (#/$defs/...). "format" is treated as an
-annotation, as the 2020-12 draft does by default.
+maximum, oneOf, local $ref (#/$defs/...), and cross-file $ref to a sibling
+schema (https://causalontology.org/schema/<file>.schema.json#/...). "format"
+is treated as an annotation, as the 2020-12 draft does by default.
 """
 
 import json
@@ -12,11 +13,22 @@ import os
 import re
 from pathlib import Path
 
+# kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+# file names (individual/token/state); the id scheme is the whole word.
 SCHEMA_FILES = {
-    "cro": "cro.schema.json",
     "occurrent": "occurrent.schema.json",
+    "causal_relation_object": "causal_relation_object.schema.json",
     "continuant": "continuant.schema.json",
     "realizable": "realizable.schema.json",
+    "stratum": "stratum.schema.json",
+    "bridge": "bridge.schema.json",
+    "port": "port.schema.json",
+    "conduit": "conduit.schema.json",
+    "quality": "quality.schema.json",
+    "token_individual": "individual.schema.json",
+    "token_occurrence": "token.schema.json",
+    "state_assertion": "state.schema.json",
+    "token_causal_claim": "token_causal_claim.schema.json",
     "assertion": "assertion.schema.json",
     "enrichment": "enrichment.schema.json",
     "retraction": "retraction.schema.json",
@@ -24,6 +36,7 @@ SCHEMA_FILES = {
 }
 
 _cache = {}
+_BASE = "https://causalontology.org/schema/"
 
 
 def _schema_dir():
@@ -33,35 +46,52 @@ def _schema_dir():
     return Path(__file__).resolve().parents[3] / "spec" / "schema"
 
 
+def _load_file(filename):
+    if filename not in _cache:
+        with open(_schema_dir() / filename) as f:
+            _cache[filename] = json.load(f)
+    return _cache[filename]
+
+
 def load_schema(kind):
     if kind not in SCHEMA_FILES:
         raise ValueError("unknown kind: %r" % (kind,))
-    if kind not in _cache:
-        with open(_schema_dir() / SCHEMA_FILES[kind]) as f:
-            _cache[kind] = json.load(f)
-    return _cache[kind]
+    return _load_file(SCHEMA_FILES[kind])
+
+
+def _navigate(doc, pointer):
+    node = doc
+    for part in pointer.split("/"):
+        if part == "":
+            continue
+        node = node[part]
+    return node
 
 
 def _resolve(schema, root):
-    while "$ref" in schema:
+    """Resolve local and cross-file $refs to a concrete schema node + its root."""
+    while isinstance(schema, dict) and "$ref" in schema:
         ref = schema["$ref"]
-        if not ref.startswith("#/"):
-            raise ValueError("only local $ref supported: %r" % ref)
-        node = root
-        for part in ref[2:].split("/"):
-            node = node[part]
-        schema = node
-    return schema
+        if ref.startswith("#/"):
+            schema = _navigate(root, ref[2:])
+        elif ref.startswith(_BASE):
+            rest = ref[len(_BASE):]
+            filename, _, pointer = rest.partition("#/")
+            root = _load_file(filename)
+            schema = _navigate(root, pointer) if pointer else root
+        else:
+            raise ValueError("unsupported $ref: %r" % ref)
+    return schema, root
 
 
 _TYPES = {
     "object": dict, "array": list, "string": str,
-    "number": (int, float), "boolean": bool,
+    "number": (int, float), "boolean": bool, "integer": int,
 }
 
 
 def _check(value, schema, root, path, errors):
-    schema = _resolve(schema, root)
+    schema, root = _resolve(schema, root)
 
     if "oneOf" in schema:
         passing = 0
@@ -79,7 +109,7 @@ def _check(value, schema, root, path, errors):
     if t is not None:
         pytype = _TYPES[t]
         ok = isinstance(value, pytype)
-        if t == "number" and isinstance(value, bool):
+        if t in ("number", "integer") and isinstance(value, bool):
             ok = False
         if not ok:
             errors.append("%s: expected %s" % (path, t))

@@ -4,12 +4,12 @@
   "group": "A - schema validity",
   "operation": "validate_schema",
   "input": {
-    "id": "cro:def4a0b021463baf249ed73925ba335933abd3c8b1ad4967d3c416783aa2439b",
+    "id": "causal_relation_object:def4a0b021463baf249ed73925ba335933abd3c8b1ad4967d3c416783aa2439b",
     "causes": [
       "pressing the button"
     ],
     "effects": [
-      "occ:df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c"
+      "occurrent:df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c"
     ]
   },
   "expect": {

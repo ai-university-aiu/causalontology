@@ -1,12 +1,16 @@
 """The semantic rules beyond the schemas (spec/semantics.md).
 
 Local rules are checked here; store-context rules (materialized acyclicity,
-retraction lineage) live in store.py where the context exists.
+retraction lineage) live in store.py where the context exists. The 2.0.0
+normative algorithms (Section 12: bridge closure, bridged reachability,
+stratal classification, the skip decision procedure, and unit normalization)
+are implemented here exactly as written, and are the five places where an
+implementation can be subtly and silently wrong.
 """
 
 from .canonical import infer_kind
 
-# Rule 4: the fixed unit-conversion constants (average Gregorian values).
+# Rule 4 / Algorithm E: the fixed unit-conversion constants (mean Gregorian).
 UNIT_SECONDS = {
     "instant": 0,
     "seconds": 1,
@@ -14,17 +18,20 @@ UNIT_SECONDS = {
     "hours": 3600,
     "days": 86400,
     "weeks": 604800,
-    "months": 2629746,
-    "years": 31556952,
+    "months": 2629746,     # NORMATIVE: mean Gregorian month
+    "years": 31556952,     # NORMATIVE: mean Gregorian year (365.2425 days)
 }
 
-# Rule 12: enrichment field-to-kind validity and entry shapes.
+# Rule 12: enrichment field-to-kind validity and entry shapes. Two occurrent
+# forms added in 2.0.0.
 ENRICHMENT_FIELDS = {
-    "aliases":      (("occurrent", "continuant"), "alias"),
-    "participants": (("occurrent",),             "cnt"),
-    "subsumes":     (("continuant",),            "cnt"),
-    "part_of":      (("continuant",),            "cnt"),
-    "realized_in":  (("realizable",),            "occ"),
+    "aliases":            (("occurrent", "continuant"), "alias"),
+    "participants":       (("occurrent",),  "continuant"),
+    "subsumes":           (("continuant",), "continuant"),
+    "part_of":            (("continuant",), "continuant"),
+    "realized_in":        (("realizable",), "occurrent"),
+    "occurrent_subsumes": (("occurrent",),  "occurrent"),
+    "occurrent_part_of":  (("occurrent",),  "occurrent"),
 }
 
 CRO_OPTIONAL_FIELDS = ["mechanism", "temporal", "modality", "context"]
@@ -40,17 +47,23 @@ def validate_semantics(obj, kind=None):
     kind = kind or infer_kind(obj)
     errors = []
 
-    if kind == "cro":
+    if kind == "causal_relation_object":
         t = obj.get("temporal")
-        if t is not None and t.get("dmin") is not None \
-                and t.get("dmax") is not None and t["dmin"] > t["dmax"]:
-            errors.append("dmin must be <= dmax")
+        if t is not None and t.get("minimum_delay") is not None \
+                and t.get("maximum_delay") is not None \
+                and t["minimum_delay"] > t["maximum_delay"]:
+            errors.append("minimum_delay must be <= maximum_delay")
         oid = obj.get("id")
         if oid and oid in obj.get("mechanism", []):
             errors.append("mechanism must be acyclic "
                           "(a Causal Relation Object may not contain itself)")
         if oid and obj.get("refines") == oid:
             errors.append("refines must be acyclic")
+        # Rule 16, clause 1 (contradictory_skip): a HARD, locally-decidable
+        # contradiction between skips:true and a non-empty mechanism.
+        if obj.get("skips") is True and obj.get("mechanism"):
+            errors.append("contradictory_skip: skips is true but a mechanism "
+                          "is present")
 
     if kind == "enrichment":
         field = obj.get("field")
@@ -89,8 +102,8 @@ def admissible(cro, elapsed_seconds):
     if t is None:
         return True  # no window imposes no constraint
     unit = UNIT_SECONDS[t["unit"]]
-    lo = t["dmin"] * unit
-    hi = t["dmax"] * unit
+    lo = t["minimum_delay"] * unit
+    hi = t["maximum_delay"] * unit
     return lo <= elapsed_seconds <= hi
 
 
@@ -99,8 +112,8 @@ def _window_overlap(a, b):
     if ta is None or tb is None:
         return True  # either absent counts as overlapping
     ua, ub = UNIT_SECONDS[ta["unit"]], UNIT_SECONDS[tb["unit"]]
-    lo_a, hi_a = ta["dmin"] * ua, ta["dmax"] * ua
-    lo_b, hi_b = tb["dmin"] * ub, tb["dmax"] * ub
+    lo_a, hi_a = ta["minimum_delay"] * ua, ta["maximum_delay"] * ua
+    lo_b, hi_b = tb["minimum_delay"] * ub, tb["maximum_delay"] * ub
     return lo_a <= hi_b and lo_b <= hi_a
 
 
@@ -112,7 +125,9 @@ def _contexts_compatible(a, b):
     return sa == sb or sa <= sb or sb <= sa
 
 
-_POSITIVE = {"necessary", "sufficient", "contributory"}
+# Rule 6 (amended): necessary, sufficient, contributory, enabling are mutually
+# compatible; preventive opposes all four.
+_POSITIVE = {"necessary", "sufficient", "contributory", "enabling"}
 
 
 def conflicts(a, b):
@@ -150,37 +165,261 @@ def refinement_valid(child, parent):
     return True, "valid refinement"
 
 
-def hierarchy_consistent(parent, members):
-    """Rule 7: 'consistent' | 'inconsistent' | 'indeterminate'.
+# ===========================================================================
+# 2.0.0 NORMATIVE ALGORITHMS (Section 12)
+# ===========================================================================
 
-    members: a mapping from CRO identifier to CRO object for the parent's
-    mechanism entries (the store's view of them).
-    """
+def bridge_closure(occurrent_id, bridges):
+    """ALGORITHM A. Every finer occurrent an occurrent resolves to, following
+    Bridges downward, transitively. Includes the starting occurrent (N12.1.1).
+    `bridges` is any iterable of bridge objects. The visited guard (N12.1.2)
+    prevents an infinite loop on malformed cyclic data."""
+    result = {occurrent_id}
+    frontier = [occurrent_id]
+    visited = set()
+    coarse_index = {}
+    for b in bridges:
+        coarse_index.setdefault(b["coarse"], []).append(b)
+    while frontier:
+        current = frontier.pop()
+        if current in visited:
+            continue
+        visited.add(current)
+        for b in coarse_index.get(current, ()):
+            for f in b["fine"]:
+                result.add(f)
+                frontier.append(f)
+    return result
+
+
+def _path_exists(edges, src, dst):
+    seen, stack = set(), [src]
+    while stack:
+        node = stack.pop()
+        if node == dst:
+            return True
+        if node in seen:
+            continue
+        seen.add(node)
+        stack.extend(edges.get(node, ()))
+    return False
+
+
+def hierarchy_consistent(parent, members, bridges=()):
+    """ALGORITHM B (amended Rule 7): 'consistent' | 'inconsistent' |
+    'indeterminate', ACROSS STRATA via bridged reachability.
+
+    members: mapping from CRO identifier to CRO object for the mechanism
+    entries. bridges: the store's bridges (empty -> 1.0.0 literal reachability,
+    the degenerate case, N12.2.3)."""
     mechanism = parent.get("mechanism", [])
     if not mechanism:
-        return "consistent"  # nothing claimed, nothing to check
+        return "consistent"  # nothing claimed, nothing to check (N12.2.1)
     edges = {}
     for mid in mechanism:
         m = members.get(mid)
         if m is None:
-            return "indeterminate"  # a dangling_reference gap, not a failure
+            return "indeterminate"  # dangling; ignorance, not refutation
         for c in m["causes"]:
             edges.setdefault(c, set()).update(m["effects"])
-
-    def reachable(src, dst):
-        seen, stack = set(), [src]
-        while stack:
-            node = stack.pop()
-            if node == dst:
-                return True
-            if node in seen:
-                continue
-            seen.add(node)
-            stack.extend(edges.get(node, ()))
-        return False
-
+    b_cause = {c: bridge_closure(c, bridges) for c in parent["causes"]}
+    b_effect = {e: bridge_closure(e, bridges) for e in parent["effects"]}
     for c in parent["causes"]:
         for e in parent["effects"]:
-            if not reachable(c, e):
+            connected = any(_path_exists(edges, cp, ep)
+                            for cp in b_cause[c] for ep in b_effect[e])
+            if not connected:
                 return "inconsistent"
     return "consistent"
+
+
+def classify_cro(cro, occ_map, stratum_map):
+    """ALGORITHM C (Rule 15): 'intra_stratal' | 'adjacent_stratal' |
+    'skipping' | 'mixed' | 'unclassifiable' | 'scheme_mismatch'.
+    Derived, never asserted; recompute on ingest (N12.3.1)."""
+    def stratum_of(occ_id):
+        return occ_map.get(occ_id, {}).get("stratum")
+    cause_strata = [stratum_of(c) for c in cro["causes"]]
+    effect_strata = [stratum_of(e) for e in cro["effects"]]
+    if any(s is None for s in cause_strata + effect_strata):
+        return "unclassifiable"  # surface unstratified_occurrent (invitation)
+    all_strata = set(cause_strata) | set(effect_strata)
+    schemes = {stratum_map[s]["scheme"] for s in all_strata}
+    if len(schemes) > 1:
+        return "scheme_mismatch"  # HARD
+    c_ord = [stratum_map[s]["ordinal"] for s in cause_strata]
+    e_ord = [stratum_map[s]["ordinal"] for s in effect_strata]
+    if max(c_ord) == min(c_ord) == max(e_ord) == min(e_ord):
+        return "intra_stratal"
+    gap = min(abs(i - j) for i in c_ord for j in e_ord)
+    span = max(abs(i - j) for i in c_ord for j in e_ord)
+    if span == 1:
+        return "adjacent_stratal"
+    if gap > 1:
+        return "skipping"
+    return "mixed"  # some pairs adjacent, some skipping
+
+
+def endpoints_mixed(cro, occ_map):
+    """True iff causes or effects span more than one distinct stratum
+    (surfaces mixed_stratal_endpoints, an invitation; N12.3.2)."""
+    def stratum_of(occ_id):
+        return occ_map.get(occ_id, {}).get("stratum")
+    cs = {stratum_of(c) for c in cro["causes"]}
+    es = {stratum_of(e) for e in cro["effects"]}
+    if None in cs or None in es:
+        return False
+    return len(cs) > 1 or len(es) > 1
+
+
+def skip_gaps(cro, classification):
+    """ALGORITHM D (Rule 16): the gaps a Causal Relation Object surfaces for
+    the skip decision. THE ASYMMETRY (clause 3) is the whole point of the
+    field and is implemented exactly."""
+    gaps = []
+    has_mech = bool(cro.get("mechanism"))
+    if cro.get("skips") is True and has_mech:
+        gaps.append("contradictory_skip")       # HARD
+        return gaps
+    if cro.get("skips") is True and classification not in (
+            "skipping", "unclassifiable"):
+        gaps.append("vacuous_skip")              # invitation
+    if classification == "skipping" and not has_mech:
+        if cro.get("skips") is True:
+            pass                                 # NOTHING: absence is a finding
+        else:
+            gaps.append("incomplete_mechanism")  # invitation
+    return gaps
+
+
+def to_seconds(duration, unit):
+    """ALGORITHM E helper: normalize a delay to seconds by the fixed table."""
+    if unit == "instant":
+        return 0
+    return duration * UNIT_SECONDS[unit]
+
+
+def delay_within_window(actual_delay, temporal):
+    """ALGORITHM E (Rule 20): does an observed delay fall within a covering
+    law's temporal window? Inclusive at both ends (N12.5.2)."""
+    if not actual_delay or not temporal:
+        return True  # nothing to check
+    observed = to_seconds(actual_delay["duration"], actual_delay["unit"])
+    lo = to_seconds(temporal["minimum_delay"], temporal["unit"])
+    hi = to_seconds(temporal["maximum_delay"], temporal["unit"])
+    return lo <= observed <= hi
+
+
+# ---- Rule 14 / N3.2.1: Bridge well-formedness -----------------------------
+def bridge_wellformed(bridge, occ_map, stratum_map):
+    """(ok, reason). All of (a)-(e) of N3.2.1 must hold, else malformed_bridge."""
+    coarse = occ_map.get(bridge["coarse"], {})
+    cs = coarse.get("stratum")
+    if cs is None:
+        return False, "malformed_bridge: coarse has no stratum (a)"
+    fine_strata = [occ_map.get(f, {}).get("stratum") for f in bridge["fine"]]
+    if any(s is None for s in fine_strata):
+        return False, "malformed_bridge: a fine member has no stratum (b)"
+    if len(set(fine_strata)) != 1:
+        return False, "malformed_bridge: fine members span >1 stratum (c)"
+    fs = fine_strata[0]
+    if stratum_map[cs]["scheme"] != stratum_map[fs]["scheme"]:
+        return False, "malformed_bridge: coarse and fine differ in scheme (d)"
+    if not stratum_map[cs]["ordinal"] > stratum_map[fs]["ordinal"]:
+        return False, "malformed_bridge: coarse ordinal not > fine ordinal (e)"
+    return True, "well-formed bridge"
+
+
+# ---- Rule 17 / N4.2.1-2: Conduit well-formedness --------------------------
+def conduit_wellformed(conduit, port_map, cro_map=None):
+    """(ok, reason). N4.2.1 with the transform exception of N4.2.2."""
+    frm = port_map.get(conduit["from"])
+    to = port_map.get(conduit["to"])
+    if frm is None or to is None:
+        return False, "malformed_conduit: dangling port reference"
+    if frm["direction"] not in ("out", "bidirectional"):
+        return False, "malformed_conduit: from port is not out/bidirectional (a)"
+    if to["direction"] not in ("in", "bidirectional"):
+        return False, "malformed_conduit: to port is not in/bidirectional (b)"
+    carries = conduit["carries"]
+    if not all(o in frm["accepts"] for o in carries):
+        return False, "malformed_conduit: carries not accepted by from (c)"
+    transform = conduit.get("transform")
+    if transform is None:
+        if not all(o in to["accepts"] for o in carries):
+            return False, "malformed_conduit: carries not accepted by to (d)"
+    else:
+        law = (cro_map or {}).get(transform)
+        if law is not None:
+            if not all(o in to["accepts"] for o in law["effects"]):
+                return False, ("malformed_conduit: transform effects not "
+                               "accepted by to (d, relaxed per N4.2.2)")
+    return True, "well-formed conduit"
+
+
+# ---- Rule 19 / N5.3.1-2: State value type and unit coherence --------------
+def state_gaps(state, quality):
+    """The HARD gaps a state assertion surfaces against its quality:
+    value_type_mismatch and/or unit_mismatch."""
+    gaps = []
+    dt = quality.get("datatype")
+    v = state.get("value", {})
+    shape = ("quantity" if "quantity" in v else
+             "categorical" if "categorical" in v else
+             "boolean" if "boolean" in v else None)
+    if shape != dt:
+        gaps.append("value_type_mismatch")
+    elif dt == "quantity" and v.get("unit") != quality.get("unit"):
+        gaps.append("unit_mismatch")
+    return gaps
+
+
+# ---- Rule 20: covering-law coherence --------------------------------------
+def covering_law_mismatch(tcc, token_map, law):
+    """True iff the token claim's cause/effect tokens do not instantiate the
+    covering law's causes/effects (surfaces covering_law_mismatch)."""
+    if not law:
+        return False
+    law_causes, law_effects = set(law["causes"]), set(law["effects"])
+    for c in tcc["causes"]:
+        if token_map[c]["instantiates"] not in law_causes:
+            return True
+    for e in tcc["effects"]:
+        if token_map[e]["instantiates"] not in law_effects:
+            return True
+    return False
+
+
+# ---- Rule 21: temporal coherence of token causation -----------------------
+def retrocausal(tcc, token_map):
+    """True iff any cause token starts after any effect token (HARD;
+    retrocausal_claim). RFC 3339 UTC 'Z' strings compare lexicographically."""
+    for c in tcc["causes"]:
+        cstart = token_map[c]["interval"]["start"]
+        for e in tcc["effects"]:
+            estart = token_map[e]["interval"]["start"]
+            if cstart > estart:
+                return True
+    return False
+
+
+# ---- Rules 4 / 6.1: generic acyclicity for the new graph relations --------
+def has_cycle(edges):
+    """True iff a directed graph (dict node -> iterable of successors) has a
+    cycle. Used for bridge graph, occurrent_subsumes, occurrent_part_of, and
+    token mereology (part_of)."""
+    WHITE, GREY, BLACK = 0, 1, 2
+    state = {}
+
+    def visit(node):
+        state[node] = GREY
+        for nxt in edges.get(node, ()):
+            s = state.get(nxt, WHITE)
+            if s == GREY:
+                return True
+            if s == WHITE and visit(nxt):
+                return True
+        state[node] = BLACK
+        return False
+
+    return any(state.get(n, WHITE) == WHITE and visit(n) for n in list(edges))

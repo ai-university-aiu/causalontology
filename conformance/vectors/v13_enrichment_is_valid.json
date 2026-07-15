@@ -4,8 +4,8 @@
   "group": "A - schema validity",
   "operation": "validate_schema + validate_semantics",
   "input": {
-    "id": "enr:2af50b17765dc391e3fe7a9408db91794629afb6896ab99345f71d968f7923c8",
-    "about": "occ:9f0bcb9398b3570eeab0e76fdd77f61348c3d20df616de30a6d5db642f26802f",
+    "id": "enrichment:2af50b17765dc391e3fe7a9408db91794629afb6896ab99345f71d968f7923c8",
+    "about": "occurrent:9f0bcb9398b3570eeab0e76fdd77f61348c3d20df616de30a6d5db642f26802f",
     "field": "aliases",
     "entry": {
       "lang": "ja",
