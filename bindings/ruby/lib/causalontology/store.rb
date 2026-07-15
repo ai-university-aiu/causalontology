@@ -18,7 +18,10 @@ require_relative "semantics"
 require_relative "signing"
 
 module Causalontology
-  CONTENT_KINDS = Set.new(["occurrent", "causal_relation_object", "continuant", "realizable"]).freeze
+  CONTENT_KINDS = Set.new(["occurrent", "causal_relation_object", "continuant",
+                           "realizable", "stratum", "bridge", "port", "conduit",
+                           "quality", "token_individual", "token_occurrence",
+                           "state_assertion", "token_causal_claim"]).freeze
   RECORD_KINDS = Set.new(["assertion", "enrichment", "retraction", "succession"]).freeze
 
   # An enforcing store refused a write, with the reason as the message.

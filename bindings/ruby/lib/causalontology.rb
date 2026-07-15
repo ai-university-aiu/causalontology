@@ -22,7 +22,7 @@ require_relative "causalontology/semantics"
 require_relative "causalontology/store"
 
 module Causalontology
-  VERSION = "1.0.0" # specification 1.0.0 (vectors frozen 2026-07-13)
+  VERSION = "2.0.0" # specification 2.0.0 (whole-word re-mint; vectors re-frozen)
 
   # Rule 4's fixed unit-conversion constants, re-exported at the top level.
   UNIT_SECONDS = Semantics::UNIT_SECONDS
@@ -73,8 +73,58 @@ module Causalontology
     Semantics.refinement_valid(child, parent)
   end
 
-  def hierarchy_consistent(parent, members)
-    Semantics.hierarchy_consistent(parent, members)
+  def hierarchy_consistent(parent, members, bridges = [])
+    Semantics.hierarchy_consistent(parent, members, bridges)
+  end
+
+  # -- 2.0.0 normative algorithms and rules (spec/semantics.md, Section 12) --
+
+  def bridge_closure(occurrent_id, bridges)
+    Semantics.bridge_closure(occurrent_id, bridges)
+  end
+
+  def classify_cro(cro, occ_map, stratum_map)
+    Semantics.classify_cro(cro, occ_map, stratum_map)
+  end
+
+  def endpoints_mixed(cro, occ_map)
+    Semantics.endpoints_mixed(cro, occ_map)
+  end
+
+  def skip_gaps(cro, classification)
+    Semantics.skip_gaps(cro, classification)
+  end
+
+  def to_seconds(duration, unit)
+    Semantics.to_seconds(duration, unit)
+  end
+
+  def delay_within_window(actual_delay, temporal)
+    Semantics.delay_within_window(actual_delay, temporal)
+  end
+
+  def bridge_wellformed(bridge, occ_map, stratum_map)
+    Semantics.bridge_wellformed(bridge, occ_map, stratum_map)
+  end
+
+  def conduit_wellformed(conduit, port_map, cro_map = nil)
+    Semantics.conduit_wellformed(conduit, port_map, cro_map)
+  end
+
+  def state_gaps(state, quality)
+    Semantics.state_gaps(state, quality)
+  end
+
+  def covering_law_mismatch(tcc, token_map, law)
+    Semantics.covering_law_mismatch(tcc, token_map, law)
+  end
+
+  def retrocausal(tcc, token_map)
+    Semantics.retrocausal(tcc, token_map)
+  end
+
+  def has_cycle(edges)
+    Semantics.has_cycle(edges)
   end
 
   # -- provenance (spec/provenance.md) ---------------------------------------

@@ -14,24 +14,38 @@ require_relative "jcs"
 
 module Causalontology
   module Canonical
+    # The identity-bearing fields of each of the seventeen kinds. "type" is
+    # always injected, so it is not listed here. Order does not matter (JCS
+    # sorts keys).
     IDENTITY_FIELDS = {
-      "occurrent"  => ["label", "category"],
-      "causal_relation_object"        => ["causes", "effects", "mechanism", "temporal", "modality",
-                       "context", "refines"],
+      # ---- type tier ----
+      "occurrent"  => ["label", "category", "stratum"],
+      "causal_relation_object" => ["causes", "effects", "mechanism", "temporal",
+                                   "modality", "context", "refines", "skips"],
       "continuant" => ["label", "category"],
-      "realizable" => ["kind", "bearer"],
+      "realizable" => ["kind", "bearer", "label"],
+      "stratum"    => ["label", "scheme", "ordinal", "unit", "governs"],
+      "bridge"     => ["coarse", "fine", "relation"],
+      "port"       => ["bearer", "label", "direction", "accepts", "realizable"],
+      "conduit"    => ["label", "from", "to", "carries", "transform"],
+      "quality"    => ["label", "datatype", "unit", "stratum"],
+      # ---- token tier ----
+      "token_individual"   => ["instantiates", "designator", "part_of"],
+      "token_occurrence"   => ["instantiates", "interval", "participants",
+                               "locus", "observer"],
+      "state_assertion"    => ["subject", "quality", "value", "interval"],
+      "token_causal_claim" => ["causes", "effects", "covering_law",
+                               "actual_delay", "counterfactual"],
+      # ---- provenance tier ----
       "assertion"  => ["about", "source", "evidence_type", "evidence", "strength",
-                       "confidence", "timestamp"],
+                       "confidence", "timestamp", "evidenced_by"],
       "enrichment" => ["about", "field", "entry", "source", "timestamp"],
       "retraction" => ["retracts", "source", "timestamp"],
       "succession" => ["predecessor", "successor", "timestamp"],
     }.freeze
 
-    PREFIX = {
-      "occurrent" => "occurrent", "causal_relation_object" => "causal_relation_object", "continuant" => "continuant",
-      "realizable" => "realizable", "assertion" => "assertion", "enrichment" => "enrichment",
-      "retraction" => "retraction", "succession" => "succession",
-    }.freeze
+    # Whole-word re-mint (P7): the scheme IS the type value for every kind.
+    PREFIX = IDENTITY_FIELDS.keys.each_with_object({}) { |k, h| h[k] = k }.freeze
     KIND_OF_PREFIX = PREFIX.invert.freeze
 
     module_function
@@ -43,6 +57,7 @@ module Causalontology
         pre = obj["id"].split(":", 2)[0]
         return KIND_OF_PREFIX[pre] if KIND_OF_PREFIX.key?(pre)
       end
+      return "bridge" if obj.key?("coarse") && obj.key?("fine")
       return "causal_relation_object" if obj.key?("causes") && obj.key?("effects")
       return "retraction" if obj.key?("retracts")
       return "succession" if obj.key?("predecessor") && obj.key?("successor")

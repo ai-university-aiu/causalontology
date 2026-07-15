@@ -3,26 +3,40 @@
 # Schema validation against spec/schema/*.schema.json.
 #
 # A deliberately small interpreter for exactly the JSON Schema keywords the
-# eight Causalontology schemas use: type, const, enum, pattern, required,
+# seventeen Causalontology schemas use: type, const, enum, pattern, required,
 # properties, additionalProperties, items, minItems, minLength, minimum,
-# maximum, oneOf, and local $ref (#/$defs/...). "format" is treated as an
-# annotation, as the 2020-12 draft does by default.
+# maximum, oneOf, local $ref (#/$defs/...), and cross-file $ref to a sibling
+# schema (https://causalontology.org/schema/<file>.schema.json#/...). "format"
+# is treated as an annotation, as the 2020-12 draft does by default.
 
 require "json"
 require_relative "canonical"
 
 module Causalontology
   module Schema
+    # kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+    # file names (individual/token/state); the id scheme is the whole word.
     SCHEMA_FILES = {
-      "causal_relation_object"        => "cro.schema.json",
       "occurrent"  => "occurrent.schema.json",
+      "causal_relation_object" => "causal_relation_object.schema.json",
       "continuant" => "continuant.schema.json",
       "realizable" => "realizable.schema.json",
+      "stratum"    => "stratum.schema.json",
+      "bridge"     => "bridge.schema.json",
+      "port"       => "port.schema.json",
+      "conduit"    => "conduit.schema.json",
+      "quality"    => "quality.schema.json",
+      "token_individual"   => "individual.schema.json",
+      "token_occurrence"   => "token.schema.json",
+      "state_assertion"    => "state.schema.json",
+      "token_causal_claim" => "token_causal_claim.schema.json",
       "assertion"  => "assertion.schema.json",
       "enrichment" => "enrichment.schema.json",
       "retraction" => "retraction.schema.json",
       "succession" => "succession.schema.json",
     }.freeze
+
+    BASE = "https://causalontology.org/schema/"
 
     @cache = {}
 
@@ -34,26 +48,46 @@ module Causalontology
         File.expand_path("../../../../spec/schema", __dir__)
       end
 
+      # Load and cache a schema document by its file name.
+      def load_file(filename)
+        @cache[filename] ||= JSON.parse(
+          File.read(File.join(schema_dir, filename)))
+      end
+
       def load_schema(kind)
         unless SCHEMA_FILES.key?(kind)
           raise ArgumentError, "unknown kind: #{kind.inspect}"
         end
-        @cache[kind] ||= JSON.parse(
-          File.read(File.join(schema_dir, SCHEMA_FILES[kind])))
+        load_file(SCHEMA_FILES[kind])
       end
 
-      # Follow local $ref chains (#/$defs/...) to the referenced subschema.
-      def resolve_ref(schema, root)
-        while schema.key?("$ref")
-          ref = schema["$ref"]
-          unless ref.start_with?("#/")
-            raise ArgumentError, "only local $ref supported: #{ref.inspect}"
-          end
-          node = root
-          ref[2..].split("/").each { |part| node = node[part] }
-          schema = node
+      # Navigate a JSON pointer (slash-separated) within a document.
+      def navigate(doc, pointer)
+        node = doc
+        pointer.split("/").each do |part|
+          next if part == ""
+          node = node[part]
         end
-        schema
+        node
+      end
+
+      # Resolve local and cross-file $refs to a concrete schema node plus the
+      # root document it lives in. Returns [schema, root].
+      def resolve_ref(schema, root)
+        while schema.is_a?(Hash) && schema.key?("$ref")
+          ref = schema["$ref"]
+          if ref.start_with?("#/")
+            schema = navigate(root, ref[2..])
+          elsif ref.start_with?(BASE)
+            rest = ref[BASE.length..]
+            filename, pointer = rest.split("#/", 2)
+            root = load_file(filename)
+            schema = pointer ? navigate(root, pointer) : root
+          else
+            raise ArgumentError, "unsupported $ref: #{ref.inspect}"
+          end
+        end
+        [schema, root]
       end
 
       def type_matches?(value, t)
@@ -62,6 +96,7 @@ module Causalontology
         when "array"   then value.is_a?(Array)
         when "string"  then value.is_a?(String)
         when "number"  then value.is_a?(Integer) || value.is_a?(Float)
+        when "integer" then value.is_a?(Integer)
         when "boolean" then value == true || value == false
         else
           raise ArgumentError, "unknown schema type: #{t.inspect}"
@@ -73,7 +108,7 @@ module Causalontology
       end
 
       def check(value, schema, root, path, errors)
-        schema = resolve_ref(schema, root)
+        schema, root = resolve_ref(schema, root)
 
         if schema.key?("oneOf")
           passing = 0
