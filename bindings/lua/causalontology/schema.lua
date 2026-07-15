@@ -21,18 +21,32 @@ local json = require("causalontology.json")
 
 local schema = {}
 
+-- kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+-- file names (individual/token/state); the id scheme is the whole word.
 local SCHEMA_FILES = {
-  cro = "cro.schema.json",
   occurrent = "occurrent.schema.json",
+  causal_relation_object = "causal_relation_object.schema.json",
   continuant = "continuant.schema.json",
   realizable = "realizable.schema.json",
+  stratum = "stratum.schema.json",
+  bridge = "bridge.schema.json",
+  port = "port.schema.json",
+  conduit = "conduit.schema.json",
+  quality = "quality.schema.json",
+  token_individual = "individual.schema.json",
+  token_occurrence = "token.schema.json",
+  state_assertion = "state.schema.json",
+  token_causal_claim = "token_causal_claim.schema.json",
   assertion = "assertion.schema.json",
   enrichment = "enrichment.schema.json",
   retraction = "retraction.schema.json",
   succession = "succession.schema.json",
 }
 
-local cache = {}
+local BASE = "https://causalontology.org/schema/"
+
+local cache = {}       -- kind -> parsed schema
+local file_cache = {}  -- filename -> parsed schema
 
 -- The spec/schema directory: CAUSALONTOLOGY_SPEC overrides, else a caller
 -- (the conformance runner) sets schema.spec_dir before the first load.
@@ -45,33 +59,56 @@ local function schema_dir()
   error("set CAUSALONTOLOGY_SPEC or schema.spec_dir to the spec/ directory", 0)
 end
 
+local function load_file(filename)
+  if not file_cache[filename] then
+    local path = schema_dir() .. "/" .. filename
+    local f = assert(io.open(path, "rb"), "cannot open schema " .. path)
+    local text = f:read("a")
+    f:close()
+    file_cache[filename] = json.decode(text)
+  end
+  return file_cache[filename]
+end
+
 function schema.load_schema(kind)
   local file = SCHEMA_FILES[kind]
   if not file then error("unknown kind: " .. tostring(kind), 0) end
   if not cache[kind] then
-    local path = schema_dir() .. "/" .. file
-    local f = assert(io.open(path, "rb"), "cannot open schema " .. path)
-    local text = f:read("a")
-    f:close()
-    cache[kind] = json.decode(text)
+    cache[kind] = load_file(file)
   end
   return cache[kind]
 end
 
--- Follow local $ref pointers (#/$defs/...) inside the schema document.
+-- Navigate a JSON pointer body (already stripped of a leading "#/") from a root.
+local function navigate(root, pointer)
+  local cursor = root
+  for part in pointer:gmatch("[^/]+") do
+    cursor = cursor[part]
+  end
+  return cursor
+end
+
+-- Resolve local (#/$defs/...) and cross-file $refs to a concrete schema node.
+-- Cross-file refs point at a sibling schema
+-- (https://causalontology.org/schema/<file>.schema.json#/...) and swap in that
+-- file's document as the new root, exactly as canonical.py / schema.py do.
+-- Returns node, root.
 local function resolve(node, root)
   while json.is_object(node) and node["$ref"] ~= nil do
     local ref = node["$ref"]
-    if ref:sub(1, 2) ~= "#/" then
-      error("only local $ref supported: " .. ref, 0)
+    if ref:sub(1, 2) == "#/" then
+      node = navigate(root, ref:sub(3))
+    elseif ref:sub(1, #BASE) == BASE then
+      local rest = ref:sub(#BASE + 1)
+      local filename, pointer = rest:match("^([^#]+)#/(.*)$")
+      if not filename then filename = rest end
+      root = load_file(filename)
+      node = pointer and navigate(root, pointer) or root
+    else
+      error("unsupported $ref: " .. ref, 0)
     end
-    local cursor = root
-    for part in ref:sub(3):gmatch("[^/]+") do
-      cursor = cursor[part]
-    end
-    node = cursor
   end
-  return node
+  return node, root
 end
 
 -- The dedicated, regex-free matcher for the schema pattern families.
@@ -82,10 +119,11 @@ local function pattern_matches(pattern, value)
     return #value == tonumber(n) and value:match("^[0-9a-f]*$") ~= nil
   end
   -- families 2 and 3: ^pre:[0-9a-f]{64}$ / ^(pre1|pre2):[0-9a-f]{64}$
-  local prefixes = pattern:match("^%^%(([%w|]+)%):%[0%-9a%-f%]{64}%$$")
-                or pattern:match("^%^(%w+):%[0%-9a%-f%]{64}%$$")
+  -- (2.0.0 whole-word schemes contain underscores, so prefixes admit '_').
+  local prefixes = pattern:match("^%^%(([%w_|]+)%):%[0%-9a%-f%]{64}%$$")
+                or pattern:match("^%^([%w_]+):%[0%-9a%-f%]{64}%$$")
   if prefixes then
-    local scheme, hex = value:match("^(%w+):([0-9a-f]*)$")
+    local scheme, hex = value:match("^([%w_]+):([0-9a-f]*)$")
     if not scheme or #hex ~= 64 then return false end
     for candidate in prefixes:gmatch("[^|]+") do
       if candidate == scheme then return true end
@@ -104,6 +142,7 @@ local function type_ok(value, t)
   if t == "array" then return json.is_array(value) end
   if t == "string" then return type(value) == "string" end
   if t == "number" then return type(value) == "number" end
+  if t == "integer" then return math.type(value) == "integer" end
   if t == "boolean" then return type(value) == "boolean" end
   error("unsupported schema type: " .. tostring(t), 0)
 end
@@ -111,7 +150,7 @@ end
 local check  -- forward declaration
 
 check = function(value, node, root, path, errors)
-  node = resolve(node, root)
+  node, root = resolve(node, root)
 
   if node["oneOf"] ~= nil then
     local passing = 0

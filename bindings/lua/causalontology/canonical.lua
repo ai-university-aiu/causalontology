@@ -17,24 +17,42 @@ local sha2 = require("causalontology.sha2")
 
 local canonical = {}
 
+-- The identity-bearing fields of each of the seventeen kinds. "type" is always
+-- injected, so it is not listed here. Order does not matter (JCS sorts keys).
+-- 2.0.0 whole-word re-mint (Principle P7): the kind key, the type value, and
+-- the id scheme are one and the same string.
 canonical.IDENTITY_FIELDS = {
-  occurrent  = { "label", "category" },
-  cro        = { "causes", "effects", "mechanism", "temporal", "modality",
-                 "context", "refines" },
+  -- ---- type tier ----
+  occurrent  = { "label", "category", "stratum" },
+  causal_relation_object = { "causes", "effects", "mechanism", "temporal",
+                             "modality", "context", "refines", "skips" },
   continuant = { "label", "category" },
-  realizable = { "kind", "bearer" },
+  realizable = { "kind", "bearer", "label" },
+  stratum    = { "label", "scheme", "ordinal", "unit", "governs" },
+  bridge     = { "coarse", "fine", "relation" },
+  port       = { "bearer", "label", "direction", "accepts", "realizable" },
+  conduit    = { "label", "from", "to", "carries", "transform" },
+  quality    = { "label", "datatype", "unit", "stratum" },
+  -- ---- token tier ----
+  token_individual   = { "instantiates", "designator", "part_of" },
+  token_occurrence   = { "instantiates", "interval", "participants",
+                         "locus", "observer" },
+  state_assertion    = { "subject", "quality", "value", "interval" },
+  token_causal_claim = { "causes", "effects", "covering_law",
+                         "actual_delay", "counterfactual" },
+  -- ---- provenance tier ----
   assertion  = { "about", "source", "evidence_type", "evidence", "strength",
-                 "confidence", "timestamp" },
+                 "confidence", "timestamp", "evidenced_by" },
   enrichment = { "about", "field", "entry", "source", "timestamp" },
   retraction = { "retracts", "source", "timestamp" },
   succession = { "predecessor", "successor", "timestamp" },
 }
 
-canonical.PREFIX = {
-  occurrent = "occurrent", cro = "causal_relation_object", continuant = "continuant", realizable = "realizable",
-  assertion = "assertion", enrichment = "enrichment", retraction = "retraction",
-  succession = "succession",
-}
+-- Whole-word re-mint (P7): the scheme IS the type value for every kind.
+canonical.PREFIX = {}
+for kind in pairs(canonical.IDENTITY_FIELDS) do
+  canonical.PREFIX[kind] = kind
+end
 
 canonical.KIND_OF_PREFIX = {}
 for kind, prefix in pairs(canonical.PREFIX) do
@@ -51,6 +69,7 @@ function canonical.infer_kind(obj)
       return canonical.KIND_OF_PREFIX[pre]
     end
   end
+  if obj["coarse"] ~= nil and obj["fine"] ~= nil then return "bridge" end
   if obj["causes"] ~= nil and obj["effects"] ~= nil then return "causal_relation_object" end
   if obj["retracts"] ~= nil then return "retraction" end
   if obj["predecessor"] ~= nil and obj["successor"] ~= nil then

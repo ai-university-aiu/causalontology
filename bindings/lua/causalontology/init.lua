@@ -19,7 +19,7 @@ local ed25519 = require("causalontology.ed25519")
 
 local M = {}
 
-M._VERSION = "1.0.0"  -- specification 1.0.0 (vectors frozen 2026-07-13)
+M._VERSION = "2.0.0"  -- specification 2.0.0 (whole-word re-mint; vectors re-frozen)
 
 M.canonicalize = canonical.canonicalize
 M.identify = canonical.identify
@@ -33,6 +33,19 @@ M.conflicts = semantics.conflicts
 M.refinement_valid = semantics.refinement_valid
 M.hierarchy_consistent = semantics.hierarchy_consistent
 M.UNIT_SECONDS = semantics.UNIT_SECONDS
+-- 2.0.0 normative algorithms and rules
+M.bridge_closure = semantics.bridge_closure
+M.classify_cro = semantics.classify_cro
+M.endpoints_mixed = semantics.endpoints_mixed
+M.skip_gaps = semantics.skip_gaps
+M.to_seconds = semantics.to_seconds
+M.delay_within_window = semantics.delay_within_window
+M.bridge_wellformed = semantics.bridge_wellformed
+M.conduit_wellformed = semantics.conduit_wellformed
+M.state_gaps = semantics.state_gaps
+M.covering_law_mismatch = semantics.covering_law_mismatch
+M.retrocausal = semantics.retrocausal
+M.has_cycle = semantics.has_cycle
 M.keypair_from_seed = signing.keypair_from_seed
 M.sign_record = signing.sign_record
 M.verify_record = signing.verify_record
