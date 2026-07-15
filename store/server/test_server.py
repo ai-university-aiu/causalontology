@@ -81,7 +81,7 @@ def main():
 
     # the degenerate claim, and the visible gap
     code, P = req(base, "POST", "/objects",
-                  {"type": "cro", "causes": [press], "effects": [light]})
+                  {"type": "causal_relation_object", "causes": [press], "effects": [light]})
     P = P["id"]
     code, gaps = req(base, "GET", "/gaps?kind=missing_field")
     check("degenerate claim appears in /gaps",
@@ -89,8 +89,8 @@ def main():
 
     # the refinement closes the gap
     code, R = req(base, "POST", "/objects",
-                  {"type": "cro", "causes": [press], "effects": [light],
-                   "temporal": {"dmin": 0, "dmax": 1, "unit": "seconds"},
+                  {"type": "causal_relation_object", "causes": [press], "effects": [light],
+                   "temporal": {"minimum_delay": 0, "maximum_delay": 1, "unit": "seconds"},
                    "modality": "sufficient", "refines": P})
     R = R["id"]
     code, gaps = req(base, "GET", "/gaps?kind=missing_field")
@@ -147,7 +147,7 @@ def main():
 
     # a preventive rival -> a surfaced conflict
     code, _ = req(base, "POST", "/objects",
-                  {"type": "cro", "causes": [press], "effects": [light],
+                  {"type": "causal_relation_object", "causes": [press], "effects": [light],
                    "modality": "preventive"})
     code, out = req(base, "GET", "/conflicts")
     check("conflict surfaced", len(out["items"]) >= 1)
@@ -162,7 +162,7 @@ def main():
                       "cursor": out["next_cursor"]})
     check("cursor fetches page 2", len(out2["items"]) == 1)
     code, out = req(base, "POST", "/query",
-                    {"kind": "cro", "where": {"is_partial": True}})
+                    {"kind": "causal_relation_object", "where": {"is_partial": True}})
     check("query is_partial finds the partials", len(out["items"]) >= 1)
 
     # 404s

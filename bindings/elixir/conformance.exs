@@ -176,8 +176,8 @@ defmodule Conformance do
     g = vec(n)["given"]
 
     cro = %{
-      "causes" => [sym("occ:c")],
-      "effects" => [sym("occ:e")],
+      "causes" => [sym("occurrent:c")],
+      "effects" => [sym("occurrent:e")],
       "temporal" => g["temporal"]
     }
 
@@ -239,7 +239,7 @@ defmodule Conformance do
     inp = normalize(vec(14)["input"])
     {ok, _} = Schema.validate_schema(inp)
     assert!(ok, "schema-invalid")
-    semantics_fails(14, "dmin")
+    semantics_fails(14, "minimum_delay")
   end
 
   def run_vector(15), do: semantics_fails(15, "acyclic")
@@ -257,9 +257,9 @@ defmodule Conformance do
   def run_vector(19), do: semantics_fails(19, "language-tagged")
 
   def run_vector(20) do
-    dog = sym("cnt:dog")
-    mam = sym("cnt:mammal")
-    ani = sym("cnt:animal")
+    dog = sym("continuant:dog")
+    mam = sym("continuant:mammal")
+    ani = sym("continuant:animal")
 
     enrich = fn about, entry, i ->
       signed("enrichment", %{"about" => about, "field" => "subsumes", "entry" => entry}, "taxo", i)
@@ -344,9 +344,9 @@ defmodule Conformance do
     s = Store.new()
 
     claim = %{
-      "type" => "cro",
-      "causes" => [sym("occ:A")],
-      "effects" => [sym("occ:B")],
+      "type" => "causal_relation_object",
+      "causes" => [sym("occurrent:A")],
+      "effects" => [sym("occurrent:B")],
       "modality" => "sufficient"
     }
 
@@ -376,7 +376,7 @@ defmodule Conformance do
       signed(
         "assertion",
         %{
-          "about" => sym("cro:demo"),
+          "about" => sym("causal_relation_object:demo"),
           "evidence_type" => "intervention",
           "strength" => 0.7,
           "confidence" => 0.9
@@ -392,7 +392,7 @@ defmodule Conformance do
       signed(
         "assertion",
         %{
-          "about" => sym("cro:demo"),
+          "about" => sym("causal_relation_object:demo"),
           "evidence_type" => "intervention",
           "strength" => 0.7,
           "confidence" => 0.9
@@ -408,7 +408,7 @@ defmodule Conformance do
     s = Store.new()
 
     {:ok, s, x} =
-      Store.put(s, %{"type" => "cro", "causes" => [sym("occ:A")], "effects" => [sym("occ:B")]})
+      Store.put(s, %{"type" => "causal_relation_object", "causes" => [sym("occurrent:A")], "effects" => [sym("occurrent:B")]})
 
     a =
       signed(
@@ -468,7 +468,7 @@ defmodule Conformance do
     a =
       signed(
         "assertion",
-        %{"about" => sym("cro:claim"), "evidence_type" => "observation", "confidence" => 0.9},
+        %{"about" => sym("causal_relation_object:claim"), "evidence_type" => "observation", "confidence" => 0.9},
         "K1",
         1
       )
@@ -485,7 +485,7 @@ defmodule Conformance do
     # The successor may retract the predecessor's record.
     r = signed("retraction", %{"retracts" => a["id"]}, "K2", 3)
     {:ok, s, _} = Store.put_record(s, r)
-    assert!(Store.assertions_about(s, sym("cro:claim")) == [], "succession lineage not honored")
+    assert!(Store.assertions_about(s, sym("causal_relation_object:claim")) == [], "succession lineage not honored")
   end
 
   def run_vector(34) do
@@ -499,13 +499,13 @@ defmodule Conformance do
   end
 
   def run_vector(36) do
-    a = sym("occ:A")
-    b = sym("occ:B")
-    c = sym("occ:C")
-    d = sym("occ:D")
-    m1 = %{"id" => sym("cro:m1"), "causes" => [a], "effects" => [b]}
-    m2 = %{"id" => sym("cro:m2"), "causes" => [b], "effects" => [c]}
-    m3 = %{"id" => sym("cro:m3"), "causes" => [d], "effects" => [c]}
+    a = sym("occurrent:A")
+    b = sym("occurrent:B")
+    c = sym("occurrent:C")
+    d = sym("occurrent:D")
+    m1 = %{"id" => sym("causal_relation_object:m1"), "causes" => [a], "effects" => [b]}
+    m2 = %{"id" => sym("causal_relation_object:m2"), "causes" => [b], "effects" => [c]}
+    m3 = %{"id" => sym("causal_relation_object:m3"), "causes" => [d], "effects" => [c]}
     p = %{"causes" => [a], "effects" => [c], "mechanism" => [m1["id"], m2["id"]]}
 
     assert!(
@@ -555,17 +555,17 @@ defmodule Conformance do
     s = Store.new()
 
     {:ok, s, p} =
-      Store.put(s, %{"type" => "cro", "causes" => [sym("occ:A")], "effects" => [sym("occ:B")]})
+      Store.put(s, %{"type" => "causal_relation_object", "causes" => [sym("occurrent:A")], "effects" => [sym("occurrent:B")]})
 
     gap_ids = Enum.map(Store.gaps(s, "missing_field"), & &1["id"])
     assert!(p in gap_ids, "the degenerate claim must be a visible gap")
 
     {:ok, s, r} =
       Store.put(s, %{
-        "type" => "cro",
-        "causes" => [sym("occ:A")],
-        "effects" => [sym("occ:B")],
-        "temporal" => %{"dmin" => 0, "dmax" => 1, "unit" => "seconds"},
+        "type" => "causal_relation_object",
+        "causes" => [sym("occurrent:A")],
+        "effects" => [sym("occurrent:B")],
+        "temporal" => %{"minimum_delay" => 0, "maximum_delay" => 1, "unit" => "seconds"},
         "modality" => "sufficient",
         "refines" => p
       })

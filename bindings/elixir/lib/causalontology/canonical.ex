@@ -14,7 +14,7 @@ defmodule Causalontology.Canonical do
 
   @identity_fields %{
     "occurrent" => ["label", "category"],
-    "cro" => ["causes", "effects", "mechanism", "temporal", "modality", "context", "refines"],
+    "causal_relation_object" => ["causes", "effects", "mechanism", "temporal", "modality", "context", "refines"],
     "continuant" => ["label", "category"],
     "realizable" => ["kind", "bearer"],
     "assertion" => [
@@ -32,14 +32,14 @@ defmodule Causalontology.Canonical do
   }
 
   @prefix %{
-    "occurrent" => "occ",
-    "cro" => "cro",
-    "continuant" => "cnt",
-    "realizable" => "rlz",
-    "assertion" => "ast",
-    "enrichment" => "enr",
-    "retraction" => "ret",
-    "succession" => "suc"
+    "occurrent" => "occurrent",
+    "causal_relation_object" => "causal_relation_object",
+    "continuant" => "continuant",
+    "realizable" => "realizable",
+    "assertion" => "assertion",
+    "enrichment" => "enrichment",
+    "retraction" => "retraction",
+    "succession" => "succession"
   }
 
   @kind_of_prefix Map.new(@prefix, fn {kind, prefix} -> {prefix, kind} end)
@@ -62,7 +62,7 @@ defmodule Causalontology.Canonical do
         kind_from_id(id)
 
       Map.has_key?(obj, "causes") and Map.has_key?(obj, "effects") ->
-        "cro"
+        "causal_relation_object"
 
       Map.has_key?(obj, "retracts") ->
         "retraction"

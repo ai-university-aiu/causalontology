@@ -23,7 +23,7 @@ const VECDIR = joinpath(ROOT, "conformance", "vectors")
 # ---------------------------------------------------------------------------
 # symbolic-identifier normalization (frozen values pass through unchanged)
 # ---------------------------------------------------------------------------
-const _SCHEMES = ("occ", "cro", "cnt", "rlz", "ast", "enr", "ret", "suc")
+const _SCHEMES = ("occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession")
 const _KEYS = Dict{String,Tuple{Vector{UInt8},String}}()
 const _HEX64 = r"^[0-9a-f]{64}$"
 const _SYM_RE = Regex("^(" * join(vcat(collect(_SCHEMES), ["ed25519"]), "|") *
@@ -184,7 +184,7 @@ end
 function v14()
     inp = normalize(vec(14)["input"])
     ok, _ = validate_schema(inp); check(ok)
-    _semantics_fails(14, "dmin")
+    _semantics_fails(14, "minimum_delay")
 end
 
 v15() = _semantics_fails(15, "acyclic")
@@ -202,7 +202,7 @@ v18() = _semantics_fails(18, "not a legal field")
 v19() = _semantics_fails(19, "language-tagged")
 
 function v20()
-    dog, mam, ani = sym("cnt:dog"), sym("cnt:mammal"), sym("cnt:animal")
+    dog, mam, ani = sym("continuant:dog"), sym("continuant:mammal"), sym("continuant:animal")
     enrich(about, entry, i) = signed(
         "enrichment",
         jobj("about" => about, "field" => "subsumes", "entry" => entry),
@@ -234,7 +234,7 @@ end
 
 function _adm(n)
     g = vec(n)["given"]
-    cro = jobj("causes" => Any[sym("occ:c")], "effects" => Any[sym("occ:e")],
+    cro = jobj("causes" => Any[sym("occurrent:c")], "effects" => Any[sym("occurrent:e")],
                "temporal" => g["temporal"])
     return admissible(cro, jget(g, "elapsed_seconds"))
 end
@@ -278,8 +278,8 @@ end
 
 function v28()
     s = InMemoryStore()
-    claim = jobj("type" => "cro", "causes" => Any[sym("occ:A")],
-                 "effects" => Any[sym("occ:B")], "modality" => "sufficient")
+    claim = jobj("type" => "causal_relation_object", "causes" => Any[sym("occurrent:A")],
+                 "effects" => Any[sym("occurrent:B")], "modality" => "sufficient")
     i1 = put(s, jcopy(claim))
     i2 = put(s, jcopy(claim))
     check(i1 == i2 && length(s.objects) == 1)
@@ -294,7 +294,7 @@ end
 
 function v29()
     rec = signed("assertion",
-                 jobj("about" => sym("cro:demo"),
+                 jobj("about" => sym("causal_relation_object:demo"),
                       "evidence_type" => "intervention",
                       "strength" => 0.7, "confidence" => 0.9), "signer")
     check(verify_record(rec) === true)
@@ -302,7 +302,7 @@ end
 
 function v30()
     rec = signed("assertion",
-                 jobj("about" => sym("cro:demo"),
+                 jobj("about" => sym("causal_relation_object:demo"),
                       "evidence_type" => "intervention",
                       "strength" => 0.7, "confidence" => 0.9), "signer")
     tampered = jcopy(rec)
@@ -312,8 +312,8 @@ end
 
 function v31()
     s = InMemoryStore()
-    x = put(s, jobj("type" => "cro", "causes" => Any[sym("occ:A")],
-                    "effects" => Any[sym("occ:B")]))
+    x = put(s, jobj("type" => "causal_relation_object", "causes" => Any[sym("occurrent:A")],
+                    "effects" => Any[sym("occurrent:B")]))
     a = signed("assertion",
                jobj("about" => x, "evidence_type" => "observation",
                     "confidence" => 0.8), "lab1", 1)
@@ -358,7 +358,7 @@ function v33()
     _, k1 = key("K1")
     _, k2 = key("K2")
     a = signed("assertion",
-               jobj("about" => sym("cro:claim"),
+               jobj("about" => sym("causal_relation_object:claim"),
                     "evidence_type" => "observation",
                     "confidence" => 0.9), "K1", 1)
     put_record(s, a)
@@ -367,7 +367,7 @@ function v33()
     check(k1 in lineage(s, k2) && k2 in lineage(s, k1))
     r = signed("retraction", jobj("retracts" => a["id"]), "K2", 3)
     put_record(s, r)  # successor may retract the predecessor's record
-    check(isempty(assertions_about(s, sym("cro:claim"))))
+    check(isempty(assertions_about(s, sym("causal_relation_object:claim"))))
 end
 
 function v34()
@@ -381,10 +381,10 @@ function v35()
 end
 
 function v36()
-    A, B, C, D = sym("occ:A"), sym("occ:B"), sym("occ:C"), sym("occ:D")
-    m1 = jobj("id" => sym("cro:m1"), "causes" => Any[A], "effects" => Any[B])
-    m2 = jobj("id" => sym("cro:m2"), "causes" => Any[B], "effects" => Any[C])
-    m3 = jobj("id" => sym("cro:m3"), "causes" => Any[D], "effects" => Any[C])
+    A, B, C, D = sym("occurrent:A"), sym("occurrent:B"), sym("occurrent:C"), sym("occurrent:D")
+    m1 = jobj("id" => sym("causal_relation_object:m1"), "causes" => Any[A], "effects" => Any[B])
+    m2 = jobj("id" => sym("causal_relation_object:m2"), "causes" => Any[B], "effects" => Any[C])
+    m3 = jobj("id" => sym("causal_relation_object:m3"), "causes" => Any[D], "effects" => Any[C])
     P = jobj("causes" => Any[A], "effects" => Any[C],
              "mechanism" => Any[m1["id"], m2["id"]])
     check(hierarchy_consistent(
@@ -412,13 +412,13 @@ end
 
 function v38()
     s = InMemoryStore()
-    P = put(s, jobj("type" => "cro", "causes" => Any[sym("occ:A")],
-                    "effects" => Any[sym("occ:B")]))
+    P = put(s, jobj("type" => "causal_relation_object", "causes" => Any[sym("occurrent:A")],
+                    "effects" => Any[sym("occurrent:B")]))
     gap_ids = [g["id"] for g in gaps(s; kind="missing_field")]
     check(P in gap_ids)
-    R = put(s, jobj("type" => "cro", "causes" => Any[sym("occ:A")],
-                    "effects" => Any[sym("occ:B")],
-                    "temporal" => jobj("dmin" => 0, "dmax" => 1,
+    R = put(s, jobj("type" => "causal_relation_object", "causes" => Any[sym("occurrent:A")],
+                    "effects" => Any[sym("occurrent:B")],
+                    "temporal" => jobj("minimum_delay" => 0, "maximum_delay" => 1,
                                        "unit" => "seconds"),
                     "modality" => "sufficient", "refines" => P))
     gap_ids = [g["id"] for g in gaps(s; kind="missing_field")]

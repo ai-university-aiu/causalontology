@@ -26,9 +26,9 @@ co_identity_fields <- list(
 
 # The identifier scheme prefix per kind, and its inverse.
 co_prefix <- c(
-  occurrent = "occ", cro = "cro", continuant = "cnt", realizable = "rlz",
-  assertion = "ast", enrichment = "enr", retraction = "ret",
-  succession = "suc"
+  occurrent = "occurrent", cro = "causal_relation_object", continuant = "continuant", realizable = "realizable",
+  assertion = "assertion", enrichment = "enrichment", retraction = "retraction",
+  succession = "succession"
 )
 co_kind_of_prefix <- stats::setNames(names(co_prefix), unname(co_prefix))
 
@@ -40,7 +40,7 @@ co_infer_kind <- function(obj) {
     pre <- strsplit(oid, ":", fixed = TRUE)[[1]][[1]]
     if (pre %in% names(co_kind_of_prefix)) return(co_kind_of_prefix[[pre]])
   }
-  if (co_has(obj, "causes") && co_has(obj, "effects")) return("cro")
+  if (co_has(obj, "causes") && co_has(obj, "effects")) return("causal_relation_object")
   if (co_has(obj, "retracts")) return("retraction")
   if (co_has(obj, "predecessor") && co_has(obj, "successor")) return("succession")
   if (co_has(obj, "field") && co_has(obj, "entry")) return("enrichment")

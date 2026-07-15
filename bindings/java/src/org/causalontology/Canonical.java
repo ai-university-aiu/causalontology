@@ -31,7 +31,7 @@ public final class Canonical {
     static {
         Map<String, List<String>> fields = new LinkedHashMap<>();
         fields.put("occurrent", List.of("label", "category"));
-        fields.put("cro", List.of("causes", "effects", "mechanism",
+        fields.put("causal_relation_object", List.of("causes", "effects", "mechanism",
                                   "temporal", "modality", "context",
                                   "refines"));
         fields.put("continuant", List.of("label", "category"));
@@ -47,14 +47,14 @@ public final class Canonical {
         IDENTITY_FIELDS = Collections.unmodifiableMap(fields);
 
         Map<String, String> prefix = new LinkedHashMap<>();
-        prefix.put("occurrent", "occ");
-        prefix.put("cro", "cro");
-        prefix.put("continuant", "cnt");
-        prefix.put("realizable", "rlz");
-        prefix.put("assertion", "ast");
-        prefix.put("enrichment", "enr");
-        prefix.put("retraction", "ret");
-        prefix.put("succession", "suc");
+        prefix.put("occurrent", "occurrent");
+        prefix.put("causal_relation_object", "causal_relation_object");
+        prefix.put("continuant", "continuant");
+        prefix.put("realizable", "realizable");
+        prefix.put("assertion", "assertion");
+        prefix.put("enrichment", "enrichment");
+        prefix.put("retraction", "retraction");
+        prefix.put("succession", "succession");
         PREFIX = Collections.unmodifiableMap(prefix);
 
         Map<String, String> reverse = new LinkedHashMap<>();
@@ -84,7 +84,7 @@ public final class Canonical {
             }
         }
         if (obj.containsKey("causes") && obj.containsKey("effects")) {
-            return "cro";
+            return "causal_relation_object";
         }
         if (obj.containsKey("retracts")) {
             return "retraction";

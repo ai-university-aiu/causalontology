@@ -21,7 +21,7 @@ defmodule Causalontology.Store do
 
   alias Causalontology.{Canonical, Schema, Semantics, Signing}
 
-  @content_kinds ["occurrent", "cro", "continuant", "realizable"]
+  @content_kinds ["occurrent", "causal_relation_object", "continuant", "realizable"]
   @record_kinds ["assertion", "enrichment", "retraction", "succession"]
 
   defstruct enforcing: true,
@@ -478,7 +478,7 @@ defmodule Causalontology.Store do
     Enum.reduce(objects_in_order, MapSet.new(), fn obj, acc ->
       refines = Map.get(obj, "refines")
 
-      with true <- Map.get(obj, "type") == "cro",
+      with true <- Map.get(obj, "type") == "causal_relation_object",
            true <- is_binary(refines) and refines != "",
            parent when parent != nil <- Map.get(store.objects, refines),
            {true, _} <- Semantics.refinement_valid(obj, parent) do
@@ -491,7 +491,7 @@ defmodule Causalontology.Store do
 
   defp field_gaps(out, objects_in_order, refined) do
     Enum.reduce(objects_in_order, out, fn obj, out ->
-      if Map.get(obj, "type") != "cro" do
+      if Map.get(obj, "type") != "causal_relation_object" do
         out
       else
         oid = Map.fetch!(obj, "id")
@@ -539,7 +539,7 @@ defmodule Causalontology.Store do
     Enum.reduce(objects_in_order, out, fn obj, out ->
       refs =
         case Map.get(obj, "type") do
-          "cro" ->
+          "causal_relation_object" ->
             base =
               Map.get(obj, "causes", []) ++
                 Map.get(obj, "effects", []) ++
@@ -571,7 +571,7 @@ defmodule Causalontology.Store do
 
   # conflict: pairs of claims satisfying the formal test (rule 6).
   defp conflict_gaps(out, objects_in_order) do
-    cros = Enum.filter(objects_in_order, &(Map.get(&1, "type") == "cro"))
+    cros = Enum.filter(objects_in_order, &(Map.get(&1, "type") == "causal_relation_object"))
 
     out ++
       (cros

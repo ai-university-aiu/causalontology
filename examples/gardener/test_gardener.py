@@ -56,7 +56,7 @@ def main():
                 {"type": "occurrent", "label": "light_on",
                  "category": "state_change"})["id"]
     P = req(base, "POST", "/objects",
-            {"type": "cro", "causes": [press], "effects": [light]})["id"]
+            {"type": "causal_relation_object", "causes": [press], "effects": [light]})["id"]
     for _ in range(3):
         req(base, "GET", "/objects/" + P)  # the world keeps asking about it
 
@@ -80,14 +80,14 @@ def main():
 
     # the refinement: found, valid, intervention-backed, signature verified
     refs = req(base, "POST", "/query",
-               {"kind": "cro", "where": {"refines": P}})["items"]
+               {"kind": "causal_relation_object", "where": {"refines": P}})["items"]
     check("the gardener minted exactly one refinement of the claim",
           len(refs) == 1)
     R = refs[0]
     ok, why = refinement_valid(R, store.objects[P])
     check("the refinement is valid by rule 3 (%s)" % why, ok)
     check("the induced fields are right (0..1 seconds, sufficient)",
-          R["temporal"] == {"dmin": 0, "dmax": 1, "unit": "seconds"}
+          R["temporal"] == {"minimum_delay": 0, "maximum_delay": 1, "unit": "seconds"}
           and R["modality"] == "sufficient")
 
     asts = req(base, "GET", "/assertions?about=" + R["id"])["items"]

@@ -6,7 +6,7 @@
  * this runner exits nonzero on any failure.
  *
  * Pre-freeze note (see conformance/README.md): the vectors carry symbolic
- * identifiers ("occ:press_button", "ed25519:alice"). This harness
+ * identifiers ("occurrent:press_button", "ed25519:alice"). This harness
  * normalizes them deterministically - symbolic object ids become
  * scheme:sha256(name), and symbolic key names become real Ed25519 keypairs
  * seeded from sha256("key:" + name) - so the normative behaviors are
@@ -48,7 +48,7 @@ function sha256hex(s) {
 // ---------------------------------------------------------------------------
 // symbolic-identifier normalization
 // ---------------------------------------------------------------------------
-const SCHEMES = ["occ", "cro", "cnt", "rlz", "ast", "enr", "ret", "suc"];
+const SCHEMES = ["occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession"];
 const SYM_RE = new RegExp("^(" + SCHEMES.join("|") + "|ed25519):");
 const KEYS = new Map();
 
@@ -217,7 +217,7 @@ function semanticsFails(n, mustMention) {
 vectors.v14 = () => {
   const inp = normalize(vec(14).input);
   assert(validateSchema(inp)[0], "schema should pass");
-  semanticsFails(14, "dmin");
+  semanticsFails(14, "minimum_delay");
 };
 
 vectors.v15 = () => semanticsFails(15, "acyclic");
@@ -235,7 +235,7 @@ vectors.v18 = () => semanticsFails(18, "not a legal field");
 vectors.v19 = () => semanticsFails(19, "language-tagged");
 
 vectors.v20 = () => {
-  const dog = sym("cnt:dog"), mam = sym("cnt:mammal"), ani = sym("cnt:animal");
+  const dog = sym("continuant:dog"), mam = sym("continuant:mammal"), ani = sym("continuant:animal");
   const enrich = (about, entry, i) =>
     signed("enrichment", { about, field: "subsumes", entry }, "taxo", i);
   // enforcing tier rejects the cycle-completing write
@@ -266,7 +266,7 @@ vectors.v20 = () => {
 
 function adm(n) {
   const g = vec(n).given;
-  const cro = { causes: [sym("occ:c")], effects: [sym("occ:e")],
+  const cro = { causes: [sym("occurrent:c")], effects: [sym("occurrent:e")],
                 temporal: g.temporal };
   return admissible(cro, g.elapsed_seconds);
 }
@@ -313,8 +313,8 @@ vectors.v27 = () => {
 
 vectors.v28 = () => {
   const s = new InMemoryStore();
-  const claim = { type: "cro", causes: [sym("occ:A")],
-                  effects: [sym("occ:B")], modality: "sufficient" };
+  const claim = { type: "causal_relation_object", causes: [sym("occurrent:A")],
+                  effects: [sym("occurrent:B")], modality: "sufficient" };
   const i1 = s.put({ ...claim });
   const i2 = s.put({ ...claim });
   assert(i1 === i2 && s.objects.size === 1, "expected one object");
@@ -328,14 +328,14 @@ vectors.v28 = () => {
 
 vectors.v29 = () => {
   const rec = signed("assertion",
-    { about: sym("cro:demo"), evidence_type: "intervention",
+    { about: sym("causal_relation_object:demo"), evidence_type: "intervention",
       strength: 0.7, confidence: 0.9 }, "signer");
   assert(verifyRecord(rec) === true, "valid signature did not verify");
 };
 
 vectors.v30 = () => {
   const rec = signed("assertion",
-    { about: sym("cro:demo"), evidence_type: "intervention",
+    { about: sym("causal_relation_object:demo"), evidence_type: "intervention",
       strength: 0.7, confidence: 0.9 }, "signer");
   const tampered = { ...rec, confidence: 0.1 };
   assert(verifyRecord(tampered) === false, "tampered record verified");
@@ -343,8 +343,8 @@ vectors.v30 = () => {
 
 vectors.v31 = () => {
   const s = new InMemoryStore();
-  const x = s.put({ type: "cro", causes: [sym("occ:A")],
-                    effects: [sym("occ:B")] });
+  const x = s.put({ type: "causal_relation_object", causes: [sym("occurrent:A")],
+                    effects: [sym("occurrent:B")] });
   const a = signed("assertion",
     { about: x, evidence_type: "observation", confidence: 0.8 }, "lab1", 1);
   s.putRecord(a);
@@ -388,7 +388,7 @@ vectors.v33 = () => {
   const k1 = key("K1")[1];
   const k2 = key("K2")[1];
   const a = signed("assertion",
-    { about: sym("cro:claim"), evidence_type: "observation",
+    { about: sym("causal_relation_object:claim"), evidence_type: "observation",
       confidence: 0.9 }, "K1", 1);
   s.putRecord(a);
   const succ = signed("succession", { successor: k2 }, "K1", 2);
@@ -396,7 +396,7 @@ vectors.v33 = () => {
   assert(s.lineage(k2).has(k1) && s.lineage(k1).has(k2), "lineage broken");
   const r = signed("retraction", { retracts: a.id }, "K2", 3);
   s.putRecord(r); // successor may retract the predecessor's record
-  assert(s.assertionsAbout(sym("cro:claim")).length === 0,
+  assert(s.assertionsAbout(sym("causal_relation_object:claim")).length === 0,
     "successor retraction not honored");
 };
 
@@ -411,11 +411,11 @@ vectors.v35 = () => {
 };
 
 vectors.v36 = () => {
-  const A = sym("occ:A"), B = sym("occ:B"),
-        C = sym("occ:C"), D = sym("occ:D");
-  const m1 = { id: sym("cro:m1"), causes: [A], effects: [B] };
-  const m2 = { id: sym("cro:m2"), causes: [B], effects: [C] };
-  const m3 = { id: sym("cro:m3"), causes: [D], effects: [C] };
+  const A = sym("occurrent:A"), B = sym("occurrent:B"),
+        C = sym("occurrent:C"), D = sym("occurrent:D");
+  const m1 = { id: sym("causal_relation_object:m1"), causes: [A], effects: [B] };
+  const m2 = { id: sym("causal_relation_object:m2"), causes: [B], effects: [C] };
+  const m3 = { id: sym("causal_relation_object:m3"), causes: [D], effects: [C] };
   const P = { causes: [A], effects: [C], mechanism: [m1.id, m2.id] };
   assert(hierarchyConsistent(P, { [m1.id]: m1, [m2.id]: m2 })
     === "consistent", "chain should be consistent");
@@ -441,13 +441,13 @@ vectors.v37 = () => {
 
 vectors.v38 = () => {
   const s = new InMemoryStore();
-  const P = s.put({ type: "cro", causes: [sym("occ:A")],
-                    effects: [sym("occ:B")] });
+  const P = s.put({ type: "causal_relation_object", causes: [sym("occurrent:A")],
+                    effects: [sym("occurrent:B")] });
   let gaps = s.gaps("missing_field").map((g) => g.id);
   assert(gaps.includes(P), "the bare CRO must be a gap");
-  const R = s.put({ type: "cro", causes: [sym("occ:A")],
-                    effects: [sym("occ:B")],
-                    temporal: { dmin: 0, dmax: 1, unit: "seconds" },
+  const R = s.put({ type: "causal_relation_object", causes: [sym("occurrent:A")],
+                    effects: [sym("occurrent:B")],
+                    temporal: { minimum_delay: 0, maximum_delay: 1, unit: "seconds" },
                     modality: "sufficient", refines: P });
   gaps = s.gaps("missing_field").map((g) => g.id);
   assert(!gaps.includes(P), "the gap did not close");

@@ -45,12 +45,12 @@ pub fn validate_semantics(obj: &Map<String, Value>, kind: Option<&str>)
     };
     let mut errors = Vec::new();
 
-    if kind == "cro" {
+    if kind == "causal_relation_object" {
         if let Some(Value::Object(t)) = obj.get("temporal") {
-            if let (Some(dmin), Some(dmax)) =
-                (t.get("dmin").and_then(f64_of), t.get("dmax").and_then(f64_of)) {
-                if dmin > dmax {
-                    errors.push("dmin must be <= dmax".to_string());
+            if let (Some(minimum_delay), Some(maximum_delay)) =
+                (t.get("minimum_delay").and_then(f64_of), t.get("maximum_delay").and_then(f64_of)) {
+                if minimum_delay > maximum_delay {
+                    errors.push("minimum_delay must be <= maximum_delay".to_string());
                 }
             }
         }
@@ -73,10 +73,10 @@ pub fn validate_semantics(obj: &Map<String, Value>, kind: Option<&str>)
         let entry = obj.get("entry");
         let spec: Option<(&[&str], &str)> = match field {
             "aliases" => Some((&["occurrent", "continuant"], "alias")),
-            "participants" => Some((&["occurrent"], "cnt")),
-            "subsumes" => Some((&["continuant"], "cnt")),
-            "part_of" => Some((&["continuant"], "cnt")),
-            "realized_in" => Some((&["realizable"], "occ")),
+            "participants" => Some((&["occurrent"], "continuant")),
+            "subsumes" => Some((&["continuant"], "continuant")),
+            "part_of" => Some((&["continuant"], "continuant")),
+            "realized_in" => Some((&["realizable"], "occurrent")),
             _ => None,
         };
         if let Some((legal_kinds, shape)) = spec {
@@ -125,8 +125,8 @@ pub fn admissible(cro: &Map<String, Value>, elapsed_seconds: f64) -> bool {
     };
     let unit = t.get("unit").and_then(Value::as_str)
         .and_then(unit_seconds).unwrap_or(1.0);
-    let lo = t.get("dmin").and_then(f64_of).unwrap_or(0.0) * unit;
-    let hi = t.get("dmax").and_then(f64_of).unwrap_or(f64::MAX) * unit;
+    let lo = t.get("minimum_delay").and_then(f64_of).unwrap_or(0.0) * unit;
+    let hi = t.get("maximum_delay").and_then(f64_of).unwrap_or(f64::MAX) * unit;
     lo <= elapsed_seconds && elapsed_seconds <= hi
 }
 
@@ -148,10 +148,10 @@ fn window_overlap(a: &Map<String, Value>, b: &Map<String, Value>) -> bool {
         .and_then(unit_seconds).unwrap_or(1.0);
     let ub = tb.get("unit").and_then(Value::as_str)
         .and_then(unit_seconds).unwrap_or(1.0);
-    let lo_a = ta.get("dmin").and_then(f64_of).unwrap_or(0.0) * ua;
-    let hi_a = ta.get("dmax").and_then(f64_of).unwrap_or(0.0) * ua;
-    let lo_b = tb.get("dmin").and_then(f64_of).unwrap_or(0.0) * ub;
-    let hi_b = tb.get("dmax").and_then(f64_of).unwrap_or(0.0) * ub;
+    let lo_a = ta.get("minimum_delay").and_then(f64_of).unwrap_or(0.0) * ua;
+    let hi_a = ta.get("maximum_delay").and_then(f64_of).unwrap_or(0.0) * ua;
+    let lo_b = tb.get("minimum_delay").and_then(f64_of).unwrap_or(0.0) * ub;
+    let hi_b = tb.get("maximum_delay").and_then(f64_of).unwrap_or(0.0) * ub;
     lo_a <= hi_b && lo_b <= hi_a
 }
 

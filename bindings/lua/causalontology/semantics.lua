@@ -24,10 +24,10 @@ semantics.UNIT_SECONDS = {
 -- Rule 12: enrichment field-to-kind validity and entry shapes.
 semantics.ENRICHMENT_FIELDS = {
   aliases      = { kinds = { occurrent = true, continuant = true }, shape = "alias" },
-  participants = { kinds = { occurrent = true },                    shape = "cnt" },
-  subsumes     = { kinds = { continuant = true },                   shape = "cnt" },
-  part_of      = { kinds = { continuant = true },                   shape = "cnt" },
-  realized_in  = { kinds = { realizable = true },                   shape = "occ" },
+  participants = { kinds = { occurrent = true },                    shape = "continuant" },
+  subsumes     = { kinds = { continuant = true },                   shape = "continuant" },
+  part_of      = { kinds = { continuant = true },                   shape = "continuant" },
+  realized_in  = { kinds = { realizable = true },                   shape = "occurrent" },
 }
 
 -- The V02-fixed order of the optional Causal Relation Object fields.
@@ -72,11 +72,11 @@ function semantics.validate_semantics(obj, kind)
   kind = kind or canonical.infer_kind(obj)
   local errors = {}
 
-  if kind == "cro" then
+  if kind == "causal_relation_object" then
     local t = obj["temporal"]
-    if t ~= nil and t ~= json.null and t["dmin"] ~= nil and t["dmax"] ~= nil
-        and t["dmin"] > t["dmax"] then
-      errors[#errors + 1] = "dmin must be <= dmax"
+    if t ~= nil and t ~= json.null and t["minimum_delay"] ~= nil and t["maximum_delay"] ~= nil
+        and t["minimum_delay"] > t["maximum_delay"] then
+      errors[#errors + 1] = "minimum_delay must be <= maximum_delay"
     end
     local oid = obj["id"]
     if oid and obj["mechanism"] ~= nil and contains(obj["mechanism"], oid) then
@@ -134,8 +134,8 @@ function semantics.admissible(cro, elapsed_seconds)
     return true  -- no window imposes no constraint
   end
   local unit = semantics.UNIT_SECONDS[t["unit"]]
-  local lo = t["dmin"] * unit
-  local hi = t["dmax"] * unit
+  local lo = t["minimum_delay"] * unit
+  local hi = t["maximum_delay"] * unit
   return lo <= elapsed_seconds and elapsed_seconds <= hi
 end
 
@@ -146,8 +146,8 @@ local function window_overlap(a, b)
   end
   local ua = semantics.UNIT_SECONDS[ta["unit"]]
   local ub = semantics.UNIT_SECONDS[tb["unit"]]
-  local lo_a, hi_a = ta["dmin"] * ua, ta["dmax"] * ua
-  local lo_b, hi_b = tb["dmin"] * ub, tb["dmax"] * ub
+  local lo_a, hi_a = ta["minimum_delay"] * ua, ta["maximum_delay"] * ua
+  local lo_b, hi_b = tb["minimum_delay"] * ub, tb["maximum_delay"] * ub
   return lo_a <= hi_b and lo_b <= hi_a
 end
 

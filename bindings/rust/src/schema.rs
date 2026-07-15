@@ -15,7 +15,7 @@ static SCHEMAS: OnceLock<HashMap<&'static str, Value>> = OnceLock::new();
 fn schemas() -> &'static HashMap<&'static str, Value> {
     SCHEMAS.get_or_init(|| {
         let mut m = HashMap::new();
-        m.insert("cro", serde_json::from_str(include_str!(
+        m.insert("causal_relation_object", serde_json::from_str(include_str!(
             "../spec_schema/cro.schema.json")).unwrap());
         m.insert("occurrent", serde_json::from_str(include_str!(
             "../spec_schema/occurrent.schema.json")).unwrap());

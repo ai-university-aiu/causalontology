@@ -22,10 +22,10 @@ object Semantics {
     // Rule 12: enrichment field-to-kind validity and entry shapes.
     val ENRICHMENT_FIELDS: Map<String, Pair<List<String>, String>> = mapOf(
         "aliases" to Pair(listOf("occurrent", "continuant"), "alias"),
-        "participants" to Pair(listOf("occurrent"), "cnt"),
-        "subsumes" to Pair(listOf("continuant"), "cnt"),
-        "part_of" to Pair(listOf("continuant"), "cnt"),
-        "realized_in" to Pair(listOf("realizable"), "occ")
+        "participants" to Pair(listOf("occurrent"), "continuant"),
+        "subsumes" to Pair(listOf("continuant"), "continuant"),
+        "part_of" to Pair(listOf("continuant"), "continuant"),
+        "realized_in" to Pair(listOf("realizable"), "occurrent")
     )
 
     val CRO_OPTIONAL_FIELDS = listOf("mechanism", "temporal", "modality", "context")
@@ -38,11 +38,11 @@ object Semantics {
         val k = kind ?: Canonical.inferKind(obj)
         val errors = mutableListOf<String>()
 
-        if (k == "cro") {
+        if (k == "causal_relation_object") {
             val t = obj["temporal"]
-            if (t is Map<*, *> && t["dmin"] != null && t["dmax"] != null &&
-                asDoubleNum(t["dmin"]) > asDoubleNum(t["dmax"])) {
-                errors.add("dmin must be <= dmax")
+            if (t is Map<*, *> && t["minimum_delay"] != null && t["maximum_delay"] != null &&
+                asDoubleNum(t["minimum_delay"]) > asDoubleNum(t["maximum_delay"])) {
+                errors.add("minimum_delay must be <= maximum_delay")
             }
             val oid = obj["id"] as? String
             val mechanism = obj["mechanism"] as? List<*> ?: emptyList<Any?>()
@@ -92,8 +92,8 @@ object Semantics {
         val t = cro["temporal"] ?: return true  // no window imposes no constraint
         val tm = asObj(t)
         val unit = UNIT_SECONDS[tm["unit"] as String]!!.toDouble()
-        val lo = asDoubleNum(tm["dmin"]) * unit
-        val hi = asDoubleNum(tm["dmax"]) * unit
+        val lo = asDoubleNum(tm["minimum_delay"]) * unit
+        val hi = asDoubleNum(tm["maximum_delay"]) * unit
         return lo <= elapsedSeconds && elapsedSeconds <= hi
     }
 
@@ -103,8 +103,8 @@ object Semantics {
         val ma = asObj(ta); val mb = asObj(tb)
         val ua = UNIT_SECONDS[ma["unit"] as String]!!.toDouble()
         val ub = UNIT_SECONDS[mb["unit"] as String]!!.toDouble()
-        val loA = asDoubleNum(ma["dmin"]) * ua; val hiA = asDoubleNum(ma["dmax"]) * ua
-        val loB = asDoubleNum(mb["dmin"]) * ub; val hiB = asDoubleNum(mb["dmax"]) * ub
+        val loA = asDoubleNum(ma["minimum_delay"]) * ua; val hiA = asDoubleNum(ma["maximum_delay"]) * ua
+        val loB = asDoubleNum(mb["minimum_delay"]) * ub; val hiB = asDoubleNum(mb["maximum_delay"]) * ub
         return loA <= hiB && loB <= hiA
     }
 

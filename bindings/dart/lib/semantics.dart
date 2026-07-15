@@ -23,10 +23,10 @@ const Map<String, int> unitSeconds = {
 /// Rule 12: enrichment field-to-kind validity and entry shapes.
 const Map<String, (List<String>, String)> enrichmentFields = {
   'aliases': (['occurrent', 'continuant'], 'alias'),
-  'participants': (['occurrent'], 'cnt'),
-  'subsumes': (['continuant'], 'cnt'),
-  'part_of': (['continuant'], 'cnt'),
-  'realized_in': (['realizable'], 'occ'),
+  'participants': (['occurrent'], 'continuant'),
+  'subsumes': (['continuant'], 'continuant'),
+  'part_of': (['continuant'], 'continuant'),
+  'realized_in': (['realizable'], 'occurrent'),
 };
 
 const List<String> croOptionalFields = [
@@ -42,13 +42,13 @@ String? _kindOfId(String identifier) =>
   final k = kind ?? inferKind(obj);
   final errors = <String>[];
 
-  if (k == 'cro') {
+  if (k == 'causal_relation_object') {
     final t = obj['temporal'] as Map?;
     if (t != null &&
-        t['dmin'] != null &&
-        t['dmax'] != null &&
-        (t['dmin'] as num) > (t['dmax'] as num)) {
-      errors.add('dmin must be <= dmax');
+        t['minimum_delay'] != null &&
+        t['maximum_delay'] != null &&
+        (t['minimum_delay'] as num) > (t['maximum_delay'] as num)) {
+      errors.add('minimum_delay must be <= maximum_delay');
     }
     final oid = obj['id'];
     if (oid is String &&
@@ -104,8 +104,8 @@ bool admissible(Map<String, dynamic> cro, num elapsedSeconds) {
     return true; // no window imposes no constraint
   }
   final unit = unitSeconds[t['unit'] as String]!;
-  final lo = (t['dmin'] as num) * unit;
-  final hi = (t['dmax'] as num) * unit;
+  final lo = (t['minimum_delay'] as num) * unit;
+  final hi = (t['maximum_delay'] as num) * unit;
   return lo <= elapsedSeconds && elapsedSeconds <= hi;
 }
 
@@ -117,8 +117,8 @@ bool _windowOverlap(Map<String, dynamic> a, Map<String, dynamic> b) {
   }
   final ua = unitSeconds[ta['unit'] as String]!;
   final ub = unitSeconds[tb['unit'] as String]!;
-  final loA = (ta['dmin'] as num) * ua, hiA = (ta['dmax'] as num) * ua;
-  final loB = (tb['dmin'] as num) * ub, hiB = (tb['dmax'] as num) * ub;
+  final loA = (ta['minimum_delay'] as num) * ua, hiA = (ta['maximum_delay'] as num) * ua;
+  final loB = (tb['minimum_delay'] as num) * ub, hiB = (tb['maximum_delay'] as num) * ub;
   return loA <= hiB && loB <= hiA;
 }
 

@@ -22,7 +22,7 @@ namespace Causalontology;
 final class Store
 {
     /** The four immutable content kinds. */
-    public const CONTENT_KINDS = ['occurrent', 'cro', 'continuant', 'realizable'];
+    public const CONTENT_KINDS = ['occurrent', 'causal_relation_object', 'continuant', 'realizable'];
 
     /** The four signed provenance record kinds. */
     public const RECORD_KINDS = ['assertion', 'enrichment', 'retraction', 'succession'];
@@ -452,7 +452,7 @@ final class Store
         $out = [];
         $refined = [];
         foreach ($this->objects as $obj) {
-            if (($obj['type'] ?? null) === 'cro' && !empty($obj['refines'])) {
+            if (($obj['type'] ?? null) === 'causal_relation_object' && !empty($obj['refines'])) {
                 $parent = $this->objects[$obj['refines']] ?? null;
                 if ($parent !== null) {
                     [$ok, ] = Semantics::refinementValid($obj, $parent);
@@ -464,7 +464,7 @@ final class Store
         }
         foreach ($this->objects as $oid => $obj) {
             $oid = (string) $oid;
-            if (($obj['type'] ?? null) !== 'cro') {
+            if (($obj['type'] ?? null) !== 'causal_relation_object') {
                 continue;
             }
             // missing_field: lacking the temporal window or the modality -
@@ -495,7 +495,7 @@ final class Store
             $oid = (string) $oid;
             $refs = [];
             $type = $obj['type'] ?? null;
-            if ($type === 'cro') {
+            if ($type === 'causal_relation_object') {
                 $refs = array_merge(
                     $obj['causes'] ?? [],
                     $obj['effects'] ?? [],
@@ -517,7 +517,7 @@ final class Store
         // conflict: pairs of claims satisfying the formal test (rule 6).
         $cros = [];
         foreach ($this->objects as $obj) {
-            if (($obj['type'] ?? null) === 'cro') {
+            if (($obj['type'] ?? null) === 'causal_relation_object') {
                 $cros[] = $obj;
             }
         }

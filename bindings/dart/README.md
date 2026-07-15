@@ -58,7 +58,7 @@ void main() {
   final light = store.put({
     'type': 'occurrent', 'label': 'light_on', 'category': 'state_change'});
   final claim = store.put({
-    'type': 'cro', 'causes': [press], 'effects': [light]});
+    'type': 'causal_relation_object', 'causes': [press], 'effects': [light]});
 
   print(claim);
   print(store.gaps('missing_field')); // the degenerate claim is a visible invitation

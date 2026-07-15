@@ -54,7 +54,7 @@ press = put(s, jobj("type" => "occurrent", "label" => "press_button",
                     "category" => "action"))
 light = put(s, jobj("type" => "occurrent", "label" => "light_on",
                     "category" => "state"))
-claim = put(s, jobj("type" => "cro", "causes" => Any[press],
+claim = put(s, jobj("type" => "causal_relation_object", "causes" => Any[press],
                     "effects" => Any[light]))
 println(gaps(s; kind="missing_field"))  # the partial claim is a visible gap
 ```

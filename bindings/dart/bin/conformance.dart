@@ -54,7 +54,7 @@ late final Directory vecDir =
 // ---------------------------------------------------------------------------
 
 const List<String> _schemes = [
-  'occ', 'cro', 'cnt', 'rlz', 'ast', 'enr', 'ret', 'suc',
+  'occurrent', 'causal_relation_object', 'continuant', 'realizable', 'assertion', 'enrichment', 'retraction', 'succession',
 ];
 
 final Map<String, (List<int>, String)> _keys = {};
@@ -263,7 +263,7 @@ void v14() {
   final inp = normMap(vec(14)['input']);
   final (ok, _) = validateSchema(inp);
   check(ok);
-  semanticsFails(14, 'dmin');
+  semanticsFails(14, 'minimum_delay');
 }
 
 void v15() => semanticsFails(15, 'acyclic');
@@ -281,7 +281,7 @@ void v18() => semanticsFails(18, 'not a legal field');
 void v19() => semanticsFails(19, 'language-tagged');
 
 void v20() {
-  final dog = sym('cnt:dog'), mam = sym('cnt:mammal'), ani = sym('cnt:animal');
+  final dog = sym('continuant:dog'), mam = sym('continuant:mammal'), ani = sym('continuant:animal');
   Map<String, dynamic> enrich(String about, String entry, int i) => signed(
       'enrichment', {'about': about, 'field': 'subsumes', 'entry': entry},
       'taxo', i);
@@ -312,8 +312,8 @@ void v20() {
 bool adm(int n) {
   final g = (vec(n)['given'] as Map).cast<String, dynamic>();
   final cro = <String, dynamic>{
-    'causes': [sym('occ:c')],
-    'effects': [sym('occ:e')],
+    'causes': [sym('occurrent:c')],
+    'effects': [sym('occurrent:e')],
     'temporal': g['temporal'],
   };
   return admissible(cro, g['elapsed_seconds'] as num);
@@ -361,9 +361,9 @@ void v27() {
 void v28() {
   final s = InMemoryStore();
   final claim = <String, dynamic>{
-    'type': 'cro',
-    'causes': [sym('occ:A')],
-    'effects': [sym('occ:B')],
+    'type': 'causal_relation_object',
+    'causes': [sym('occurrent:A')],
+    'effects': [sym('occurrent:B')],
     'modality': 'sufficient',
   };
   final i1 = s.put(Map<String, dynamic>.from(claim));
@@ -382,7 +382,7 @@ void v28() {
 
 void v29() {
   final rec = signed('assertion', {
-    'about': sym('cro:demo'),
+    'about': sym('causal_relation_object:demo'),
     'evidence_type': 'intervention',
     'strength': 0.7,
     'confidence': 0.9,
@@ -392,7 +392,7 @@ void v29() {
 
 void v30() {
   final rec = signed('assertion', {
-    'about': sym('cro:demo'),
+    'about': sym('causal_relation_object:demo'),
     'evidence_type': 'intervention',
     'strength': 0.7,
     'confidence': 0.9,
@@ -404,9 +404,9 @@ void v30() {
 void v31() {
   final s = InMemoryStore();
   final x = s.put({
-    'type': 'cro',
-    'causes': [sym('occ:A')],
-    'effects': [sym('occ:B')],
+    'type': 'causal_relation_object',
+    'causes': [sym('occurrent:A')],
+    'effects': [sym('occurrent:B')],
   });
   final a = signed('assertion',
       {'about': x, 'evidence_type': 'observation', 'confidence': 0.8},
@@ -453,7 +453,7 @@ void v33() {
   final (_, k1) = key('K1');
   final (_, k2) = key('K2');
   final a = signed('assertion', {
-    'about': sym('cro:claim'),
+    'about': sym('causal_relation_object:claim'),
     'evidence_type': 'observation',
     'confidence': 0.9,
   }, 'K1', 1);
@@ -463,7 +463,7 @@ void v33() {
   check(s.lineage(k2).contains(k1) && s.lineage(k1).contains(k2));
   final r = signed('retraction', {'retracts': a['id']}, 'K2', 3);
   s.putRecord(r); // successor may retract the predecessor's record
-  check(s.assertionsAbout(sym('cro:claim')).isEmpty);
+  check(s.assertionsAbout(sym('causal_relation_object:claim')).isEmpty);
 }
 
 void v34() {
@@ -481,10 +481,10 @@ void v35() {
 }
 
 void v36() {
-  final a = sym('occ:A'), b = sym('occ:B'), c = sym('occ:C'), d = sym('occ:D');
-  final m1 = <String, dynamic>{'id': sym('cro:m1'), 'causes': [a], 'effects': [b]};
-  final m2 = <String, dynamic>{'id': sym('cro:m2'), 'causes': [b], 'effects': [c]};
-  final m3 = <String, dynamic>{'id': sym('cro:m3'), 'causes': [d], 'effects': [c]};
+  final a = sym('occurrent:A'), b = sym('occurrent:B'), c = sym('occurrent:C'), d = sym('occurrent:D');
+  final m1 = <String, dynamic>{'id': sym('causal_relation_object:m1'), 'causes': [a], 'effects': [b]};
+  final m2 = <String, dynamic>{'id': sym('causal_relation_object:m2'), 'causes': [b], 'effects': [c]};
+  final m3 = <String, dynamic>{'id': sym('causal_relation_object:m3'), 'causes': [d], 'effects': [c]};
   final p = <String, dynamic>{
     'causes': [a],
     'effects': [c],
@@ -516,17 +516,17 @@ void v37() {
 void v38() {
   final s = InMemoryStore();
   final p = s.put({
-    'type': 'cro',
-    'causes': [sym('occ:A')],
-    'effects': [sym('occ:B')],
+    'type': 'causal_relation_object',
+    'causes': [sym('occurrent:A')],
+    'effects': [sym('occurrent:B')],
   });
   var gapIds = s.gaps('missing_field').map((g) => g['id']).toList();
   check(gapIds.contains(p));
   final r = s.put({
-    'type': 'cro',
-    'causes': [sym('occ:A')],
-    'effects': [sym('occ:B')],
-    'temporal': {'dmin': 0, 'dmax': 1, 'unit': 'seconds'},
+    'type': 'causal_relation_object',
+    'causes': [sym('occurrent:A')],
+    'effects': [sym('occurrent:B')],
+    'temporal': {'minimum_delay': 0, 'maximum_delay': 1, 'unit': 'seconds'},
     'modality': 'sufficient',
     'refines': p,
   });

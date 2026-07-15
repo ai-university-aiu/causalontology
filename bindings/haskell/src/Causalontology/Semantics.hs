@@ -42,10 +42,10 @@ unitSeconds unit =
 enrichmentFieldTable :: [(String, ([String], String))]
 enrichmentFieldTable =
   [ ("aliases", (["occurrent", "continuant"], "alias"))
-  , ("participants", (["occurrent"], "cnt"))
-  , ("subsumes", (["continuant"], "cnt"))
-  , ("part_of", (["continuant"], "cnt"))
-  , ("realized_in", (["realizable"], "occ"))
+  , ("participants", (["occurrent"], "continuant"))
+  , ("subsumes", (["continuant"], "continuant"))
+  , ("part_of", (["continuant"], "continuant"))
+  , ("realized_in", (["realizable"], "occurrent"))
   ]
 
 -- | The four optional Causal Relation Object fields, in gap-report order.
@@ -63,7 +63,7 @@ validateSemantics obj mkind = do
     Just k -> Right k
     Nothing -> inferKind obj
   let errs = case kind of
-        "cro" -> croErrors
+        "causal_relation_object" -> croErrors
         "enrichment" -> enrichmentErrors
         _ -> []
   Right (null errs, errs)
@@ -71,9 +71,9 @@ validateSemantics obj mkind = do
     croErrors = temporalErrors ++ mechanismErrors ++ refinesErrors
 
     temporalErrors = case objGet "temporal" obj of
-      Just t -> case (objGet "dmin" t >>= jNumber, objGet "dmax" t >>= jNumber) of
-        (Just dmin, Just dmax)
-          | dmin > dmax -> ["dmin must be <= dmax"]
+      Just t -> case (objGet "minimum_delay" t >>= jNumber, objGet "maximum_delay" t >>= jNumber) of
+        (Just minimum_delay, Just maximum_delay)
+          | minimum_delay > maximum_delay -> ["minimum_delay must be <= maximum_delay"]
         _ -> []
       Nothing -> []
 
@@ -141,9 +141,9 @@ windowBounds :: JValue -> Maybe (Double, Double)
 windowBounds t = do
   unit <- objGet "unit" t >>= asStr
   perUnit <- unitSeconds unit
-  dmin <- objGet "dmin" t >>= jNumber
-  dmax <- objGet "dmax" t >>= jNumber
-  Just (dmin * fromInteger perUnit, dmax * fromInteger perUnit)
+  minimum_delay <- objGet "minimum_delay" t >>= jNumber
+  maximum_delay <- objGet "maximum_delay" t >>= jNumber
+  Just (minimum_delay * fromInteger perUnit, maximum_delay * fromInteger perUnit)
 
 -- | Do two temporal windows overlap? Either window absent counts as
 -- overlapping.

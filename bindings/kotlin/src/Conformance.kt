@@ -8,7 +8,7 @@
 // The vectors are frozen at specification 1.0.0: they carry concrete 64-hex
 // identifiers, real keys, and a real verifying signature, which the
 // normalization below passes through unchanged. (The pre-freeze symbolic
-// forms - "occ:press_button", "ed25519:alice" - still normalize
+// forms - "occurrent:press_button", "ed25519:alice" - still normalize
 // deterministically: symbolic object ids become scheme:sha256(name), and
 // symbolic key names become real Ed25519 keypairs seeded from
 // sha256("key:" + name), exactly as the Python harness does.)
@@ -21,7 +21,7 @@ import kotlin.system.exitProcess
 // ---------------------------------------------------------------------------
 // symbolic-identifier normalization
 // ---------------------------------------------------------------------------
-private val SCHEMES = setOf("occ", "cro", "cnt", "rlz", "ast", "enr", "ret", "suc")
+private val SCHEMES = setOf("occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession")
 private val KEYS = HashMap<String, Pair<ByteArray, String>>()
 
 // A real, deterministic Ed25519 keypair for a symbolic key name.
@@ -187,7 +187,7 @@ private fun semanticsFails(n: Int, mustMention: String) {
 private fun v14() {
     val inp = asObj(normalize(vec(14)["input"]))
     assertTrue(Schema.validateSchema(inp).first, "schema")
-    semanticsFails(14, "dmin")
+    semanticsFails(14, "minimum_delay")
 }
 
 private fun v15() = semanticsFails(15, "acyclic")
@@ -205,7 +205,7 @@ private fun v18() = semanticsFails(18, "not a legal field")
 private fun v19() = semanticsFails(19, "language-tagged")
 
 private fun v20() {
-    val dog = sym("cnt:dog"); val mam = sym("cnt:mammal"); val ani = sym("cnt:animal")
+    val dog = sym("continuant:dog"); val mam = sym("continuant:mammal"); val ani = sym("continuant:animal")
     fun enrich(about: String, entry: String, i: Int): JObj = signed(
         "enrichment",
         linkedMapOf("about" to about, "field" to "subsumes", "entry" to entry),
@@ -238,7 +238,7 @@ private fun v20() {
 private fun adm(n: Int): Boolean {
     val g = asObj(vec(n)["given"])
     val cro = linkedMapOf<String, Any?>(
-        "causes" to listOf(sym("occ:c")), "effects" to listOf(sym("occ:e")),
+        "causes" to listOf(sym("occurrent:c")), "effects" to listOf(sym("occurrent:e")),
         "temporal" to g["temporal"])
     return Semantics.admissible(cro, asDoubleNum(g["elapsed_seconds"]))
 }
@@ -289,8 +289,8 @@ private fun v27() {
 private fun v28() {
     val s = InMemoryStore()
     val claim = linkedMapOf<String, Any?>(
-        "type" to "cro", "causes" to listOf(sym("occ:A")),
-        "effects" to listOf(sym("occ:B")), "modality" to "sufficient")
+        "type" to "causal_relation_object", "causes" to listOf(sym("occurrent:A")),
+        "effects" to listOf(sym("occurrent:B")), "modality" to "sufficient")
     val i1 = s.put(LinkedHashMap(claim))
     val i2 = s.put(LinkedHashMap(claim))
     assertTrue(i1 == i2 && s.objects.size == 1, "same claim must be one object")
@@ -304,14 +304,14 @@ private fun v28() {
 
 private fun v29() {
     val rec = signed("assertion", linkedMapOf(
-        "about" to sym("cro:demo"), "evidence_type" to "intervention",
+        "about" to sym("causal_relation_object:demo"), "evidence_type" to "intervention",
         "strength" to 0.7, "confidence" to 0.9), "signer")
     assertTrue(Signing.verifyRecord(rec), "valid signature must verify")
 }
 
 private fun v30() {
     val rec = signed("assertion", linkedMapOf(
-        "about" to sym("cro:demo"), "evidence_type" to "intervention",
+        "about" to sym("causal_relation_object:demo"), "evidence_type" to "intervention",
         "strength" to 0.7, "confidence" to 0.9), "signer")
     val tampered = LinkedHashMap(rec)
     tampered["confidence"] = 0.1
@@ -321,8 +321,8 @@ private fun v30() {
 private fun v31() {
     val s = InMemoryStore()
     val x = s.put(linkedMapOf(
-        "type" to "cro", "causes" to listOf(sym("occ:A")),
-        "effects" to listOf(sym("occ:B"))))
+        "type" to "causal_relation_object", "causes" to listOf(sym("occurrent:A")),
+        "effects" to listOf(sym("occurrent:B"))))
     val a = signed("assertion", linkedMapOf(
         "about" to x, "evidence_type" to "observation", "confidence" to 0.8),
         "lab1", 1)
@@ -366,7 +366,7 @@ private fun v33() {
     val k1 = key("K1").second
     val k2 = key("K2").second
     val a = signed("assertion", linkedMapOf(
-        "about" to sym("cro:claim"), "evidence_type" to "observation",
+        "about" to sym("causal_relation_object:claim"), "evidence_type" to "observation",
         "confidence" to 0.9), "K1", 1)
     s.putRecord(a)
     val succ = signed("succession", linkedMapOf<String, Any?>("successor" to k2), "K1", 2)
@@ -374,7 +374,7 @@ private fun v33() {
     assertTrue(k1 in s.lineage(k2) && k2 in s.lineage(k1), "lineage closure broken")
     val r = signed("retraction", linkedMapOf("retracts" to a["id"]), "K2", 3)
     s.putRecord(r)  // successor may retract the predecessor's record
-    assertTrue(s.assertionsAbout(sym("cro:claim")).isEmpty(),
+    assertTrue(s.assertionsAbout(sym("causal_relation_object:claim")).isEmpty(),
                "successor's retraction must apply")
 }
 
@@ -389,13 +389,13 @@ private fun v35() {
 }
 
 private fun v36() {
-    val a = sym("occ:A"); val b = sym("occ:B"); val c = sym("occ:C"); val d = sym("occ:D")
+    val a = sym("occurrent:A"); val b = sym("occurrent:B"); val c = sym("occurrent:C"); val d = sym("occurrent:D")
     val m1 = linkedMapOf<String, Any?>(
-        "id" to sym("cro:m1"), "causes" to listOf(a), "effects" to listOf(b))
+        "id" to sym("causal_relation_object:m1"), "causes" to listOf(a), "effects" to listOf(b))
     val m2 = linkedMapOf<String, Any?>(
-        "id" to sym("cro:m2"), "causes" to listOf(b), "effects" to listOf(c))
+        "id" to sym("causal_relation_object:m2"), "causes" to listOf(b), "effects" to listOf(c))
     val m3 = linkedMapOf<String, Any?>(
-        "id" to sym("cro:m3"), "causes" to listOf(d), "effects" to listOf(c))
+        "id" to sym("causal_relation_object:m3"), "causes" to listOf(d), "effects" to listOf(c))
     val p = linkedMapOf<String, Any?>(
         "causes" to listOf(a), "effects" to listOf(c),
         "mechanism" to listOf(m1["id"], m2["id"]))
@@ -426,15 +426,15 @@ private fun v37() {
 private fun v38() {
     val s = InMemoryStore()
     val p = s.put(linkedMapOf(
-        "type" to "cro", "causes" to listOf(sym("occ:A")),
-        "effects" to listOf(sym("occ:B"))))
+        "type" to "causal_relation_object", "causes" to listOf(sym("occurrent:A")),
+        "effects" to listOf(sym("occurrent:B"))))
     var gapIds = s.gaps("missing_field").map { it["id"] }
     assertTrue(p in gapIds, "the degenerate claim must be a gap")
     val r = s.put(linkedMapOf(
-        "type" to "cro", "causes" to listOf(sym("occ:A")),
-        "effects" to listOf(sym("occ:B")),
+        "type" to "causal_relation_object", "causes" to listOf(sym("occurrent:A")),
+        "effects" to listOf(sym("occurrent:B")),
         "temporal" to linkedMapOf<String, Any?>(
-            "dmin" to 0L, "dmax" to 1L, "unit" to "seconds"),
+            "minimum_delay" to 0L, "maximum_delay" to 1L, "unit" to "seconds"),
         "modality" to "sufficient", "refines" to p))
     gapIds = s.gaps("missing_field").map { it["id"] }
     assertTrue(p !in gapIds, "the gap did not close")

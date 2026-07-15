@@ -8,7 +8,7 @@
 //! The vectors are frozen at specification 1.0.0: they carry concrete 64-hex
 //! identifiers, real Ed25519 keys, and a real verifying signature, which the
 //! normalizer passes through unchanged. The remaining symbolic names used by
-//! the behavioral vectors ("cnt:dog", key "alice") normalize
+//! the behavioral vectors ("continuant:dog", key "alice") normalize
 //! deterministically - object names become scheme:sha256(name), key names
 //! become real Ed25519 keypairs seeded from sha256("key:" + name).
 
@@ -127,7 +127,7 @@ fn key(name: []const u8) !signing.NamedKeypair {
     return kp;
 }
 
-const schemes = [_][]const u8{ "occ", "cro", "cnt", "rlz", "ast", "enr", "ret", "suc" };
+const schemes = [_][]const u8{ "occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession" };
 
 fn hasSymPrefix(s: []const u8) bool {
     for (schemes) |scheme| {
@@ -346,7 +346,7 @@ fn semanticsFails(n: usize, must_mention: []const u8) !void {
 fn v14() !void {
     const inp = try normalize(fld(try vec(14), "input"));
     try expect((try schema.validateSchema(A, inp, null)).ok);
-    try semanticsFails(14, "dmin");
+    try semanticsFails(14, "minimum_delay");
 }
 
 fn v15() !void {
@@ -381,9 +381,9 @@ fn v20enrich(about: []const u8, entry: []const u8, i: usize) !ObjectMap {
 }
 
 fn v20() !void {
-    const dog = try sym("cnt:dog");
-    const mam = try sym("cnt:mammal");
-    const ani = try sym("cnt:animal");
+    const dog = try sym("continuant:dog");
+    const mam = try sym("continuant:mammal");
+    const ani = try sym("continuant:animal");
     // enforcing tier rejects the cycle-completing write
     var s = Store.init(A, true);
     _ = try s.putRecord(try v20enrich(dog, mam, 1), null, false);
@@ -414,8 +414,8 @@ fn v20() !void {
 fn adm(n: usize) !bool {
     const given = fld(try vec(n), "given");
     var cro = newObj();
-    try cro.put("causes", try strArr(&.{try sym("occ:c")}));
-    try cro.put("effects", try strArr(&.{try sym("occ:e")}));
+    try cro.put("causes", try strArr(&.{try sym("occurrent:c")}));
+    try cro.put("effects", try strArr(&.{try sym("occurrent:e")}));
     try cro.put("temporal", fld(given, "temporal"));
     return semantics.admissible(cro, jcs.numAsF64(fld(given, "elapsed_seconds")).?);
 }
@@ -484,9 +484,9 @@ fn v27() !void {
 fn v28() !void {
     var s = Store.init(A, true);
     var claim = newObj();
-    try claim.put("type", str("cro"));
-    try claim.put("causes", try strArr(&.{try sym("occ:A")}));
-    try claim.put("effects", try strArr(&.{try sym("occ:B")}));
+    try claim.put("type", str("causal_relation_object"));
+    try claim.put("causes", try strArr(&.{try sym("occurrent:A")}));
+    try claim.put("effects", try strArr(&.{try sym("occurrent:B")}));
     try claim.put("modality", str("sufficient"));
     const first = try s.put(claim, null);
     const second = try s.put(claim, null);
@@ -509,7 +509,7 @@ fn v28() !void {
 
 fn signerDemoAssertion() !ObjectMap {
     var body = newObj();
-    try body.put("about", str(try sym("cro:demo")));
+    try body.put("about", str(try sym("causal_relation_object:demo")));
     try body.put("evidence_type", str("intervention"));
     try body.put("strength", flt(0.7));
     try body.put("confidence", flt(0.9));
@@ -529,9 +529,9 @@ fn v30() !void {
 fn v31() !void {
     var s = Store.init(A, true);
     var claim = newObj();
-    try claim.put("type", str("cro"));
-    try claim.put("causes", try strArr(&.{try sym("occ:A")}));
-    try claim.put("effects", try strArr(&.{try sym("occ:B")}));
+    try claim.put("type", str("causal_relation_object"));
+    try claim.put("causes", try strArr(&.{try sym("occurrent:A")}));
+    try claim.put("effects", try strArr(&.{try sym("occurrent:B")}));
     const x = try s.put(claim, null);
     var body = newObj();
     try body.put("about", str(x));
@@ -588,7 +588,7 @@ fn v33() !void {
     const k1 = (try key("K1")).public_id;
     const k2 = (try key("K2")).public_id;
     var body = newObj();
-    try body.put("about", str(try sym("cro:claim")));
+    try body.put("about", str(try sym("causal_relation_object:claim")));
     try body.put("evidence_type", str("observation"));
     try body.put("confidence", flt(0.9));
     const assertion = try signed("assertion", body, "K1", 1);
@@ -602,7 +602,7 @@ fn v33() !void {
     try retract_body.put("retracts", str(jcs.getString(assertion, "id").?));
     // successor may retract the predecessor's record
     _ = try s.putRecord(try signed("retraction", retract_body, "K2", 3), null, false);
-    try expect((try s.assertionsAbout(try sym("cro:claim"), false)).items.len == 0);
+    try expect((try s.assertionsAbout(try sym("causal_relation_object:claim"), false)).items.len == 0);
 }
 
 fn v34() !void {
@@ -624,13 +624,13 @@ fn v36cro(id: []const u8, cause: []const u8, effect: []const u8) !ObjectMap {
 }
 
 fn v36() !void {
-    const oa = try sym("occ:A");
-    const ob = try sym("occ:B");
-    const oc = try sym("occ:C");
-    const od = try sym("occ:D");
-    const m1id = try sym("cro:m1");
-    const m2id = try sym("cro:m2");
-    const m3id = try sym("cro:m3");
+    const oa = try sym("occurrent:A");
+    const ob = try sym("occurrent:B");
+    const oc = try sym("occurrent:C");
+    const od = try sym("occurrent:D");
+    const m1id = try sym("causal_relation_object:m1");
+    const m2id = try sym("causal_relation_object:m2");
+    const m3id = try sym("causal_relation_object:m3");
     const m1 = try v36cro(m1id, oa, ob);
     const m2 = try v36cro(m2id, ob, oc);
     const m3 = try v36cro(m3id, od, oc);
@@ -673,9 +673,9 @@ fn v37() !void {
 fn v38() !void {
     var s = Store.init(A, true);
     var degenerate = newObj();
-    try degenerate.put("type", str("cro"));
-    try degenerate.put("causes", try strArr(&.{try sym("occ:A")}));
-    try degenerate.put("effects", try strArr(&.{try sym("occ:B")}));
+    try degenerate.put("type", str("causal_relation_object"));
+    try degenerate.put("causes", try strArr(&.{try sym("occurrent:A")}));
+    try degenerate.put("effects", try strArr(&.{try sym("occurrent:B")}));
     const parent_id = try s.put(degenerate, null);
     var found = false;
     for ((try s.gaps("missing_field")).items) |g| {
@@ -683,13 +683,13 @@ fn v38() !void {
     }
     try expect(found);
     var temporal = newObj();
-    try temporal.put("dmin", .{ .integer = 0 });
-    try temporal.put("dmax", .{ .integer = 1 });
+    try temporal.put("minimum_delay", .{ .integer = 0 });
+    try temporal.put("maximum_delay", .{ .integer = 1 });
     try temporal.put("unit", str("seconds"));
     var refinement = newObj();
-    try refinement.put("type", str("cro"));
-    try refinement.put("causes", try strArr(&.{try sym("occ:A")}));
-    try refinement.put("effects", try strArr(&.{try sym("occ:B")}));
+    try refinement.put("type", str("causal_relation_object"));
+    try refinement.put("causes", try strArr(&.{try sym("occurrent:A")}));
+    try refinement.put("effects", try strArr(&.{try sym("occurrent:B")}));
     try refinement.put("temporal", .{ .object = temporal });
     try refinement.put("modality", str("sufficient"));
     try refinement.put("refines", str(parent_id));

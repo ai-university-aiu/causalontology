@@ -241,7 +241,7 @@ internal static class Program
     {
         var input = NormalizedInput(14);
         Check(SchemaValidator.ValidateSchema(input).Ok, "schema");
-        SemanticsFails(14, "dmin");
+        SemanticsFails(14, "minimum_delay");
     }
 
     private static void V15() => SemanticsFails(15, "acyclic");
@@ -261,9 +261,9 @@ internal static class Program
 
     private static void V20()
     {
-        var dog = Sym("cnt:dog");
-        var mammal = Sym("cnt:mammal");
-        var animal = Sym("cnt:animal");
+        var dog = Sym("continuant:dog");
+        var mammal = Sym("continuant:mammal");
+        var animal = Sym("continuant:animal");
         JsonMap Enrich(string about, string entry, int i)
             => Signed("enrichment",
                       new JsonMap { { "about", about },
@@ -303,8 +303,8 @@ internal static class Program
         var given = (JsonMap)Vec(n)["given"]!;
         var cro = new JsonMap
         {
-            { "causes", new List<object?> { Sym("occ:c") } },
-            { "effects", new List<object?> { Sym("occ:e") } },
+            { "causes", new List<object?> { Sym("occurrent:c") } },
+            { "effects", new List<object?> { Sym("occurrent:e") } },
             { "temporal", given["temporal"] },
         };
         return Semantics.Admissible(cro, Json.ToDouble(given["elapsed_seconds"]));
@@ -373,9 +373,9 @@ internal static class Program
         var store = new InMemoryStore();
         JsonMap Claim() => new()
         {
-            { "type", "cro" },
-            { "causes", new List<object?> { Sym("occ:A") } },
-            { "effects", new List<object?> { Sym("occ:B") } },
+            { "type", "causal_relation_object" },
+            { "causes", new List<object?> { Sym("occurrent:A") } },
+            { "effects", new List<object?> { Sym("occurrent:B") } },
             { "modality", "sufficient" },
         };
         var i1 = store.Put(Claim());
@@ -396,7 +396,7 @@ internal static class Program
     private static void V29()
     {
         var record = Signed("assertion",
-            new JsonMap { { "about", Sym("cro:demo") },
+            new JsonMap { { "about", Sym("causal_relation_object:demo") },
                           { "evidence_type", "intervention" },
                           { "strength", 0.7 },
                           { "confidence", 0.9 } },
@@ -407,7 +407,7 @@ internal static class Program
     private static void V30()
     {
         var record = Signed("assertion",
-            new JsonMap { { "about", Sym("cro:demo") },
+            new JsonMap { { "about", Sym("causal_relation_object:demo") },
                           { "evidence_type", "intervention" },
                           { "strength", 0.7 },
                           { "confidence", 0.9 } },
@@ -422,9 +422,9 @@ internal static class Program
         var store = new InMemoryStore();
         var x = store.Put(new JsonMap
         {
-            { "type", "cro" },
-            { "causes", new List<object?> { Sym("occ:A") } },
-            { "effects", new List<object?> { Sym("occ:B") } },
+            { "type", "causal_relation_object" },
+            { "causes", new List<object?> { Sym("occurrent:A") } },
+            { "effects", new List<object?> { Sym("occurrent:B") } },
         });
         var a = Signed("assertion",
             new JsonMap { { "about", x },
@@ -487,7 +487,7 @@ internal static class Program
         var k1 = Key("K1").Public;
         var k2 = Key("K2").Public;
         var a = Signed("assertion",
-            new JsonMap { { "about", Sym("cro:claim") },
+            new JsonMap { { "about", Sym("causal_relation_object:claim") },
                           { "evidence_type", "observation" },
                           { "confidence", 0.9 } },
             "K1", 1);
@@ -500,7 +500,7 @@ internal static class Program
         var retraction = Signed("retraction",
             new JsonMap { { "retracts", a["id"] } }, "K2", 3);
         store.PutRecord(retraction); // successor may retract the predecessor's record
-        Check(store.AssertionsAbout(Sym("cro:claim")).Count == 0,
+        Check(store.AssertionsAbout(Sym("causal_relation_object:claim")).Count == 0,
               "retracted via succession");
     }
 
@@ -520,17 +520,17 @@ internal static class Program
 
     private static void V36()
     {
-        var (a, b, c, d) = (Sym("occ:A"), Sym("occ:B"), Sym("occ:C"),
-                            Sym("occ:D"));
+        var (a, b, c, d) = (Sym("occurrent:A"), Sym("occurrent:B"), Sym("occurrent:C"),
+                            Sym("occurrent:D"));
         JsonMap Member(string id, string cause, string effect) => new()
         {
             { "id", id },
             { "causes", new List<object?> { cause } },
             { "effects", new List<object?> { effect } },
         };
-        var m1 = Member(Sym("cro:m1"), a, b);
-        var m2 = Member(Sym("cro:m2"), b, c);
-        var m3 = Member(Sym("cro:m3"), d, c);
+        var m1 = Member(Sym("causal_relation_object:m1"), a, b);
+        var m2 = Member(Sym("causal_relation_object:m2"), b, c);
+        var m3 = Member(Sym("causal_relation_object:m3"), d, c);
         var parent = new JsonMap
         {
             { "causes", new List<object?> { a } },
@@ -582,19 +582,19 @@ internal static class Program
         var store = new InMemoryStore();
         var parent = store.Put(new JsonMap
         {
-            { "type", "cro" },
-            { "causes", new List<object?> { Sym("occ:A") } },
-            { "effects", new List<object?> { Sym("occ:B") } },
+            { "type", "causal_relation_object" },
+            { "causes", new List<object?> { Sym("occurrent:A") } },
+            { "effects", new List<object?> { Sym("occurrent:B") } },
         });
         var gaps = store.Gaps("missing_field")
             .Select(g => (string)g["id"]!).ToList();
         Check(gaps.Contains(parent), "the degenerate claim is a gap");
         var refinement = store.Put(new JsonMap
         {
-            { "type", "cro" },
-            { "causes", new List<object?> { Sym("occ:A") } },
-            { "effects", new List<object?> { Sym("occ:B") } },
-            { "temporal", new JsonMap { { "dmin", 0L }, { "dmax", 1L },
+            { "type", "causal_relation_object" },
+            { "causes", new List<object?> { Sym("occurrent:A") } },
+            { "effects", new List<object?> { Sym("occurrent:B") } },
+            { "temporal", new JsonMap { { "minimum_delay", 0L }, { "maximum_delay", 1L },
                                         { "unit", "seconds" } } },
             { "modality", "sufficient" },
             { "refines", parent },

@@ -9,7 +9,7 @@
 
 const IDENTITY_FIELDS = Dict{String,Vector{String}}(
     "occurrent"  => ["label", "category"],
-    "cro"        => ["causes", "effects", "mechanism", "temporal", "modality",
+    "causal_relation_object"        => ["causes", "effects", "mechanism", "temporal", "modality",
                      "context", "refines"],
     "continuant" => ["label", "category"],
     "realizable" => ["kind", "bearer"],
@@ -21,9 +21,9 @@ const IDENTITY_FIELDS = Dict{String,Vector{String}}(
 )
 
 const PREFIX = Dict{String,String}(
-    "occurrent" => "occ", "cro" => "cro", "continuant" => "cnt",
-    "realizable" => "rlz", "assertion" => "ast", "enrichment" => "enr",
-    "retraction" => "ret", "succession" => "suc",
+    "occurrent" => "occurrent", "causal_relation_object" => "causal_relation_object", "continuant" => "continuant",
+    "realizable" => "realizable", "assertion" => "assertion", "enrichment" => "enrichment",
+    "retraction" => "retraction", "succession" => "succession",
 )
 const KIND_OF_PREFIX = Dict{String,String}(v => k for (k, v) in PREFIX)
 
@@ -37,7 +37,7 @@ function infer_kind(obj::JObj)
             haskey(KIND_OF_PREFIX, pre) && return KIND_OF_PREFIX[pre]
         end
     end
-    jhas(obj, "causes") && jhas(obj, "effects") && return "cro"
+    jhas(obj, "causes") && jhas(obj, "effects") && return "causal_relation_object"
     jhas(obj, "retracts") && return "retraction"
     jhas(obj, "predecessor") && jhas(obj, "successor") && return "succession"
     jhas(obj, "field") && jhas(obj, "entry") && return "enrichment"

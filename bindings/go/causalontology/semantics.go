@@ -34,10 +34,10 @@ type enrichmentFieldRule struct {
 // enrichmentFieldRules is rule 12's field-to-kind validity table.
 var enrichmentFieldRules = map[string]enrichmentFieldRule{
 	"aliases":      {[]string{"occurrent", "continuant"}, "alias"},
-	"participants": {[]string{"occurrent"}, "cnt"},
-	"subsumes":     {[]string{"continuant"}, "cnt"},
-	"part_of":      {[]string{"continuant"}, "cnt"},
-	"realized_in":  {[]string{"realizable"}, "occ"},
+	"participants": {[]string{"occurrent"}, "continuant"},
+	"subsumes":     {[]string{"continuant"}, "continuant"},
+	"part_of":      {[]string{"continuant"}, "continuant"},
+	"realized_in":  {[]string{"realizable"}, "occurrent"},
 }
 
 // CROOptionalFields lists the optional Causal Relation Object fields in
@@ -73,15 +73,15 @@ func ValidateSemantics(obj map[string]any, kind string) (bool, []string, error) 
 	}
 	var reasons []string
 
-	if kind == "cro" {
+	if kind == "causal_relation_object" {
 		if temporal, isObject := obj["temporal"].(map[string]any); isObject {
-			dminRaw, hasMin := temporal["dmin"]
-			dmaxRaw, hasMax := temporal["dmax"]
+			dminRaw, hasMin := temporal["minimum_delay"]
+			dmaxRaw, hasMax := temporal["maximum_delay"]
 			if hasMin && hasMax && dminRaw != nil && dmaxRaw != nil {
-				dmin, okMin := AsFloat(dminRaw)
-				dmax, okMax := AsFloat(dmaxRaw)
-				if okMin && okMax && dmin > dmax {
-					reasons = append(reasons, "dmin must be <= dmax")
+				minimum_delay, okMin := AsFloat(dminRaw)
+				maximum_delay, okMax := AsFloat(dmaxRaw)
+				if okMin && okMax && minimum_delay > maximum_delay {
+					reasons = append(reasons, "minimum_delay must be <= maximum_delay")
 				}
 			}
 		}
@@ -156,13 +156,13 @@ func Admissible(cro map[string]any, elapsedSeconds float64) (bool, error) {
 	if !known {
 		return false, fmt.Errorf("unknown temporal unit: %q", unitName)
 	}
-	dmin, okMin := AsFloat(temporal["dmin"])
-	dmax, okMax := AsFloat(temporal["dmax"])
+	minimum_delay, okMin := AsFloat(temporal["minimum_delay"])
+	maximum_delay, okMax := AsFloat(temporal["maximum_delay"])
 	if !okMin || !okMax {
-		return false, errors.New("dmin and dmax must be numbers")
+		return false, errors.New("minimum_delay and maximum_delay must be numbers")
 	}
-	lo := dmin * unit
-	hi := dmax * unit
+	lo := minimum_delay * unit
+	hi := maximum_delay * unit
 	return lo <= elapsedSeconds && elapsedSeconds <= hi, nil
 }
 
@@ -215,10 +215,10 @@ func windowOverlap(a, b map[string]any) bool {
 	if !knownA || !knownB {
 		return true
 	}
-	dminA, okMinA := AsFloat(temporalA["dmin"])
-	dmaxA, okMaxA := AsFloat(temporalA["dmax"])
-	dminB, okMinB := AsFloat(temporalB["dmin"])
-	dmaxB, okMaxB := AsFloat(temporalB["dmax"])
+	dminA, okMinA := AsFloat(temporalA["minimum_delay"])
+	dmaxA, okMaxA := AsFloat(temporalA["maximum_delay"])
+	dminB, okMinB := AsFloat(temporalB["minimum_delay"])
+	dmaxB, okMaxB := AsFloat(temporalB["maximum_delay"])
 	if !okMinA || !okMaxA || !okMinB || !okMaxB {
 		return true
 	}

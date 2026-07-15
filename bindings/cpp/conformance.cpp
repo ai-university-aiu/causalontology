@@ -109,7 +109,7 @@ bool is64hex(const std::string& s) {
 
 bool isScheme(const std::string& s) {
     static const std::vector<std::string> schemes = {
-        "occ", "cro", "cnt", "rlz", "ast", "enr", "ret", "suc", "ed25519"};
+        "occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession", "ed25519"};
     for (const auto& scheme : schemes)
         if (s == scheme) return true;
     return false;
@@ -295,7 +295,7 @@ void semanticsFails(int n, const std::string& mustMention) {
 void v14() {
     JValue inp = normalize(vec(14).at("input"));
     check(validate_schema(inp).first, "schema");
-    semanticsFails(14, "dmin");
+    semanticsFails(14, "minimum_delay");
 }
 
 void v15() { semanticsFails(15, "acyclic"); }
@@ -313,8 +313,8 @@ void v18() { semanticsFails(18, "not a legal field"); }
 void v19() { semanticsFails(19, "language-tagged"); }
 
 void v20() {
-    std::string dog = sym("cnt:dog"), mam = sym("cnt:mammal"),
-                ani = sym("cnt:animal");
+    std::string dog = sym("continuant:dog"), mam = sym("continuant:mammal"),
+                ani = sym("continuant:animal");
     auto enrich = [](const std::string& about, const std::string& entry,
                      int i) {
         JValue body = JValue::makeObject();
@@ -357,9 +357,9 @@ bool adm(int n) {
     JValue g = vec(n).at("given");
     JValue cro = JValue::makeObject();
     JValue causes = JValue::makeArray();
-    causes.array.push_back(JValue::of(sym("occ:c")));
+    causes.array.push_back(JValue::of(sym("occurrent:c")));
     JValue effects = JValue::makeArray();
-    effects.array.push_back(JValue::of(sym("occ:e")));
+    effects.array.push_back(JValue::of(sym("occurrent:e")));
     cro.set("causes", std::move(causes));
     cro.set("effects", std::move(effects));
     cro.set("temporal", g.at("temporal"));
@@ -425,11 +425,11 @@ void v27() {
 void v28() {
     InMemoryStore s;
     JValue claim = JValue::makeObject();
-    claim.set("type", JValue::of("cro"));
+    claim.set("type", JValue::of("causal_relation_object"));
     JValue causes = JValue::makeArray();
-    causes.array.push_back(JValue::of(sym("occ:A")));
+    causes.array.push_back(JValue::of(sym("occurrent:A")));
     JValue effects = JValue::makeArray();
-    effects.array.push_back(JValue::of(sym("occ:B")));
+    effects.array.push_back(JValue::of(sym("occurrent:B")));
     claim.set("causes", std::move(causes));
     claim.set("effects", std::move(effects));
     claim.set("modality", JValue::of("sufficient"));
@@ -450,7 +450,7 @@ void v28() {
 
 JValue demoAssertion() {
     JValue body = JValue::makeObject();
-    body.set("about", JValue::of(sym("cro:demo")));
+    body.set("about", JValue::of(sym("causal_relation_object:demo")));
     body.set("evidence_type", JValue::of("intervention"));
     body.set("strength", JValue::of(0.7));
     body.set("confidence", JValue::of(0.9));
@@ -468,11 +468,11 @@ void v30() {
 void v31() {
     InMemoryStore s;
     JValue claim = JValue::makeObject();
-    claim.set("type", JValue::of("cro"));
+    claim.set("type", JValue::of("causal_relation_object"));
     JValue causes = JValue::makeArray();
-    causes.array.push_back(JValue::of(sym("occ:A")));
+    causes.array.push_back(JValue::of(sym("occurrent:A")));
     JValue effects = JValue::makeArray();
-    effects.array.push_back(JValue::of(sym("occ:B")));
+    effects.array.push_back(JValue::of(sym("occurrent:B")));
     claim.set("causes", std::move(causes));
     claim.set("effects", std::move(effects));
     std::string x = s.put(claim);
@@ -542,7 +542,7 @@ void v33() {
     std::string k1 = key("K1").second;
     std::string k2 = key("K2").second;
     JValue aBody = JValue::makeObject();
-    aBody.set("about", JValue::of(sym("cro:claim")));
+    aBody.set("about", JValue::of(sym("causal_relation_object:claim")));
     aBody.set("evidence_type", JValue::of("observation"));
     aBody.set("confidence", JValue::of(0.9));
     JValue a = makeSigned("assertion", aBody, "K1", 1);
@@ -557,7 +557,7 @@ void v33() {
     rBody.set("retracts", JValue::of(a.getString("id")));
     JValue r = makeSigned("retraction", rBody, "K2", 3);
     s.put_record(r);  // successor may retract the predecessor's record
-    check(s.assertions_about(sym("cro:claim")).empty(),
+    check(s.assertions_about(sym("causal_relation_object:claim")).empty(),
           "the retraction must take effect");
 }
 
@@ -572,8 +572,8 @@ void v35() {
 }
 
 void v36() {
-    std::string A = sym("occ:A"), B = sym("occ:B"), C = sym("occ:C"),
-                D = sym("occ:D");
+    std::string A = sym("occurrent:A"), B = sym("occurrent:B"), C = sym("occurrent:C"),
+                D = sym("occurrent:D");
     auto makeCro = [](const std::string& id, const std::string& cause,
                       const std::string& effect) {
         JValue m = JValue::makeObject();
@@ -586,9 +586,9 @@ void v36() {
         m.set("effects", std::move(effects));
         return m;
     };
-    JValue m1 = makeCro(sym("cro:m1"), A, B);
-    JValue m2 = makeCro(sym("cro:m2"), B, C);
-    JValue m3 = makeCro(sym("cro:m3"), D, C);
+    JValue m1 = makeCro(sym("causal_relation_object:m1"), A, B);
+    JValue m2 = makeCro(sym("causal_relation_object:m2"), B, C);
+    JValue m3 = makeCro(sym("causal_relation_object:m3"), D, C);
     JValue P = JValue::makeObject();
     JValue pCauses = JValue::makeArray();
     pCauses.array.push_back(JValue::of(A));
@@ -635,11 +635,11 @@ void v37() {
 void v38() {
     InMemoryStore s;
     JValue claim = JValue::makeObject();
-    claim.set("type", JValue::of("cro"));
+    claim.set("type", JValue::of("causal_relation_object"));
     JValue causes = JValue::makeArray();
-    causes.array.push_back(JValue::of(sym("occ:A")));
+    causes.array.push_back(JValue::of(sym("occurrent:A")));
     JValue effects = JValue::makeArray();
-    effects.array.push_back(JValue::of(sym("occ:B")));
+    effects.array.push_back(JValue::of(sym("occurrent:B")));
     claim.set("causes", causes);
     claim.set("effects", effects);
     std::string P = s.put(claim);
@@ -653,12 +653,12 @@ void v38() {
     check(std::find(before.begin(), before.end(), P) != before.end(),
           "P must be a missing_field gap");
     JValue refinement = JValue::makeObject();
-    refinement.set("type", JValue::of("cro"));
+    refinement.set("type", JValue::of("causal_relation_object"));
     refinement.set("causes", causes);
     refinement.set("effects", effects);
     JValue temporal = JValue::makeObject();
-    temporal.set("dmin", JValue::of(0));
-    temporal.set("dmax", JValue::of(1));
+    temporal.set("minimum_delay", JValue::of(0));
+    temporal.set("maximum_delay", JValue::of(1));
     temporal.set("unit", JValue::of("seconds"));
     refinement.set("temporal", std::move(temporal));
     refinement.set("modality", JValue::of("sufficient"));

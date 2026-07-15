@@ -402,7 +402,7 @@ sub gaps {
     my %refined;
     for my $oid (@{ $self->{object_order} }) {
         my $obj = $self->{objects}{$oid};
-        next unless sval(oget($obj, 'type')) eq 'cro';
+        next unless sval(oget($obj, 'type')) eq 'causal_relation_object';
         next unless ohas($obj, 'refines')
             && sval(oget($obj, 'refines')) ne '';
         my $parent = $self->{objects}{ sval(oget($obj, 'refines')) };
@@ -412,7 +412,7 @@ sub gaps {
     }
     for my $oid (@{ $self->{object_order} }) {
         my $obj = $self->{objects}{$oid};
-        next unless sval(oget($obj, 'type')) eq 'cro';
+        next unless sval(oget($obj, 'type')) eq 'causal_relation_object';
         # missing_field: lacking the temporal window or the modality -
         # mechanism and context may legitimately stay unspecified forever
         # (empty_mechanism is its own kind; absent context = context-free).
@@ -444,7 +444,7 @@ sub gaps {
         my $obj = $self->{objects}{$oid};
         my $type = sval(oget($obj, 'type'));
         my @refs;
-        if ($type eq 'cro') {
+        if ($type eq 'causal_relation_object') {
             for my $field ('causes', 'effects', 'context', 'mechanism') {
                 push @refs, map { sval($_) } aitems(oget($obj, $field))
                     if ohas($obj, $field);
@@ -465,7 +465,7 @@ sub gaps {
         }
     }
     # conflict: pairs of claims satisfying the formal test (rule 6).
-    my @cros = grep { sval(oget($_, 'type')) eq 'cro' }
+    my @cros = grep { sval(oget($_, 'type')) eq 'causal_relation_object' }
                map { $self->{objects}{$_} } @{ $self->{object_order} };
     for my $i (0 .. $#cros) {
         for my $j ($i + 1 .. $#cros) {

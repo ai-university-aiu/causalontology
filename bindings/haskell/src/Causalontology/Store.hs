@@ -65,7 +65,7 @@ newStore enforcing schemas = Store enforcing schemas [] [] []
 
 -- | The four content-object kinds.
 contentKinds :: [String]
-contentKinds = ["occurrent", "cro", "continuant", "realizable"]
+contentKinds = ["occurrent", "causal_relation_object", "continuant", "realizable"]
 
 -- | The four provenance-record kinds.
 recordKinds :: [String]
@@ -441,7 +441,7 @@ gaps mkind store = case mkind of
       Set.fromList
         [ pid
         | (_, obj) <- objects
-        , (objGet "type" obj >>= asStr) == Just "cro"
+        , (objGet "type" obj >>= asStr) == Just "causal_relation_object"
         , Just refinesId <- [objGet "refines" obj >>= asStr]
         , not (null refinesId)
         , Just parent <- [lookup refinesId objects]
@@ -456,7 +456,7 @@ gaps mkind store = case mkind of
       concat
         [ missingGap oid obj ++ mechanismGap oid obj
         | (oid, obj) <- objects
-        , (objGet "type" obj >>= asStr) == Just "cro"
+        , (objGet "type" obj >>= asStr) == Just "causal_relation_object"
         ]
     missingGap oid obj
       | (not (objHas "temporal" obj) || not (objHas "modality" obj))
@@ -494,7 +494,7 @@ gaps mkind store = case mkind of
       , not (isJust (lookup ref objects))
       ]
     refsOf obj = case objGet "type" obj >>= asStr of
-      Just "cro" ->
+      Just "causal_relation_object" ->
         listOf "causes" obj
           ++ listOf "effects" obj
           ++ listOf "context" obj
@@ -508,7 +508,7 @@ gaps mkind store = case mkind of
     listOf name obj = maybe [] strList (objGet name obj)
 
     -- conflict: pairs of claims satisfying the formal test (rule 6)
-    cros = [ obj | (_, obj) <- objects, (objGet "type" obj >>= asStr) == Just "cro" ]
+    cros = [ obj | (_, obj) <- objects, (objGet "type" obj >>= asStr) == Just "causal_relation_object" ]
     conflictGaps =
       [ JObj
           [ ("kind", JStr "conflict")

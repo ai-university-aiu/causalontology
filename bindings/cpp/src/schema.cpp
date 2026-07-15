@@ -20,7 +20,7 @@ std::string g_schema_dir;
 
 const std::map<std::string, std::string>& schemaFiles() {
     static const std::map<std::string, std::string> files = {
-        {"cro", "cro.schema.json"},
+        {"causal_relation_object", "cro.schema.json"},
         {"occurrent", "occurrent.schema.json"},
         {"continuant", "continuant.schema.json"},
         {"realizable", "realizable.schema.json"},

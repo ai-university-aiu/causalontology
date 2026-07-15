@@ -21,18 +21,18 @@ struct KindFields {
 // The identity-bearing fields per kind (spec/identity.md), in spec order.
 const std::vector<KindFields>& table() {
     static const std::vector<KindFields> t = {
-        {"occurrent", "occ", {"label", "category"}},
-        {"cro", "cro",
+        {"occurrent", "occurrent", {"label", "category"}},
+        {"causal_relation_object", "causal_relation_object",
          {"causes", "effects", "mechanism", "temporal", "modality", "context",
           "refines"}},
-        {"continuant", "cnt", {"label", "category"}},
-        {"realizable", "rlz", {"kind", "bearer"}},
-        {"assertion", "ast",
+        {"continuant", "continuant", {"label", "category"}},
+        {"realizable", "realizable", {"kind", "bearer"}},
+        {"assertion", "assertion",
          {"about", "source", "evidence_type", "evidence", "strength",
           "confidence", "timestamp"}},
-        {"enrichment", "enr", {"about", "field", "entry", "source", "timestamp"}},
-        {"retraction", "ret", {"retracts", "source", "timestamp"}},
-        {"succession", "suc", {"predecessor", "successor", "timestamp"}},
+        {"enrichment", "enrichment", {"about", "field", "entry", "source", "timestamp"}},
+        {"retraction", "retraction", {"retracts", "source", "timestamp"}},
+        {"succession", "succession", {"predecessor", "successor", "timestamp"}},
     };
     return t;
 }
@@ -67,7 +67,7 @@ std::string infer_kind(const JValue& obj) {
             if (!kind.empty()) return kind;
         }
     }
-    if (obj.has("causes") && obj.has("effects")) return "cro";
+    if (obj.has("causes") && obj.has("effects")) return "causal_relation_object";
     if (obj.has("retracts")) return "retraction";
     if (obj.has("predecessor") && obj.has("successor")) return "succession";
     if (obj.has("field") && obj.has("entry")) return "enrichment";

@@ -254,7 +254,7 @@ sub v14 {
     my $inp = normalize(oget(vector(14), 'input'));
     my ($ok) = validate_schema($inp);
     ok_or($ok, 'schema-valid');
-    semantics_fails(14, 'dmin');
+    semantics_fails(14, 'minimum_delay');
 }
 
 sub v15 { semantics_fails(15, 'acyclic') }
@@ -269,8 +269,8 @@ sub v17 {
 }
 
 sub v20 {
-    my ($dog, $mam, $ani) = (sym('cnt:dog'), sym('cnt:mammal'),
-                             sym('cnt:animal'));
+    my ($dog, $mam, $ani) = (sym('continuant:dog'), sym('continuant:mammal'),
+                             sym('continuant:animal'));
     my $enrich = sub {
         my ($about, $entry, $i) = @_;
         return signed('enrichment',
@@ -303,8 +303,8 @@ sub v20 {
 sub adm {
     my ($n) = @_;
     my $g = oget(vector($n), 'given');
-    my $cro = jobj(causes => jarr(jstr(sym('occ:c'))),
-                   effects => jarr(jstr(sym('occ:e'))),
+    my $cro = jobj(causes => jarr(jstr(sym('occurrent:c'))),
+                   effects => jarr(jstr(sym('occurrent:e'))),
                    temporal => oget($g, 'temporal'));
     return admissible($cro, nval(oget($g, 'elapsed_seconds')));
 }
@@ -356,9 +356,9 @@ sub v27 {
 
 sub v28 {
     my $s = Causalontology::Store->new;
-    my $claim = jobj(type => jstr('cro'),
-                     causes => jarr(jstr(sym('occ:A'))),
-                     effects => jarr(jstr(sym('occ:B'))),
+    my $claim = jobj(type => jstr('causal_relation_object'),
+                     causes => jarr(jstr(sym('occurrent:A'))),
+                     effects => jarr(jstr(sym('occurrent:B'))),
                      modality => jstr('sufficient'));
     my $i1 = $s->put(oclone($claim));
     my $i2 = $s->put(oclone($claim));
@@ -378,7 +378,7 @@ sub v28 {
 
 sub v29 {
     my $rec = signed('assertion',
-                     jobj(about => jstr(sym('cro:demo')),
+                     jobj(about => jstr(sym('causal_relation_object:demo')),
                           evidence_type => jstr('intervention'),
                           strength => jnum('0.7'),
                           confidence => jnum('0.9')), 'signer');
@@ -387,7 +387,7 @@ sub v29 {
 
 sub v30 {
     my $rec = signed('assertion',
-                     jobj(about => jstr(sym('cro:demo')),
+                     jobj(about => jstr(sym('causal_relation_object:demo')),
                           evidence_type => jstr('intervention'),
                           strength => jnum('0.7'),
                           confidence => jnum('0.9')), 'signer');
@@ -398,9 +398,9 @@ sub v30 {
 
 sub v31 {
     my $s = Causalontology::Store->new;
-    my $x = $s->put(jobj(type => jstr('cro'),
-                         causes => jarr(jstr(sym('occ:A'))),
-                         effects => jarr(jstr(sym('occ:B')))));
+    my $x = $s->put(jobj(type => jstr('causal_relation_object'),
+                         causes => jarr(jstr(sym('occurrent:A'))),
+                         effects => jarr(jstr(sym('occurrent:B')))));
     my $a = signed('assertion', jobj(about => jstr($x),
                                      evidence_type => jstr('observation'),
                                      confidence => jnum('0.8')), 'lab1', 1);
@@ -446,7 +446,7 @@ sub v33 {
     my (undef, $k1) = key('K1');
     my (undef, $k2) = key('K2');
     my $a = signed('assertion',
-                   jobj(about => jstr(sym('cro:claim')),
+                   jobj(about => jstr(sym('causal_relation_object:claim')),
                         evidence_type => jstr('observation'),
                         confidence => jnum('0.9')), 'K1', 1);
     $s->put_record($a);
@@ -456,7 +456,7 @@ sub v33 {
           'the lineage closes over both keys');
     my $r = signed('retraction', jobj(retracts => oget($a, 'id')), 'K2', 3);
     $s->put_record($r);  # successor may retract the predecessor's record
-    ok_or($s->assertions_about(sym('cro:claim')) == 0,
+    ok_or($s->assertions_about(sym('causal_relation_object:claim')) == 0,
           'the successor retraction takes effect');
 }
 
@@ -473,25 +473,25 @@ sub v35 {
 }
 
 sub v36 {
-    my ($A, $B, $C, $D) = (sym('occ:A'), sym('occ:B'),
-                           sym('occ:C'), sym('occ:D'));
-    my $m1 = jobj(id => jstr(sym('cro:m1')),
+    my ($A, $B, $C, $D) = (sym('occurrent:A'), sym('occurrent:B'),
+                           sym('occurrent:C'), sym('occurrent:D'));
+    my $m1 = jobj(id => jstr(sym('causal_relation_object:m1')),
                   causes => jarr(jstr($A)), effects => jarr(jstr($B)));
-    my $m2 = jobj(id => jstr(sym('cro:m2')),
+    my $m2 = jobj(id => jstr(sym('causal_relation_object:m2')),
                   causes => jarr(jstr($B)), effects => jarr(jstr($C)));
-    my $m3 = jobj(id => jstr(sym('cro:m3')),
+    my $m3 = jobj(id => jstr(sym('causal_relation_object:m3')),
                   causes => jarr(jstr($D)), effects => jarr(jstr($C)));
     my $P = jobj(causes => jarr(jstr($A)), effects => jarr(jstr($C)),
                  mechanism => jarr(oget($m1, 'id'), oget($m2, 'id')));
-    ok_or(hierarchy_consistent($P, { sym('cro:m1') => $m1,
-                                     sym('cro:m2') => $m2 })
+    ok_or(hierarchy_consistent($P, { sym('causal_relation_object:m1') => $m1,
+                                     sym('causal_relation_object:m2') => $m2 })
               eq 'consistent', 'A -> B -> C is consistent');
     my $P2 = oclone($P);
     oset($P2, 'mechanism', jarr(oget($m1, 'id'), oget($m3, 'id')));
-    ok_or(hierarchy_consistent($P2, { sym('cro:m1') => $m1,
-                                      sym('cro:m3') => $m3 })
+    ok_or(hierarchy_consistent($P2, { sym('causal_relation_object:m1') => $m1,
+                                      sym('causal_relation_object:m3') => $m3 })
               eq 'inconsistent', 'D -> C leaves A -> C unreachable');
-    ok_or(hierarchy_consistent($P, { sym('cro:m1') => $m1 })
+    ok_or(hierarchy_consistent($P, { sym('causal_relation_object:m1') => $m1 })
               eq 'indeterminate', 'a missing member is indeterminate');
 }
 
@@ -513,16 +513,16 @@ sub v37 {
 
 sub v38 {
     my $s = Causalontology::Store->new;
-    my $P = $s->put(jobj(type => jstr('cro'),
-                         causes => jarr(jstr(sym('occ:A'))),
-                         effects => jarr(jstr(sym('occ:B')))));
+    my $P = $s->put(jobj(type => jstr('causal_relation_object'),
+                         causes => jarr(jstr(sym('occurrent:A'))),
+                         effects => jarr(jstr(sym('occurrent:B')))));
     my @gap_ids = map { $_->{id} } $s->gaps('missing_field');
     ok_or((grep { $_ eq $P } @gap_ids), 'the degenerate claim is a gap');
-    my $R = $s->put(jobj(type => jstr('cro'),
-                         causes => jarr(jstr(sym('occ:A'))),
-                         effects => jarr(jstr(sym('occ:B'))),
-                         temporal => jobj(dmin => jnum('0'),
-                                          dmax => jnum('1'),
+    my $R = $s->put(jobj(type => jstr('causal_relation_object'),
+                         causes => jarr(jstr(sym('occurrent:A'))),
+                         effects => jarr(jstr(sym('occurrent:B'))),
+                         temporal => jobj(minimum_delay => jnum('0'),
+                                          maximum_delay => jnum('1'),
                                           unit => jstr('seconds')),
                          modality => jstr('sufficient'),
                          refines => jstr($P)));

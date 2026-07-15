@@ -17,20 +17,20 @@ const occ: co.Occurrent = { label: "press_button", category: "action" };
 
 const cnt: co.Continuant = { label: "button", category: "object" };
 
-const rlz: co.Realizable = { kind: "function", bearer: "cnt:" + hex64 };
+const rlz: co.Realizable = { kind: "function", bearer: "continuant:" + hex64 };
 
 const cro: co.CausalRelationObject = {
-  causes: ["occ:" + hex64],
-  effects: ["occ:" + hex64],
-  mechanism: ["cro:" + hex64],
-  temporal: { dmin: 0, dmax: 5, unit: "seconds" },
+  causes: ["occurrent:" + hex64],
+  effects: ["occurrent:" + hex64],
+  mechanism: ["causal_relation_object:" + hex64],
+  temporal: { minimum_delay: 0, maximum_delay: 5, unit: "seconds" },
   modality: "sufficient",
-  context: ["occ:" + hex64],
-  refines: "cro:" + hex64,
+  context: ["occurrent:" + hex64],
+  refines: "causal_relation_object:" + hex64,
 };
 
 const assertion: co.Assertion = {
-  about: "cro:" + hex64,
+  about: "causal_relation_object:" + hex64,
   source: "ed25519:" + hex64,
   evidence_type: "observation",
   evidence: "seen in the lab",
@@ -40,7 +40,7 @@ const assertion: co.Assertion = {
 };
 
 const aliasEnrichment: co.Enrichment = {
-  about: "occ:" + hex64,
+  about: "occurrent:" + hex64,
   field: "aliases",
   entry: { lang: "en", text: "push the button" },
   source: "ed25519:" + hex64,
@@ -48,15 +48,15 @@ const aliasEnrichment: co.Enrichment = {
 };
 
 const refEnrichment: co.Enrichment = {
-  about: "cnt:" + hex64,
+  about: "continuant:" + hex64,
   field: "subsumes",
-  entry: "cnt:" + hex64,
+  entry: "continuant:" + hex64,
   source: "ed25519:" + hex64,
   timestamp: "2026-07-13T00:00:00Z",
 };
 
 const retraction: co.Retraction = {
-  retracts: "ast:" + hex64,
+  retracts: "assertion:" + hex64,
   source: "ed25519:" + hex64,
   reason: "superseded",
   timestamp: "2026-07-13T00:00:00Z",
@@ -70,8 +70,8 @@ const succession: co.Succession = {
 
 /* One wrong shape must be rejected: a Modality typo. */
 const badCro: co.CausalRelationObject = {
-  causes: ["occ:" + hex64],
-  effects: ["occ:" + hex64],
+  causes: ["occurrent:" + hex64],
+  effects: ["occurrent:" + hex64],
   // @ts-expect-error "sufficent" is not a Modality
   modality: "sufficent",
 };
@@ -104,7 +104,7 @@ const [schemaOk, schemaReasons] = co.validateSchema(occ, "occurrent");
 const schemaOkTyped: boolean = schemaOk;
 const schemaReasonsTyped: string[] = schemaReasons;
 
-const [semOk, semReasons] = co.validateSemantics(cro, "cro");
+const [semOk, semReasons] = co.validateSemantics(cro, "causal_relation_object");
 const semOkTyped: boolean = semOk;
 const semReasonsTyped: string[] = semReasons;
 
@@ -122,10 +122,10 @@ const refReasonTyped: string = refReason;
 
 const verdictFromMap: co.HierarchyVerdict = co.hierarchyConsistent(
   cro,
-  new Map<string, co.CausalRelationObject>([["cro:" + hex64, cro]]),
+  new Map<string, co.CausalRelationObject>([["causal_relation_object:" + hex64, cro]]),
 );
 const verdictFromRecord: co.HierarchyVerdict = co.hierarchyConsistent(cro, {
-  ["cro:" + hex64]: cro,
+  ["causal_relation_object:" + hex64]: cro,
 });
 
 const monthSeconds: number = co.UNIT_SECONDS.months;
@@ -169,7 +169,7 @@ const enforcing: boolean = store.enforcing;
 const putOccId: string = store.put(occ, "occurrent");
 const putCntId: string = store.put(cnt, "continuant");
 const putRlzId: string = store.put(rlz);
-const putCroId: string = store.put(cro, "cro");
+const putCroId: string = store.put(cro, "causal_relation_object");
 
 const putRecordId: string = store.putRecord(signedAssertion);
 const putForcedId: string = store.putRecord(signedEnrichment, "enrichment", true);

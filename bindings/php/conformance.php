@@ -234,7 +234,7 @@ function semanticsFails(int $n, string $mustMention): void
 function adm(int $n): bool
 {
     $given = vec($n)['given'];
-    $cro = ['causes' => [sym('occ:c')], 'effects' => [sym('occ:e')],
+    $cro = ['causes' => [sym('occurrent:c')], 'effects' => [sym('occurrent:e')],
             'temporal' => $given['temporal']];
     return Semantics::admissible($cro, $given['elapsed_seconds']);
 }
@@ -297,7 +297,7 @@ function vectorSuite(): array
     $vectors['v14'] = function (): void {
         $input = normalize(vec(14)['input']);
         assertTrue(SchemaValidator::validateSchema($input)[0], 'schema should pass');
-        semanticsFails(14, 'dmin');
+        semanticsFails(14, 'minimum_delay');
     };
 
     $vectors['v15'] = fn () => semanticsFails(15, 'acyclic');
@@ -315,9 +315,9 @@ function vectorSuite(): array
     $vectors['v19'] = fn () => semanticsFails(19, 'language-tagged');
 
     $vectors['v20'] = function (): void {
-        $dog = sym('cnt:dog');
-        $mammal = sym('cnt:mammal');
-        $animal = sym('cnt:animal');
+        $dog = sym('continuant:dog');
+        $mammal = sym('continuant:mammal');
+        $animal = sym('continuant:animal');
         $enrich = fn (string $about, string $entry, int $i): array =>
             signed('enrichment',
                    ['about' => $about, 'field' => 'subsumes', 'entry' => $entry],
@@ -398,8 +398,8 @@ function vectorSuite(): array
 
     $vectors['v28'] = function (): void {
         $store = new Store();
-        $claim = ['type' => 'cro', 'causes' => [sym('occ:A')],
-                  'effects' => [sym('occ:B')], 'modality' => 'sufficient'];
+        $claim = ['type' => 'causal_relation_object', 'causes' => [sym('occurrent:A')],
+                  'effects' => [sym('occurrent:B')], 'modality' => 'sufficient'];
         $first = $store->put($claim);
         $second = $store->put($claim);
         assertTrue($first === $second && count($store->objects) === 1,
@@ -414,7 +414,7 @@ function vectorSuite(): array
     };
 
     $vectors['v29'] = function (): void {
-        $record = signed('assertion', ['about' => sym('cro:demo'),
+        $record = signed('assertion', ['about' => sym('causal_relation_object:demo'),
                                        'evidence_type' => 'intervention',
                                        'strength' => 0.7, 'confidence' => 0.9],
                          'signer');
@@ -423,7 +423,7 @@ function vectorSuite(): array
     };
 
     $vectors['v30'] = function (): void {
-        $record = signed('assertion', ['about' => sym('cro:demo'),
+        $record = signed('assertion', ['about' => sym('causal_relation_object:demo'),
                                        'evidence_type' => 'intervention',
                                        'strength' => 0.7, 'confidence' => 0.9],
                          'signer');
@@ -435,8 +435,8 @@ function vectorSuite(): array
 
     $vectors['v31'] = function (): void {
         $store = new Store();
-        $x = $store->put(['type' => 'cro', 'causes' => [sym('occ:A')],
-                          'effects' => [sym('occ:B')]]);
+        $x = $store->put(['type' => 'causal_relation_object', 'causes' => [sym('occurrent:A')],
+                          'effects' => [sym('occurrent:B')]]);
         $assertion = signed('assertion',
             ['about' => $x, 'evidence_type' => 'observation',
              'confidence' => 0.8], 'lab1', 1);
@@ -486,7 +486,7 @@ function vectorSuite(): array
         $k1 = keyPair('K1')[1];
         $k2 = keyPair('K2')[1];
         $assertion = signed('assertion',
-            ['about' => sym('cro:claim'), 'evidence_type' => 'observation',
+            ['about' => sym('causal_relation_object:claim'), 'evidence_type' => 'observation',
              'confidence' => 0.9], 'K1', 1);
         $store->putRecord($assertion);
         $succession = signed('succession', ['successor' => $k2], 'K1', 2);
@@ -497,7 +497,7 @@ function vectorSuite(): array
         $retraction = signed('retraction', ['retracts' => $assertion['id']],
                              'K2', 3);
         $store->putRecord($retraction); // successor retracts predecessor's
-        assertTrue($store->assertionsAbout(sym('cro:claim')) === [],
+        assertTrue($store->assertionsAbout(sym('causal_relation_object:claim')) === [],
             'successor retraction not honored');
     };
 
@@ -514,13 +514,13 @@ function vectorSuite(): array
     };
 
     $vectors['v36'] = function (): void {
-        $a = sym('occ:A');
-        $b = sym('occ:B');
-        $c = sym('occ:C');
-        $d = sym('occ:D');
-        $m1 = ['id' => sym('cro:m1'), 'causes' => [$a], 'effects' => [$b]];
-        $m2 = ['id' => sym('cro:m2'), 'causes' => [$b], 'effects' => [$c]];
-        $m3 = ['id' => sym('cro:m3'), 'causes' => [$d], 'effects' => [$c]];
+        $a = sym('occurrent:A');
+        $b = sym('occurrent:B');
+        $c = sym('occurrent:C');
+        $d = sym('occurrent:D');
+        $m1 = ['id' => sym('causal_relation_object:m1'), 'causes' => [$a], 'effects' => [$b]];
+        $m2 = ['id' => sym('causal_relation_object:m2'), 'causes' => [$b], 'effects' => [$c]];
+        $m3 = ['id' => sym('causal_relation_object:m3'), 'causes' => [$d], 'effects' => [$c]];
         $parent = ['causes' => [$a], 'effects' => [$c],
                    'mechanism' => [$m1['id'], $m2['id']]];
         assertTrue(Semantics::hierarchyConsistent(
@@ -552,15 +552,15 @@ function vectorSuite(): array
 
     $vectors['v38'] = function (): void {
         $store = new Store();
-        $parent = $store->put(['type' => 'cro', 'causes' => [sym('occ:A')],
-                               'effects' => [sym('occ:B')]]);
+        $parent = $store->put(['type' => 'causal_relation_object', 'causes' => [sym('occurrent:A')],
+                               'effects' => [sym('occurrent:B')]]);
         $gapIds = array_map(fn (array $g): string => $g['id'],
                             $store->gaps('missing_field'));
         assertTrue(in_array($parent, $gapIds, true),
             'the bare CRO must be a gap');
-        $refinement = $store->put(['type' => 'cro', 'causes' => [sym('occ:A')],
-                                   'effects' => [sym('occ:B')],
-                                   'temporal' => ['dmin' => 0, 'dmax' => 1,
+        $refinement = $store->put(['type' => 'causal_relation_object', 'causes' => [sym('occurrent:A')],
+                                   'effects' => [sym('occurrent:B')],
+                                   'temporal' => ['minimum_delay' => 0, 'maximum_delay' => 1,
                                                   'unit' => 'seconds'],
                                    'modality' => 'sufficient',
                                    'refines' => $parent]);

@@ -26,7 +26,7 @@ const ObjectMap = jcs.ObjectMap;
 const Array = jcs.Array;
 const Allocator = jcs.Allocator;
 
-const content_kinds = [_][]const u8{ "occurrent", "cro", "continuant", "realizable" };
+const content_kinds = [_][]const u8{ "occurrent", "causal_relation_object", "continuant", "realizable" };
 const record_kinds = [_][]const u8{ "assertion", "enrichment", "retraction", "succession" };
 
 fn inList(list: []const []const u8, s: []const u8) bool {
@@ -487,7 +487,7 @@ pub const Store = struct {
         // refined set holds every parent named by a valid refinement child.
         var refined = std.StringArrayHashMap(void).init(self.a);
         for (self.objects.values()) |obj| {
-            if (!eq(jcs.getString(obj, "type") orelse "", "cro")) continue;
+            if (!eq(jcs.getString(obj, "type") orelse "", "causal_relation_object")) continue;
             const refines = jcs.getString(obj, "refines") orelse continue;
             if (refines.len == 0) continue;
             const parent = self.objects.get(refines) orelse continue;
@@ -499,7 +499,7 @@ pub const Store = struct {
         while (it.next()) |e| {
             const oid = e.key_ptr.*;
             const obj = e.value_ptr.*;
-            if (!eq(jcs.getString(obj, "type") orelse "", "cro")) continue;
+            if (!eq(jcs.getString(obj, "type") orelse "", "causal_relation_object")) continue;
             // missing_field: lacking the temporal window or the modality -
             // mechanism and context may legitimately stay unspecified forever
             // (empty_mechanism is its own kind; absent context = context-free).
@@ -540,7 +540,7 @@ pub const Store = struct {
             const obj = e.value_ptr.*;
             var refs = std.ArrayList([]const u8).init(self.a);
             const t = jcs.getString(obj, "type") orelse "";
-            if (eq(t, "cro")) {
+            if (eq(t, "causal_relation_object")) {
                 try appendStrings(&refs, obj.get("causes"));
                 try appendStrings(&refs, obj.get("effects"));
                 try appendStrings(&refs, obj.get("context"));
@@ -564,7 +564,7 @@ pub const Store = struct {
         // conflict: pairs of claims satisfying the formal test (rule 6).
         var cros = std.ArrayList(ObjectMap).init(self.a);
         for (self.objects.values()) |obj| {
-            if (eq(jcs.getString(obj, "type") orelse "", "cro")) try cros.append(obj);
+            if (eq(jcs.getString(obj, "type") orelse "", "causal_relation_object")) try cros.append(obj);
         }
         for (cros.items, 0..) |x, i| {
             for (cros.items[i + 1 ..]) |y| {

@@ -7,7 +7,7 @@
 // runner exits nonzero on any failure.
 //
 // Pre-freeze note (see conformance/README.md): the vectors carry symbolic
-// identifiers ("occ:press_button", "ed25519:alice"). This harness normalizes
+// identifiers ("occurrent:press_button", "ed25519:alice"). This harness normalizes
 // them deterministically - symbolic object ids become scheme:sha256(name),
 // and symbolic key names become real Ed25519 keypairs seeded from
 // sha256("key:" + name) - so the normative behaviors are tested with
@@ -75,7 +75,7 @@ let validator = SchemaValidator(schemaDirectory: schemaDir)
 
 // MARK: - symbolic-identifier normalization
 
-let symbolicSchemes = ["occ", "cro", "cnt", "rlz", "ast", "enr", "ret", "suc", "ed25519"]
+let symbolicSchemes = ["occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession", "ed25519"]
 
 var keyCache: [String: (secret: Curve25519.Signing.PrivateKey, publicId: String)] = [:]
 
@@ -317,7 +317,7 @@ func v14() throws {
     let input = try normalizedInput(14)
     let schemaResult = try validator.validate(input)
     try check(schemaResult.ok, "schema: \(schemaResult.reasons)")
-    try semanticsFails(14, mustMention: "dmin")
+    try semanticsFails(14, mustMention: "minimum_delay")
 }
 
 func v15() throws { try semanticsFails(15, mustMention: "acyclic") }
@@ -337,9 +337,9 @@ func v18() throws { try semanticsFails(18, mustMention: "not a legal field") }
 func v19() throws { try semanticsFails(19, mustMention: "language-tagged") }
 
 func v20() throws {
-    let dog = try sym("cnt:dog")
-    let mammal = try sym("cnt:mammal")
-    let animal = try sym("cnt:animal")
+    let dog = try sym("continuant:dog")
+    let mammal = try sym("continuant:mammal")
+    let animal = try sym("continuant:animal")
     func enrich(_ about: String, _ entry: String, _ i: Int) throws -> [String: JsonValue] {
         return try signed("enrichment", [
             "about": .string(about),
@@ -376,8 +376,8 @@ func admissibleForVector(_ n: Int) throws -> Bool {
     let v = try vec(n)
     let given = try asObject(v["given"], "given")
     let cro: [String: JsonValue] = [
-        "causes": .array([.string(try sym("occ:c"))]),
-        "effects": .array([.string(try sym("occ:e"))]),
+        "causes": .array([.string(try sym("occurrent:c"))]),
+        "effects": .array([.string(try sym("occurrent:e"))]),
         "temporal": given["temporal"] ?? .null,
     ]
     guard let elapsed = given["elapsed_seconds"]?.numberValue else {
@@ -443,9 +443,9 @@ func v27() throws {
 func v28() throws {
     let s = InMemoryStore(validator: validator)
     let claim: [String: JsonValue] = [
-        "type": .string("cro"),
-        "causes": .array([.string(try sym("occ:A"))]),
-        "effects": .array([.string(try sym("occ:B"))]),
+        "type": .string("causal_relation_object"),
+        "causes": .array([.string(try sym("occurrent:A"))]),
+        "effects": .array([.string(try sym("occurrent:B"))]),
         "modality": .string("sufficient"),
     ]
     let i1 = try s.put(claim)
@@ -465,7 +465,7 @@ func v28() throws {
 
 func demoAssertion() throws -> [String: JsonValue] {
     return try signed("assertion", [
-        "about": .string(try sym("cro:demo")),
+        "about": .string(try sym("causal_relation_object:demo")),
         "evidence_type": .string("intervention"),
         "strength": .double(0.7),
         "confidence": .double(0.9),
@@ -485,9 +485,9 @@ func v30() throws {
 func v31() throws {
     let s = InMemoryStore(validator: validator)
     let x = try s.put([
-        "type": .string("cro"),
-        "causes": .array([.string(try sym("occ:A"))]),
-        "effects": .array([.string(try sym("occ:B"))]),
+        "type": .string("causal_relation_object"),
+        "causes": .array([.string(try sym("occurrent:A"))]),
+        "effects": .array([.string(try sym("occurrent:B"))]),
     ])
     let a = try signed("assertion", [
         "about": .string(x),
@@ -538,7 +538,7 @@ func v33() throws {
     let s = InMemoryStore(validator: validator)
     let k1 = try key("K1").publicId
     let k2 = try key("K2").publicId
-    let claim = try sym("cro:claim")
+    let claim = try sym("causal_relation_object:claim")
     let a = try signed("assertion", [
         "about": .string(claim),
         "evidence_type": .string("observation"),
@@ -572,13 +572,13 @@ func v35() throws {
 }
 
 func v36() throws {
-    let occA = try sym("occ:A")
-    let occB = try sym("occ:B")
-    let occC = try sym("occ:C")
-    let occD = try sym("occ:D")
-    let m1Id = try sym("cro:m1")
-    let m2Id = try sym("cro:m2")
-    let m3Id = try sym("cro:m3")
+    let occA = try sym("occurrent:A")
+    let occB = try sym("occurrent:B")
+    let occC = try sym("occurrent:C")
+    let occD = try sym("occurrent:D")
+    let m1Id = try sym("causal_relation_object:m1")
+    let m2Id = try sym("causal_relation_object:m2")
+    let m3Id = try sym("causal_relation_object:m3")
     let m1: [String: JsonValue] = [
         "id": .string(m1Id),
         "causes": .array([.string(occA)]),
@@ -628,10 +628,10 @@ func v37() throws {
 
 func v38() throws {
     let s = InMemoryStore(validator: validator)
-    let occA = try sym("occ:A")
-    let occB = try sym("occ:B")
+    let occA = try sym("occurrent:A")
+    let occB = try sym("occurrent:B")
     let parent = try s.put([
-        "type": .string("cro"),
+        "type": .string("causal_relation_object"),
         "causes": .array([.string(occA)]),
         "effects": .array([.string(occB)]),
     ])
@@ -643,11 +643,11 @@ func v38() throws {
     }
     try check(gapIds.contains(parent), "P is not in the missing_field gaps")
     let refinement = try s.put([
-        "type": .string("cro"),
+        "type": .string("causal_relation_object"),
         "causes": .array([.string(occA)]),
         "effects": .array([.string(occB)]),
         "temporal": .object([
-            "dmin": .int(0), "dmax": .int(1), "unit": .string("seconds"),
+            "minimum_delay": .int(0), "maximum_delay": .int(1), "unit": .string("seconds"),
         ]),
         "modality": .string("sufficient"),
         "refines": .string(parent),

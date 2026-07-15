@@ -35,9 +35,9 @@ control, in addition to per-record signatures which carry the trust.
 ## Query-by-example (normative minimum)
 
 ```json
-{ "kind": "cro",
-  "where": { "causes_contains": "occ:...", "modality": "sufficient",
-             "refines": "cro:...", "about": "occ:...", "source": "ed25519:...",
+{ "kind": "causal_relation_object",
+  "where": { "causes_contains": "occurrent:...", "modality": "sufficient",
+             "refines": "causal_relation_object:...", "about": "occurrent:...", "source": "ed25519:...",
              "is_partial": true, "missing": "temporal" },
   "limit": 100, "cursor": null }
 ```

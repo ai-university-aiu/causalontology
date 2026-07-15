@@ -12,7 +12,7 @@ package org.causalontology
 object Schema {
 
     val SCHEMA_FILES: Map<String, String> = mapOf(
-        "cro" to "cro.schema.json",
+        "causal_relation_object" to "cro.schema.json",
         "occurrent" to "occurrent.schema.json",
         "continuant" to "continuant.schema.json",
         "realizable" to "realizable.schema.json",

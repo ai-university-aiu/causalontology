@@ -16,7 +16,7 @@ import 'sha2.dart';
 
 const Map<String, List<String>> identityFields = {
   'occurrent': ['label', 'category'],
-  'cro': [
+  'causal_relation_object': [
     'causes', 'effects', 'mechanism', 'temporal', 'modality',
     'context', 'refines',
   ],
@@ -32,9 +32,9 @@ const Map<String, List<String>> identityFields = {
 };
 
 const Map<String, String> prefixOfKind = {
-  'occurrent': 'occ', 'cro': 'cro', 'continuant': 'cnt', 'realizable': 'rlz',
-  'assertion': 'ast', 'enrichment': 'enr', 'retraction': 'ret',
-  'succession': 'suc',
+  'occurrent': 'occurrent', 'causal_relation_object': 'causal_relation_object', 'continuant': 'continuant', 'realizable': 'realizable',
+  'assertion': 'assertion', 'enrichment': 'enrichment', 'retraction': 'retraction',
+  'succession': 'succession',
 };
 
 final Map<String, String> kindOfPrefix = {
@@ -67,7 +67,7 @@ String inferKind(Map<String, dynamic> obj) {
       return kindOfPrefix[pre]!;
     }
   }
-  if (obj.containsKey('causes') && obj.containsKey('effects')) return 'cro';
+  if (obj.containsKey('causes') && obj.containsKey('effects')) return 'causal_relation_object';
   if (obj.containsKey('retracts')) return 'retraction';
   if (obj.containsKey('predecessor') && obj.containsKey('successor')) {
     return 'succession';

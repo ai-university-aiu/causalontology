@@ -32,7 +32,7 @@ import Data.Word (Word8)
 identityFieldsTable :: [(String, [String])]
 identityFieldsTable =
   [ ("occurrent", ["label", "category"])
-  , ("cro", ["causes", "effects", "mechanism", "temporal", "modality", "context", "refines"])
+  , ("causal_relation_object", ["causes", "effects", "mechanism", "temporal", "modality", "context", "refines"])
   , ("continuant", ["label", "category"])
   , ("realizable", ["kind", "bearer"])
   , ("assertion", ["about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp"])
@@ -44,14 +44,14 @@ identityFieldsTable =
 -- | Kind to identifier scheme.
 prefixTable :: [(String, String)]
 prefixTable =
-  [ ("occurrent", "occ")
-  , ("cro", "cro")
-  , ("continuant", "cnt")
-  , ("realizable", "rlz")
-  , ("assertion", "ast")
-  , ("enrichment", "enr")
-  , ("retraction", "ret")
-  , ("succession", "suc")
+  [ ("occurrent", "occurrent")
+  , ("causal_relation_object", "causal_relation_object")
+  , ("continuant", "continuant")
+  , ("realizable", "realizable")
+  , ("assertion", "assertion")
+  , ("enrichment", "enrichment")
+  , ("retraction", "retraction")
+  , ("succession", "succession")
   ]
 
 -- | The identifier scheme for a kind.
@@ -69,7 +69,7 @@ inferKind obj = case objGet "type" obj of
   Just _ -> Left "unknown kind: non-string type field"
   Nothing
     | Just k <- kindFromId -> Right k
-    | objHas "causes" obj && objHas "effects" obj -> Right "cro"
+    | objHas "causes" obj && objHas "effects" obj -> Right "causal_relation_object"
     | objHas "retracts" obj -> Right "retraction"
     | objHas "predecessor" obj && objHas "successor" obj -> Right "succession"
     | objHas "field" obj && objHas "entry" obj -> Right "enrichment"

@@ -25,10 +25,10 @@ module Causalontology
     # Rule 12: enrichment field-to-kind validity and entry shapes.
     ENRICHMENT_FIELDS = {
       "aliases"      => [["occurrent", "continuant"], "alias"],
-      "participants" => [["occurrent"],               "cnt"],
-      "subsumes"     => [["continuant"],              "cnt"],
-      "part_of"      => [["continuant"],              "cnt"],
-      "realized_in"  => [["realizable"],              "occ"],
+      "participants" => [["occurrent"],               "continuant"],
+      "subsumes"     => [["continuant"],              "continuant"],
+      "part_of"      => [["continuant"],              "continuant"],
+      "realized_in"  => [["realizable"],              "occurrent"],
     }.freeze
 
     CRO_OPTIONAL_FIELDS = ["mechanism", "temporal", "modality", "context"].freeze
@@ -47,10 +47,10 @@ module Causalontology
       kind ||= Canonical.infer_kind(obj)
       errors = []
 
-      if kind == "cro"
+      if kind == "causal_relation_object"
         t = obj["temporal"]
-        if !t.nil? && !t["dmin"].nil? && !t["dmax"].nil? && t["dmin"] > t["dmax"]
-          errors << "dmin must be <= dmax"
+        if !t.nil? && !t["minimum_delay"].nil? && !t["maximum_delay"].nil? && t["minimum_delay"] > t["maximum_delay"]
+          errors << "minimum_delay must be <= maximum_delay"
         end
         oid = obj["id"]
         if oid && (obj["mechanism"] || []).include?(oid)
@@ -99,8 +99,8 @@ module Causalontology
       t = cro["temporal"]
       return true if t.nil? # no window imposes no constraint
       unit = UNIT_SECONDS.fetch(t["unit"])
-      lo = t["dmin"] * unit
-      hi = t["dmax"] * unit
+      lo = t["minimum_delay"] * unit
+      hi = t["maximum_delay"] * unit
       lo <= elapsed_seconds && elapsed_seconds <= hi
     end
 
@@ -110,10 +110,10 @@ module Causalontology
       return true if ta.nil? || tb.nil? # either absent counts as overlapping
       ua = UNIT_SECONDS.fetch(ta["unit"])
       ub = UNIT_SECONDS.fetch(tb["unit"])
-      lo_a = ta["dmin"] * ua
-      hi_a = ta["dmax"] * ua
-      lo_b = tb["dmin"] * ub
-      hi_b = tb["dmax"] * ub
+      lo_a = ta["minimum_delay"] * ua
+      hi_a = ta["maximum_delay"] * ua
+      lo_b = tb["minimum_delay"] * ub
+      hi_b = tb["maximum_delay"] * ub
       lo_a <= hi_b && lo_b <= hi_a
     end
 

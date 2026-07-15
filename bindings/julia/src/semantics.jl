@@ -18,10 +18,10 @@ const UNIT_SECONDS = Dict{String,Int64}(
 # Rule 12: enrichment field-to-kind validity and entry shapes.
 const ENRICHMENT_FIELDS = Dict{String,Tuple{Tuple{Vararg{String}},String}}(
     "aliases"      => (("occurrent", "continuant"), "alias"),
-    "participants" => (("occurrent",),              "cnt"),
-    "subsumes"     => (("continuant",),             "cnt"),
-    "part_of"      => (("continuant",),             "cnt"),
-    "realized_in"  => (("realizable",),             "occ"),
+    "participants" => (("occurrent",),              "continuant"),
+    "subsumes"     => (("continuant",),             "continuant"),
+    "part_of"      => (("continuant",),             "continuant"),
+    "realized_in"  => (("realizable",),             "occurrent"),
 )
 
 const CRO_OPTIONAL_FIELDS = ["mechanism", "temporal", "modality", "context"]
@@ -34,11 +34,11 @@ function validate_semantics(obj::JObj, kind=nothing)
     k = kind === nothing ? infer_kind(obj) : kind
     errors = String[]
 
-    if k == "cro"
+    if k == "causal_relation_object"
         t = jget(obj, "temporal")
-        if t !== nothing && jget(t, "dmin") !== nothing &&
-                jget(t, "dmax") !== nothing && jget(t, "dmin") > jget(t, "dmax")
-            push!(errors, "dmin must be <= dmax")
+        if t !== nothing && jget(t, "minimum_delay") !== nothing &&
+                jget(t, "maximum_delay") !== nothing && jget(t, "minimum_delay") > jget(t, "maximum_delay")
+            push!(errors, "minimum_delay must be <= maximum_delay")
         end
         oid = jget(obj, "id")
         if oid !== nothing && oid != "" &&
@@ -93,8 +93,8 @@ function admissible(cro::JObj, elapsed_seconds)
     t = jget(cro, "temporal")
     t === nothing && return true  # no window imposes no constraint
     unit = UNIT_SECONDS[jget(t, "unit")]
-    lo = jget(t, "dmin") * unit
-    hi = jget(t, "dmax") * unit
+    lo = jget(t, "minimum_delay") * unit
+    hi = jget(t, "maximum_delay") * unit
     return lo <= elapsed_seconds <= hi
 end
 
@@ -102,8 +102,8 @@ function _window_overlap(a::JObj, b::JObj)
     ta, tb = jget(a, "temporal"), jget(b, "temporal")
     (ta === nothing || tb === nothing) && return true  # absent overlaps
     ua, ub = UNIT_SECONDS[jget(ta, "unit")], UNIT_SECONDS[jget(tb, "unit")]
-    lo_a, hi_a = jget(ta, "dmin") * ua, jget(ta, "dmax") * ua
-    lo_b, hi_b = jget(tb, "dmin") * ub, jget(tb, "dmax") * ub
+    lo_a, hi_a = jget(ta, "minimum_delay") * ua, jget(ta, "maximum_delay") * ua
+    lo_b, hi_b = jget(tb, "minimum_delay") * ub, jget(tb, "maximum_delay") * ub
     return lo_a <= hi_b && lo_b <= hi_a
 end
 

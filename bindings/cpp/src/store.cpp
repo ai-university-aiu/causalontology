@@ -16,7 +16,7 @@ namespace co {
 namespace {
 
 bool isContentKind(const std::string& kind) {
-    return kind == "occurrent" || kind == "cro" || kind == "continuant" ||
+    return kind == "occurrent" || kind == "causal_relation_object" || kind == "continuant" ||
            kind == "realizable";
 }
 
@@ -419,7 +419,7 @@ std::vector<JValue> InMemoryStore::gaps(const std::string& kind) const {
     std::set<std::string> refined;
     for (const auto& [oid, obj] : objects_) {
         (void)oid;
-        if (obj.getString("type") != "cro") continue;
+        if (obj.getString("type") != "causal_relation_object") continue;
         std::string refines = obj.getString("refines");
         if (refines.empty()) continue;
         const JValue* parent = findObject(refines);
@@ -430,7 +430,7 @@ std::vector<JValue> InMemoryStore::gaps(const std::string& kind) const {
         }
     }
     for (const auto& [oid, obj] : objects_) {
-        if (obj.getString("type") != "cro") continue;
+        if (obj.getString("type") != "causal_relation_object") continue;
         // missing_field: lacking the temporal window or the modality -
         // mechanism and context may legitimately stay unspecified forever
         // (empty_mechanism is its own kind; absent context = context-free).
@@ -474,7 +474,7 @@ std::vector<JValue> InMemoryStore::gaps(const std::string& kind) const {
     for (const auto& [oid, obj] : objects_) {
         std::vector<std::string> refs;
         std::string type = obj.getString("type");
-        if (type == "cro") {
+        if (type == "causal_relation_object") {
             for (const char* field : {"causes", "effects", "context",
                                       "mechanism"}) {
                 const JValue* list = obj.find(field);
@@ -500,7 +500,7 @@ std::vector<JValue> InMemoryStore::gaps(const std::string& kind) const {
     // conflict: pairs of claims satisfying the formal test (rule 6).
     std::vector<const JValue*> cros;
     for (const auto& kv : objects_)
-        if (kv.second.getString("type") == "cro") cros.push_back(&kv.second);
+        if (kv.second.getString("type") == "causal_relation_object") cros.push_back(&kv.second);
     for (size_t i = 0; i < cros.size(); ++i) {
         for (size_t j = i + 1; j < cros.size(); ++j) {
             if (conflicts(*cros[i], *cros[j])) {

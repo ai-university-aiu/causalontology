@@ -27,10 +27,10 @@ public static class Semantics
         EnrichmentFields = new Dictionary<string, (string[], string)>
         {
             ["aliases"] = (new[] { "occurrent", "continuant" }, "alias"),
-            ["participants"] = (new[] { "occurrent" }, "cnt"),
-            ["subsumes"] = (new[] { "continuant" }, "cnt"),
-            ["part_of"] = (new[] { "continuant" }, "cnt"),
-            ["realized_in"] = (new[] { "realizable" }, "occ"),
+            ["participants"] = (new[] { "occurrent" }, "continuant"),
+            ["subsumes"] = (new[] { "continuant" }, "continuant"),
+            ["part_of"] = (new[] { "continuant" }, "continuant"),
+            ["realized_in"] = (new[] { "realizable" }, "occurrent"),
         };
 
     public static readonly string[] CroOptionalFields =
@@ -52,13 +52,13 @@ public static class Semantics
         kind ??= Canonical.InferKind(obj);
         var errors = new List<string>();
 
-        if (kind == "cro")
+        if (kind == "causal_relation_object")
         {
             if (obj.Get("temporal") is JsonMap temporal
-                && temporal.Get("dmin") is not null
-                && temporal.Get("dmax") is not null
-                && Json.ToDouble(temporal["dmin"]) > Json.ToDouble(temporal["dmax"]))
-                errors.Add("dmin must be <= dmax");
+                && temporal.Get("minimum_delay") is not null
+                && temporal.Get("maximum_delay") is not null
+                && Json.ToDouble(temporal["minimum_delay"]) > Json.ToDouble(temporal["maximum_delay"]))
+                errors.Add("minimum_delay must be <= maximum_delay");
             var oid = obj.GetString("id");
             if (oid is not null && StringList(obj.Get("mechanism")).Contains(oid))
                 errors.Add("mechanism must be acyclic "
@@ -113,8 +113,8 @@ public static class Semantics
         if (cro.Get("temporal") is not JsonMap temporal)
             return true; // no window imposes no constraint
         var unit = UnitSeconds[(string)temporal["unit"]!];
-        var lo = Json.ToDouble(temporal["dmin"]) * unit;
-        var hi = Json.ToDouble(temporal["dmax"]) * unit;
+        var lo = Json.ToDouble(temporal["minimum_delay"]) * unit;
+        var hi = Json.ToDouble(temporal["maximum_delay"]) * unit;
         return lo <= elapsedSeconds && elapsedSeconds <= hi;
     }
 
@@ -125,10 +125,10 @@ public static class Semantics
             return true; // either absent counts as overlapping
         var ua = UnitSeconds[(string)ta["unit"]!];
         var ub = UnitSeconds[(string)tb["unit"]!];
-        var loA = Json.ToDouble(ta["dmin"]) * ua;
-        var hiA = Json.ToDouble(ta["dmax"]) * ua;
-        var loB = Json.ToDouble(tb["dmin"]) * ub;
-        var hiB = Json.ToDouble(tb["dmax"]) * ub;
+        var loA = Json.ToDouble(ta["minimum_delay"]) * ua;
+        var hiA = Json.ToDouble(ta["maximum_delay"]) * ua;
+        var loB = Json.ToDouble(tb["minimum_delay"]) * ub;
+        var hiB = Json.ToDouble(tb["maximum_delay"]) * ub;
         return loA <= hiB && loB <= hiA;
     }
 

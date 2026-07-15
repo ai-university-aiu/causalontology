@@ -16,7 +16,7 @@ module Causalontology
   module Canonical
     IDENTITY_FIELDS = {
       "occurrent"  => ["label", "category"],
-      "cro"        => ["causes", "effects", "mechanism", "temporal", "modality",
+      "causal_relation_object"        => ["causes", "effects", "mechanism", "temporal", "modality",
                        "context", "refines"],
       "continuant" => ["label", "category"],
       "realizable" => ["kind", "bearer"],
@@ -28,9 +28,9 @@ module Causalontology
     }.freeze
 
     PREFIX = {
-      "occurrent" => "occ", "cro" => "cro", "continuant" => "cnt",
-      "realizable" => "rlz", "assertion" => "ast", "enrichment" => "enr",
-      "retraction" => "ret", "succession" => "suc",
+      "occurrent" => "occurrent", "causal_relation_object" => "causal_relation_object", "continuant" => "continuant",
+      "realizable" => "realizable", "assertion" => "assertion", "enrichment" => "enrichment",
+      "retraction" => "retraction", "succession" => "succession",
     }.freeze
     KIND_OF_PREFIX = PREFIX.invert.freeze
 
@@ -43,7 +43,7 @@ module Causalontology
         pre = obj["id"].split(":", 2)[0]
         return KIND_OF_PREFIX[pre] if KIND_OF_PREFIX.key?(pre)
       end
-      return "cro" if obj.key?("causes") && obj.key?("effects")
+      return "causal_relation_object" if obj.key?("causes") && obj.key?("effects")
       return "retraction" if obj.key?("retracts")
       return "succession" if obj.key?("predecessor") && obj.key?("successor")
       return "enrichment" if obj.key?("field") && obj.key?("entry")

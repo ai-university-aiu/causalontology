@@ -21,10 +21,10 @@ co_unit_seconds <- c(
 # Rule 12: enrichment field-to-kind validity and entry shapes.
 co_enrichment_fields <- list(
   aliases      = list(kinds = c("occurrent", "continuant"), shape = "alias"),
-  participants = list(kinds = c("occurrent"),               shape = "cnt"),
-  subsumes     = list(kinds = c("continuant"),              shape = "cnt"),
-  part_of      = list(kinds = c("continuant"),              shape = "cnt"),
-  realized_in  = list(kinds = c("realizable"),              shape = "occ")
+  participants = list(kinds = c("occurrent"),               shape = "continuant"),
+  subsumes     = list(kinds = c("continuant"),              shape = "continuant"),
+  part_of      = list(kinds = c("continuant"),              shape = "continuant"),
+  realized_in  = list(kinds = c("realizable"),              shape = "occurrent")
 )
 
 # The optional CRO fields, in the reference order (V02 checks this order).
@@ -42,13 +42,13 @@ co_validate_semantics <- function(obj, kind = NULL) {
   if (is.null(kind)) kind <- co_infer_kind(obj)
   errors <- character(0)
 
-  if (identical(kind, "cro")) {
+  if (identical(kind, "causal_relation_object")) {
     t <- co_get(obj, "temporal")
     if (!is.null(t) && !co_is_null(t) &&
-        co_has(t, "dmin") && !co_is_null(t[["dmin"]]) &&
-        co_has(t, "dmax") && !co_is_null(t[["dmax"]]) &&
-        as.numeric(t[["dmin"]]) > as.numeric(t[["dmax"]])) {
-      errors <- c(errors, "dmin must be <= dmax")
+        co_has(t, "minimum_delay") && !co_is_null(t[["minimum_delay"]]) &&
+        co_has(t, "maximum_delay") && !co_is_null(t[["maximum_delay"]]) &&
+        as.numeric(t[["minimum_delay"]]) > as.numeric(t[["maximum_delay"]])) {
+      errors <- c(errors, "minimum_delay must be <= maximum_delay")
     }
     oid <- co_get(obj, "id")
     if (co_is_str(oid) && nzchar(oid) &&
@@ -111,8 +111,8 @@ co_admissible <- function(cro, elapsed_seconds) {
   t <- co_get(cro, "temporal")
   if (is.null(t) || co_is_null(t)) return(TRUE)  # no window, no constraint
   unit <- co_unit_seconds[[t[["unit"]]]]
-  lo <- as.numeric(t[["dmin"]]) * unit
-  hi <- as.numeric(t[["dmax"]]) * unit
+  lo <- as.numeric(t[["minimum_delay"]]) * unit
+  hi <- as.numeric(t[["maximum_delay"]]) * unit
   elapsed <- as.numeric(elapsed_seconds)
   isTRUE(lo <= elapsed) && isTRUE(elapsed <= hi)
 }
@@ -126,10 +126,10 @@ co_window_overlap <- function(a, b) {
   }
   ua <- co_unit_seconds[[ta[["unit"]]]]
   ub <- co_unit_seconds[[tb[["unit"]]]]
-  lo_a <- as.numeric(ta[["dmin"]]) * ua
-  hi_a <- as.numeric(ta[["dmax"]]) * ua
-  lo_b <- as.numeric(tb[["dmin"]]) * ub
-  hi_b <- as.numeric(tb[["dmax"]]) * ub
+  lo_a <- as.numeric(ta[["minimum_delay"]]) * ua
+  hi_a <- as.numeric(ta[["maximum_delay"]]) * ua
+  lo_b <- as.numeric(tb[["minimum_delay"]]) * ub
+  hi_b <- as.numeric(tb[["maximum_delay"]]) * ub
   isTRUE(lo_a <= hi_b) && isTRUE(lo_b <= hi_a)
 }
 

@@ -6,7 +6,7 @@
 // this runner exits nonzero on any failure.
 //
 // Pre-freeze note (see conformance/README.md): the vectors carry symbolic
-// identifiers ("occ:press_button", "ed25519:alice"). This harness
+// identifiers ("occurrent:press_button", "ed25519:alice"). This harness
 // normalizes them deterministically - symbolic object ids become
 // scheme:sha256(name), and symbolic key names become real Ed25519
 // keypairs seeded from sha256("key:" + name) - so the normative behaviors
@@ -391,7 +391,7 @@ func v14() error {
 	if err := schemaOK(14); err != nil {
 		return err
 	}
-	return semanticsFails(14, "dmin")
+	return semanticsFails(14, "minimum_delay")
 }
 
 func v15() error { return semanticsFails(15, "acyclic") }
@@ -425,9 +425,9 @@ func v18() error { return semanticsFails(18, "not a legal field") }
 func v19() error { return semanticsFails(19, "language-tagged") }
 
 func v20() error {
-	dog := sym("cnt:dog")
-	mammal := sym("cnt:mammal")
-	animal := sym("cnt:animal")
+	dog := sym("continuant:dog")
+	mammal := sym("continuant:mammal")
+	animal := sym("continuant:animal")
 	enrich := func(about, entry string, i int) (map[string]any, error) {
 		return signed("enrichment", map[string]any{
 			"about": about, "field": "subsumes", "entry": entry,
@@ -501,8 +501,8 @@ func admissibleFor(n int) (bool, error) {
 		return false, errors.New("given is not a JSON object")
 	}
 	cro := map[string]any{
-		"causes":   []any{sym("occ:c")},
-		"effects":  []any{sym("occ:e")},
+		"causes":   []any{sym("occurrent:c")},
+		"effects":  []any{sym("occurrent:e")},
 		"temporal": given["temporal"],
 	}
 	elapsed, ok := co.AsFloat(given["elapsed_seconds"])
@@ -654,9 +654,9 @@ func v27() error {
 func v28() error {
 	s := co.NewStore(true)
 	claim := map[string]any{
-		"type":     "cro",
-		"causes":   []any{sym("occ:A")},
-		"effects":  []any{sym("occ:B")},
+		"type":     "causal_relation_object",
+		"causes":   []any{sym("occurrent:A")},
+		"effects":  []any{sym("occurrent:B")},
 		"modality": "sufficient",
 	}
 	i1, err := s.Put(claim, "")
@@ -698,7 +698,7 @@ func v28() error {
 // demoAssertion builds the signed assertion vectors 29-30 examine.
 func demoAssertion() (map[string]any, error) {
 	return signed("assertion", map[string]any{
-		"about": sym("cro:demo"), "evidence_type": "intervention",
+		"about": sym("causal_relation_object:demo"), "evidence_type": "intervention",
 		"strength": 0.7, "confidence": 0.9,
 	}, "signer", 0)
 }
@@ -730,7 +730,7 @@ func v30() error {
 func v31() error {
 	s := co.NewStore(true)
 	x, err := s.Put(map[string]any{
-		"type": "cro", "causes": []any{sym("occ:A")}, "effects": []any{sym("occ:B")},
+		"type": "causal_relation_object", "causes": []any{sym("occurrent:A")}, "effects": []any{sym("occurrent:B")},
 	}, "")
 	if err != nil {
 		return err
@@ -820,7 +820,7 @@ func v33() error {
 	s := co.NewStore(true)
 	k1 := key("K1").public
 	k2 := key("K2").public
-	claim := sym("cro:claim")
+	claim := sym("causal_relation_object:claim")
 	a, err := signed("assertion", map[string]any{
 		"about": claim, "evidence_type": "observation", "confidence": 0.9,
 	}, "K1", 1)
@@ -898,13 +898,13 @@ func v35() error {
 }
 
 func v36() error {
-	occA := sym("occ:A")
-	occB := sym("occ:B")
-	occC := sym("occ:C")
-	occD := sym("occ:D")
-	m1ID := sym("cro:m1")
-	m2ID := sym("cro:m2")
-	m3ID := sym("cro:m3")
+	occA := sym("occurrent:A")
+	occB := sym("occurrent:B")
+	occC := sym("occurrent:C")
+	occD := sym("occurrent:D")
+	m1ID := sym("causal_relation_object:m1")
+	m2ID := sym("causal_relation_object:m2")
+	m3ID := sym("causal_relation_object:m3")
 	m1 := map[string]any{"id": m1ID, "causes": []any{occA}, "effects": []any{occB}}
 	m2 := map[string]any{"id": m2ID, "causes": []any{occB}, "effects": []any{occC}}
 	m3 := map[string]any{"id": m3ID, "causes": []any{occD}, "effects": []any{occC}}
@@ -974,10 +974,10 @@ func gapIDs(s *co.Store, kind string) map[string]bool {
 
 func v38() error {
 	s := co.NewStore(true)
-	occA := sym("occ:A")
-	occB := sym("occ:B")
+	occA := sym("occurrent:A")
+	occB := sym("occurrent:B")
 	parent, err := s.Put(map[string]any{
-		"type": "cro", "causes": []any{occA}, "effects": []any{occB},
+		"type": "causal_relation_object", "causes": []any{occA}, "effects": []any{occB},
 	}, "")
 	if err != nil {
 		return err
@@ -986,8 +986,8 @@ func v38() error {
 		return errors.New("P is not in the missing_field gaps")
 	}
 	refinement, err := s.Put(map[string]any{
-		"type": "cro", "causes": []any{occA}, "effects": []any{occB},
-		"temporal": map[string]any{"dmin": 0, "dmax": 1, "unit": "seconds"},
+		"type": "causal_relation_object", "causes": []any{occA}, "effects": []any{occB},
+		"temporal": map[string]any{"minimum_delay": 0, "maximum_delay": 1, "unit": "seconds"},
 		"modality": "sufficient", "refines": parent,
 	}, "")
 	if err != nil {

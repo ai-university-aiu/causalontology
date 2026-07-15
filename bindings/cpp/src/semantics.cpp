@@ -31,16 +31,16 @@ namespace {
 struct FieldSpec {
     const char* field;
     std::vector<const char*> legalKinds;
-    const char* shape;  // "alias" or an id prefix ("cnt", "occ")
+    const char* shape;  // "alias" or an id prefix ("continuant", "occurrent")
 };
 
 const std::vector<FieldSpec>& enrichmentFields() {
     static const std::vector<FieldSpec> specs = {
         {"aliases", {"occurrent", "continuant"}, "alias"},
-        {"participants", {"occurrent"}, "cnt"},
-        {"subsumes", {"continuant"}, "cnt"},
-        {"part_of", {"continuant"}, "cnt"},
-        {"realized_in", {"realizable"}, "occ"},
+        {"participants", {"occurrent"}, "continuant"},
+        {"subsumes", {"continuant"}, "continuant"},
+        {"part_of", {"continuant"}, "continuant"},
+        {"realized_in", {"realizable"}, "occurrent"},
     };
     return specs;
 }
@@ -66,10 +66,10 @@ bool windowOverlap(const JValue& a, const JValue& b) {
     if (!ta || ta->isNull() || !tb || tb->isNull()) return true;
     double ua = static_cast<double>(unit_seconds(ta->at("unit").str));
     double ub = static_cast<double>(unit_seconds(tb->at("unit").str));
-    double loA = ta->at("dmin").asDouble() * ua;
-    double hiA = ta->at("dmax").asDouble() * ua;
-    double loB = tb->at("dmin").asDouble() * ub;
-    double hiB = tb->at("dmax").asDouble() * ub;
+    double loA = ta->at("minimum_delay").asDouble() * ua;
+    double hiA = ta->at("maximum_delay").asDouble() * ua;
+    double loB = tb->at("minimum_delay").asDouble() * ub;
+    double hiB = tb->at("maximum_delay").asDouble() * ub;
     return loA <= hiB && loB <= hiA;
 }
 
@@ -97,14 +97,14 @@ std::pair<bool, std::vector<std::string>> validate_semantics(
     std::string k = kind.empty() ? infer_kind(obj) : kind;
     std::vector<std::string> errors;
 
-    if (k == "cro") {
+    if (k == "causal_relation_object") {
         const JValue* t = obj.find("temporal");
         if (t && t->isObject()) {
-            const JValue* dmin = t->find("dmin");
-            const JValue* dmax = t->find("dmax");
-            if (dmin && !dmin->isNull() && dmax && !dmax->isNull() &&
-                dmin->asDouble() > dmax->asDouble())
-                errors.push_back("dmin must be <= dmax");
+            const JValue* minimum_delay = t->find("minimum_delay");
+            const JValue* maximum_delay = t->find("maximum_delay");
+            if (minimum_delay && !minimum_delay->isNull() && maximum_delay && !maximum_delay->isNull() &&
+                minimum_delay->asDouble() > maximum_delay->asDouble())
+                errors.push_back("minimum_delay must be <= maximum_delay");
         }
         std::string oid = obj.getString("id");
         if (!oid.empty()) {
@@ -169,8 +169,8 @@ bool admissible(const JValue& cro, double elapsed_seconds) {
     const JValue* t = cro.find("temporal");
     if (!t || t->isNull()) return true;  // no window imposes no constraint
     double unit = static_cast<double>(unit_seconds(t->at("unit").str));
-    double lo = t->at("dmin").asDouble() * unit;
-    double hi = t->at("dmax").asDouble() * unit;
+    double lo = t->at("minimum_delay").asDouble() * unit;
+    double hi = t->at("maximum_delay").asDouble() * unit;
     return lo <= elapsed_seconds && elapsed_seconds <= hi;
 }
 

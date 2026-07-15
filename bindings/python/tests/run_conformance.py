@@ -936,7 +936,10 @@ def v106():
 
 def v107():
     hexid = "0" * 64
-    abbreviated = {"type": "causal_relation_object", "id": "cro:" + hexid,
+    # NOTE: the abbreviated prefix below is intentional (the negative test);
+    # it must NOT be re-minted. "c" "r" "o" is assembled to survive re-mint tools.
+    cro_abbr = "c" + "r" + "o"
+    abbreviated = {"type": "causal_relation_object", "id": cro_abbr + ":" + hexid,
                    "causes": ["occurrent:" + hexid],
                    "effects": ["occurrent:" + hexid]}
     ok, why = validate_schema(abbreviated, "causal_relation_object")

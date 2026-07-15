@@ -9,7 +9,7 @@ are symbolic pending the 1.0.0 conformance freeze.
 ```json
 { "type": "occurrent", "label": "press_button", "category": "action" }
 { "type": "occurrent", "label": "light_on", "category": "state_change" }
-{ "type": "cro", "causes": ["occ:press_button"], "effects": ["occ:light_on"] }
+{ "type": "causal_relation_object", "causes": ["occurrent:press_button"], "effects": ["occurrent:light_on"] }
 ```
 
 Her signed assertion: `evidence_type: imported, confidence: 0.5`.
@@ -18,15 +18,15 @@ The store lists the degenerate claim under `GET /gaps?kind=missing_field`.
 ## Step 2 — Bob (Java) closes the gap with a refinement, and adds an alias
 
 ```json
-{ "type": "cro",
-  "causes": ["occ:press_button"], "effects": ["occ:light_on"],
-  "temporal": { "dmin": 0, "dmax": 1, "unit": "seconds" },
+{ "type": "causal_relation_object",
+  "causes": ["occurrent:press_button"], "effects": ["occurrent:light_on"],
+  "temporal": { "minimum_delay": 0, "maximum_delay": 1, "unit": "seconds" },
   "modality": "sufficient",
-  "refines": "cro:<Alice's degenerate claim>" }
+  "refines": "causal_relation_object:<Alice's degenerate claim>" }
 ```
 
 ```json
-{ "type": "enrichment", "about": "occ:press_button", "field": "aliases",
+{ "type": "enrichment", "about": "occurrent:press_button", "field": "aliases",
   "entry": { "lang": "ja", "text": "botan wo osu" },
   "source": "ed25519:bob", "timestamp": "2026-07-13T00:00:00Z" }
 ```
@@ -42,7 +42,7 @@ Acting beats watching.
 ## Step 4 — Alice retracts her superseded word
 
 ```json
-{ "type": "retraction", "retracts": "ast:<Alice's imported assertion>",
+{ "type": "retraction", "retracts": "assertion:<Alice's imported assertion>",
   "source": "ed25519:alice", "timestamp": "2026-07-13T01:00:00Z" }
 ```
 

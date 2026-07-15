@@ -3,7 +3,7 @@
 A document is SCHEMA-VALID if it matches its JSON Schema, and SEMANTICALLY
 VALID if it also satisfies these rules.
 
-1. **Temporal windows.** `dmin <= dmax`.
+1. **Temporal windows.** `minimum_delay <= maximum_delay`.
 2. **Acyclicity.** The mechanism graph, the refines graph, and the
    materialized `subsumes`/`part_of` graphs are acyclic.
 3. **Refinement.** R refines P validly iff: R's causes and effects equal P's;
@@ -14,7 +14,7 @@ VALID if it also satisfies these rules.
    convert to seconds with EXACTLY these constants: instant=0, seconds=1,
    minutes=60, hours=3600, days=86400, weeks=604800, **months=2629746**
    (30.436875 days), **years=31556952** (365.2425 days). Admissible iff
-   elapsed lies in [dmin, dmax]. No window = no constraint.
+   elapsed lies in [minimum_delay, maximum_delay]. No window = no constraint.
 5. **Strength, formally** (do-calculus). sufficient/contributory: the source's
    estimate of P(effects within window | do(causes), context). preventive:
    P(effects prevented | do(causes), context). necessary: P(no effects |

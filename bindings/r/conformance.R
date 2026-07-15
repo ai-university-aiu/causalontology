@@ -9,7 +9,7 @@
 # The vectors are frozen at specification 1.0.0: they carry concrete
 # 64-hex identifiers and real Ed25519 keys, and normalize() below simply
 # passes such frozen values through unchanged. Symbolic identifiers
-# ("occ:c", "cnt:dog") used by the behavioral scenarios are normalized
+# ("occurrent:c", "continuant:dog") used by the behavioral scenarios are normalized
 # deterministically: object ids become scheme:sha256(name), and symbolic
 # key names become real Ed25519 keypairs whose 32-byte seed is
 # sha256("key:" + name).
@@ -245,7 +245,7 @@ semantics_fails <- function(n, must_mention) {
 v14 <- function() {
   inp <- normalize(vec(14)[["input"]])
   check(co_validate_schema(inp)$ok, "schema must accept the reversed window")
-  semantics_fails(14, "dmin")
+  semantics_fails(14, "minimum_delay")
 }
 
 v15 <- function() semantics_fails(15, "acyclic")
@@ -263,9 +263,9 @@ v18 <- function() semantics_fails(18, "not a legal field")
 v19 <- function() semantics_fails(19, "language-tagged")
 
 v20 <- function() {
-  dog <- sym("cnt:dog")
-  mam <- sym("cnt:mammal")
-  ani <- sym("cnt:animal")
+  dog <- sym("continuant:dog")
+  mam <- sym("continuant:mammal")
+  ani <- sym("continuant:animal")
   enrich <- function(about, entry, i) {
     signed("enrichment",
            co_obj(about = about, field = "subsumes", entry = entry),
@@ -295,8 +295,8 @@ v20 <- function() {
 
 adm <- function(n) {
   g <- vec(n)[["given"]]
-  cro <- co_obj(causes = co_arr(sym("occ:c")),
-                effects = co_arr(sym("occ:e")),
+  cro <- co_obj(causes = co_arr(sym("occurrent:c")),
+                effects = co_arr(sym("occurrent:e")),
                 temporal = g[["temporal"]])
   co_admissible(cro, as.numeric(g[["elapsed_seconds"]]))
 }
@@ -352,8 +352,8 @@ v27 <- function() {
 
 v28 <- function() {
   s <- co_store_new()
-  claim <- co_obj(type = "cro", causes = co_arr(sym("occ:A")),
-                  effects = co_arr(sym("occ:B")), modality = "sufficient")
+  claim <- co_obj(type = "causal_relation_object", causes = co_arr(sym("occurrent:A")),
+                  effects = co_arr(sym("occurrent:B")), modality = "sufficient")
   i1 <- co_store_put(s, claim)
   i2 <- co_store_put(s, claim)
   check(identical(i1, i2) && length(s$objects) == 1L,
@@ -370,7 +370,7 @@ v28 <- function() {
 
 v29 <- function() {
   rec <- signed("assertion",
-                co_obj(about = sym("cro:demo"),
+                co_obj(about = sym("causal_relation_object:demo"),
                        evidence_type = "intervention",
                        strength = 0.7, confidence = 0.9), "signer")
   check(isTRUE(co_verify_record(rec)), "a valid signature must verify")
@@ -378,7 +378,7 @@ v29 <- function() {
 
 v30 <- function() {
   rec <- signed("assertion",
-                co_obj(about = sym("cro:demo"),
+                co_obj(about = sym("causal_relation_object:demo"),
                        evidence_type = "intervention",
                        strength = 0.7, confidence = 0.9), "signer")
   tampered <- rec
@@ -389,8 +389,8 @@ v30 <- function() {
 
 v31 <- function() {
   s <- co_store_new()
-  x <- co_store_put(s, co_obj(type = "cro", causes = co_arr(sym("occ:A")),
-                              effects = co_arr(sym("occ:B"))))
+  x <- co_store_put(s, co_obj(type = "causal_relation_object", causes = co_arr(sym("occurrent:A")),
+                              effects = co_arr(sym("occurrent:B"))))
   a <- signed("assertion",
               co_obj(about = x, evidence_type = "observation",
                      confidence = 0.8), "lab1", 1L)
@@ -437,7 +437,7 @@ v33 <- function() {
   k1 <- key("K1")$public
   k2 <- key("K2")$public
   a <- signed("assertion",
-              co_obj(about = sym("cro:claim"),
+              co_obj(about = sym("causal_relation_object:claim"),
                      evidence_type = "observation", confidence = 0.9),
               "K1", 1L)
   co_store_put_record(s, a)
@@ -447,7 +447,7 @@ v33 <- function() {
         "the lineage closure must contain both keys")
   r <- signed("retraction", co_obj(retracts = a[["id"]]), "K2", 3L)
   co_store_put_record(s, r)   # successor may retract predecessor's record
-  check(length(co_store_assertions_about(s, sym("cro:claim"))) == 0L,
+  check(length(co_store_assertions_about(s, sym("causal_relation_object:claim"))) == 0L,
         "the successor's retraction must take effect")
 }
 
@@ -464,10 +464,10 @@ v35 <- function() {
 }
 
 v36 <- function() {
-  A <- sym("occ:A"); B <- sym("occ:B"); C <- sym("occ:C"); D <- sym("occ:D")
-  m1 <- co_obj(id = sym("cro:m1"), causes = co_arr(A), effects = co_arr(B))
-  m2 <- co_obj(id = sym("cro:m2"), causes = co_arr(B), effects = co_arr(C))
-  m3 <- co_obj(id = sym("cro:m3"), causes = co_arr(D), effects = co_arr(C))
+  A <- sym("occurrent:A"); B <- sym("occurrent:B"); C <- sym("occurrent:C"); D <- sym("occurrent:D")
+  m1 <- co_obj(id = sym("causal_relation_object:m1"), causes = co_arr(A), effects = co_arr(B))
+  m2 <- co_obj(id = sym("causal_relation_object:m2"), causes = co_arr(B), effects = co_arr(C))
+  m3 <- co_obj(id = sym("causal_relation_object:m3"), causes = co_arr(D), effects = co_arr(C))
   P <- co_obj(causes = co_arr(A), effects = co_arr(C),
               mechanism = co_arr(m1[["id"]], m2[["id"]]))
   members <- list()
@@ -506,14 +506,14 @@ v37 <- function() {
 
 v38 <- function() {
   s <- co_store_new()
-  P <- co_store_put(s, co_obj(type = "cro", causes = co_arr(sym("occ:A")),
-                              effects = co_arr(sym("occ:B"))))
+  P <- co_store_put(s, co_obj(type = "causal_relation_object", causes = co_arr(sym("occurrent:A")),
+                              effects = co_arr(sym("occurrent:B"))))
   check(P %in% gap_ids(co_store_gaps(s, "missing_field")),
         "the degenerate claim must be a visible gap")
   R <- co_store_put(s, co_obj(
-    type = "cro", causes = co_arr(sym("occ:A")),
-    effects = co_arr(sym("occ:B")),
-    temporal = co_obj(dmin = 0, dmax = 1, unit = "seconds"),
+    type = "causal_relation_object", causes = co_arr(sym("occurrent:A")),
+    effects = co_arr(sym("occurrent:B")),
+    temporal = co_obj(minimum_delay = 0, maximum_delay = 1, unit = "seconds"),
     modality = "sufficient", refines = P))
   ids <- gap_ids(co_store_gaps(s, "missing_field"))
   check(!(P %in% ids), "the gap did not close")

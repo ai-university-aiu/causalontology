@@ -11,7 +11,7 @@
 # The vectors are frozen at specification 1.0.0: they carry concrete 64-hex
 # identifiers and real Ed25519 keys, which the normalization below simply
 # passes through. Symbolic names still used inside this harness's own
-# behavioral constructions ("occ:A", key "alice") are normalized
+# behavioral constructions ("occurrent:A", key "alice") are normalized
 # deterministically - symbolic object ids become scheme:sha256(name), and
 # symbolic key names become real Ed25519 keypairs seeded from
 # sha256("key:" + name).
@@ -189,7 +189,7 @@ def v14
   inp = normalize(vec(14)["input"])
   ok, _why = Causalontology.validate_schema(inp)
   assert ok
-  semantics_fails(14, "dmin")
+  semantics_fails(14, "minimum_delay")
 end
 
 def v15; semantics_fails(15, "acyclic"); end
@@ -207,9 +207,9 @@ def v18; semantics_fails(18, "not a legal field"); end
 def v19; semantics_fails(19, "language-tagged"); end
 
 def v20
-  dog = sym("cnt:dog")
-  mam = sym("cnt:mammal")
-  ani = sym("cnt:animal")
+  dog = sym("continuant:dog")
+  mam = sym("continuant:mammal")
+  ani = sym("continuant:animal")
   enrich = lambda do |about, entry, i|
     signed("enrichment",
            { "about" => about, "field" => "subsumes", "entry" => entry },
@@ -239,7 +239,7 @@ end
 
 def adm(n)
   g = vec(n)["given"]
-  cro = { "causes" => [sym("occ:c")], "effects" => [sym("occ:e")],
+  cro = { "causes" => [sym("occurrent:c")], "effects" => [sym("occurrent:e")],
           "temporal" => g["temporal"] }
   Causalontology.admissible(cro, g["elapsed_seconds"])
 end
@@ -285,8 +285,8 @@ end
 
 def v28
   s = Causalontology::InMemoryStore.new
-  claim = { "type" => "cro", "causes" => [sym("occ:A")],
-            "effects" => [sym("occ:B")], "modality" => "sufficient" }
+  claim = { "type" => "causal_relation_object", "causes" => [sym("occurrent:A")],
+            "effects" => [sym("occurrent:B")], "modality" => "sufficient" }
   i1 = s.put(claim.dup)
   i2 = s.put(claim.dup)
   assert i1 == i2 && s.objects.length == 1
@@ -299,14 +299,14 @@ def v28
 end
 
 def v29
-  rec = signed("assertion", { "about" => sym("cro:demo"),
+  rec = signed("assertion", { "about" => sym("causal_relation_object:demo"),
                               "evidence_type" => "intervention",
                               "strength" => 0.7, "confidence" => 0.9 }, "signer")
   assert Causalontology.verify_record(rec) == true
 end
 
 def v30
-  rec = signed("assertion", { "about" => sym("cro:demo"),
+  rec = signed("assertion", { "about" => sym("causal_relation_object:demo"),
                               "evidence_type" => "intervention",
                               "strength" => 0.7, "confidence" => 0.9 }, "signer")
   tampered = rec.merge("confidence" => 0.1)
@@ -315,8 +315,8 @@ end
 
 def v31
   s = Causalontology::InMemoryStore.new
-  x = s.put({ "type" => "cro", "causes" => [sym("occ:A")],
-              "effects" => [sym("occ:B")] })
+  x = s.put({ "type" => "causal_relation_object", "causes" => [sym("occurrent:A")],
+              "effects" => [sym("occurrent:B")] })
   a = signed("assertion", { "about" => x, "evidence_type" => "observation",
                             "confidence" => 0.8 }, "lab1", 1)
   s.put_record(a)
@@ -356,7 +356,7 @@ def v33
   s = Causalontology::InMemoryStore.new
   k1 = key("K1")[1]
   k2 = key("K2")[1]
-  a = signed("assertion", { "about" => sym("cro:claim"),
+  a = signed("assertion", { "about" => sym("causal_relation_object:claim"),
                             "evidence_type" => "observation",
                             "confidence" => 0.9 }, "K1", 1)
   s.put_record(a)
@@ -365,7 +365,7 @@ def v33
   assert s.lineage(k2).include?(k1) && s.lineage(k1).include?(k2)
   r = signed("retraction", { "retracts" => a["id"] }, "K2", 3)
   s.put_record(r) # successor may retract the predecessor's record
-  assert s.assertions_about(sym("cro:claim")) == []
+  assert s.assertions_about(sym("causal_relation_object:claim")) == []
 end
 
 def v34
@@ -379,13 +379,13 @@ def v35
 end
 
 def v36
-  a = sym("occ:A")
-  b = sym("occ:B")
-  c = sym("occ:C")
-  d = sym("occ:D")
-  m1 = { "id" => sym("cro:m1"), "causes" => [a], "effects" => [b] }
-  m2 = { "id" => sym("cro:m2"), "causes" => [b], "effects" => [c] }
-  m3 = { "id" => sym("cro:m3"), "causes" => [d], "effects" => [c] }
+  a = sym("occurrent:A")
+  b = sym("occurrent:B")
+  c = sym("occurrent:C")
+  d = sym("occurrent:D")
+  m1 = { "id" => sym("causal_relation_object:m1"), "causes" => [a], "effects" => [b] }
+  m2 = { "id" => sym("causal_relation_object:m2"), "causes" => [b], "effects" => [c] }
+  m3 = { "id" => sym("causal_relation_object:m3"), "causes" => [d], "effects" => [c] }
   parent = { "causes" => [a], "effects" => [c],
              "mechanism" => [m1["id"], m2["id"]] }
   assert Causalontology.hierarchy_consistent(
@@ -412,13 +412,13 @@ end
 
 def v38
   s = Causalontology::InMemoryStore.new
-  parent = s.put({ "type" => "cro", "causes" => [sym("occ:A")],
-                   "effects" => [sym("occ:B")] })
+  parent = s.put({ "type" => "causal_relation_object", "causes" => [sym("occurrent:A")],
+                   "effects" => [sym("occurrent:B")] })
   gaps = s.gaps("missing_field").map { |g| g["id"] }
   assert gaps.include?(parent)
-  refinement = s.put({ "type" => "cro", "causes" => [sym("occ:A")],
-                       "effects" => [sym("occ:B")],
-                       "temporal" => { "dmin" => 0, "dmax" => 1,
+  refinement = s.put({ "type" => "causal_relation_object", "causes" => [sym("occurrent:A")],
+                       "effects" => [sym("occurrent:B")],
+                       "temporal" => { "minimum_delay" => 0, "maximum_delay" => 1,
                                        "unit" => "seconds" },
                        "modality" => "sufficient", "refines" => parent })
   gaps = s.gaps("missing_field").map { |g| g["id"] }

@@ -59,13 +59,13 @@ public final class Semantics {
         fields.put("aliases",
                    new FieldSpec(Set.of("occurrent", "continuant"), "alias"));
         fields.put("participants",
-                   new FieldSpec(Set.of("occurrent"), "cnt"));
+                   new FieldSpec(Set.of("occurrent"), "continuant"));
         fields.put("subsumes",
-                   new FieldSpec(Set.of("continuant"), "cnt"));
+                   new FieldSpec(Set.of("continuant"), "continuant"));
         fields.put("part_of",
-                   new FieldSpec(Set.of("continuant"), "cnt"));
+                   new FieldSpec(Set.of("continuant"), "continuant"));
         fields.put("realized_in",
-                   new FieldSpec(Set.of("realizable"), "occ"));
+                   new FieldSpec(Set.of("realizable"), "occurrent"));
         ENRICHMENT_FIELDS = Collections.unmodifiableMap(fields);
     }
 
@@ -85,16 +85,16 @@ public final class Semantics {
         String k = kind != null ? kind : Canonical.inferKind(obj);
         List<String> errors = new ArrayList<>();
 
-        if (k.equals("cro")) {
+        if (k.equals("causal_relation_object")) {
             Object temporalObj = obj.get("temporal");
             if (temporalObj instanceof Map) {
                 Map<?, ?> temporal = (Map<?, ?>) temporalObj;
-                Object dmin = temporal.get("dmin");
-                Object dmax = temporal.get("dmax");
-                if (dmin instanceof Number && dmax instanceof Number
-                        && ((Number) dmin).doubleValue()
-                           > ((Number) dmax).doubleValue()) {
-                    errors.add("dmin must be <= dmax");
+                Object minimum_delay = temporal.get("minimum_delay");
+                Object maximum_delay = temporal.get("maximum_delay");
+                if (minimum_delay instanceof Number && maximum_delay instanceof Number
+                        && ((Number) minimum_delay).doubleValue()
+                           > ((Number) maximum_delay).doubleValue()) {
+                    errors.add("minimum_delay must be <= maximum_delay");
                 }
             }
             String oid = null;
@@ -177,8 +177,8 @@ public final class Semantics {
         }
         Map<?, ?> temporal = (Map<?, ?>) temporalObj;
         long unit = UNIT_SECONDS.get((String) temporal.get("unit"));
-        double lo = ((Number) temporal.get("dmin")).doubleValue() * unit;
-        double hi = ((Number) temporal.get("dmax")).doubleValue() * unit;
+        double lo = ((Number) temporal.get("minimum_delay")).doubleValue() * unit;
+        double hi = ((Number) temporal.get("maximum_delay")).doubleValue() * unit;
         return lo <= elapsedSeconds && elapsedSeconds <= hi;
     }
 
@@ -193,10 +193,10 @@ public final class Semantics {
         Map<?, ?> tb = (Map<?, ?>) tbObj;
         long ua = UNIT_SECONDS.get((String) ta.get("unit"));
         long ub = UNIT_SECONDS.get((String) tb.get("unit"));
-        double loA = ((Number) ta.get("dmin")).doubleValue() * ua;
-        double hiA = ((Number) ta.get("dmax")).doubleValue() * ua;
-        double loB = ((Number) tb.get("dmin")).doubleValue() * ub;
-        double hiB = ((Number) tb.get("dmax")).doubleValue() * ub;
+        double loA = ((Number) ta.get("minimum_delay")).doubleValue() * ua;
+        double hiA = ((Number) ta.get("maximum_delay")).doubleValue() * ua;
+        double loB = ((Number) tb.get("minimum_delay")).doubleValue() * ub;
+        double hiB = ((Number) tb.get("maximum_delay")).doubleValue() * ub;
         return loA <= hiB && loB <= hiA;
     }
 

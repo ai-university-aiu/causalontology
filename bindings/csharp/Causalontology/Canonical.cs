@@ -16,7 +16,7 @@ public static class Canonical
         new Dictionary<string, string[]>
         {
             ["occurrent"] = new[] { "label", "category" },
-            ["cro"] = new[] { "causes", "effects", "mechanism", "temporal",
+            ["causal_relation_object"] = new[] { "causes", "effects", "mechanism", "temporal",
                               "modality", "context", "refines" },
             ["continuant"] = new[] { "label", "category" },
             ["realizable"] = new[] { "kind", "bearer" },
@@ -32,10 +32,10 @@ public static class Canonical
     public static readonly IReadOnlyDictionary<string, string> Prefix =
         new Dictionary<string, string>
         {
-            ["occurrent"] = "occ", ["cro"] = "cro", ["continuant"] = "cnt",
-            ["realizable"] = "rlz", ["assertion"] = "ast",
-            ["enrichment"] = "enr", ["retraction"] = "ret",
-            ["succession"] = "suc",
+            ["occurrent"] = "occurrent", ["causal_relation_object"] = "causal_relation_object", ["continuant"] = "continuant",
+            ["realizable"] = "realizable", ["assertion"] = "assertion",
+            ["enrichment"] = "enrichment", ["retraction"] = "retraction",
+            ["succession"] = "succession",
         };
 
     public static readonly IReadOnlyDictionary<string, string> KindOfPrefix =
@@ -53,7 +53,7 @@ public static class Canonical
                 return kind;
         }
         if (obj.ContainsKey("causes") && obj.ContainsKey("effects"))
-            return "cro";
+            return "causal_relation_object";
         if (obj.ContainsKey("retracts"))
             return "retraction";
         if (obj.ContainsKey("predecessor") && obj.ContainsKey("successor"))

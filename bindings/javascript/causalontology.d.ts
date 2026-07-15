@@ -28,7 +28,7 @@ declare namespace causalontology {
   /** The eight Causalontology kinds. */
   type Kind =
     | "occurrent"
-    | "cro"
+    | "causal_relation_object"
     | "continuant"
     | "realizable"
     | "assertion"
@@ -37,13 +37,13 @@ declare namespace causalontology {
     | "succession";
 
   /** The four content-object kinds (accepted by InMemoryStore.put). */
-  type ContentKind = "occurrent" | "cro" | "continuant" | "realizable";
+  type ContentKind = "occurrent" | "causal_relation_object" | "continuant" | "realizable";
 
   /** The four provenance-record kinds (accepted by InMemoryStore.putRecord). */
   type RecordKind = "assertion" | "enrichment" | "retraction" | "succession";
 
   /** The identifier scheme prefixes (identifier = prefix + ":" + SHA-256 hex). */
-  type IdPrefix = "occ" | "cro" | "cnt" | "rlz" | "ast" | "enr" | "ret" | "suc";
+  type IdPrefix = "occurrent" | "causal_relation_object" | "continuant" | "realizable" | "assertion" | "enrichment" | "retraction" | "succession";
 
   /** Causal modality of a Causal Relation Object (spec/semantics.md rule 6). */
   type Modality = "necessary" | "sufficient" | "contributory" | "preventive";
@@ -97,16 +97,16 @@ declare namespace causalontology {
   /** A bounded delay window between causes and effects (cro.schema.json). */
   interface TemporalWindow {
     /** Minimum delay in `unit` (>= 0). */
-    dmin: number;
-    /** Maximum delay in `unit` (>= 0; dmin <= dmax per semantics rule). */
-    dmax: number;
+    minimum_delay: number;
+    /** Maximum delay in `unit` (>= 0; minimum_delay <= maximum_delay per semantics rule). */
+    maximum_delay: number;
     /** The unit the window is expressed in. */
     unit: TemporalUnit;
   }
 
   /** An occurrent: something that happens (verb-first). */
   interface Occurrent {
-    /** Content-addressed identifier "occ:<sha256 hex>"; assigned on put/identify. */
+    /** Content-addressed identifier "occurrent:<sha256 hex>"; assigned on put/identify. */
     id?: string;
     /** Kind tag; may be omitted where the kind is passed explicitly. */
     type?: "occurrent";
@@ -118,7 +118,7 @@ declare namespace causalontology {
 
   /** A continuant: a participant that persists through occurrents. */
   interface Continuant {
-    /** Content-addressed identifier "cnt:<sha256 hex>". */
+    /** Content-addressed identifier "continuant:<sha256 hex>". */
     id?: string;
     /** Kind tag; may be omitted where the kind is passed explicitly. */
     type?: "continuant";
@@ -130,13 +130,13 @@ declare namespace causalontology {
 
   /** A Causal Relation Object (CRO): the causal claim itself. */
   interface CausalRelationObject {
-    /** Content-addressed identifier "cro:<sha256 hex>". */
+    /** Content-addressed identifier "causal_relation_object:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
-    type?: "cro";
-    /** Occurrent identifiers ("occ:...") that jointly cause; at least one. */
+    type?: "causal_relation_object";
+    /** Occurrent identifiers ("occurrent:...") that jointly cause; at least one. */
     causes: string[];
-    /** Occurrent identifiers ("occ:...") that jointly result; at least one. */
+    /** Occurrent identifiers ("occurrent:...") that jointly result; at least one. */
     effects: string[];
     /** Finer CRO identifiers whose composition realizes this one (acyclic). */
     mechanism?: string[];
@@ -152,19 +152,19 @@ declare namespace causalontology {
 
   /** A realizable entity: a disposition, function, or role borne by a continuant. */
   interface Realizable {
-    /** Content-addressed identifier "rlz:<sha256 hex>". */
+    /** Content-addressed identifier "realizable:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
     type?: "realizable";
     /** Which realizable this is. */
     kind: RealizableKind;
-    /** The bearing continuant's identifier ("cnt:..."). */
+    /** The bearing continuant's identifier ("continuant:..."). */
     bearer: string;
   }
 
   /** A signed assertion: a source vouching for a content object. */
   interface Assertion {
-    /** Content-addressed identifier "ast:<sha256 hex>". */
+    /** Content-addressed identifier "assertion:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
     type?: "assertion";
@@ -199,11 +199,11 @@ declare namespace causalontology {
 
   /** A signed enrichment: adding to a content object's open fields. */
   interface Enrichment {
-    /** Content-addressed identifier "enr:<sha256 hex>". */
+    /** Content-addressed identifier "enrichment:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
     type?: "enrichment";
-    /** The enriched content object ("occ:", "cnt:", or "rlz:..."; CROs are refined, not enriched). */
+    /** The enriched content object ("occurrent:", "continuant:", or "realizable:..."; CROs are refined, not enriched). */
     about: string;
     /** Which open field the entry goes into (validity per rule 12). */
     field: EnrichmentField;
@@ -219,11 +219,11 @@ declare namespace causalontology {
 
   /** A signed retraction: withdrawing an assertion or enrichment. */
   interface Retraction {
-    /** Content-addressed identifier "ret:<sha256 hex>". */
+    /** Content-addressed identifier "retraction:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
     type?: "retraction";
-    /** The assertion or enrichment identifier being withdrawn ("ast:" or "enr:..."). */
+    /** The assertion or enrichment identifier being withdrawn ("assertion:" or "enrichment:..."). */
     retracts: string;
     /** Must be the retracted record's source or in its succession lineage. */
     source: string;
@@ -237,7 +237,7 @@ declare namespace causalontology {
 
   /** A signed succession: a key handing over to a successor key. */
   interface Succession {
-    /** Content-addressed identifier "suc:<sha256 hex>". */
+    /** Content-addressed identifier "succession:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
     type?: "succession";
@@ -278,10 +278,10 @@ declare namespace causalontology {
   /** The identity-bearing field list per kind (spec/identity.md). */
   const IDENTITY_FIELDS: { readonly [K in Kind]: readonly string[] };
 
-  /** Kind to identifier-scheme prefix ("occurrent" -> "occ", ...). */
+  /** Kind to identifier-scheme prefix ("occurrent" -> "occurrent", ...). */
   const PREFIX: { readonly [K in Kind]: IdPrefix };
 
-  /** Identifier-scheme prefix back to kind ("occ" -> "occurrent", ...). */
+  /** Identifier-scheme prefix back to kind ("occurrent" -> "occurrent", ...). */
   const KIND_OF_PREFIX: { readonly [P in IdPrefix]: Kind };
 
   /**

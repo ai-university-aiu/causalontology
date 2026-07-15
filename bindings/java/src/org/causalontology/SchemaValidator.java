@@ -35,7 +35,7 @@ public final class SchemaValidator {
 
     static {
         Map<String, String> files = new LinkedHashMap<>();
-        files.put("cro", "cro.schema.json");
+        files.put("causal_relation_object", "cro.schema.json");
         files.put("occurrent", "occurrent.schema.json");
         files.put("continuant", "continuant.schema.json");
         files.put("realizable", "realizable.schema.json");

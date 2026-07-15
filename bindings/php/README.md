@@ -74,7 +74,7 @@ $press = $store->put(['type' => 'occurrent',
                       'label' => 'press_button', 'category' => 'action']);
 $light = $store->put(['type' => 'occurrent',
                       'label' => 'light_on', 'category' => 'state_change']);
-$claim = $store->put(['type' => 'cro',
+$claim = $store->put(['type' => 'causal_relation_object',
                       'causes' => [$press], 'effects' => [$light]]);
 
 var_dump($store->gaps('missing_field')); // the degenerate claim is a visible invitation

@@ -27,10 +27,10 @@ final class Semantics
     /** Rule 12: enrichment field-to-kind validity and entry shapes. */
     public const ENRICHMENT_FIELDS = [
         'aliases'      => [['occurrent', 'continuant'], 'alias'],
-        'participants' => [['occurrent'],               'cnt'],
-        'subsumes'     => [['continuant'],              'cnt'],
-        'part_of'      => [['continuant'],              'cnt'],
-        'realized_in'  => [['realizable'],              'occ'],
+        'participants' => [['occurrent'],               'continuant'],
+        'subsumes'     => [['continuant'],              'continuant'],
+        'part_of'      => [['continuant'],              'continuant'],
+        'realized_in'  => [['realizable'],              'occurrent'],
     ];
 
     /** The optional CRO fields, in the order is_partial reports them. */
@@ -60,13 +60,13 @@ final class Semantics
         $kind ??= Canonical::inferKind($obj);
         $errors = [];
 
-        if ($kind === 'cro') {
+        if ($kind === 'causal_relation_object') {
             $temporal = $obj['temporal'] ?? null;
             if (is_array($temporal)
-                    && ($temporal['dmin'] ?? null) !== null
-                    && ($temporal['dmax'] ?? null) !== null
-                    && $temporal['dmin'] > $temporal['dmax']) {
-                $errors[] = 'dmin must be <= dmax';
+                    && ($temporal['minimum_delay'] ?? null) !== null
+                    && ($temporal['maximum_delay'] ?? null) !== null
+                    && $temporal['minimum_delay'] > $temporal['maximum_delay']) {
+                $errors[] = 'minimum_delay must be <= maximum_delay';
             }
             $oid = $obj['id'] ?? null;
             if (is_string($oid) && $oid !== ''
@@ -133,8 +133,8 @@ final class Semantics
             return true; // no window imposes no constraint
         }
         $unit = self::UNIT_SECONDS[$temporal['unit']];
-        $lo = $temporal['dmin'] * $unit;
-        $hi = $temporal['dmax'] * $unit;
+        $lo = $temporal['minimum_delay'] * $unit;
+        $hi = $temporal['maximum_delay'] * $unit;
         return $lo <= $elapsedSeconds && $elapsedSeconds <= $hi;
     }
 
@@ -175,10 +175,10 @@ final class Semantics
         }
         $ua = self::UNIT_SECONDS[$ta['unit']];
         $ub = self::UNIT_SECONDS[$tb['unit']];
-        $loA = $ta['dmin'] * $ua;
-        $hiA = $ta['dmax'] * $ua;
-        $loB = $tb['dmin'] * $ub;
-        $hiB = $tb['dmax'] * $ub;
+        $loA = $ta['minimum_delay'] * $ua;
+        $hiA = $ta['maximum_delay'] * $ua;
+        $loB = $tb['minimum_delay'] * $ub;
+        $hiB = $tb['maximum_delay'] * $ub;
         return $loA <= $hiB && $loB <= $hiA;
     }
 

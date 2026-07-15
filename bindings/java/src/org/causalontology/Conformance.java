@@ -23,7 +23,7 @@ import java.util.Set;
  * this runner exits nonzero on any failure.
  *
  * Pre-freeze note (see conformance/README.md): the vectors carry symbolic
- * identifiers ("occ:press_button", "ed25519:alice"). This harness
+ * identifiers ("occurrent:press_button", "ed25519:alice"). This harness
  * normalizes them deterministically - symbolic object ids become
  * scheme:sha256(name), and symbolic key names become real Ed25519
  * keypairs seeded from sha256("key:" + name) - so the normative behaviors
@@ -40,7 +40,7 @@ public final class Conformance {
         Paths.get("..", "..", "conformance", "vectors");
 
     private static final Set<String> SCHEMES =
-        Set.of("occ", "cro", "cnt", "rlz", "ast", "enr", "ret", "suc");
+        Set.of("occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession");
 
     private static final Map<String, Signing.Keys> KEYS = new HashMap<>();
 
@@ -235,8 +235,8 @@ public final class Conformance {
     static boolean adm(int n) {
         Map<String, Object> given = asMap(vec(n).get("given"));
         Map<String, Object> cro = map(
-            "causes", List.of(sym("occ:c")),
-            "effects", List.of(sym("occ:e")),
+            "causes", List.of(sym("occurrent:c")),
+            "effects", List.of(sym("occurrent:e")),
             "temporal", given.get("temporal"));
         double elapsed =
             ((Number) given.get("elapsed_seconds")).doubleValue();
@@ -324,7 +324,7 @@ public final class Conformance {
         Map<String, Object> input = asMap(normalize(vec(14).get("input")));
         Validation schema = SchemaValidator.validateSchema(input, null);
         check(schema.ok, schema.reason());
-        semanticsFails(14, "dmin");
+        semanticsFails(14, "minimum_delay");
     }
 
     static void v15() {
@@ -362,9 +362,9 @@ public final class Conformance {
     }
 
     static void v20() {
-        String dog = sym("cnt:dog");
-        String mammal = sym("cnt:mammal");
-        String animal = sym("cnt:animal");
+        String dog = sym("continuant:dog");
+        String mammal = sym("continuant:mammal");
+        String animal = sym("continuant:animal");
         // The enforcing tier rejects the cycle-completing write.
         Store store = new Store(true);
         store.putRecord(subsumesRecord(dog, mammal, 1));
@@ -467,9 +467,9 @@ public final class Conformance {
     static void v28() {
         Store store = new Store(true);
         Map<String, Object> claim = map(
-            "type", "cro",
-            "causes", List.of(sym("occ:A")),
-            "effects", List.of(sym("occ:B")),
+            "type", "causal_relation_object",
+            "causes", List.of(sym("occurrent:A")),
+            "effects", List.of(sym("occurrent:B")),
             "modality", "sufficient");
         String first = store.put(new LinkedHashMap<>(claim));
         String second = store.put(new LinkedHashMap<>(claim));
@@ -491,7 +491,7 @@ public final class Conformance {
 
     static void v29() {
         Map<String, Object> rec = signed("assertion",
-            map("about", sym("cro:demo"),
+            map("about", sym("causal_relation_object:demo"),
                 "evidence_type", "intervention",
                 "strength", Double.valueOf(0.7),
                 "confidence", Double.valueOf(0.9)),
@@ -501,7 +501,7 @@ public final class Conformance {
 
     static void v30() {
         Map<String, Object> rec = signed("assertion",
-            map("about", sym("cro:demo"),
+            map("about", sym("causal_relation_object:demo"),
                 "evidence_type", "intervention",
                 "strength", Double.valueOf(0.7),
                 "confidence", Double.valueOf(0.9)),
@@ -514,9 +514,9 @@ public final class Conformance {
 
     static void v31() {
         Store store = new Store(true);
-        String x = store.put(map("type", "cro",
-                                 "causes", List.of(sym("occ:A")),
-                                 "effects", List.of(sym("occ:B"))));
+        String x = store.put(map("type", "causal_relation_object",
+                                 "causes", List.of(sym("occurrent:A")),
+                                 "effects", List.of(sym("occurrent:B"))));
         Map<String, Object> assertion = signed("assertion",
             map("about", x, "evidence_type", "observation",
                 "confidence", Double.valueOf(0.8)),
@@ -579,7 +579,7 @@ public final class Conformance {
         String k1 = key("K1").publicId;
         String k2 = key("K2").publicId;
         Map<String, Object> assertion = signed("assertion",
-            map("about", sym("cro:claim"),
+            map("about", sym("causal_relation_object:claim"),
                 "evidence_type", "observation",
                 "confidence", Double.valueOf(0.9)),
             "K1", 1);
@@ -592,7 +592,7 @@ public final class Conformance {
         Map<String, Object> retraction = signed("retraction",
             map("retracts", assertion.get("id")), "K2", 3);
         store.putRecord(retraction); // successor may retract
-        check(store.assertionsAbout(sym("cro:claim")).isEmpty(),
+        check(store.assertionsAbout(sym("causal_relation_object:claim")).isEmpty(),
               "successor's retraction was not honored");
     }
 
@@ -611,17 +611,17 @@ public final class Conformance {
     }
 
     static void v36() {
-        String a = sym("occ:A");
-        String b = sym("occ:B");
-        String c = sym("occ:C");
-        String d = sym("occ:D");
-        Map<String, Object> m1 = map("id", sym("cro:m1"),
+        String a = sym("occurrent:A");
+        String b = sym("occurrent:B");
+        String c = sym("occurrent:C");
+        String d = sym("occurrent:D");
+        Map<String, Object> m1 = map("id", sym("causal_relation_object:m1"),
                                      "causes", List.of(a),
                                      "effects", List.of(b));
-        Map<String, Object> m2 = map("id", sym("cro:m2"),
+        Map<String, Object> m2 = map("id", sym("causal_relation_object:m2"),
                                      "causes", List.of(b),
                                      "effects", List.of(c));
-        Map<String, Object> m3 = map("id", sym("cro:m3"),
+        Map<String, Object> m3 = map("id", sym("causal_relation_object:m3"),
                                      "causes", List.of(d),
                                      "effects", List.of(c));
         Map<String, Object> parent = map(
@@ -675,17 +675,17 @@ public final class Conformance {
 
     static void v38() {
         Store store = new Store(true);
-        String parent = store.put(map("type", "cro",
-                                      "causes", List.of(sym("occ:A")),
-                                      "effects", List.of(sym("occ:B"))));
+        String parent = store.put(map("type", "causal_relation_object",
+                                      "causes", List.of(sym("occurrent:A")),
+                                      "effects", List.of(sym("occurrent:B"))));
         List<Object> before = gapIds(store.gaps("missing_field"));
         check(before.contains(parent), "expected a missing_field gap");
         String refinement = store.put(map(
-            "type", "cro",
-            "causes", List.of(sym("occ:A")),
-            "effects", List.of(sym("occ:B")),
-            "temporal", map("dmin", Long.valueOf(0L),
-                            "dmax", Long.valueOf(1L),
+            "type", "causal_relation_object",
+            "causes", List.of(sym("occurrent:A")),
+            "effects", List.of(sym("occurrent:B")),
+            "temporal", map("minimum_delay", Long.valueOf(0L),
+                            "maximum_delay", Long.valueOf(1L),
                             "unit", "seconds"),
             "modality", "sufficient",
             "refines", parent));

@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 pub fn identity_fields(kind: &str) -> Option<&'static [&'static str]> {
     match kind {
         "occurrent" => Some(&["label", "category"]),
-        "cro" => Some(&["causes", "effects", "mechanism", "temporal",
+        "causal_relation_object" => Some(&["causes", "effects", "mechanism", "temporal",
                         "modality", "context", "refines"]),
         "continuant" => Some(&["label", "category"]),
         "realizable" => Some(&["kind", "bearer"]),
@@ -24,28 +24,28 @@ pub fn identity_fields(kind: &str) -> Option<&'static [&'static str]> {
 
 pub fn prefix_of(kind: &str) -> Option<&'static str> {
     match kind {
-        "occurrent" => Some("occ"),
-        "cro" => Some("cro"),
-        "continuant" => Some("cnt"),
-        "realizable" => Some("rlz"),
-        "assertion" => Some("ast"),
-        "enrichment" => Some("enr"),
-        "retraction" => Some("ret"),
-        "succession" => Some("suc"),
+        "occurrent" => Some("occurrent"),
+        "causal_relation_object" => Some("causal_relation_object"),
+        "continuant" => Some("continuant"),
+        "realizable" => Some("realizable"),
+        "assertion" => Some("assertion"),
+        "enrichment" => Some("enrichment"),
+        "retraction" => Some("retraction"),
+        "succession" => Some("succession"),
         _ => None,
     }
 }
 
 pub fn kind_of_prefix(prefix: &str) -> Option<&'static str> {
     match prefix {
-        "occ" => Some("occurrent"),
-        "cro" => Some("cro"),
-        "cnt" => Some("continuant"),
-        "rlz" => Some("realizable"),
-        "ast" => Some("assertion"),
-        "enr" => Some("enrichment"),
-        "ret" => Some("retraction"),
-        "suc" => Some("succession"),
+        "occurrent" => Some("occurrent"),
+        "causal_relation_object" => Some("causal_relation_object"),
+        "continuant" => Some("continuant"),
+        "realizable" => Some("realizable"),
+        "assertion" => Some("assertion"),
+        "enrichment" => Some("enrichment"),
+        "retraction" => Some("retraction"),
+        "succession" => Some("succession"),
         _ => None,
     }
 }
@@ -62,7 +62,7 @@ pub fn infer_kind(obj: &Map<String, Value>) -> Result<String, String> {
         }
     }
     if obj.contains_key("causes") && obj.contains_key("effects") {
-        return Ok("cro".to_string());
+        return Ok("causal_relation_object".to_string());
     }
     if obj.contains_key("retracts") {
         return Ok("retraction".to_string());

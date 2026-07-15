@@ -69,7 +69,7 @@ arrayOf v = maybe (Left "expected an array") Right (asArr v)
 
 -- | The identifier schemes the normalizer recognizes.
 schemes :: [String]
-schemes = ["occ", "cro", "cnt", "rlz", "ast", "enr", "ret", "suc", "ed25519"]
+schemes = ["occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession", "ed25519"]
 
 -- | Is this a 64-character lowercase hex string?
 isHex64 :: String -> Bool
@@ -224,7 +224,7 @@ runVector schemas v n = case n of
   14 -> do
     inp <- normalize <$> member v "input"
     schemaOk schemas inp
-    semanticsFails v "dmin"
+    semanticsFails v "minimum_delay"
   15 -> semanticsFails v "acyclic"
   16 -> semanticsFails v "acyclic"
   17 -> do
@@ -281,7 +281,7 @@ demoAssertion :: Either String JValue
 demoAssertion =
   signedRecord
     "assertion"
-    [ ("about", JStr (symId "cro:demo"))
+    [ ("about", JStr (symId "causal_relation_object:demo"))
     , ("evidence_type", JStr "intervention")
     , ("strength", JFloat 0.7)
     , ("confidence", JFloat 0.9)
@@ -298,8 +298,8 @@ admissibleFor v = do
   elapsed <- maybe (Left "elapsed_seconds is not numeric") Right (jNumber elapsedValue)
   let cro =
         JObj
-          [ ("causes", JArr [JStr (symId "occ:c")])
-          , ("effects", JArr [JStr (symId "occ:e")])
+          [ ("causes", JArr [JStr (symId "occurrent:c")])
+          , ("effects", JArr [JStr (symId "occurrent:e")])
           , ("temporal", temporal)
           ]
   Right (admissible cro elapsed)
@@ -317,9 +317,9 @@ identityPair v = do
 -- deterministically in the view (decentralized merge).
 v20 :: Schemas -> Check
 v20 schemas = do
-  let dog = symId "cnt:dog"
-      mammal = symId "cnt:mammal"
-      animal = symId "cnt:animal"
+  let dog = symId "continuant:dog"
+      mammal = symId "continuant:mammal"
+      animal = symId "continuant:animal"
       enrich about entry i =
         signedRecord
           "enrichment"
@@ -415,9 +415,9 @@ v28 :: Schemas -> Check
 v28 schemas = do
   let claim =
         JObj
-          [ ("type", JStr "cro")
-          , ("causes", JArr [JStr (symId "occ:A")])
-          , ("effects", JArr [JStr (symId "occ:B")])
+          [ ("type", JStr "causal_relation_object")
+          , ("causes", JArr [JStr (symId "occurrent:A")])
+          , ("effects", JArr [JStr (symId "occurrent:B")])
           , ("modality", JStr "sufficient")
           ]
       s0 = newStore True schemas
@@ -461,9 +461,9 @@ v31 schemas = do
       (rx, s1) =
         put
           ( JObj
-              [ ("type", JStr "cro")
-              , ("causes", JArr [JStr (symId "occ:A")])
-              , ("effects", JArr [JStr (symId "occ:B")])
+              [ ("type", JStr "causal_relation_object")
+              , ("causes", JArr [JStr (symId "occurrent:A")])
+              , ("effects", JArr [JStr (symId "occurrent:B")])
               ]
           )
           Nothing
@@ -546,7 +546,7 @@ v33 :: Schemas -> Check
 v33 schemas = do
   let (_, k1) = deriveKey "K1"
       (_, k2) = deriveKey "K2"
-      claimId = symId "cro:claim"
+      claimId = symId "causal_relation_object:claim"
   a <-
     signedRecord
       "assertion"
@@ -570,13 +570,13 @@ v33 schemas = do
 -- | V36: hierarchy consistency is reachability.
 v36 :: Check
 v36 = do
-  let a = symId "occ:A"
-      b = symId "occ:B"
-      c = symId "occ:C"
-      d = symId "occ:D"
-      m1Id = symId "cro:m1"
-      m2Id = symId "cro:m2"
-      m3Id = symId "cro:m3"
+  let a = symId "occurrent:A"
+      b = symId "occurrent:B"
+      c = symId "occurrent:C"
+      d = symId "occurrent:D"
+      m1Id = symId "causal_relation_object:m1"
+      m2Id = symId "causal_relation_object:m2"
+      m3Id = symId "causal_relation_object:m3"
       mkCro cs es =
         JObj [("causes", JArr (map JStr cs)), ("effects", JArr (map JStr es))]
       m1 = objSet "id" (JStr m1Id) (mkCro [a] [b])
@@ -639,9 +639,9 @@ v38 schemas = do
       (rp, s1) =
         put
           ( JObj
-              [ ("type", JStr "cro")
-              , ("causes", JArr [JStr (symId "occ:A")])
-              , ("effects", JArr [JStr (symId "occ:B")])
+              [ ("type", JStr "causal_relation_object")
+              , ("causes", JArr [JStr (symId "occurrent:A")])
+              , ("effects", JArr [JStr (symId "occurrent:B")])
               ]
           )
           Nothing
@@ -652,10 +652,10 @@ v38 schemas = do
   check (parentId `elem` gapIds s1) "the degenerate claim must appear as a gap"
   let refinement =
         JObj
-          [ ("type", JStr "cro")
-          , ("causes", JArr [JStr (symId "occ:A")])
-          , ("effects", JArr [JStr (symId "occ:B")])
-          , ("temporal", JObj [("dmin", JInt 0), ("dmax", JInt 1), ("unit", JStr "seconds")])
+          [ ("type", JStr "causal_relation_object")
+          , ("causes", JArr [JStr (symId "occurrent:A")])
+          , ("effects", JArr [JStr (symId "occurrent:B")])
+          , ("temporal", JObj [("minimum_delay", JInt 0), ("maximum_delay", JInt 1), ("unit", JStr "seconds")])
           , ("modality", JStr "sufficient")
           , ("refines", JStr parentId)
           ]

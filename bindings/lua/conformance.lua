@@ -258,7 +258,7 @@ end
 V[14] = function()
   local inp = normalize(vec(14)["input"])
   check((schema.validate_schema(inp)), "schema must pass")
-  semantics_fails(14, "dmin")
+  semantics_fails(14, "minimum_delay")
 end
 
 V[15] = function() semantics_fails(15, "acyclic") end
@@ -276,7 +276,7 @@ V[18] = function() semantics_fails(18, "not a legal field") end
 V[19] = function() semantics_fails(19, "language-tagged") end
 
 V[20] = function()
-  local dog, mam, ani = sym("cnt:dog"), sym("cnt:mammal"), sym("cnt:animal")
+  local dog, mam, ani = sym("continuant:dog"), sym("continuant:mammal"), sym("continuant:animal")
   local function enrich(about, entry, i)
     return signed("enrichment",
       json.obj("about", about, "field", "subsumes", "entry", entry),
@@ -308,8 +308,8 @@ end
 local function adm(n)
   local g = vec(n)["given"]
   local cro = json.obj(
-    "causes", json.new_array({ sym("occ:c") }),
-    "effects", json.new_array({ sym("occ:e") }),
+    "causes", json.new_array({ sym("occurrent:c") }),
+    "effects", json.new_array({ sym("occurrent:e") }),
     "temporal", g["temporal"])
   return semantics.admissible(cro, g["elapsed_seconds"])
 end
@@ -355,9 +355,9 @@ end
 
 V[28] = function()
   local s = store.new()
-  local claim = json.obj("type", "cro",
-    "causes", json.new_array({ sym("occ:A") }),
-    "effects", json.new_array({ sym("occ:B") }),
+  local claim = json.obj("type", "causal_relation_object",
+    "causes", json.new_array({ sym("occurrent:A") }),
+    "effects", json.new_array({ sym("occurrent:B") }),
     "modality", "sufficient")
   local i1 = s:put(json.copy_object(claim))
   local i2 = s:put(json.copy_object(claim))
@@ -373,14 +373,14 @@ end
 
 V[29] = function()
   local rec = signed("assertion",
-    json.obj("about", sym("cro:demo"), "evidence_type", "intervention",
+    json.obj("about", sym("causal_relation_object:demo"), "evidence_type", "intervention",
              "strength", 0.7, "confidence", 0.9), "signer")
   check(signing.verify_record(rec) == true, "signature must verify")
 end
 
 V[30] = function()
   local rec = signed("assertion",
-    json.obj("about", sym("cro:demo"), "evidence_type", "intervention",
+    json.obj("about", sym("causal_relation_object:demo"), "evidence_type", "intervention",
              "strength", 0.7, "confidence", 0.9), "signer")
   local tampered = json.copy_object(rec)
   json.set(tampered, "confidence", 0.1)
@@ -389,9 +389,9 @@ end
 
 V[31] = function()
   local s = store.new()
-  local x = s:put(json.obj("type", "cro",
-    "causes", json.new_array({ sym("occ:A") }),
-    "effects", json.new_array({ sym("occ:B") })))
+  local x = s:put(json.obj("type", "causal_relation_object",
+    "causes", json.new_array({ sym("occurrent:A") }),
+    "effects", json.new_array({ sym("occurrent:B") })))
   local a = signed("assertion",
     json.obj("about", x, "evidence_type", "observation",
              "confidence", 0.8), "lab1", 1)
@@ -429,7 +429,7 @@ V[33] = function()
   local _, k1 = key("K1")
   local _, k2 = key("K2")
   local a = signed("assertion",
-    json.obj("about", sym("cro:claim"), "evidence_type", "observation",
+    json.obj("about", sym("causal_relation_object:claim"), "evidence_type", "observation",
              "confidence", 0.9), "K1", 1)
   s:put_record(a)
   local succ = signed("succession", json.obj("successor", k2), "K1", 2)
@@ -437,7 +437,7 @@ V[33] = function()
   check(s:lineage(k2)[k1] == true and s:lineage(k1)[k2] == true, "lineage")
   local r = signed("retraction", json.obj("retracts", a["id"]), "K2", 3)
   s:put_record(r)  -- successor may retract the predecessor's record
-  check(#s:assertions_about(sym("cro:claim")) == 0, "succession retraction")
+  check(#s:assertions_about(sym("causal_relation_object:claim")) == 0, "succession retraction")
 end
 
 V[34] = function()
@@ -451,12 +451,12 @@ V[35] = function()
 end
 
 V[36] = function()
-  local A, B, C, D = sym("occ:A"), sym("occ:B"), sym("occ:C"), sym("occ:D")
-  local m1 = json.obj("id", sym("cro:m1"),
+  local A, B, C, D = sym("occurrent:A"), sym("occurrent:B"), sym("occurrent:C"), sym("occurrent:D")
+  local m1 = json.obj("id", sym("causal_relation_object:m1"),
     "causes", json.new_array({ A }), "effects", json.new_array({ B }))
-  local m2 = json.obj("id", sym("cro:m2"),
+  local m2 = json.obj("id", sym("causal_relation_object:m2"),
     "causes", json.new_array({ B }), "effects", json.new_array({ C }))
-  local m3 = json.obj("id", sym("cro:m3"),
+  local m3 = json.obj("id", sym("causal_relation_object:m3"),
     "causes", json.new_array({ D }), "effects", json.new_array({ C }))
   local P = json.obj("causes", json.new_array({ A }),
     "effects", json.new_array({ C }),
@@ -487,19 +487,19 @@ end
 
 V[38] = function()
   local s = store.new()
-  local P = s:put(json.obj("type", "cro",
-    "causes", json.new_array({ sym("occ:A") }),
-    "effects", json.new_array({ sym("occ:B") })))
+  local P = s:put(json.obj("type", "causal_relation_object",
+    "causes", json.new_array({ sym("occurrent:A") }),
+    "effects", json.new_array({ sym("occurrent:B") })))
   local function gap_ids()
     local ids = {}
     for _, g in ipairs(s:gaps("missing_field")) do ids[g.id] = true end
     return ids
   end
   check(gap_ids()[P] == true, "the parent must be a gap")
-  local R = s:put(json.obj("type", "cro",
-    "causes", json.new_array({ sym("occ:A") }),
-    "effects", json.new_array({ sym("occ:B") }),
-    "temporal", json.obj("dmin", 0, "dmax", 1, "unit", "seconds"),
+  local R = s:put(json.obj("type", "causal_relation_object",
+    "causes", json.new_array({ sym("occurrent:A") }),
+    "effects", json.new_array({ sym("occurrent:B") }),
+    "temporal", json.obj("minimum_delay", 0, "maximum_delay", 1, "unit", "seconds"),
     "modality", "sufficient",
     "refines", P))
   local ids = gap_ids()

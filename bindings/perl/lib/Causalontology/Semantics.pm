@@ -34,10 +34,10 @@ our %UNIT_SECONDS = (
 # Rule 12: enrichment field-to-kind validity and entry shapes.
 our %ENRICHMENT_FIELDS = (
     aliases     => [['occurrent', 'continuant'], 'alias'],
-    participants => [['occurrent'],              'cnt'],
-    subsumes    => [['continuant'],              'cnt'],
-    part_of     => [['continuant'],              'cnt'],
-    realized_in => [['realizable'],              'occ'],
+    participants => [['occurrent'],              'continuant'],
+    subsumes    => [['continuant'],              'continuant'],
+    part_of     => [['continuant'],              'continuant'],
+    realized_in => [['realizable'],              'occurrent'],
 );
 
 our @CRO_OPTIONAL_FIELDS = ('mechanism', 'temporal', 'modality', 'context');
@@ -55,12 +55,12 @@ sub validate_semantics {
     $kind ||= infer_kind($obj);
     my @errors;
 
-    if ($kind eq 'cro') {
+    if ($kind eq 'causal_relation_object') {
         if (ohas($obj, 'temporal')) {
             my $t = oget($obj, 'temporal');
-            if (is_obj($t) && ohas($t, 'dmin') && ohas($t, 'dmax')
-                    && nval(oget($t, 'dmin')) > nval(oget($t, 'dmax'))) {
-                push @errors, 'dmin must be <= dmax';
+            if (is_obj($t) && ohas($t, 'minimum_delay') && ohas($t, 'maximum_delay')
+                    && nval(oget($t, 'minimum_delay')) > nval(oget($t, 'maximum_delay'))) {
+                push @errors, 'minimum_delay must be <= maximum_delay';
             }
         }
         my $oid = ohas($obj, 'id') ? sval(oget($obj, 'id')) : undef;
@@ -125,8 +125,8 @@ sub admissible {
     return 1 unless ohas($cro, 'temporal');  # no window, no constraint
     my $t = oget($cro, 'temporal');
     my $unit = $UNIT_SECONDS{ sval(oget($t, 'unit')) };
-    my $lo = nval(oget($t, 'dmin')) * $unit;
-    my $hi = nval(oget($t, 'dmax')) * $unit;
+    my $lo = nval(oget($t, 'minimum_delay')) * $unit;
+    my $hi = nval(oget($t, 'maximum_delay')) * $unit;
     return ($lo <= $elapsed_seconds && $elapsed_seconds <= $hi) ? 1 : 0;
 }
 
@@ -137,10 +137,10 @@ sub _window_overlap {
     my ($ta, $tb) = (oget($a, 'temporal'), oget($b, 'temporal'));
     my $ua = $UNIT_SECONDS{ sval(oget($ta, 'unit')) };
     my $ub = $UNIT_SECONDS{ sval(oget($tb, 'unit')) };
-    my ($lo_a, $hi_a) = (nval(oget($ta, 'dmin')) * $ua,
-                         nval(oget($ta, 'dmax')) * $ua);
-    my ($lo_b, $hi_b) = (nval(oget($tb, 'dmin')) * $ub,
-                         nval(oget($tb, 'dmax')) * $ub);
+    my ($lo_a, $hi_a) = (nval(oget($ta, 'minimum_delay')) * $ua,
+                         nval(oget($ta, 'maximum_delay')) * $ua);
+    my ($lo_b, $hi_b) = (nval(oget($tb, 'minimum_delay')) * $ub,
+                         nval(oget($tb, 'maximum_delay')) * $ub);
     return ($lo_a <= $hi_b && $lo_b <= $hi_a) ? 1 : 0;
 }
 

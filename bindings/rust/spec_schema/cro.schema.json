@@ -14,7 +14,7 @@
       "$ref": "#/$defs/croId"
     },
     "type": {
-      "const": "cro"
+      "const": "causal_relation_object"
     },
     "causes": {
       "type": "array",
@@ -72,17 +72,17 @@
     "temporalWindow": {
       "type": "object",
       "required": [
-        "dmin",
-        "dmax",
+        "minimum_delay",
+        "maximum_delay",
         "unit"
       ],
       "additionalProperties": false,
       "properties": {
-        "dmin": {
+        "minimum_delay": {
           "type": "number",
           "minimum": 0
         },
-        "dmax": {
+        "maximum_delay": {
           "type": "number",
           "minimum": 0
         },

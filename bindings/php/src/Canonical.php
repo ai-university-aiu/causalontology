@@ -20,7 +20,7 @@ final class Canonical
     /** The identity-bearing fields per kind (spec/identity.md). */
     public const IDENTITY_FIELDS = [
         'occurrent'  => ['label', 'category'],
-        'cro'        => ['causes', 'effects', 'mechanism', 'temporal', 'modality',
+        'causal_relation_object'        => ['causes', 'effects', 'mechanism', 'temporal', 'modality',
                          'context', 'refines'],
         'continuant' => ['label', 'category'],
         'realizable' => ['kind', 'bearer'],
@@ -33,26 +33,26 @@ final class Canonical
 
     /** The identifier scheme prefix per kind. */
     public const PREFIX = [
-        'occurrent'  => 'occ',
-        'cro'        => 'cro',
-        'continuant' => 'cnt',
-        'realizable' => 'rlz',
-        'assertion'  => 'ast',
-        'enrichment' => 'enr',
-        'retraction' => 'ret',
-        'succession' => 'suc',
+        'occurrent'  => 'occurrent',
+        'causal_relation_object'        => 'causal_relation_object',
+        'continuant' => 'continuant',
+        'realizable' => 'realizable',
+        'assertion'  => 'assertion',
+        'enrichment' => 'enrichment',
+        'retraction' => 'retraction',
+        'succession' => 'succession',
     ];
 
     /** The inverse of PREFIX: scheme prefix back to kind. */
     public const KIND_OF_PREFIX = [
-        'occ' => 'occurrent',
-        'cro' => 'cro',
-        'cnt' => 'continuant',
-        'rlz' => 'realizable',
-        'ast' => 'assertion',
-        'enr' => 'enrichment',
-        'ret' => 'retraction',
-        'suc' => 'succession',
+        'occurrent' => 'occurrent',
+        'causal_relation_object' => 'causal_relation_object',
+        'continuant' => 'continuant',
+        'realizable' => 'realizable',
+        'assertion' => 'assertion',
+        'enrichment' => 'enrichment',
+        'retraction' => 'retraction',
+        'succession' => 'succession',
     ];
 
     /** A static utility class, never an instance. */
@@ -73,7 +73,7 @@ final class Canonical
             }
         }
         if (array_key_exists('causes', $obj) && array_key_exists('effects', $obj)) {
-            return 'cro';
+            return 'causal_relation_object';
         }
         if (array_key_exists('retracts', $obj)) {
             return 'retraction';

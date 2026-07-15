@@ -8,7 +8,7 @@
 # read.  Insertion order is tracked explicitly (object_order, record_order)
 # because Julia's Dict is unordered where Python's dict is not.
 
-const CONTENT_KINDS = ("occurrent", "cro", "continuant", "realizable")
+const CONTENT_KINDS = ("occurrent", "causal_relation_object", "continuant", "realizable")
 const RECORD_KINDS = ("assertion", "enrichment", "retraction", "succession")
 
 "An enforcing store refused a write, with the reason in msg."
@@ -326,7 +326,7 @@ function gaps(store::InMemoryStore; kind=nothing)
     for oid in store.object_order
         obj = store.objects[oid]
         ref = jget(obj, "refines")
-        if jget(obj, "type") == "cro" && ref !== nothing && ref != ""
+        if jget(obj, "type") == "causal_relation_object" && ref !== nothing && ref != ""
             parent = get(store.objects, ref, nothing)
             if parent !== nothing
                 ok, _ = refinement_valid(obj, parent)
@@ -336,7 +336,7 @@ function gaps(store::InMemoryStore; kind=nothing)
     end
     for oid in store.object_order
         obj = store.objects[oid]
-        jget(obj, "type") == "cro" || continue
+        jget(obj, "type") == "causal_relation_object" || continue
         # missing_field: lacking the temporal window or the modality -
         # mechanism and context may legitimately stay unspecified forever
         # (empty_mechanism is its own kind; absent context = context-free).
@@ -365,7 +365,7 @@ function gaps(store::InMemoryStore; kind=nothing)
     for oid in store.object_order
         obj = store.objects[oid]
         refs = Any[]
-        if jget(obj, "type") == "cro"
+        if jget(obj, "type") == "causal_relation_object"
             append!(refs, jget(obj, "causes", Any[]))
             append!(refs, jget(obj, "effects", Any[]))
             append!(refs, jget(obj, "context", Any[]))
@@ -384,7 +384,7 @@ function gaps(store::InMemoryStore; kind=nothing)
     end
     # conflict: pairs of claims satisfying the formal test (rule 6).
     cros = JObj[store.objects[oid] for oid in store.object_order
-                if jget(store.objects[oid], "type") == "cro"]
+                if jget(store.objects[oid], "type") == "causal_relation_object"]
     for i in 1:length(cros)
         for j in (i + 1):length(cros)
             if conflicts(cros[i], cros[j])

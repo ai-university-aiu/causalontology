@@ -36,10 +36,10 @@ pub const EnrichmentFieldSpec = struct {
 
 pub const enrichment_fields = [_]EnrichmentFieldSpec{
     .{ .field = "aliases", .legal_kinds = &.{ "occurrent", "continuant" }, .shape = "alias" },
-    .{ .field = "participants", .legal_kinds = &.{"occurrent"}, .shape = "cnt" },
-    .{ .field = "subsumes", .legal_kinds = &.{"continuant"}, .shape = "cnt" },
-    .{ .field = "part_of", .legal_kinds = &.{"continuant"}, .shape = "cnt" },
-    .{ .field = "realized_in", .legal_kinds = &.{"realizable"}, .shape = "occ" },
+    .{ .field = "participants", .legal_kinds = &.{"occurrent"}, .shape = "continuant" },
+    .{ .field = "subsumes", .legal_kinds = &.{"continuant"}, .shape = "continuant" },
+    .{ .field = "part_of", .legal_kinds = &.{"continuant"}, .shape = "continuant" },
+    .{ .field = "realized_in", .legal_kinds = &.{"realizable"}, .shape = "occurrent" },
 };
 
 pub const cro_optional_fields = [_][]const u8{ "mechanism", "temporal", "modality", "context" };
@@ -55,16 +55,16 @@ pub fn validateSemantics(a: Allocator, obj_value: Value, kind_opt: ?[]const u8) 
     const kind = kind_opt orelse try canonical.inferKind(obj);
     var errors = std.ArrayList([]const u8).init(a);
 
-    if (std.mem.eql(u8, kind, "cro")) {
+    if (std.mem.eql(u8, kind, "causal_relation_object")) {
         if (obj.get("temporal")) |t| {
             if (t == .object) {
-                const dmin = t.object.get("dmin");
-                const dmax = t.object.get("dmax");
-                if (dmin != null and dmax != null) {
-                    const lo = jcs.numAsF64(dmin.?);
-                    const hi = jcs.numAsF64(dmax.?);
+                const minimum_delay = t.object.get("minimum_delay");
+                const maximum_delay = t.object.get("maximum_delay");
+                if (minimum_delay != null and maximum_delay != null) {
+                    const lo = jcs.numAsF64(minimum_delay.?);
+                    const hi = jcs.numAsF64(maximum_delay.?);
                     if (lo != null and hi != null and lo.? > hi.?) {
-                        try errors.append("dmin must be <= dmax");
+                        try errors.append("minimum_delay must be <= maximum_delay");
                     }
                 }
             }
@@ -143,8 +143,8 @@ pub fn admissible(cro: ObjectMap, elapsed_seconds: f64) bool {
     const t = cro.get("temporal") orelse return true; // no window, no constraint
     if (t != .object) return true;
     const unit = unitSeconds(jcs.getString(t.object, "unit") orelse "").?;
-    const lo = jcs.numAsF64(t.object.get("dmin").?).? * unit;
-    const hi = jcs.numAsF64(t.object.get("dmax").?).? * unit;
+    const lo = jcs.numAsF64(t.object.get("minimum_delay").?).? * unit;
+    const hi = jcs.numAsF64(t.object.get("maximum_delay").?).? * unit;
     return lo <= elapsed_seconds and elapsed_seconds <= hi;
 }
 
@@ -169,10 +169,10 @@ fn windowOverlap(x: ObjectMap, y: ObjectMap) bool {
     if (ta != .object or tb != .object) return true; // either absent counts as overlapping
     const ua = unitSeconds(jcs.getString(ta.object, "unit") orelse "").?;
     const ub = unitSeconds(jcs.getString(tb.object, "unit") orelse "").?;
-    const lo_a = jcs.numAsF64(ta.object.get("dmin").?).? * ua;
-    const hi_a = jcs.numAsF64(ta.object.get("dmax").?).? * ua;
-    const lo_b = jcs.numAsF64(tb.object.get("dmin").?).? * ub;
-    const hi_b = jcs.numAsF64(tb.object.get("dmax").?).? * ub;
+    const lo_a = jcs.numAsF64(ta.object.get("minimum_delay").?).? * ua;
+    const hi_a = jcs.numAsF64(ta.object.get("maximum_delay").?).? * ua;
+    const lo_b = jcs.numAsF64(tb.object.get("minimum_delay").?).? * ub;
+    const hi_b = jcs.numAsF64(tb.object.get("maximum_delay").?).? * ub;
     return lo_a <= hi_b and lo_b <= hi_a;
 }
 

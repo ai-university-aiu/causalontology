@@ -45,8 +45,8 @@ const IDENTITY_FIELDS = {
 };
 
 const PREFIX = {
-  occurrent: "occ", cro: "cro", continuant: "cnt", realizable: "rlz",
-  assertion: "ast", enrichment: "enr", retraction: "ret", succession: "suc",
+  occurrent: "occurrent", cro: "causal_relation_object", continuant: "continuant", realizable: "realizable",
+  assertion: "assertion", enrichment: "enrichment", retraction: "retraction", succession: "succession",
 };
 
 const KIND_OF_PREFIX = {};
@@ -63,7 +63,7 @@ function inferKind(obj) {
     const pre = obj.id.split(":", 1)[0];
     if (pre in KIND_OF_PREFIX) return KIND_OF_PREFIX[pre];
   }
-  if ("causes" in obj && "effects" in obj) return "cro";
+  if ("causes" in obj && "effects" in obj) return "causal_relation_object";
   if ("retracts" in obj) return "retraction";
   if ("predecessor" in obj && "successor" in obj) return "succession";
   if ("field" in obj && "entry" in obj) return "enrichment";
@@ -448,10 +448,10 @@ const UNIT_SECONDS = {
 // Rule 12: enrichment field-to-kind validity and entry shapes.
 const ENRICHMENT_FIELDS = {
   aliases: [["occurrent", "continuant"], "alias"],
-  participants: [["occurrent"], "cnt"],
-  subsumes: [["continuant"], "cnt"],
-  part_of: [["continuant"], "cnt"],
-  realized_in: [["realizable"], "occ"],
+  participants: [["occurrent"], "continuant"],
+  subsumes: [["continuant"], "continuant"],
+  part_of: [["continuant"], "continuant"],
+  realized_in: [["realizable"], "occurrent"],
 };
 
 const CRO_OPTIONAL_FIELDS = ["mechanism", "temporal", "modality", "context"];
@@ -465,10 +465,10 @@ function validateSemantics(obj, kind) {
   kind = kind || inferKind(obj);
   const errors = [];
 
-  if (kind === "cro") {
+  if (kind === "causal_relation_object") {
     const t = obj.temporal;
-    if (t != null && t.dmin != null && t.dmax != null && t.dmin > t.dmax) {
-      errors.push("dmin must be <= dmax");
+    if (t != null && t.minimum_delay != null && t.maximum_delay != null && t.minimum_delay > t.maximum_delay) {
+      errors.push("minimum_delay must be <= maximum_delay");
     }
     const oid = obj.id;
     if (oid && Array.isArray(obj.mechanism) && obj.mechanism.includes(oid)) {
@@ -520,8 +520,8 @@ function admissible(cro, elapsedSeconds) {
   const t = cro.temporal;
   if (t == null) return true; // no window imposes no constraint
   const unit = UNIT_SECONDS[t.unit];
-  const lo = t.dmin * unit;
-  const hi = t.dmax * unit;
+  const lo = t.minimum_delay * unit;
+  const hi = t.maximum_delay * unit;
   return lo <= elapsedSeconds && elapsedSeconds <= hi;
 }
 
@@ -529,8 +529,8 @@ function windowOverlap(a, b) {
   const ta = a.temporal, tb = b.temporal;
   if (ta == null || tb == null) return true; // either absent = overlapping
   const ua = UNIT_SECONDS[ta.unit], ub = UNIT_SECONDS[tb.unit];
-  const loA = ta.dmin * ua, hiA = ta.dmax * ua;
-  const loB = tb.dmin * ub, hiB = tb.dmax * ub;
+  const loA = ta.minimum_delay * ua, hiA = ta.maximum_delay * ua;
+  const loB = tb.minimum_delay * ub, hiB = tb.maximum_delay * ub;
   return loA <= hiB && loB <= hiA;
 }
 
@@ -641,7 +641,7 @@ function hierarchyConsistent(parent, members) {
  * gap read.
  */
 
-const CONTENT_KINDS = new Set(["occurrent", "cro", "continuant", "realizable"]);
+const CONTENT_KINDS = new Set(["occurrent", "causal_relation_object", "continuant", "realizable"]);
 const RECORD_KINDS = new Set(["assertion", "enrichment", "retraction",
                               "succession"]);
 
@@ -928,7 +928,7 @@ class InMemoryStore {
     const out = [];
     const refined = new Set();
     for (const obj of this.objects.values()) {
-      if (obj.type === "cro" && obj.refines) {
+      if (obj.type === "causal_relation_object" && obj.refines) {
         const parent = this.objects.get(obj.refines);
         if (parent !== undefined) {
           const [ok] = refinementValid(obj, parent);
@@ -937,7 +937,7 @@ class InMemoryStore {
       }
     }
     for (const [oid, obj] of this.objects) {
-      if (obj.type !== "cro") continue;
+      if (obj.type !== "causal_relation_object") continue;
       // missing_field: lacking the temporal window or the modality -
       // mechanism and context may legitimately stay unspecified forever
       // (empty_mechanism is its own kind; absent context = context-free).
@@ -965,7 +965,7 @@ class InMemoryStore {
     // the red link that says "this page is wanted".
     for (const [oid, obj] of this.objects) {
       let refs = [];
-      if (obj.type === "cro") {
+      if (obj.type === "causal_relation_object") {
         refs = [
           ...(obj.causes || []),
           ...(obj.effects || []),
@@ -983,7 +983,7 @@ class InMemoryStore {
       }
     }
     // conflict: pairs of claims satisfying the formal test (rule 6).
-    const cros = [...this.objects.values()].filter((o) => o.type === "cro");
+    const cros = [...this.objects.values()].filter((o) => o.type === "causal_relation_object");
     for (let i = 0; i < cros.length; i++) {
       for (let j = i + 1; j < cros.length; j++) {
         if (conflicts(cros[i], cros[j])) {

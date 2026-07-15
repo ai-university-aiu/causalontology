@@ -25,10 +25,10 @@ public let unitSeconds: [String: Double] = [
 /// the scheme prefix a string entry must carry.
 public let enrichmentFields: [String: (legalKinds: [String], entryShape: String)] = [
     "aliases": (["occurrent", "continuant"], "alias"),
-    "participants": (["occurrent"], "cnt"),
-    "subsumes": (["continuant"], "cnt"),
-    "part_of": (["continuant"], "cnt"),
-    "realized_in": (["realizable"], "occ"),
+    "participants": (["occurrent"], "continuant"),
+    "subsumes": (["continuant"], "continuant"),
+    "part_of": (["continuant"], "continuant"),
+    "realized_in": (["realizable"], "occurrent"),
 ]
 
 /// The optional Causal Relation Object fields, in canonical order.
@@ -65,12 +65,12 @@ public func validateSemantics(
     }
     var errors: [String] = []
 
-    if resolvedKind == "cro" {
+    if resolvedKind == "causal_relation_object" {
         if let temporal = obj["temporal"]?.objectValue,
-           let dmin = temporal["dmin"]?.numberValue,
-           let dmax = temporal["dmax"]?.numberValue,
-           dmin > dmax {
-            errors.append("dmin must be <= dmax")
+           let minimum_delay = temporal["minimum_delay"]?.numberValue,
+           let maximum_delay = temporal["maximum_delay"]?.numberValue,
+           minimum_delay > maximum_delay {
+            errors.append("minimum_delay must be <= maximum_delay")
         }
         if let identifier = obj["id"]?.stringValue {
             let mechanism = obj["mechanism"]?.arrayValue ?? []
@@ -132,12 +132,12 @@ public func admissible(_ cro: [String: JsonValue], elapsedSeconds: Double) -> Bo
     }
     guard let unitName = temporal["unit"]?.stringValue,
           let unit = unitSeconds[unitName],
-          let dmin = temporal["dmin"]?.numberValue,
-          let dmax = temporal["dmax"]?.numberValue else {
+          let minimum_delay = temporal["minimum_delay"]?.numberValue,
+          let maximum_delay = temporal["maximum_delay"]?.numberValue else {
         return false
     }
-    let lo = dmin * unit
-    let hi = dmax * unit
+    let lo = minimum_delay * unit
+    let hi = maximum_delay * unit
     return lo <= elapsedSeconds && elapsedSeconds <= hi
 }
 
@@ -149,8 +149,8 @@ func windowOverlap(_ a: [String: JsonValue], _ b: [String: JsonValue]) -> Bool {
     }
     guard let ua = unitSeconds[ta["unit"]?.stringValue ?? ""],
           let ub = unitSeconds[tb["unit"]?.stringValue ?? ""],
-          let dminA = ta["dmin"]?.numberValue, let dmaxA = ta["dmax"]?.numberValue,
-          let dminB = tb["dmin"]?.numberValue, let dmaxB = tb["dmax"]?.numberValue else {
+          let dminA = ta["minimum_delay"]?.numberValue, let dmaxA = ta["maximum_delay"]?.numberValue,
+          let dminB = tb["minimum_delay"]?.numberValue, let dmaxB = tb["maximum_delay"]?.numberValue else {
         return true
     }
     let loA = dminA * ua

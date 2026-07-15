@@ -31,9 +31,9 @@ canonical.IDENTITY_FIELDS = {
 }
 
 canonical.PREFIX = {
-  occurrent = "occ", cro = "cro", continuant = "cnt", realizable = "rlz",
-  assertion = "ast", enrichment = "enr", retraction = "ret",
-  succession = "suc",
+  occurrent = "occurrent", cro = "causal_relation_object", continuant = "continuant", realizable = "realizable",
+  assertion = "assertion", enrichment = "enrichment", retraction = "retraction",
+  succession = "succession",
 }
 
 canonical.KIND_OF_PREFIX = {}
@@ -51,7 +51,7 @@ function canonical.infer_kind(obj)
       return canonical.KIND_OF_PREFIX[pre]
     end
   end
-  if obj["causes"] ~= nil and obj["effects"] ~= nil then return "cro" end
+  if obj["causes"] ~= nil and obj["effects"] ~= nil then return "causal_relation_object" end
   if obj["retracts"] ~= nil then return "retraction" end
   if obj["predecessor"] ~= nil and obj["successor"] ~= nil then
     return "succession"

@@ -23,10 +23,10 @@ defmodule Causalontology.Semantics do
   # Rule 12: enrichment field-to-kind validity and entry shapes.
   @enrichment_fields %{
     "aliases" => {["occurrent", "continuant"], "alias"},
-    "participants" => {["occurrent"], "cnt"},
-    "subsumes" => {["continuant"], "cnt"},
-    "part_of" => {["continuant"], "cnt"},
-    "realized_in" => {["realizable"], "occ"}
+    "participants" => {["occurrent"], "continuant"},
+    "subsumes" => {["continuant"], "continuant"},
+    "part_of" => {["continuant"], "continuant"},
+    "realized_in" => {["realizable"], "occurrent"}
   }
 
   @cro_optional_fields ["mechanism", "temporal", "modality", "context"]
@@ -48,7 +48,7 @@ defmodule Causalontology.Semantics do
 
     errors =
       case kind do
-        "cro" -> cro_errors(obj)
+        "causal_relation_object" -> cro_errors(obj)
         "enrichment" -> enrichment_errors(obj)
         _ -> []
       end
@@ -62,10 +62,10 @@ defmodule Causalontology.Semantics do
     errors = []
 
     errors =
-      if is_map(temporal) and Map.get(temporal, "dmin") != nil and
-           Map.get(temporal, "dmax") != nil and
-           Map.fetch!(temporal, "dmin") > Map.fetch!(temporal, "dmax") do
-        errors ++ ["dmin must be <= dmax"]
+      if is_map(temporal) and Map.get(temporal, "minimum_delay") != nil and
+           Map.get(temporal, "maximum_delay") != nil and
+           Map.fetch!(temporal, "minimum_delay") > Map.fetch!(temporal, "maximum_delay") do
+        errors ++ ["minimum_delay must be <= maximum_delay"]
       else
         errors
       end
@@ -141,8 +141,8 @@ defmodule Causalontology.Semantics do
 
       t ->
         unit = Map.fetch!(@unit_seconds, Map.fetch!(t, "unit"))
-        lo = Map.fetch!(t, "dmin") * unit
-        hi = Map.fetch!(t, "dmax") * unit
+        lo = Map.fetch!(t, "minimum_delay") * unit
+        hi = Map.fetch!(t, "maximum_delay") * unit
         lo <= elapsed_seconds and elapsed_seconds <= hi
     end
   end
@@ -157,10 +157,10 @@ defmodule Causalontology.Semantics do
     else
       ua = Map.fetch!(@unit_seconds, Map.fetch!(ta, "unit"))
       ub = Map.fetch!(@unit_seconds, Map.fetch!(tb, "unit"))
-      lo_a = Map.fetch!(ta, "dmin") * ua
-      hi_a = Map.fetch!(ta, "dmax") * ua
-      lo_b = Map.fetch!(tb, "dmin") * ub
-      hi_b = Map.fetch!(tb, "dmax") * ub
+      lo_a = Map.fetch!(ta, "minimum_delay") * ua
+      hi_a = Map.fetch!(ta, "maximum_delay") * ua
+      lo_b = Map.fetch!(tb, "minimum_delay") * ub
+      hi_b = Map.fetch!(tb, "maximum_delay") * ub
       lo_a <= hi_b and lo_b <= hi_a
     end
   end

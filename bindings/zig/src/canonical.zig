@@ -24,14 +24,14 @@ pub const KindSpec = struct {
 
 /// The eight kinds and their identity-bearing fields (IDENTITY_FIELDS + PREFIX).
 pub const kind_specs = [_]KindSpec{
-    .{ .kind = "occurrent", .prefix = "occ", .fields = &.{ "label", "category" } },
-    .{ .kind = "cro", .prefix = "cro", .fields = &.{ "causes", "effects", "mechanism", "temporal", "modality", "context", "refines" } },
-    .{ .kind = "continuant", .prefix = "cnt", .fields = &.{ "label", "category" } },
-    .{ .kind = "realizable", .prefix = "rlz", .fields = &.{ "kind", "bearer" } },
-    .{ .kind = "assertion", .prefix = "ast", .fields = &.{ "about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp" } },
-    .{ .kind = "enrichment", .prefix = "enr", .fields = &.{ "about", "field", "entry", "source", "timestamp" } },
-    .{ .kind = "retraction", .prefix = "ret", .fields = &.{ "retracts", "source", "timestamp" } },
-    .{ .kind = "succession", .prefix = "suc", .fields = &.{ "predecessor", "successor", "timestamp" } },
+    .{ .kind = "occurrent", .prefix = "occurrent", .fields = &.{ "label", "category" } },
+    .{ .kind = "causal_relation_object", .prefix = "causal_relation_object", .fields = &.{ "causes", "effects", "mechanism", "temporal", "modality", "context", "refines" } },
+    .{ .kind = "continuant", .prefix = "continuant", .fields = &.{ "label", "category" } },
+    .{ .kind = "realizable", .prefix = "realizable", .fields = &.{ "kind", "bearer" } },
+    .{ .kind = "assertion", .prefix = "assertion", .fields = &.{ "about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp" } },
+    .{ .kind = "enrichment", .prefix = "enrichment", .fields = &.{ "about", "field", "entry", "source", "timestamp" } },
+    .{ .kind = "retraction", .prefix = "retraction", .fields = &.{ "retracts", "source", "timestamp" } },
+    .{ .kind = "succession", .prefix = "succession", .fields = &.{ "predecessor", "successor", "timestamp" } },
 };
 
 /// The spec for a kind name, or null if unknown.
@@ -58,7 +58,7 @@ pub fn inferKind(obj: ObjectMap) ![]const u8 {
             if (kindOfPrefix(id[0..i])) |k| return k;
         }
     }
-    if (obj.contains("causes") and obj.contains("effects")) return "cro";
+    if (obj.contains("causes") and obj.contains("effects")) return "causal_relation_object";
     if (obj.contains("retracts")) return "retraction";
     if (obj.contains("predecessor") and obj.contains("successor")) return "succession";
     if (obj.contains("field") and obj.contains("entry")) return "enrichment";

@@ -22,7 +22,7 @@ import (
 // excluded by construction.
 var IdentityFields = map[string][]string{
 	"occurrent":  {"label", "category"},
-	"cro":        {"causes", "effects", "mechanism", "temporal", "modality", "context", "refines"},
+	"causal_relation_object":        {"causes", "effects", "mechanism", "temporal", "modality", "context", "refines"},
 	"continuant": {"label", "category"},
 	"realizable": {"kind", "bearer"},
 	"assertion":  {"about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp"},
@@ -33,26 +33,26 @@ var IdentityFields = map[string][]string{
 
 // Prefix maps each kind to its identifier scheme.
 var Prefix = map[string]string{
-	"occurrent":  "occ",
-	"cro":        "cro",
-	"continuant": "cnt",
-	"realizable": "rlz",
-	"assertion":  "ast",
-	"enrichment": "enr",
-	"retraction": "ret",
-	"succession": "suc",
+	"occurrent":  "occurrent",
+	"causal_relation_object":        "causal_relation_object",
+	"continuant": "continuant",
+	"realizable": "realizable",
+	"assertion":  "assertion",
+	"enrichment": "enrichment",
+	"retraction": "retraction",
+	"succession": "succession",
 }
 
 // KindOfPrefix is the inverse of Prefix: identifier scheme to kind.
 var KindOfPrefix = map[string]string{
-	"occ": "occurrent",
-	"cro": "cro",
-	"cnt": "continuant",
-	"rlz": "realizable",
-	"ast": "assertion",
-	"enr": "enrichment",
-	"ret": "retraction",
-	"suc": "succession",
+	"occurrent": "occurrent",
+	"causal_relation_object": "causal_relation_object",
+	"continuant": "continuant",
+	"realizable": "realizable",
+	"assertion": "assertion",
+	"enrichment": "enrichment",
+	"retraction": "retraction",
+	"succession": "succession",
 }
 
 // InferKind infers an object's kind from its type field, id prefix, or
@@ -75,7 +75,7 @@ func InferKind(obj map[string]any) (string, error) {
 		return present
 	}
 	if has("causes") && has("effects") {
-		return "cro", nil
+		return "causal_relation_object", nil
 	}
 	if has("retracts") {
 		return "retraction", nil

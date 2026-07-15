@@ -49,7 +49,7 @@ press, _ := store.Put(map[string]any{
 light, _ := store.Put(map[string]any{
         "type": "occurrent", "label": "light_on", "category": "state_change"}, "")
 claim, _ := store.Put(map[string]any{
-        "type": "cro", "causes": []any{press}, "effects": []any{light}}, "")
+        "type": "causal_relation_object", "causes": []any{press}, "effects": []any{light}}, "")
 
 fmt.Println(claim, store.Gaps("missing_field")) // the degenerate claim is a visible invitation
 ```

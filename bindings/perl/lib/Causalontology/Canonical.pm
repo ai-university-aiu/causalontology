@@ -37,9 +37,9 @@ our %IDENTITY_FIELDS = (
 );
 
 our %PREFIX = (
-    occurrent => 'occ', cro => 'cro', continuant => 'cnt',
-    realizable => 'rlz', assertion => 'ast', enrichment => 'enr',
-    retraction => 'ret', succession => 'suc',
+    occurrent => 'occurrent', cro => 'causal_relation_object', continuant => 'continuant',
+    realizable => 'realizable', assertion => 'assertion', enrichment => 'enrichment',
+    retraction => 'retraction', succession => 'succession',
 );
 
 our %KIND_OF_PREFIX = reverse %PREFIX;
@@ -57,7 +57,7 @@ sub infer_kind {
             return $KIND_OF_PREFIX{$pre} if exists $KIND_OF_PREFIX{$pre};
         }
     }
-    return 'cro'        if ohas($obj, 'causes') && ohas($obj, 'effects');
+    return 'causal_relation_object'        if ohas($obj, 'causes') && ohas($obj, 'effects');
     return 'retraction' if ohas($obj, 'retracts');
     return 'succession' if ohas($obj, 'predecessor') && ohas($obj, 'successor');
     return 'enrichment' if ohas($obj, 'field') && ohas($obj, 'entry');

@@ -46,7 +46,7 @@ Causalontology - the Perl binding of the Causalontology standard
         type => jstr('occurrent'), label => jstr('light_on'),
         category => jstr('state_change')));
     my $claim = $store->put(jobj(
-        type => jstr('cro'),
+        type => jstr('causal_relation_object'),
         causes => jarr(jstr($press)), effects => jarr(jstr($light))));
 
     # the degenerate claim is a visible invitation

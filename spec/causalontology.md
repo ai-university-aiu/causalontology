@@ -13,19 +13,19 @@ fields and are immutable):
 
 | Kind | Prefix | What it is |
 |---|---|---|
-| Occurrent | `occ:` | a process or event TYPE (a verb): the vocabulary of causes and effects |
-| Causal Relation Object (CRO) | `cro:` | a reified causal claim: causes, effects, optional mechanism, temporal window, modality, context, refines |
-| Continuant | `cnt:` | a thing that endures (a noun) |
-| Realizable entity | `rlz:` | a disposition, function, or role — inheres in a continuant, realized in occurrents |
+| Occurrent | `occurrent:` | a process or event TYPE (a verb): the vocabulary of causes and effects |
+| Causal Relation Object (CRO) | `causal_relation_object:` | a reified causal claim: causes, effects, optional mechanism, temporal window, modality, context, refines |
+| Continuant | `continuant:` | a thing that endures (a noun) |
+| Realizable entity | `realizable:` | a disposition, function, or role — inheres in a continuant, realized in occurrents |
 
 Four **provenance kinds** (signed, add-only records):
 
 | Kind | Prefix | What it says |
 |---|---|---|
-| Assertion | `ast:` | "I, source S, assert claim C, evidence type t, strength s, confidence c, at time T" |
-| Enrichment | `enr:` | "I add entry E to field F of object X" (aliases, participants, subsumes, part_of, realized_in) |
-| Retraction | `ret:` | "I withdraw my own earlier assertion or enrichment" |
-| Succession | `suc:` | "key K2 succeeds key K1" (signed by K1) |
+| Assertion | `assertion:` | "I, source S, assert claim C, evidence type t, strength s, confidence c, at time T" |
+| Enrichment | `enrichment:` | "I add entry E to field F of object X" (aliases, participants, subsumes, part_of, realized_in) |
+| Retraction | `retraction:` | "I withdraw my own earlier assertion or enrichment" |
+| Succession | `succession:` | "key K2 succeeds key K1" (signed by K1) |
 
 **Scope:** this specification models TYPE-LEVEL (generic) causation. The
 token-level kind is reserved (prefix `tok:`) for a future version.

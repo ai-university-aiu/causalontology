@@ -12,7 +12,7 @@ enum ContinuantCategory { CNT_CAT_UNSPECIFIED = 0; OBJECT = 1; AGENT = 2; PLACE 
 enum RealizableKind { RLZ_KIND_UNSPECIFIED = 0; DISPOSITION = 1; FUNCTION = 2; ROLE = 3; }
 enum EnrichmentField { FIELD_UNSPECIFIED = 0; ALIASES = 1; PARTICIPANTS = 2; SUBSUMES = 3; PART_OF = 4; REALIZED_IN = 5; }
 
-message TemporalWindow { double dmin = 1; double dmax = 2; TemporalUnit unit = 3; }
+message TemporalWindow { double minimum_delay = 1; double maximum_delay = 2; TemporalUnit unit = 3; }
 message Alias { string lang = 1; string text = 2; }
 
 message CausalRelationObject {

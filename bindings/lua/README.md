@@ -55,7 +55,7 @@ local press = store:put(json.obj("type", "occurrent",
 local light = store:put(json.obj("type", "occurrent",
                                  "label", "light_on",
                                  "category", "state_change"))
-local claim = store:put(json.obj("type", "cro",
+local claim = store:put(json.obj("type", "causal_relation_object",
                                  "causes", json.new_array({ press }),
                                  "effects", json.new_array({ light })))
 

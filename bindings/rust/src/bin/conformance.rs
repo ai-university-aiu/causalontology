@@ -45,7 +45,7 @@ fn key(name: &str) -> (SigningKey, String) {
 }
 
 const SCHEMES: [&str; 9] =
-    ["occ", "cro", "cnt", "rlz", "ast", "enr", "ret", "suc", "ed25519"];
+    ["occurrent", "causal_relation_object", "continuant", "realizable", "assertion", "enrichment", "retraction", "succession", "ed25519"];
 
 fn sym(s: &str) -> String {
     let (scheme, name) = match s.split_once(':') {
@@ -182,7 +182,7 @@ fn adm(n: u32) -> Result<bool, String> {
     let (_, v) = vec_json(n);
     let given = obj(&v["given"]);
     let cro = obj(&json!({
-        "causes": [sym("occ:c")], "effects": [sym("occ:e")],
+        "causes": [sym("occurrent:c")], "effects": [sym("occurrent:e")],
         "temporal": given["temporal"]
     }));
     let elapsed = given["elapsed_seconds"].as_f64()
@@ -233,7 +233,7 @@ fn run_vector(n: u32) -> R {
             let input = obj(&normalize(&v["input"]));
             let (ok, _) = validate_schema(&input, None);
             ensure!(ok, "schema should pass");
-            semantics_fails(14, "dmin")
+            semantics_fails(14, "minimum_delay")
         }
         15 => semantics_fails(15, "acyclic"),
         16 => semantics_fails(16, "acyclic"),
@@ -249,7 +249,7 @@ fn run_vector(n: u32) -> R {
         19 => semantics_fails(19, "language-tagged"),
         20 => {
             let (dog, mam, ani) =
-                (sym("cnt:dog"), sym("cnt:mammal"), sym("cnt:animal"));
+                (sym("continuant:dog"), sym("continuant:mammal"), sym("continuant:animal"));
             let enrich = |about: &str, entry: &str, i: u32| {
                 signed("enrichment",
                        json!({"about": about, "field": "subsumes",
@@ -325,8 +325,8 @@ fn run_vector(n: u32) -> R {
         28 => {
             let mut store = InMemoryStore::new(true);
             let claim = obj(&json!({
-                "type": "cro", "causes": [sym("occ:A")],
-                "effects": [sym("occ:B")], "modality": "sufficient"}));
+                "type": "causal_relation_object", "causes": [sym("occurrent:A")],
+                "effects": [sym("occurrent:B")], "modality": "sufficient"}));
             let i1 = store.put(&claim, None).map_err(|e| e.0)?;
             let i2 = store.put(&claim, None).map_err(|e| e.0)?;
             ensure!(i1 == i2 && store.objects.len() == 1, "not one object");
@@ -342,14 +342,14 @@ fn run_vector(n: u32) -> R {
         }
         29 => {
             let rec = signed("assertion", json!({
-                "about": sym("cro:demo"), "evidence_type": "intervention",
+                "about": sym("causal_relation_object:demo"), "evidence_type": "intervention",
                 "strength": 0.7, "confidence": 0.9}), "signer", 0);
             ensure!(verify_record(&rec, None), "must verify");
             Ok(())
         }
         30 => {
             let rec = signed("assertion", json!({
-                "about": sym("cro:demo"), "evidence_type": "intervention",
+                "about": sym("causal_relation_object:demo"), "evidence_type": "intervention",
                 "strength": 0.7, "confidence": 0.9}), "signer", 0);
             let mut tampered = rec.clone();
             tampered.insert("confidence".into(), json!(0.1));
@@ -359,8 +359,8 @@ fn run_vector(n: u32) -> R {
         31 => {
             let mut store = InMemoryStore::new(true);
             let x = store.put(&obj(&json!({
-                "type": "cro", "causes": [sym("occ:A")],
-                "effects": [sym("occ:B")]})), None).map_err(|e| e.0)?;
+                "type": "causal_relation_object", "causes": [sym("occurrent:A")],
+                "effects": [sym("occurrent:B")]})), None).map_err(|e| e.0)?;
             let a = signed("assertion", json!({
                 "about": x, "evidence_type": "observation",
                 "confidence": 0.8}), "lab1", 1);
@@ -412,7 +412,7 @@ fn run_vector(n: u32) -> R {
             let (_, k1) = key("K1");
             let (_, k2) = key("K2");
             let a = signed("assertion", json!({
-                "about": sym("cro:claim"), "evidence_type": "observation",
+                "about": sym("causal_relation_object:claim"), "evidence_type": "observation",
                 "confidence": 0.9}), "K1", 1);
             store.put_record(&a, None).map_err(|e| e.0)?;
             store.put_record(&signed("succession", json!({
@@ -420,7 +420,7 @@ fn run_vector(n: u32) -> R {
             ensure!(store.lineage(&k2).contains(&k1), "lineage broken");
             store.put_record(&signed("retraction", json!({
                 "retracts": a["id"]}), "K2", 3), None).map_err(|e| e.0)?;
-            ensure!(store.assertions_about(&sym("cro:claim"), false)
+            ensure!(store.assertions_about(&sym("causal_relation_object:claim"), false)
                     .is_empty(), "successor retraction not honored");
             Ok(())
         }
@@ -439,13 +439,13 @@ fn run_vector(n: u32) -> R {
             Ok(())
         }
         36 => {
-            let (a, b, c, d) = (sym("occ:A"), sym("occ:B"),
-                                sym("occ:C"), sym("occ:D"));
-            let m1 = obj(&json!({"id": sym("cro:m1"),
+            let (a, b, c, d) = (sym("occurrent:A"), sym("occurrent:B"),
+                                sym("occurrent:C"), sym("occurrent:D"));
+            let m1 = obj(&json!({"id": sym("causal_relation_object:m1"),
                                  "causes": [a], "effects": [b]}));
-            let m2 = obj(&json!({"id": sym("cro:m2"),
+            let m2 = obj(&json!({"id": sym("causal_relation_object:m2"),
                                  "causes": [b], "effects": [c]}));
-            let m3 = obj(&json!({"id": sym("cro:m3"),
+            let m3 = obj(&json!({"id": sym("causal_relation_object:m3"),
                                  "causes": [d], "effects": [c]}));
             let parent = obj(&json!({
                 "causes": [a], "effects": [c],
@@ -487,17 +487,17 @@ fn run_vector(n: u32) -> R {
         38 => {
             let mut store = InMemoryStore::new(true);
             let p = store.put(&obj(&json!({
-                "type": "cro", "causes": [sym("occ:A")],
-                "effects": [sym("occ:B")]})), None).map_err(|e| e.0)?;
+                "type": "causal_relation_object", "causes": [sym("occurrent:A")],
+                "effects": [sym("occurrent:B")]})), None).map_err(|e| e.0)?;
             let has = |store: &InMemoryStore, id: &str| {
                 store.gaps(Some("missing_field")).iter()
                     .any(|g| g.get("id").and_then(Value::as_str) == Some(id))
             };
             ensure!(has(&store, &p), "gap must be open");
             let r = store.put(&obj(&json!({
-                "type": "cro", "causes": [sym("occ:A")],
-                "effects": [sym("occ:B")],
-                "temporal": {"dmin": 0, "dmax": 1, "unit": "seconds"},
+                "type": "causal_relation_object", "causes": [sym("occurrent:A")],
+                "effects": [sym("occurrent:B")],
+                "temporal": {"minimum_delay": 0, "maximum_delay": 1, "unit": "seconds"},
                 "modality": "sufficient", "refines": p})), None)
                 .map_err(|e| e.0)?;
             ensure!(!has(&store, &p), "the gap did not close");

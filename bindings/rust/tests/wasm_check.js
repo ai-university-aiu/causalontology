@@ -41,7 +41,7 @@ async function main() {
   check("identify agrees with the JS binding (occurrent)",
         wasmId === js.identify(press));
 
-  const claim = { type: "cro", causes: [wasmId],
+  const claim = { type: "causal_relation_object", causes: [wasmId],
                   effects: [js.identify({ type: "occurrent",
                     label: "light_on", category: "state_change" })],
                   modality: "sufficient" };
@@ -54,7 +54,7 @@ async function main() {
         Buffer.from(js.canonicalize(claim)).toString("utf8"));
 
   // validation agreement: embedded schemas + semantics inside the WASM
-  const bad = { type: "cro", causes: [], effects: [wasmId] };
+  const bad = { type: "causal_relation_object", causes: [], effects: [wasmId] };
   const verdict = call(wasm, "co_validate", bad);
   check("embedded schema validation works in WASM (empty causes rejected)",
         verdict.schema_valid === false &&

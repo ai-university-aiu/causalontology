@@ -39,7 +39,7 @@ object Canonical {
 
     val IDENTITY_FIELDS: Map<String, List<String>> = mapOf(
         "occurrent" to listOf("label", "category"),
-        "cro" to listOf("causes", "effects", "mechanism", "temporal", "modality",
+        "causal_relation_object" to listOf("causes", "effects", "mechanism", "temporal", "modality",
                         "context", "refines"),
         "continuant" to listOf("label", "category"),
         "realizable" to listOf("kind", "bearer"),
@@ -51,9 +51,9 @@ object Canonical {
     )
 
     val PREFIX: Map<String, String> = mapOf(
-        "occurrent" to "occ", "cro" to "cro", "continuant" to "cnt", "realizable" to "rlz",
-        "assertion" to "ast", "enrichment" to "enr", "retraction" to "ret",
-        "succession" to "suc"
+        "occurrent" to "occurrent", "causal_relation_object" to "causal_relation_object", "continuant" to "continuant", "realizable" to "realizable",
+        "assertion" to "assertion", "enrichment" to "enrichment", "retraction" to "retraction",
+        "succession" to "succession"
     )
 
     val KIND_OF_PREFIX: Map<String, String> = PREFIX.entries.associate { it.value to it.key }
@@ -68,7 +68,7 @@ object Canonical {
             val pre = id.substringBefore(":")
             KIND_OF_PREFIX[pre]?.let { return it }
         }
-        if (obj.containsKey("causes") && obj.containsKey("effects")) return "cro"
+        if (obj.containsKey("causes") && obj.containsKey("effects")) return "causal_relation_object"
         if (obj.containsKey("retracts")) return "retraction"
         if (obj.containsKey("predecessor") && obj.containsKey("successor")) return "succession"
         if (obj.containsKey("field") && obj.containsKey("entry")) return "enrichment"

@@ -15,7 +15,7 @@ import Crypto
 /// The identity-bearing fields per kind, exactly as in the Python binding.
 public let identityFields: [String: [String]] = [
     "occurrent": ["label", "category"],
-    "cro": ["causes", "effects", "mechanism", "temporal", "modality",
+    "causal_relation_object": ["causes", "effects", "mechanism", "temporal", "modality",
             "context", "refines"],
     "continuant": ["label", "category"],
     "realizable": ["kind", "bearer"],
@@ -28,26 +28,26 @@ public let identityFields: [String: [String]] = [
 
 /// The identifier scheme prefix per kind.
 public let idPrefix: [String: String] = [
-    "occurrent": "occ",
-    "cro": "cro",
-    "continuant": "cnt",
-    "realizable": "rlz",
-    "assertion": "ast",
-    "enrichment": "enr",
-    "retraction": "ret",
-    "succession": "suc",
+    "occurrent": "occurrent",
+    "causal_relation_object": "causal_relation_object",
+    "continuant": "continuant",
+    "realizable": "realizable",
+    "assertion": "assertion",
+    "enrichment": "enrichment",
+    "retraction": "retraction",
+    "succession": "succession",
 ]
 
 /// The kind per identifier scheme prefix (the inverse of idPrefix).
 public let kindOfPrefix: [String: String] = [
-    "occ": "occurrent",
-    "cro": "cro",
-    "cnt": "continuant",
-    "rlz": "realizable",
-    "ast": "assertion",
-    "enr": "enrichment",
-    "ret": "retraction",
-    "suc": "succession",
+    "occurrent": "occurrent",
+    "causal_relation_object": "causal_relation_object",
+    "continuant": "continuant",
+    "realizable": "realizable",
+    "assertion": "assertion",
+    "enrichment": "enrichment",
+    "retraction": "retraction",
+    "succession": "succession",
 ]
 
 /// Lowercase hex encoding of any bytes.
@@ -98,7 +98,7 @@ public func inferKind(_ obj: [String: JsonValue]) throws -> String {
         }
     }
     if obj["causes"] != nil && obj["effects"] != nil {
-        return "cro"
+        return "causal_relation_object"
     }
     if obj["retracts"] != nil {
         return "retraction"

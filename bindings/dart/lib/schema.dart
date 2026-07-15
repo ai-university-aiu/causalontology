@@ -13,7 +13,7 @@ import 'dart:io';
 import 'canonical.dart';
 
 const Map<String, String> schemaFiles = {
-  'cro': 'cro.schema.json',
+  'causal_relation_object': 'cro.schema.json',
   'occurrent': 'occurrent.schema.json',
   'continuant': 'continuant.schema.json',
   'realizable': 'realizable.schema.json',
