@@ -15,19 +15,35 @@ namespace Causalontology;
 
 final class SchemaValidator
 {
-    /** The schema file per kind, under spec/schema/. */
+    /**
+     * The schema file per kind, under spec/schema/. Three token kinds keep
+     * their original 1.0.0-reserved file names (individual/token/state); the
+     * id scheme is the whole word.
+     */
     public const SCHEMA_FILES = [
-        'causal_relation_object'        => 'cro.schema.json',
-        'occurrent'  => 'occurrent.schema.json',
-        'continuant' => 'continuant.schema.json',
-        'realizable' => 'realizable.schema.json',
-        'assertion'  => 'assertion.schema.json',
-        'enrichment' => 'enrichment.schema.json',
-        'retraction' => 'retraction.schema.json',
-        'succession' => 'succession.schema.json',
+        'occurrent'              => 'occurrent.schema.json',
+        'causal_relation_object' => 'causal_relation_object.schema.json',
+        'continuant'             => 'continuant.schema.json',
+        'realizable'             => 'realizable.schema.json',
+        'stratum'                => 'stratum.schema.json',
+        'bridge'                 => 'bridge.schema.json',
+        'port'                   => 'port.schema.json',
+        'conduit'                => 'conduit.schema.json',
+        'quality'                => 'quality.schema.json',
+        'token_individual'       => 'individual.schema.json',
+        'token_occurrence'       => 'token.schema.json',
+        'state_assertion'        => 'state.schema.json',
+        'token_causal_claim'     => 'token_causal_claim.schema.json',
+        'assertion'              => 'assertion.schema.json',
+        'enrichment'             => 'enrichment.schema.json',
+        'retraction'             => 'retraction.schema.json',
+        'succession'             => 'succession.schema.json',
     ];
 
-    /** @var array<string, array> loaded schemas, one per kind */
+    /** The cross-file $ref base (a sibling schema in spec/schema/). */
+    private const BASE = 'https://causalontology.org/schema/';
+
+    /** @var array<string, array> loaded schemas, keyed by file name */
     private static array $cache = [];
 
     /** A static utility class, never an instance. */
@@ -46,21 +62,27 @@ final class SchemaValidator
         return dirname(__DIR__, 3) . '/spec/schema';
     }
 
+    /** Load (and cache) a schema document by its file name. */
+    private static function loadFile(string $filename): array
+    {
+        if (!isset(self::$cache[$filename])) {
+            $file = self::schemaDir() . '/' . $filename;
+            $raw = @file_get_contents($file);
+            if ($raw === false) {
+                throw new \RuntimeException('cannot read schema file: ' . $file);
+            }
+            self::$cache[$filename] = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        }
+        return self::$cache[$filename];
+    }
+
     /** Load (and cache) the JSON Schema for a kind. */
     public static function loadSchema(string $kind): array
     {
         if (!isset(self::SCHEMA_FILES[$kind])) {
             throw new \InvalidArgumentException('unknown kind: ' . var_export($kind, true));
         }
-        if (!isset(self::$cache[$kind])) {
-            $file = self::schemaDir() . '/' . self::SCHEMA_FILES[$kind];
-            $raw = @file_get_contents($file);
-            if ($raw === false) {
-                throw new \RuntimeException('cannot read schema file: ' . $file);
-            }
-            self::$cache[$kind] = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
-        }
-        return self::$cache[$kind];
+        return self::loadFile(self::SCHEMA_FILES[$kind]);
     }
 
     /**
@@ -77,21 +99,48 @@ final class SchemaValidator
         return [$errors === [], $errors];
     }
 
-    /** Follow local $ref chains (#/$defs/...) to the referenced schema. */
+    /** Navigate a JSON Pointer (slash-separated) into a document. */
+    private static function navigate(array $doc, string $pointer): mixed
+    {
+        $node = $doc;
+        foreach (explode('/', $pointer) as $part) {
+            if ($part === '') {
+                continue;
+            }
+            $node = $node[$part];
+        }
+        return $node;
+    }
+
+    /**
+     * Resolve local and cross-file $refs to a concrete schema node plus the
+     * root document it now lives in.
+     *
+     * @return array{0: array, 1: array} [schema, root]
+     */
     private static function resolveRef(array $schema, array $root): array
     {
         while (array_key_exists('$ref', $schema)) {
             $ref = $schema['$ref'];
-            if (!str_starts_with($ref, '#/')) {
-                throw new \InvalidArgumentException('only local $ref supported: ' . $ref);
+            if (str_starts_with($ref, '#/')) {
+                $schema = self::navigate($root, substr($ref, 2));
+            } elseif (str_starts_with($ref, self::BASE)) {
+                $rest = substr($ref, strlen(self::BASE));
+                $hash = strpos($rest, '#/');
+                if ($hash === false) {
+                    $filename = $rest;
+                    $pointer = '';
+                } else {
+                    $filename = substr($rest, 0, $hash);
+                    $pointer = substr($rest, $hash + 2);
+                }
+                $root = self::loadFile($filename);
+                $schema = $pointer === '' ? $root : self::navigate($root, $pointer);
+            } else {
+                throw new \InvalidArgumentException('unsupported $ref: ' . $ref);
             }
-            $node = $root;
-            foreach (explode('/', substr($ref, 2)) as $part) {
-                $node = $node[$part];
-            }
-            $schema = $node;
         }
-        return $schema;
+        return [$schema, $root];
     }
 
     /** Does the value match a JSON Schema primitive type name? */
@@ -105,6 +154,7 @@ final class SchemaValidator
             'string'  => is_string($value),
             // PHP booleans are a distinct type, so no bool-as-number leak.
             'number'  => is_int($value) || is_float($value),
+            'integer' => is_int($value),
             'boolean' => is_bool($value),
             default   => throw new \InvalidArgumentException('unsupported schema type: ' . $type),
         };
@@ -114,7 +164,7 @@ final class SchemaValidator
     private static function check(mixed $value, array $schema, array $root,
                                   string $path, array &$errors): void
     {
-        $schema = self::resolveRef($schema, $root);
+        [$schema, $root] = self::resolveRef($schema, $root);
 
         if (array_key_exists('oneOf', $schema)) {
             $passing = 0;

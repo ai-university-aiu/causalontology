@@ -21,8 +21,10 @@ namespace Causalontology;
 
 final class Store
 {
-    /** The four immutable content kinds. */
-    public const CONTENT_KINDS = ['occurrent', 'causal_relation_object', 'continuant', 'realizable'];
+    /** The immutable content kinds. */
+    public const CONTENT_KINDS = ['occurrent', 'causal_relation_object', 'continuant',
+        'realizable', 'stratum', 'bridge', 'port', 'conduit', 'quality',
+        'token_individual', 'token_occurrence', 'state_assertion', 'token_causal_claim'];
 
     /** The four signed provenance record kinds. */
     public const RECORD_KINDS = ['assertion', 'enrichment', 'retraction', 'succession'];
