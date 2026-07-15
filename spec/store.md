@@ -4,7 +4,9 @@
 
 `canonicalize`, `identify`, `validate_schema`, `validate_semantics`,
 `admissible(cro, elapsed_seconds)`, `conflicts(a, b)`,
-`hierarchy_consistent(cro, members)`, `sign`, `verify` — and against a store:
+`hierarchy_consistent(cro, members, bridges)` (BRIDGED reachability, Algorithm
+B), `bridge_closure`, `classify_cro`, `skip_gaps`, `delay_within_window`,
+`sign`, `verify` — and against a store:
 `put`, `put_record`, `get` (with materialized enrichments),
 `assertions_about`, `enrichments_about`, `retractions_of`, `lineage`,
 `resolve`, `query`, `gaps`.
@@ -66,3 +68,33 @@ Gap kinds returned by `gaps`: `missing_field`, `dangling_reference`,
 `empty_mechanism`, `inconsistent_hierarchy`, `conflict`, `demand_supply`.
 Closing them is done with `refines` objects and enrichment records; a validly
 refined parent leaves the gap list — the gap visibly closes.
+
+### The 2.0.0 gap taxonomy (twenty-one new entries)
+
+Gaps are stigmergic invitations, EXCEPT those marked HARD, which are schema or
+semantic validation failures and MUST cause rejection. Nine are HARD; twelve
+are invitations.
+
+| Gap | Kind | Meaning |
+|---|---|---|
+| `scheme_mismatch` | HARD | two strata compared across schemes |
+| `malformed_bridge` | HARD | a Bridge violating stratal well-formedness (N3.2.1) |
+| `bridge_cycle` | HARD | a cycle in the bridge graph |
+| `unstratified_occurrent` | invitation | an occurrent with no stratum |
+| `malformed_conduit` | HARD | a Conduit whose carries is not accepted by its ports |
+| `collided_realizable` | invitation | an unlabelled realizable whose bearer bears >1 of the same kind |
+| `contradictory_skip` | HARD | `skips: true` AND a non-empty mechanism |
+| `vacuous_skip` | invitation | `skips: true` on a non-SKIPPING relation |
+| `individual_cycle` | HARD | a cycle in token mereology |
+| `stratum_mismatch` | invitation | a token whose participants' strata are incoherent with its occurrent's |
+| `value_type_mismatch` | HARD | a state value whose shape ≠ its quality's datatype |
+| `unit_mismatch` | HARD | a quantity state whose unit ≠ its quality's unit |
+| `uncovered_causation` | invitation | a token causal claim with no covering_law — the most valuable gap |
+| `delay_outside_window` | invitation | an observed delay outside the covering law's window |
+| `occurrent_hierarchy_cycle` | HARD | a cycle in `occurrent_subsumes` |
+| `occurrent_mereology_cycle` | HARD | a cycle in `occurrent_part_of` |
+| `subsumption_crosses_strata` | invitation | `occurrent_subsumes` between different strata; a Bridge was probably meant |
+| `covering_law_mismatch` | invitation | a token claim whose tokens do not instantiate its law's occurrents |
+| `retrocausal_claim` | HARD | a token cause whose interval starts after its effect's |
+| `mixed_stratal_endpoints` | invitation | a relation whose causes or effects span multiple strata |
+| `incomplete_mechanism` | invitation | a SKIPPING relation with empty mechanism and `skips` absent (contrast `contradictory_skip`) |
