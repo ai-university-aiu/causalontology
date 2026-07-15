@@ -12,11 +12,34 @@ defmodule Causalontology.Canonical do
 
   alias Causalontology.Jcs
 
+  # The identity-bearing fields of each of the seventeen kinds. "type" is always
+  # injected, so it is not listed here. Order does not matter (JCS sorts keys).
   @identity_fields %{
-    "occurrent" => ["label", "category"],
-    "causal_relation_object" => ["causes", "effects", "mechanism", "temporal", "modality", "context", "refines"],
+    # ---- type tier ----
+    "occurrent" => ["label", "category", "stratum"],
+    "causal_relation_object" => [
+      "causes",
+      "effects",
+      "mechanism",
+      "temporal",
+      "modality",
+      "context",
+      "refines",
+      "skips"
+    ],
     "continuant" => ["label", "category"],
-    "realizable" => ["kind", "bearer"],
+    "realizable" => ["kind", "bearer", "label"],
+    "stratum" => ["label", "scheme", "ordinal", "unit", "governs"],
+    "bridge" => ["coarse", "fine", "relation"],
+    "port" => ["bearer", "label", "direction", "accepts", "realizable"],
+    "conduit" => ["label", "from", "to", "carries", "transform"],
+    "quality" => ["label", "datatype", "unit", "stratum"],
+    # ---- token tier ----
+    "token_individual" => ["instantiates", "designator", "part_of"],
+    "token_occurrence" => ["instantiates", "interval", "participants", "locus", "observer"],
+    "state_assertion" => ["subject", "quality", "value", "interval"],
+    "token_causal_claim" => ["causes", "effects", "covering_law", "actual_delay", "counterfactual"],
+    # ---- provenance tier ----
     "assertion" => [
       "about",
       "source",
@@ -24,23 +47,16 @@ defmodule Causalontology.Canonical do
       "evidence",
       "strength",
       "confidence",
-      "timestamp"
+      "timestamp",
+      "evidenced_by"
     ],
     "enrichment" => ["about", "field", "entry", "source", "timestamp"],
     "retraction" => ["retracts", "source", "timestamp"],
     "succession" => ["predecessor", "successor", "timestamp"]
   }
 
-  @prefix %{
-    "occurrent" => "occurrent",
-    "causal_relation_object" => "causal_relation_object",
-    "continuant" => "continuant",
-    "realizable" => "realizable",
-    "assertion" => "assertion",
-    "enrichment" => "enrichment",
-    "retraction" => "retraction",
-    "succession" => "succession"
-  }
+  # Whole-word re-mint (P7): the scheme IS the type value for every kind.
+  @prefix Map.new(@identity_fields, fn {kind, _fields} -> {kind, kind} end)
 
   @kind_of_prefix Map.new(@prefix, fn {kind, prefix} -> {prefix, kind} end)
 
@@ -60,6 +76,9 @@ defmodule Causalontology.Canonical do
 
       is_binary(id) and String.contains?(id, ":") and kind_from_id(id) != nil ->
         kind_from_id(id)
+
+      Map.has_key?(obj, "coarse") and Map.has_key?(obj, "fine") ->
+        "bridge"
 
       Map.has_key?(obj, "causes") and Map.has_key?(obj, "effects") ->
         "causal_relation_object"

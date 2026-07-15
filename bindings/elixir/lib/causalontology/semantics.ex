@@ -20,18 +20,23 @@ defmodule Causalontology.Semantics do
     "years" => 31_556_952
   }
 
-  # Rule 12: enrichment field-to-kind validity and entry shapes.
+  # Rule 12: enrichment field-to-kind validity and entry shapes. Two occurrent
+  # forms added in 2.0.0.
   @enrichment_fields %{
     "aliases" => {["occurrent", "continuant"], "alias"},
     "participants" => {["occurrent"], "continuant"},
     "subsumes" => {["continuant"], "continuant"},
     "part_of" => {["continuant"], "continuant"},
-    "realized_in" => {["realizable"], "occurrent"}
+    "realized_in" => {["realizable"], "occurrent"},
+    "occurrent_subsumes" => {["occurrent"], "occurrent"},
+    "occurrent_part_of" => {["occurrent"], "occurrent"}
   }
 
   @cro_optional_fields ["mechanism", "temporal", "modality", "context"]
 
-  @positive_modalities ["necessary", "sufficient", "contributory"]
+  # Rule 6 (amended): necessary, sufficient, contributory, enabling are mutually
+  # compatible; preventive opposes all four.
+  @positive_modalities ["necessary", "sufficient", "contributory", "enabling"]
 
   @doc "The fixed unit-to-seconds conversion table (rule 4)."
   def unit_seconds, do: @unit_seconds
@@ -78,10 +83,27 @@ defmodule Causalontology.Semantics do
         errors
       end
 
-    if oid != nil and Map.get(obj, "refines") == oid do
-      errors ++ ["refines must be acyclic"]
+    errors =
+      if oid != nil and Map.get(obj, "refines") == oid do
+        errors ++ ["refines must be acyclic"]
+      else
+        errors
+      end
+
+    # Rule 16, clause 1 (contradictory_skip): a HARD, locally-decidable
+    # contradiction between skips:true and a non-empty mechanism.
+    if Map.get(obj, "skips") == true and truthy_mechanism(obj) do
+      errors ++ ["contradictory_skip: skips is true but a mechanism is present"]
     else
       errors
+    end
+  end
+
+  defp truthy_mechanism(obj) do
+    case Map.get(obj, "mechanism") do
+      nil -> false
+      [] -> false
+      _ -> true
     end
   end
 
@@ -244,31 +266,80 @@ defmodule Causalontology.Semantics do
     end
   end
 
+  # ===========================================================================
+  # 2.0.0 NORMATIVE ALGORITHMS (Section 12)
+  # ===========================================================================
+
   @doc """
-  Rule 7: "consistent" | "inconsistent" | "indeterminate".
+  ALGORITHM A. Every finer occurrent an occurrent resolves to, following
+  Bridges downward, transitively. Includes the starting occurrent (N12.1.1).
+  `bridges` is any list of bridge objects. A visited guard (N12.1.2) prevents
+  an infinite loop on malformed cyclic data. Returns a MapSet.
+  """
+  def bridge_closure(occurrent_id, bridges) do
+    coarse_index =
+      Enum.reduce(bridges, %{}, fn b, acc ->
+        Map.update(acc, Map.fetch!(b, "coarse"), [b], &(&1 ++ [b]))
+      end)
+
+    close([occurrent_id], MapSet.new([occurrent_id]), MapSet.new(), coarse_index)
+  end
+
+  defp close([], result, _visited, _index), do: result
+
+  defp close([current | frontier], result, visited, index) do
+    if MapSet.member?(visited, current) do
+      close(frontier, result, visited, index)
+    else
+      visited = MapSet.put(visited, current)
+
+      {result, frontier} =
+        Enum.reduce(Map.get(index, current, []), {result, frontier}, fn b, {res, fr} ->
+          Enum.reduce(Map.fetch!(b, "fine"), {res, fr}, fn f, {res, fr} ->
+            {MapSet.put(res, f), [f | fr]}
+          end)
+        end)
+
+      close(frontier, result, visited, index)
+    end
+  end
+
+  @doc """
+  ALGORITHM B (amended Rule 7): "consistent" | "inconsistent" | "indeterminate",
+  ACROSS STRATA via bridged reachability.
 
   `members` is a map from CRO identifier to CRO object for the parent's
-  mechanism entries (the store's view of them).
+  mechanism entries. `bridges` is the store's bridges (empty -> 1.0.0 literal
+  reachability, the degenerate case, N12.2.3).
   """
-  def hierarchy_consistent(parent, members) do
+  def hierarchy_consistent(parent, members, bridges \\ []) do
     mechanism = Map.get(parent, "mechanism", [])
 
     if mechanism == [] do
-      # Nothing claimed, nothing to check.
+      # Nothing claimed, nothing to check (N12.2.1).
       "consistent"
     else
       case build_mechanism_edges(mechanism, members) do
         :indeterminate ->
-          # A dangling_reference gap, not a failure.
+          # Dangling; ignorance, not refutation.
           "indeterminate"
 
         edges ->
-          all_reachable =
-            Enum.all?(Map.fetch!(parent, "causes"), fn c ->
-              Enum.all?(Map.fetch!(parent, "effects"), fn e -> reachable?(edges, c, e) end)
+          causes = Map.fetch!(parent, "causes")
+          effects = Map.fetch!(parent, "effects")
+          b_cause = Map.new(causes, fn c -> {c, bridge_closure(c, bridges)} end)
+          b_effect = Map.new(effects, fn e -> {e, bridge_closure(e, bridges)} end)
+
+          connected? =
+            Enum.all?(causes, fn c ->
+              Enum.all?(effects, fn e ->
+                Enum.any?(Map.fetch!(b_cause, c), fn cp ->
+                  Enum.any?(Map.fetch!(b_effect, e), fn ep -> reachable?(edges, cp, ep) end)
+                end)
+              end)
             end)
 
-          if all_reachable, do: "consistent", else: "inconsistent"
+          if connected?, do: "consistent", else: "inconsistent"
       end
     end
   end
@@ -301,11 +372,322 @@ defmodule Causalontology.Semantics do
 
   defp reachable?(edges, [node | stack], dst, seen) do
     cond do
-      node == dst -> true
-      MapSet.member?(seen, node) -> reachable?(edges, stack, dst, seen)
+      node == dst ->
+        true
+
+      MapSet.member?(seen, node) ->
+        reachable?(edges, stack, dst, seen)
+
       true ->
         next = edges |> Map.get(node, MapSet.new()) |> MapSet.to_list()
         reachable?(edges, next ++ stack, dst, MapSet.put(seen, node))
+    end
+  end
+
+  @doc """
+  ALGORITHM C (Rule 15): "intra_stratal" | "adjacent_stratal" | "skipping" |
+  "mixed" | "unclassifiable" | "scheme_mismatch". Derived, never asserted.
+  """
+  def classify_cro(cro, occ_map, stratum_map) do
+    cause_strata = Enum.map(Map.fetch!(cro, "causes"), &stratum_of(occ_map, &1))
+    effect_strata = Enum.map(Map.fetch!(cro, "effects"), &stratum_of(occ_map, &1))
+
+    cond do
+      Enum.any?(cause_strata ++ effect_strata, &is_nil/1) ->
+        "unclassifiable"
+
+      true ->
+        all_strata = MapSet.new(cause_strata ++ effect_strata)
+        schemes = MapSet.new(all_strata, fn s -> Map.fetch!(Map.fetch!(stratum_map, s), "scheme") end)
+
+        if MapSet.size(schemes) > 1 do
+          "scheme_mismatch"
+        else
+          c_ord = Enum.map(cause_strata, &ordinal(stratum_map, &1))
+          e_ord = Enum.map(effect_strata, &ordinal(stratum_map, &1))
+
+          cond do
+            Enum.max(c_ord) == Enum.min(c_ord) and Enum.min(c_ord) == Enum.max(e_ord) and
+                Enum.max(e_ord) == Enum.min(e_ord) ->
+              "intra_stratal"
+
+            true ->
+              pairs = for i <- c_ord, j <- e_ord, do: abs(i - j)
+              gap = Enum.min(pairs)
+              span = Enum.max(pairs)
+
+              cond do
+                span == 1 -> "adjacent_stratal"
+                gap > 1 -> "skipping"
+                true -> "mixed"
+              end
+          end
+        end
+    end
+  end
+
+  defp stratum_of(occ_map, occ_id), do: occ_map |> Map.get(occ_id, %{}) |> Map.get("stratum")
+
+  defp ordinal(stratum_map, s), do: Map.fetch!(Map.fetch!(stratum_map, s), "ordinal")
+
+  @doc """
+  True iff causes or effects span more than one distinct stratum (surfaces
+  mixed_stratal_endpoints, an invitation; N12.3.2).
+  """
+  def endpoints_mixed(cro, occ_map) do
+    cs = MapSet.new(Map.fetch!(cro, "causes"), &stratum_of(occ_map, &1))
+    es = MapSet.new(Map.fetch!(cro, "effects"), &stratum_of(occ_map, &1))
+
+    if MapSet.member?(cs, nil) or MapSet.member?(es, nil) do
+      false
+    else
+      MapSet.size(cs) > 1 or MapSet.size(es) > 1
+    end
+  end
+
+  @doc """
+  ALGORITHM D (Rule 16): the gaps a Causal Relation Object surfaces for the
+  skip decision. THE ASYMMETRY (clause 3) is implemented exactly.
+  """
+  def skip_gaps(cro, classification) do
+    has_mech = truthy_mechanism(cro)
+    skips_true = Map.get(cro, "skips") == true
+
+    cond do
+      skips_true and has_mech ->
+        ["contradictory_skip"]
+
+      true ->
+        gaps =
+          if skips_true and classification not in ["skipping", "unclassifiable"] do
+            ["vacuous_skip"]
+          else
+            []
+          end
+
+        if classification == "skipping" and not has_mech do
+          if skips_true do
+            # NOTHING: absence is a finding.
+            gaps
+          else
+            gaps ++ ["incomplete_mechanism"]
+          end
+        else
+          gaps
+        end
+    end
+  end
+
+  @doc "ALGORITHM E helper: normalize a delay to seconds by the fixed table."
+  def to_seconds(_duration, "instant"), do: 0
+  def to_seconds(duration, unit), do: duration * Map.fetch!(@unit_seconds, unit)
+
+  @doc """
+  ALGORITHM E (Rule 20): does an observed delay fall within a covering law's
+  temporal window? Inclusive at both ends (N12.5.2).
+  """
+  def delay_within_window(actual_delay, temporal) do
+    if is_nil(actual_delay) or actual_delay == %{} or is_nil(temporal) or temporal == %{} do
+      true
+    else
+      observed = to_seconds(Map.fetch!(actual_delay, "duration"), Map.fetch!(actual_delay, "unit"))
+      lo = to_seconds(Map.fetch!(temporal, "minimum_delay"), Map.fetch!(temporal, "unit"))
+      hi = to_seconds(Map.fetch!(temporal, "maximum_delay"), Map.fetch!(temporal, "unit"))
+      lo <= observed and observed <= hi
+    end
+  end
+
+  @doc """
+  Rule 14 / N3.2.1: Bridge well-formedness. All of (a)-(e) must hold, else
+  malformed_bridge. Returns {ok, reason}.
+  """
+  def bridge_wellformed(bridge, occ_map, stratum_map) do
+    coarse = Map.get(occ_map, Map.fetch!(bridge, "coarse"), %{})
+    cs = Map.get(coarse, "stratum")
+    fine_strata = Enum.map(Map.fetch!(bridge, "fine"), fn f -> Map.get(occ_map, f, %{})["stratum"] end)
+
+    cond do
+      is_nil(cs) ->
+        {false, "malformed_bridge: coarse has no stratum (a)"}
+
+      Enum.any?(fine_strata, &is_nil/1) ->
+        {false, "malformed_bridge: a fine member has no stratum (b)"}
+
+      MapSet.size(MapSet.new(fine_strata)) != 1 ->
+        {false, "malformed_bridge: fine members span >1 stratum (c)"}
+
+      true ->
+        fs = hd(fine_strata)
+
+        cond do
+          Map.fetch!(Map.fetch!(stratum_map, cs), "scheme") !=
+              Map.fetch!(Map.fetch!(stratum_map, fs), "scheme") ->
+            {false, "malformed_bridge: coarse and fine differ in scheme (d)"}
+
+          not (ordinal(stratum_map, cs) > ordinal(stratum_map, fs)) ->
+            {false, "malformed_bridge: coarse ordinal not > fine ordinal (e)"}
+
+          true ->
+            {true, "well-formed bridge"}
+        end
+    end
+  end
+
+  @doc """
+  Rule 17 / N4.2.1-2: Conduit well-formedness. N4.2.1 with the transform
+  exception of N4.2.2. Returns {ok, reason}.
+  """
+  def conduit_wellformed(conduit, port_map, cro_map \\ %{}) do
+    frm = Map.get(port_map, Map.fetch!(conduit, "from"))
+    to = Map.get(port_map, Map.fetch!(conduit, "to"))
+
+    cond do
+      is_nil(frm) or is_nil(to) ->
+        {false, "malformed_conduit: dangling port reference"}
+
+      Map.fetch!(frm, "direction") not in ["out", "bidirectional"] ->
+        {false, "malformed_conduit: from port is not out/bidirectional (a)"}
+
+      Map.fetch!(to, "direction") not in ["in", "bidirectional"] ->
+        {false, "malformed_conduit: to port is not in/bidirectional (b)"}
+
+      not Enum.all?(Map.fetch!(conduit, "carries"), &(&1 in Map.fetch!(frm, "accepts"))) ->
+        {false, "malformed_conduit: carries not accepted by from (c)"}
+
+      true ->
+        conduit_to_check(conduit, to, cro_map)
+    end
+  end
+
+  defp conduit_to_check(conduit, to, cro_map) do
+    case Map.get(conduit, "transform") do
+      nil ->
+        if Enum.all?(Map.fetch!(conduit, "carries"), &(&1 in Map.fetch!(to, "accepts"))) do
+          {true, "well-formed conduit"}
+        else
+          {false, "malformed_conduit: carries not accepted by to (d)"}
+        end
+
+      transform ->
+        case Map.get(cro_map, transform) do
+          nil ->
+            {true, "well-formed conduit"}
+
+          law ->
+            if Enum.all?(Map.fetch!(law, "effects"), &(&1 in Map.fetch!(to, "accepts"))) do
+              {true, "well-formed conduit"}
+            else
+              {false, "malformed_conduit: transform effects not accepted by to (d, relaxed per N4.2.2)"}
+            end
+        end
+    end
+  end
+
+  @doc """
+  Rule 19 / N5.3.1-2: State value type and unit coherence. The HARD gaps a
+  state assertion surfaces against its quality: value_type_mismatch and/or
+  unit_mismatch.
+  """
+  def state_gaps(state, quality) do
+    dt = Map.get(quality, "datatype")
+    v = Map.get(state, "value", %{})
+
+    shape =
+      cond do
+        Map.has_key?(v, "quantity") -> "quantity"
+        Map.has_key?(v, "categorical") -> "categorical"
+        Map.has_key?(v, "boolean") -> "boolean"
+        true -> nil
+      end
+
+    cond do
+      shape != dt -> ["value_type_mismatch"]
+      dt == "quantity" and Map.get(v, "unit") != Map.get(quality, "unit") -> ["unit_mismatch"]
+      true -> []
+    end
+  end
+
+  @doc """
+  Rule 20: True iff the token claim's cause/effect tokens do not instantiate
+  the covering law's causes/effects (surfaces covering_law_mismatch).
+  """
+  def covering_law_mismatch(tcc, token_map, law) do
+    if is_nil(law) or law == %{} do
+      false
+    else
+      law_causes = MapSet.new(Map.fetch!(law, "causes"))
+      law_effects = MapSet.new(Map.fetch!(law, "effects"))
+
+      cause_bad =
+        Enum.any?(Map.fetch!(tcc, "causes"), fn c ->
+          not MapSet.member?(law_causes, Map.fetch!(Map.fetch!(token_map, c), "instantiates"))
+        end)
+
+      effect_bad =
+        Enum.any?(Map.fetch!(tcc, "effects"), fn e ->
+          not MapSet.member?(law_effects, Map.fetch!(Map.fetch!(token_map, e), "instantiates"))
+        end)
+
+      cause_bad or effect_bad
+    end
+  end
+
+  @doc """
+  Rule 21: True iff any cause token starts after any effect token (HARD;
+  retrocausal_claim). RFC 3339 UTC 'Z' strings compare lexicographically.
+  """
+  def retrocausal(tcc, token_map) do
+    Enum.any?(Map.fetch!(tcc, "causes"), fn c ->
+      cstart = Map.fetch!(token_map, c) |> Map.fetch!("interval") |> Map.fetch!("start")
+
+      Enum.any?(Map.fetch!(tcc, "effects"), fn e ->
+        estart = Map.fetch!(token_map, e) |> Map.fetch!("interval") |> Map.fetch!("start")
+        cstart > estart
+      end)
+    end)
+  end
+
+  @doc """
+  Rules 4 / 6.1: generic acyclicity for the new graph relations. True iff a
+  directed graph (map node -> list of successors) has a cycle. Used for the
+  bridge graph, occurrent_subsumes, occurrent_part_of, and token mereology.
+  """
+  def has_cycle(edges) do
+    Enum.reduce_while(Map.keys(edges), %{}, fn node, state ->
+      if Map.get(state, node, :white) == :white do
+        case cycle_visit(node, edges, state) do
+          {true, _state} -> {:halt, :cycle}
+          {false, state} -> {:cont, state}
+        end
+      else
+        {:cont, state}
+      end
+    end) == :cycle
+  end
+
+  defp cycle_visit(node, edges, state) do
+    state = Map.put(state, node, :grey)
+
+    result =
+      Enum.reduce_while(Map.get(edges, node, []), {false, state}, fn nxt, {false, state} ->
+        case Map.get(state, nxt, :white) do
+          :grey ->
+            {:halt, {true, state}}
+
+          :white ->
+            case cycle_visit(nxt, edges, state) do
+              {true, state} -> {:halt, {true, state}}
+              {false, state} -> {:cont, {false, state}}
+            end
+
+          :black ->
+            {:cont, {false, state}}
+        end
+      end)
+
+    case result do
+      {true, state} -> {true, state}
+      {false, state} -> {false, Map.put(state, node, :black)}
     end
   end
 end
