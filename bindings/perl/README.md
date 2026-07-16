@@ -67,7 +67,7 @@ my $press = $store->put(jobj(type => jstr('occurrent'),
     label => jstr('press_button'), category => jstr('action')));
 my $light = $store->put(jobj(type => jstr('occurrent'),
     label => jstr('light_on'), category => jstr('state_change')));
-my $claim = $store->put(jobj(type => jstr('cro'),
+my $claim = $store->put(jobj(type => jstr('causal_relation_object'),
     causes => jarr(jstr($press)), effects => jarr(jstr($light))));
 
 # the degenerate claim is a visible invitation

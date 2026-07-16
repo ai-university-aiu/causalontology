@@ -106,7 +106,7 @@ class StoreServer(ThreadingHTTPServer):
         """The demand_supply gap kind: high demand, weak supply (spec Part 10)."""
         out = []
         for oid, obj in self.store.objects.items():
-            if obj.get("type") != "cro":
+            if obj.get("type") != "causal_relation_object":
                 continue
             demand = self.demand.get(oid, 0)
             if demand < self.demand_threshold:
@@ -152,14 +152,14 @@ class StoreServer(ThreadingHTTPServer):
         def emit(s, p, o, lit=False):
             out.append((s, p, o, lit))
 
-        type_curie = {"cro": "co:CausalRelationObject",
+        type_curie = {"causal_relation_object": "co:CausalRelationObject",
                       "occurrent": "co:Occurrent",
                       "continuant": "co:Continuant",
                       "realizable": "co:Realizable"}
         for oid, obj in store.objects.items():
             kind = obj.get("type")
             emit(oid, "rdf:type", type_curie.get(kind, "co:Thing"))
-            if kind == "cro":
+            if kind == "causal_relation_object":
                 for c in obj.get("causes", []):
                     emit(oid, "co:hasCause", c)
                 for e in obj.get("effects", []):
@@ -174,8 +174,8 @@ class StoreServer(ThreadingHTTPServer):
                     emit(oid, "co:modality", obj["modality"], True)
                 if obj.get("temporal"):
                     tw = obj["temporal"]
-                    emit(oid, "co:temporalDmin", str(tw["dmin"]), True)
-                    emit(oid, "co:temporalDmax", str(tw["dmax"]), True)
+                    emit(oid, "co:temporalDmin", str(tw["minimum_delay"]), True)
+                    emit(oid, "co:temporalDmax", str(tw["maximum_delay"]), True)
                     emit(oid, "co:temporalUnit", tw["unit"], True)
             if kind in ("occurrent", "continuant"):
                 emit(oid, "co:canonicalLabel", obj.get("label", ""), True)
@@ -612,10 +612,10 @@ class Handler(BaseHTTPRequestHandler):
                 elif key == "effects_contains":
                     ok = want in item.get("effects", [])
                 elif key == "is_partial":
-                    ok = (item.get("type") == "cro"
+                    ok = (item.get("type") == "causal_relation_object"
                           and is_partial(item)[0] == want)
                 elif key == "missing":
-                    ok = (item.get("type") == "cro"
+                    ok = (item.get("type") == "causal_relation_object"
                           and want in is_partial(item)[1])
                 else:
                     ok = item.get(key) == want

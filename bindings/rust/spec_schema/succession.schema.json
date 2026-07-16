@@ -13,7 +13,7 @@
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^suc:[0-9a-f]{64}$"
+      "pattern": "^succession:[0-9a-f]{64}$"
     },
     "type": {
       "const": "succession"

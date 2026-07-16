@@ -12,7 +12,7 @@
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^occ:[0-9a-f]{64}$"
+      "pattern": "^occurrent:[0-9a-f]{64}$"
     },
     "type": {
       "const": "occurrent"
@@ -32,6 +32,11 @@
         "state_change"
       ],
       "description": "REQUIRED and CLOSED so identity inputs are deterministic; extending this enumeration is a MAJOR version change (GOVERNANCE.md)"
+    },
+    "stratum": {
+      "type": "string",
+      "pattern": "^stratum:[0-9a-f]{64}$",
+      "description": "OPTIONAL, IDENTITY-BEARING: the level of description at which this occurrent is pitched (2.0.0 N3.3)"
     }
   }
 }

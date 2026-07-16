@@ -13,12 +13,26 @@ module Causalontology.Semantics
   , conflicts
   , refinementValid
   , hierarchyConsistent
+    -- 2.0.0 normative algorithms (Section 12)
+  , bridgeClosure
+  , classifyCro
+  , endpointsMixed
+  , skipGaps
+  , toSeconds
+  , delayWithinWindow
+    -- rules 13-21 helpers
+  , bridgeWellformed
+  , conduitWellformed
+  , stateGaps
+  , coveringLawMismatch
+  , retrocausal
+  , hasCycle
   ) where
 
 import Causalontology.Canonical (inferKind, kindOfPrefix)
 import Causalontology.Json
-import Data.List (isPrefixOf)
-import Data.Maybe (fromMaybe)
+import Data.List (isPrefixOf, nub)
+import Data.Maybe (fromMaybe, mapMaybe)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 
@@ -42,10 +56,12 @@ unitSeconds unit =
 enrichmentFieldTable :: [(String, ([String], String))]
 enrichmentFieldTable =
   [ ("aliases", (["occurrent", "continuant"], "alias"))
-  , ("participants", (["occurrent"], "cnt"))
-  , ("subsumes", (["continuant"], "cnt"))
-  , ("part_of", (["continuant"], "cnt"))
-  , ("realized_in", (["realizable"], "occ"))
+  , ("participants", (["occurrent"], "continuant"))
+  , ("subsumes", (["continuant"], "continuant"))
+  , ("part_of", (["continuant"], "continuant"))
+  , ("realized_in", (["realizable"], "occurrent"))
+  , ("occurrent_subsumes", (["occurrent"], "occurrent"))
+  , ("occurrent_part_of", (["occurrent"], "occurrent"))
   ]
 
 -- | The four optional Causal Relation Object fields, in gap-report order.
@@ -63,17 +79,25 @@ validateSemantics obj mkind = do
     Just k -> Right k
     Nothing -> inferKind obj
   let errs = case kind of
-        "cro" -> croErrors
+        "causal_relation_object" -> croErrors
         "enrichment" -> enrichmentErrors
         _ -> []
   Right (null errs, errs)
   where
-    croErrors = temporalErrors ++ mechanismErrors ++ refinesErrors
+    croErrors = temporalErrors ++ mechanismErrors ++ refinesErrors ++ skipErrors
+
+    -- Rule 16, clause 1 (contradictory_skip): a HARD, locally-decidable
+    -- contradiction between skips:true and a non-empty mechanism.
+    skipErrors = case objGet "skips" obj of
+      Just (JBool True)
+        | maybe False jTruthy (objGet "mechanism" obj) ->
+            ["contradictory_skip: skips is true but a mechanism is present"]
+      _ -> []
 
     temporalErrors = case objGet "temporal" obj of
-      Just t -> case (objGet "dmin" t >>= jNumber, objGet "dmax" t >>= jNumber) of
-        (Just dmin, Just dmax)
-          | dmin > dmax -> ["dmin must be <= dmax"]
+      Just t -> case (objGet "minimum_delay" t >>= jNumber, objGet "maximum_delay" t >>= jNumber) of
+        (Just minimum_delay, Just maximum_delay)
+          | minimum_delay > maximum_delay -> ["minimum_delay must be <= maximum_delay"]
         _ -> []
       Nothing -> []
 
@@ -141,9 +165,9 @@ windowBounds :: JValue -> Maybe (Double, Double)
 windowBounds t = do
   unit <- objGet "unit" t >>= asStr
   perUnit <- unitSeconds unit
-  dmin <- objGet "dmin" t >>= jNumber
-  dmax <- objGet "dmax" t >>= jNumber
-  Just (dmin * fromInteger perUnit, dmax * fromInteger perUnit)
+  minimum_delay <- objGet "minimum_delay" t >>= jNumber
+  maximum_delay <- objGet "maximum_delay" t >>= jNumber
+  Just (minimum_delay * fromInteger perUnit, maximum_delay * fromInteger perUnit)
 
 -- | Do two temporal windows overlap? Either window absent counts as
 -- overlapping.
@@ -183,7 +207,7 @@ conflicts a b =
   where
     ma = objGet "modality" a >>= asStr
     mb = objGet "modality" b >>= asStr
-    positives = ["necessary", "sufficient", "contributory"]
+    positives = ["necessary", "sufficient", "contributory", "enabling"]
     modalityConflict =
       (ma == Just "preventive" && maybe False (`elem` positives) mb)
         || (mb == Just "preventive" && maybe False (`elem` positives) ma)
@@ -213,19 +237,68 @@ refinementValid child parent
           )
       Nothing -> walk fs (if objHas f child then added + 1 else added)
 
--- | Rule 7: @\"consistent\"@ | @\"inconsistent\"@ | @\"indeterminate\"@.
+-- ===========================================================================
+-- 2.0.0 NORMATIVE ALGORITHMS (Section 12)
+-- ===========================================================================
+
+-- | ALGORITHM A (N12.1). Every finer occurrent an occurrent resolves to,
+-- following Bridges downward, transitively; includes the starting
+-- occurrent. The visited guard prevents an infinite loop on cyclic data.
+bridgeClosure :: String -> [JValue] -> Set.Set String
+bridgeClosure occId bridges = go [occId] Set.empty (Set.singleton occId)
+  where
+    coarseIndex =
+      Map.fromListWith
+        (++)
+        [ (c, [b]) | b <- bridges, Just (JStr c) <- [objGet "coarse" b] ]
+    go [] _ result = result
+    go (current : frontier) visited result
+      | Set.member current visited = go frontier visited result
+      | otherwise =
+          let visited' = Set.insert current visited
+              fines =
+                concat
+                  [ strList (fromMaybe (JArr []) (objGet "fine" b))
+                  | b <- Map.findWithDefault [] current coarseIndex
+                  ]
+          in go (fines ++ frontier) visited' (foldr Set.insert result fines)
+
+-- | Does a directed edge map connect @src@ to @dst@?
+pathExists :: Map.Map String (Set.Set String) -> String -> String -> Bool
+pathExists edges src dst = go [src] Set.empty
+  where
+    go [] _ = False
+    go (node : stack) seen
+      | node == dst = True
+      | Set.member node seen = go stack seen
+      | otherwise =
+          go
+            (Set.toList (Map.findWithDefault Set.empty node edges) ++ stack)
+            (Set.insert node seen)
+
+-- | ALGORITHM B (amended Rule 7): @\"consistent\"@ | @\"inconsistent\"@ |
+-- @\"indeterminate\"@, ACROSS STRATA via bridged reachability.
 --
 -- @members@ maps CRO identifiers to CRO objects for the parent's
--- mechanism entries (the store's view of them).
-hierarchyConsistent :: JValue -> [(String, JValue)] -> String
-hierarchyConsistent parent members
+-- mechanism entries; @bridges@ is the store's bridges (empty gives the
+-- degenerate 1.0.0 literal-reachability case).
+hierarchyConsistent :: JValue -> [(String, JValue)] -> [JValue] -> String
+hierarchyConsistent parent members bridges
   | null mechanism = "consistent" -- nothing claimed, nothing to check
   | otherwise = case buildEdges mechanism Map.empty of
       Nothing -> "indeterminate" -- a dangling_reference gap, not a failure
       Just edges ->
-        if and [ reachable edges c e | c <- causes, e <- effects ]
-          then "consistent"
-          else "inconsistent"
+        let bCause = [ (c, bridgeClosure c bridges) | c <- causes ]
+            bEffect = [ (e, bridgeClosure e bridges) | e <- effects ]
+            connected c e =
+              or
+                [ pathExists edges cp ep
+                | cp <- Set.toList (fromMaybe Set.empty (lookup c bCause))
+                , ep <- Set.toList (fromMaybe Set.empty (lookup e bEffect))
+                ]
+        in if and [ connected c e | c <- causes, e <- effects ]
+             then "consistent"
+             else "inconsistent"
   where
     mechanism = maybe [] strList (objGet "mechanism" parent)
     causes = maybe [] strList (objGet "causes" parent)
@@ -240,13 +313,233 @@ hierarchyConsistent parent members
             acc' = foldl (\a c -> Map.insertWith Set.union c es a) acc cs
         in buildEdges rest acc'
 
-    reachable edges src dst = go [src] Set.empty
+-- | The stratum identifier of an occurrent, via the occurrent map.
+stratumOf :: [(String, JValue)] -> String -> Maybe String
+stratumOf occMap occId = lookup occId occMap >>= objGet "stratum" >>= asStr
+
+-- | The integer ordinal of a stratum object.
+ordinalOf :: JValue -> Maybe Integer
+ordinalOf s = case objGet "ordinal" s of
+  Just (JInt n) -> Just n
+  Just (JFloat f) -> Just (round f)
+  _ -> Nothing
+
+-- | ALGORITHM C (Rule 15): the stratal classification of a Causal Relation
+-- Object. Derived, never asserted; recompute on ingest.
+classifyCro :: JValue -> [(String, JValue)] -> [(String, JValue)] -> String
+classifyCro cro occMap stratumMap
+  | any isNothing' (causeStrata ++ effectStrata) = "unclassifiable"
+  | length schemes > 1 = "scheme_mismatch"
+  | maximum cOrd == minimum cOrd
+      && minimum cOrd == maximum eOrd
+      && maximum eOrd == minimum eOrd =
+      "intra_stratal"
+  | span1 == 1 = "adjacent_stratal"
+  | gap > 1 = "skipping"
+  | otherwise = "mixed"
+  where
+    causeStrata = [ stratumOf occMap c | c <- strList (fromMaybe (JArr []) (objGet "causes" cro)) ]
+    effectStrata = [ stratumOf occMap e | e <- strList (fromMaybe (JArr []) (objGet "effects" cro)) ]
+    isNothing' Nothing = True
+    isNothing' _ = False
+    justStrata = mapMaybe id
+    allStrata = nub (justStrata causeStrata ++ justStrata effectStrata)
+    schemes =
+      nub
+        [ sc
+        | s <- allStrata
+        , Just so <- [lookup s stratumMap]
+        , Just sc <- [objGet "scheme" so >>= asStr]
+        ]
+    ordAt sid = fromMaybe 0 (lookup sid stratumMap >>= ordinalOf)
+    cOrd = [ ordAt s | Just s <- causeStrata ]
+    eOrd = [ ordAt s | Just s <- effectStrata ]
+    gap = minimum [ abs (i - j) | i <- cOrd, j <- eOrd ]
+    span1 = maximum [ abs (i - j) | i <- cOrd, j <- eOrd ]
+
+-- | True iff causes or effects span more than one distinct stratum
+-- (surfaces mixed_stratal_endpoints, an invitation).
+endpointsMixed :: JValue -> [(String, JValue)] -> Bool
+endpointsMixed cro occMap
+  | any (== Nothing) cs || any (== Nothing) es = False
+  | otherwise = length (nub cs) > 1 || length (nub es) > 1
+  where
+    cs = [ stratumOf occMap c | c <- strList (fromMaybe (JArr []) (objGet "causes" cro)) ]
+    es = [ stratumOf occMap e | e <- strList (fromMaybe (JArr []) (objGet "effects" cro)) ]
+
+-- | ALGORITHM D (Rule 16): the gaps a Causal Relation Object surfaces for
+-- the skip decision. THE ASYMMETRY (clause 3) is the whole point.
+skipGaps :: JValue -> String -> [String]
+skipGaps cro classification
+  | skipsTrue && hasMech = ["contradictory_skip"]
+  | otherwise = vacuous ++ incomplete
+  where
+    skipsTrue = objGet "skips" cro == Just (JBool True)
+    hasMech = maybe False jTruthy (objGet "mechanism" cro)
+    vacuous =
+      [ "vacuous_skip"
+      | skipsTrue && classification `notElem` ["skipping", "unclassifiable"]
+      ]
+    incomplete =
+      [ "incomplete_mechanism"
+      | classification == "skipping" && not hasMech && not skipsTrue
+      ]
+
+-- | ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+toSeconds :: Double -> String -> Double
+toSeconds duration unit
+  | unit == "instant" = 0
+  | otherwise = duration * fromInteger (fromMaybe 0 (unitSeconds unit))
+
+-- | ALGORITHM E (Rule 20): does an observed delay fall within a covering
+-- law's temporal window? Inclusive at both ends.
+delayWithinWindow :: JValue -> JValue -> Bool
+delayWithinWindow actualDelay temporal =
+  case (bounds actualDelay "duration", windowBounds temporal) of
+    (Just observed, Just (lo, hi)) -> lo <= observed && observed <= hi
+    _ -> True -- nothing to check
+  where
+    bounds obj durKey = do
+      dur <- objGet durKey obj >>= jNumber
+      unit <- objGet "unit" obj >>= asStr
+      Just (toSeconds dur unit)
+
+-- ---- Rule 14 / N3.2.1: Bridge well-formedness -----------------------------
+
+-- | @(ok, reason)@. All of (a)-(e) of N3.2.1 must hold, else malformed_bridge.
+bridgeWellformed :: JValue -> [(String, JValue)] -> [(String, JValue)] -> (Bool, String)
+bridgeWellformed bridge occMap stratumMap =
+  case objGet "coarse" bridge >>= asStr >>= stratumOf occMap of
+    Nothing -> (False, "malformed_bridge: coarse has no stratum (a)")
+    Just cs ->
+      let fineIds = strList (fromMaybe (JArr []) (objGet "fine" bridge))
+          fineStrata = [ stratumOf occMap f | f <- fineIds ]
+      in if any (== Nothing) fineStrata
+           then (False, "malformed_bridge: a fine member has no stratum (b)")
+           else
+             let justFine = [ s | Just s <- fineStrata ]
+             in if length (nub justFine) /= 1
+                  then (False, "malformed_bridge: fine members span >1 stratum (c)")
+                  else
+                    let fs = head justFine
+                        schemeCs = lookup cs stratumMap >>= objGet "scheme" >>= asStr
+                        schemeFs = lookup fs stratumMap >>= objGet "scheme" >>= asStr
+                        ordCs = lookup cs stratumMap >>= ordinalOf
+                        ordFs = lookup fs stratumMap >>= ordinalOf
+                    in if schemeCs /= schemeFs
+                         then (False, "malformed_bridge: coarse and fine differ in scheme (d)")
+                         else case (ordCs, ordFs) of
+                           (Just oc, Just of_)
+                             | oc > of_ -> (True, "well-formed bridge")
+                           _ -> (False, "malformed_bridge: coarse ordinal not > fine ordinal (e)")
+
+-- ---- Rule 17 / N4.2.1-2: Conduit well-formedness --------------------------
+
+-- | @(ok, reason)@. N4.2.1 with the transform exception of N4.2.2.
+conduitWellformed :: JValue -> [(String, JValue)] -> [(String, JValue)] -> (Bool, String)
+conduitWellformed conduit portMap croMap =
+  case (objGet "from" conduit >>= asStr >>= (`lookup` portMap),
+        objGet "to" conduit >>= asStr >>= (`lookup` portMap)) of
+    (Just frm, Just to)
+      | dirFrom `notElem` ["out", "bidirectional"] ->
+          (False, "malformed_conduit: from port is not out/bidirectional (a)")
+      | dirTo `notElem` ["in", "bidirectional"] ->
+          (False, "malformed_conduit: to port is not in/bidirectional (b)")
+      | not (all (`elem` acceptsFrom) carries) ->
+          (False, "malformed_conduit: carries not accepted by from (c)")
+      | otherwise -> case objGet "transform" conduit of
+          Nothing
+            | not (all (`elem` acceptsTo) carries) ->
+                (False, "malformed_conduit: carries not accepted by to (d)")
+            | otherwise -> (True, "well-formed conduit")
+          Just (JStr transform) -> case lookup transform croMap of
+            Just law ->
+              let lawEffects = strList (fromMaybe (JArr []) (objGet "effects" law))
+              in if not (all (`elem` acceptsTo) lawEffects)
+                   then (False, "malformed_conduit: transform effects not accepted by to (d, relaxed per N4.2.2)")
+                   else (True, "well-formed conduit")
+            Nothing -> (True, "well-formed conduit")
+          _ -> (True, "well-formed conduit")
       where
-        go [] _ = False
-        go (node : stack) seen
-          | node == dst = True
-          | Set.member node seen = go stack seen
-          | otherwise =
-              go
-                (Set.toList (Map.findWithDefault Set.empty node edges) ++ stack)
-                (Set.insert node seen)
+        dirFrom = fromMaybe "" (objGet "direction" frm >>= asStr)
+        dirTo = fromMaybe "" (objGet "direction" to >>= asStr)
+        acceptsFrom = strList (fromMaybe (JArr []) (objGet "accepts" frm))
+        acceptsTo = strList (fromMaybe (JArr []) (objGet "accepts" to))
+        carries = strList (fromMaybe (JArr []) (objGet "carries" conduit))
+    _ -> (False, "malformed_conduit: dangling port reference")
+
+-- ---- Rule 19 / N5.3.1-2: State value type and unit coherence --------------
+
+-- | The HARD gaps a state assertion surfaces against its quality:
+-- value_type_mismatch and\/or unit_mismatch.
+stateGaps :: JValue -> JValue -> [String]
+stateGaps state quality
+  | shape /= dt = ["value_type_mismatch"]
+  | dt == Just "quantity" && valueUnit /= qualityUnit = ["unit_mismatch"]
+  | otherwise = []
+  where
+    dt = objGet "datatype" quality >>= asStr
+    v = fromMaybe (JObj []) (objGet "value" state)
+    shape
+      | objHas "quantity" v = Just "quantity"
+      | objHas "categorical" v = Just "categorical"
+      | objHas "boolean" v = Just "boolean"
+      | otherwise = Nothing
+    valueUnit = objGet "unit" v >>= asStr
+    qualityUnit = objGet "unit" quality >>= asStr
+
+-- ---- Rule 20: covering-law coherence --------------------------------------
+
+-- | True iff the token claim's cause\/effect tokens do not instantiate the
+-- covering law's causes\/effects.
+coveringLawMismatch :: JValue -> [(String, JValue)] -> JValue -> Bool
+coveringLawMismatch tcc tokenMap law
+  | law == JNull = False
+  | otherwise =
+      any (\c -> instOf c `notElem` map Just lawCauses) (tokenList "causes")
+        || any (\e -> instOf e `notElem` map Just lawEffects) (tokenList "effects")
+  where
+    lawCauses = strList (fromMaybe (JArr []) (objGet "causes" law))
+    lawEffects = strList (fromMaybe (JArr []) (objGet "effects" law))
+    tokenList k = strList (fromMaybe (JArr []) (objGet k tcc))
+    instOf tid = lookup tid tokenMap >>= objGet "instantiates" >>= asStr
+
+-- ---- Rule 21: temporal coherence of token causation -----------------------
+
+-- | True iff any cause token starts after any effect token (RFC 3339 UTC
+-- @Z@ strings compare lexicographically).
+retrocausal :: JValue -> [(String, JValue)] -> Bool
+retrocausal tcc tokenMap =
+  or
+    [ cstart > estart
+    | c <- tokenList "causes"
+    , Just cstart <- [startOf c]
+    , e <- tokenList "effects"
+    , Just estart <- [startOf e]
+    ]
+  where
+    tokenList k = strList (fromMaybe (JArr []) (objGet k tcc))
+    startOf tid = lookup tid tokenMap >>= objGet "interval" >>= objGet "start" >>= asStr
+
+-- ---- Rules 4 / 6.1: generic acyclicity for the new graph relations --------
+
+-- | True iff a directed graph (node -> successors) has a cycle. Used for
+-- the bridge graph, occurrent_subsumes\/part_of, and token mereology.
+hasCycle :: Ord a => Map.Map a [a] -> Bool
+hasCycle edges = go (Map.keys edges) Map.empty
+  where
+    -- three-colour DFS; grey = -1 (on the stack), black = 1 (finished)
+    go [] _ = False
+    go (n : ns) st
+      | Map.member n st = go ns st
+      | otherwise = case visit n st of
+          (True, _) -> True
+          (False, st') -> go ns st'
+    visit node st = loopSucc node (Map.findWithDefault [] node edges) (Map.insert node (-1 :: Int) st)
+    loopSucc node [] s = (False, Map.insert node 1 s)
+    loopSucc node (nxt : rest) s = case Map.lookup nxt s of
+      Just (-1) -> (True, s)
+      Just _ -> loopSucc node rest s
+      Nothing -> case visit nxt s of
+        (True, s') -> (True, s')
+        (False, s') -> loopSucc node rest s'

@@ -21,8 +21,12 @@ pub mod wasm_abi;
 
 pub use canonical::{canonicalize, identify, identity_bearing, infer_kind, jcs};
 pub use schema::validate_schema;
-pub use semantics::{admissible, conflicts, hierarchy_consistent, is_partial,
-                    refinement_valid, unit_seconds, validate_semantics};
+pub use semantics::{admissible, bridge_closure, bridge_wellformed, classify_cro,
+                    conduit_wellformed, conflicts, covering_law_mismatch,
+                    delay_within_window, endpoints_mixed, has_cycle,
+                    hierarchy_consistent, is_partial, refinement_valid,
+                    retrocausal, skip_gaps, state_gaps, to_seconds, unit_seconds,
+                    validate_semantics};
 pub use signing::{keypair_from_seed, sign_record, verify_record};
 pub use store::{InMemoryStore, RejectedWrite};
 

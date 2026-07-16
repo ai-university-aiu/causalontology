@@ -17,10 +17,10 @@ namespace co {
 // throws std::runtime_error when the shape is ambiguous.
 std::string infer_kind(const JValue& obj);
 
-// The kind name for an id prefix ("occ" -> "occurrent"), or "" if unknown.
+// The kind name for an id prefix ("occurrent" -> "occurrent"), or "" if unknown.
 std::string kind_of_prefix(const std::string& prefix);
 
-// The id prefix for a kind ("occurrent" -> "occ"); throws on unknown kind.
+// The id prefix for a kind ("occurrent" -> "occurrent"); throws on unknown kind.
 std::string prefix_of_kind(const std::string& kind);
 
 // The identity-bearing subset of an object, with type always present.

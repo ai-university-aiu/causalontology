@@ -1,10 +1,11 @@
 /// Schema validation against spec/schema/*.schema.json.
 ///
 /// A deliberately small interpreter for exactly the JSON Schema keywords the
-/// eight Causalontology schemas use: type, const, enum, pattern, required,
+/// seventeen Causalontology schemas use: type, const, enum, pattern, required,
 /// properties, additionalProperties, items, minItems, minLength, minimum,
-/// maximum, oneOf, and local $ref (#/$defs/...). "format" is treated as an
-/// annotation, as the 2020-12 draft does by default.
+/// maximum, oneOf, local $ref (#/$defs/...), and cross-file $ref to a sibling
+/// schema (https://causalontology.org/schema/<file>.schema.json#/...).
+/// "format" is treated as an annotation, as the 2020-12 draft does by default.
 library;
 
 import 'dart:convert';
@@ -12,17 +13,31 @@ import 'dart:io';
 
 import 'canonical.dart';
 
+/// kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+/// file names (individual/token/state); the id scheme is the whole word.
 const Map<String, String> schemaFiles = {
-  'cro': 'cro.schema.json',
   'occurrent': 'occurrent.schema.json',
+  'causal_relation_object': 'causal_relation_object.schema.json',
   'continuant': 'continuant.schema.json',
   'realizable': 'realizable.schema.json',
+  'stratum': 'stratum.schema.json',
+  'bridge': 'bridge.schema.json',
+  'port': 'port.schema.json',
+  'conduit': 'conduit.schema.json',
+  'quality': 'quality.schema.json',
+  'token_individual': 'individual.schema.json',
+  'token_occurrence': 'token.schema.json',
+  'state_assertion': 'state.schema.json',
+  'token_causal_claim': 'token_causal_claim.schema.json',
   'assertion': 'assertion.schema.json',
   'enrichment': 'enrichment.schema.json',
   'retraction': 'retraction.schema.json',
   'succession': 'succession.schema.json',
 };
 
+const String _base = 'https://causalontology.org/schema/';
+
+/// Cache keyed by schema-file name (cross-file $ref shares this cache).
 final Map<String, Map<String, dynamic>> _cache = {};
 
 /// Locate the repository's spec/schema directory: the CAUSALONTOLOGY_SPEC
@@ -52,32 +67,50 @@ Directory schemaDir() {
   throw StateError('cannot locate spec/schema; set CAUSALONTOLOGY_SPEC');
 }
 
-Map<String, dynamic> loadSchema(String kind) {
-  if (!schemaFiles.containsKey(kind)) {
-    throw ArgumentError('unknown kind: $kind');
-  }
-  return _cache.putIfAbsent(kind, () {
-    final path =
-        '${schemaDir().path}${Platform.pathSeparator}${schemaFiles[kind]!}';
+Map<String, dynamic> _loadFile(String filename) {
+  return _cache.putIfAbsent(filename, () {
+    final path = '${schemaDir().path}${Platform.pathSeparator}$filename';
     return jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
   });
 }
 
-Map<String, dynamic> _resolve(
+Map<String, dynamic> loadSchema(String kind) {
+  if (!schemaFiles.containsKey(kind)) {
+    throw ArgumentError('unknown kind: $kind');
+  }
+  return _loadFile(schemaFiles[kind]!);
+}
+
+Map<String, dynamic> _navigate(Map<String, dynamic> doc, String pointer) {
+  dynamic node = doc;
+  for (final part in pointer.split('/')) {
+    if (part.isEmpty) continue;
+    node = (node as Map)[part];
+  }
+  return (node as Map).cast<String, dynamic>();
+}
+
+/// Resolve local and cross-file $refs to a concrete schema node + its root.
+(Map<String, dynamic>, Map<String, dynamic>) _resolve(
     Map<String, dynamic> schema, Map<String, dynamic> root) {
   var node = schema;
+  var r = root;
   while (node.containsKey(r'$ref')) {
     final ref = node[r'$ref'] as String;
-    if (!ref.startsWith('#/')) {
-      throw ArgumentError('only local \$ref supported: $ref');
+    if (ref.startsWith('#/')) {
+      node = _navigate(r, ref.substring(2));
+    } else if (ref.startsWith(_base)) {
+      final rest = ref.substring(_base.length);
+      final hashIdx = rest.indexOf('#/');
+      final filename = hashIdx < 0 ? rest : rest.substring(0, hashIdx);
+      final pointer = hashIdx < 0 ? '' : rest.substring(hashIdx + 2);
+      r = _loadFile(filename);
+      node = pointer.isEmpty ? r : _navigate(r, pointer);
+    } else {
+      throw ArgumentError('unsupported \$ref: $ref');
     }
-    dynamic cursor = root;
-    for (final part in ref.substring(2).split('/')) {
-      cursor = (cursor as Map)[part];
-    }
-    node = (cursor as Map).cast<String, dynamic>();
   }
-  return node;
+  return (node, r);
 }
 
 /// Deep structural equality over the JSON model (maps, lists, scalars).
@@ -112,6 +145,8 @@ bool _typeMatches(Object? value, String t) {
       return value is String;
     case 'number':
       return value is num && value is! bool;
+    case 'integer':
+      return value is int;
     case 'boolean':
       return value is bool;
     default:
@@ -120,8 +155,8 @@ bool _typeMatches(Object? value, String t) {
 }
 
 void _check(Object? value, Map<String, dynamic> schemaNode,
-    Map<String, dynamic> root, String path, List<String> errors) {
-  final schema = _resolve(schemaNode, root);
+    Map<String, dynamic> rootIn, String path, List<String> errors) {
+  final (schema, root) = _resolve(schemaNode, rootIn);
 
   if (schema.containsKey('oneOf')) {
     var passing = 0;

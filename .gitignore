@@ -3,3 +3,27 @@ __pycache__/
 .DS_Store
 node_modules/
 *.log
+
+# build artifacts (per-binding toolchains)
+/bindings/rust/target/
+/bindings/swift/.build/
+/bindings/swift/Package.resolved
+/bindings/dart/.dart_tool/
+/bindings/dart/pubspec.lock
+/bindings/csharp/**/obj/
+/bindings/csharp/**/bin/
+/bindings/java/out/
+/bindings/kotlin/*.jar
+/bindings/haskell/dist-newstyle/
+/bindings/go/go.sum
+/bindings/python/dist/
+/bindings/python/*.egg-info/
+/.build/
+/bindings/**/.build/
+/bindings/dart/.dart_tool/
+/bindings/haskell/dist-newstyle/
+/bindings/kotlin/*.jar
+/bindings/java/out/
+/bindings/**/obj/
+/bindings/**/bin/Debug/
+/bindings/**/bin/Release/

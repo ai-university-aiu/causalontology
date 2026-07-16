@@ -9,27 +9,42 @@
 #   3. serialize with the JSON Canonicalization Scheme (RFC 8785),
 #   4. hash with SHA-256,
 #   5. identifier = scheme + ":" + lowercase hex digest.
+#
+# 2.0.0 (Principle P7): every identifier scheme is a whole English word;
+# the scheme, the type value, and the id prefix are one and the same
+# string. Kinds are keyed here by that whole word throughout.
 
-# The identity-bearing fields per kind (order irrelevant: JCS sorts keys).
+# The identity-bearing fields of each of the seventeen kinds. "type" is
+# always injected, so it is not listed. Order is irrelevant (JCS sorts).
 co_identity_fields <- list(
-  occurrent  = c("label", "category"),
-  cro        = c("causes", "effects", "mechanism", "temporal", "modality",
-                 "context", "refines"),
+  # ---- type tier ----
+  occurrent  = c("label", "category", "stratum"),
+  causal_relation_object = c("causes", "effects", "mechanism", "temporal",
+                             "modality", "context", "refines", "skips"),
   continuant = c("label", "category"),
-  realizable = c("kind", "bearer"),
+  realizable = c("kind", "bearer", "label"),
+  stratum    = c("label", "scheme", "ordinal", "unit", "governs"),
+  bridge     = c("coarse", "fine", "relation"),
+  port       = c("bearer", "label", "direction", "accepts", "realizable"),
+  conduit    = c("label", "from", "to", "carries", "transform"),
+  quality    = c("label", "datatype", "unit", "stratum"),
+  # ---- token tier ----
+  token_individual   = c("instantiates", "designator", "part_of"),
+  token_occurrence   = c("instantiates", "interval", "participants",
+                         "locus", "observer"),
+  state_assertion    = c("subject", "quality", "value", "interval"),
+  token_causal_claim = c("causes", "effects", "covering_law",
+                         "actual_delay", "counterfactual"),
+  # ---- provenance tier ----
   assertion  = c("about", "source", "evidence_type", "evidence", "strength",
-                 "confidence", "timestamp"),
+                 "confidence", "timestamp", "evidenced_by"),
   enrichment = c("about", "field", "entry", "source", "timestamp"),
   retraction = c("retracts", "source", "timestamp"),
   succession = c("predecessor", "successor", "timestamp")
 )
 
-# The identifier scheme prefix per kind, and its inverse.
-co_prefix <- c(
-  occurrent = "occ", cro = "cro", continuant = "cnt", realizable = "rlz",
-  assertion = "ast", enrichment = "enr", retraction = "ret",
-  succession = "suc"
-)
+# Whole-word re-mint (P7): the scheme IS the type value for every kind.
+co_prefix <- stats::setNames(names(co_identity_fields), names(co_identity_fields))
 co_kind_of_prefix <- stats::setNames(names(co_prefix), unname(co_prefix))
 
 # Infer an object's kind from its type field, id prefix, or shape.
@@ -40,7 +55,8 @@ co_infer_kind <- function(obj) {
     pre <- strsplit(oid, ":", fixed = TRUE)[[1]][[1]]
     if (pre %in% names(co_kind_of_prefix)) return(co_kind_of_prefix[[pre]])
   }
-  if (co_has(obj, "causes") && co_has(obj, "effects")) return("cro")
+  if (co_has(obj, "coarse") && co_has(obj, "fine")) return("bridge")
+  if (co_has(obj, "causes") && co_has(obj, "effects")) return("causal_relation_object")
   if (co_has(obj, "retracts")) return("retraction")
   if (co_has(obj, "predecessor") && co_has(obj, "successor")) return("succession")
   if (co_has(obj, "field") && co_has(obj, "entry")) return("enrichment")

@@ -57,8 +57,8 @@ def main():
                     "category": "state_change"})
     press, light = press["id"], light["id"]
     _, P = req(base, "POST", "/objects",
-               {"type": "cro", "causes": [press], "effects": [light],
-                "temporal": {"dmin": 0, "dmax": 1, "unit": "seconds"},
+               {"type": "causal_relation_object", "causes": [press], "effects": [light],
+                "temporal": {"minimum_delay": 0, "maximum_delay": 1, "unit": "seconds"},
                 "modality": "sufficient"})
     P = P["id"]
 
@@ -89,7 +89,7 @@ def main():
 
     # ranking: the demand-boosted gap outranks a cold missing_field gap
     _, Q = req(base, "POST", "/objects",
-               {"type": "cro", "causes": [light], "effects": [press]})
+               {"type": "causal_relation_object", "causes": [light], "effects": [press]})
     Q = Q["id"]  # a cold degenerate claim (missing_field, no demand)
     _, gaps = req(base, "GET", "/gaps?limit=50")
     values = {g.get("id"): g["value"] for g in gaps["items"] if "id" in g}

@@ -3,7 +3,7 @@
  *
  * These types describe the existing CommonJS implementation exactly as it
  * behaves at runtime; the JavaScript module remains the single source of
- * logic (it passes all 38 conformance vectors). The module is consumed as
+ * logic (it passes all 107 conformance vectors). The module is consumed as
  * `const co = require("./causalontology.js")` (or, from TypeScript,
  * `import co = require("./causalontology")`), so the declarations use the
  * CommonJS `export =` namespace pattern.
@@ -25,28 +25,57 @@ declare namespace causalontology {
   /** Binary data. At runtime always a Node.js Buffer (Buffer extends Uint8Array). */
   type Bytes = Uint8Array;
 
-  /** The eight Causalontology kinds. */
+  /** The seventeen whole-word Causalontology kinds (Principle P7). */
   type Kind =
     | "occurrent"
-    | "cro"
+    | "causal_relation_object"
     | "continuant"
     | "realizable"
+    | "stratum"
+    | "bridge"
+    | "port"
+    | "conduit"
+    | "quality"
+    | "token_individual"
+    | "token_occurrence"
+    | "state_assertion"
+    | "token_causal_claim"
     | "assertion"
     | "enrichment"
     | "retraction"
     | "succession";
 
-  /** The four content-object kinds (accepted by InMemoryStore.put). */
-  type ContentKind = "occurrent" | "cro" | "continuant" | "realizable";
+  /** The thirteen content-object kinds (accepted by InMemoryStore.put). */
+  type ContentKind =
+    | "occurrent"
+    | "causal_relation_object"
+    | "continuant"
+    | "realizable"
+    | "stratum"
+    | "bridge"
+    | "port"
+    | "conduit"
+    | "quality"
+    | "token_individual"
+    | "token_occurrence"
+    | "state_assertion"
+    | "token_causal_claim";
 
   /** The four provenance-record kinds (accepted by InMemoryStore.putRecord). */
   type RecordKind = "assertion" | "enrichment" | "retraction" | "succession";
 
-  /** The identifier scheme prefixes (identifier = prefix + ":" + SHA-256 hex). */
-  type IdPrefix = "occ" | "cro" | "cnt" | "rlz" | "ast" | "enr" | "ret" | "suc";
+  /** The identifier scheme prefixes. Whole-word re-mint (P7): the scheme,
+   * the type value, and the id prefix are one and the same string. */
+  type IdPrefix = Kind;
 
-  /** Causal modality of a Causal Relation Object (spec/semantics.md rule 6). */
-  type Modality = "necessary" | "sufficient" | "contributory" | "preventive";
+  /** Causal modality of a Causal Relation Object (spec/semantics.md rule 6,
+   * amended in 2.0.0 with `enabling`). */
+  type Modality =
+    | "necessary"
+    | "sufficient"
+    | "contributory"
+    | "enabling"
+    | "preventive";
 
   /** Temporal window units with fixed conversion constants (rule 4). */
   type TemporalUnit =
@@ -82,31 +111,34 @@ declare namespace causalontology {
   /** The realizable-entity kind enumeration (realizable.schema.json). */
   type RealizableKind = "disposition" | "function" | "role";
 
-  /** The five enrichment fields (enrichment.schema.json; rule 12). */
+  /** The seven enrichment fields (enrichment.schema.json; rule 12, with the
+   * two occurrent-mereology forms added in 2.0.0). */
   type EnrichmentField =
     | "aliases"
     | "participants"
     | "subsumes"
     | "part_of"
-    | "realized_in";
+    | "realized_in"
+    | "occurrent_subsumes"
+    | "occurrent_part_of";
 
   /* ------------------------------------------------------------------ *
    * Domain shapes (the eight kinds)                                     *
    * ------------------------------------------------------------------ */
 
-  /** A bounded delay window between causes and effects (cro.schema.json). */
+  /** A bounded delay window between causes and effects (causal_relation_object.schema.json). */
   interface TemporalWindow {
     /** Minimum delay in `unit` (>= 0). */
-    dmin: number;
-    /** Maximum delay in `unit` (>= 0; dmin <= dmax per semantics rule). */
-    dmax: number;
+    minimum_delay: number;
+    /** Maximum delay in `unit` (>= 0; minimum_delay <= maximum_delay per semantics rule). */
+    maximum_delay: number;
     /** The unit the window is expressed in. */
     unit: TemporalUnit;
   }
 
   /** An occurrent: something that happens (verb-first). */
   interface Occurrent {
-    /** Content-addressed identifier "occ:<sha256 hex>"; assigned on put/identify. */
+    /** Content-addressed identifier "occurrent:<sha256 hex>"; assigned on put/identify. */
     id?: string;
     /** Kind tag; may be omitted where the kind is passed explicitly. */
     type?: "occurrent";
@@ -118,7 +150,7 @@ declare namespace causalontology {
 
   /** A continuant: a participant that persists through occurrents. */
   interface Continuant {
-    /** Content-addressed identifier "cnt:<sha256 hex>". */
+    /** Content-addressed identifier "continuant:<sha256 hex>". */
     id?: string;
     /** Kind tag; may be omitted where the kind is passed explicitly. */
     type?: "continuant";
@@ -130,13 +162,13 @@ declare namespace causalontology {
 
   /** A Causal Relation Object (CRO): the causal claim itself. */
   interface CausalRelationObject {
-    /** Content-addressed identifier "cro:<sha256 hex>". */
+    /** Content-addressed identifier "causal_relation_object:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
-    type?: "cro";
-    /** Occurrent identifiers ("occ:...") that jointly cause; at least one. */
+    type?: "causal_relation_object";
+    /** Occurrent identifiers ("occurrent:...") that jointly cause; at least one. */
     causes: string[];
-    /** Occurrent identifiers ("occ:...") that jointly result; at least one. */
+    /** Occurrent identifiers ("occurrent:...") that jointly result; at least one. */
     effects: string[];
     /** Finer CRO identifiers whose composition realizes this one (acyclic). */
     mechanism?: string[];
@@ -148,23 +180,26 @@ declare namespace causalontology {
     context?: string[];
     /** The more partial CRO this one enriches (lineage; acyclic). */
     refines?: string;
+    /** TRUE asserts the relation crosses non-adjacent strata WITHOUT being
+     * re-encoded at the intervening strata (2.0.0; identity-bearing). */
+    skips?: boolean;
   }
 
   /** A realizable entity: a disposition, function, or role borne by a continuant. */
   interface Realizable {
-    /** Content-addressed identifier "rlz:<sha256 hex>". */
+    /** Content-addressed identifier "realizable:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
     type?: "realizable";
     /** Which realizable this is. */
     kind: RealizableKind;
-    /** The bearing continuant's identifier ("cnt:..."). */
+    /** The bearing continuant's identifier ("continuant:..."). */
     bearer: string;
   }
 
   /** A signed assertion: a source vouching for a content object. */
   interface Assertion {
-    /** Content-addressed identifier "ast:<sha256 hex>". */
+    /** Content-addressed identifier "assertion:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
     type?: "assertion";
@@ -182,6 +217,9 @@ declare namespace causalontology {
     confidence: number;
     /** RFC 3339 date-time. */
     timestamp: string;
+    /** Identifiers of the tokens/claims this assertion cites as evidence
+     * (2.0.0; identity-bearing). */
+    evidenced_by?: string[];
     /** Ed25519 signature (128 hex chars) over the canonical bytes. */
     signature?: string;
   }
@@ -199,11 +237,11 @@ declare namespace causalontology {
 
   /** A signed enrichment: adding to a content object's open fields. */
   interface Enrichment {
-    /** Content-addressed identifier "enr:<sha256 hex>". */
+    /** Content-addressed identifier "enrichment:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
     type?: "enrichment";
-    /** The enriched content object ("occ:", "cnt:", or "rlz:..."; CROs are refined, not enriched). */
+    /** The enriched content object ("occurrent:", "continuant:", or "realizable:..."; CROs are refined, not enriched). */
     about: string;
     /** Which open field the entry goes into (validity per rule 12). */
     field: EnrichmentField;
@@ -219,11 +257,11 @@ declare namespace causalontology {
 
   /** A signed retraction: withdrawing an assertion or enrichment. */
   interface Retraction {
-    /** Content-addressed identifier "ret:<sha256 hex>". */
+    /** Content-addressed identifier "retraction:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
     type?: "retraction";
-    /** The assertion or enrichment identifier being withdrawn ("ast:" or "enr:..."). */
+    /** The assertion or enrichment identifier being withdrawn ("assertion:" or "enrichment:..."). */
     retracts: string;
     /** Must be the retracted record's source or in its succession lineage. */
     source: string;
@@ -237,7 +275,7 @@ declare namespace causalontology {
 
   /** A signed succession: a key handing over to a successor key. */
   interface Succession {
-    /** Content-addressed identifier "suc:<sha256 hex>". */
+    /** Content-addressed identifier "succession:<sha256 hex>". */
     id?: string;
     /** Kind tag. */
     type?: "succession";
@@ -278,10 +316,10 @@ declare namespace causalontology {
   /** The identity-bearing field list per kind (spec/identity.md). */
   const IDENTITY_FIELDS: { readonly [K in Kind]: readonly string[] };
 
-  /** Kind to identifier-scheme prefix ("occurrent" -> "occ", ...). */
+  /** Kind to identifier-scheme prefix ("occurrent" -> "occurrent", ...). */
   const PREFIX: { readonly [K in Kind]: IdPrefix };
 
-  /** Identifier-scheme prefix back to kind ("occ" -> "occurrent", ...). */
+  /** Identifier-scheme prefix back to kind ("occurrent" -> "occurrent", ...). */
   const KIND_OF_PREFIX: { readonly [P in IdPrefix]: Kind };
 
   /**
@@ -338,17 +376,131 @@ declare namespace causalontology {
   /** The three verdicts of the rule 7 hierarchy-consistency check. */
   type HierarchyVerdict = "consistent" | "inconsistent" | "indeterminate";
 
+  /** A Bridge: one coarse occurrent resolving to finer occurrents (2.0.0). */
+  interface Bridge {
+    /** Content-addressed identifier "bridge:<sha256 hex>". */
+    id?: string;
+    /** Kind tag. */
+    type?: "bridge";
+    /** The coarser occurrent's identifier ("occurrent:..."). */
+    coarse: string;
+    /** The finer occurrents' identifiers ("occurrent:..."). */
+    fine: string[];
+    /** The inter-stratal relation (constitutes, aggregates, realizes, ...). */
+    relation: string;
+  }
+
   /**
-   * Rule 7: is the parent's mechanism consistent with its causes/effects?
-   * `members` maps CRO identifier to CRO object for the parent's mechanism
-   * entries; a plain object or a Map both work.
+   * ALGORITHM B (amended Rule 7): is the parent's mechanism consistent with
+   * its causes/effects, ACROSS STRATA via bridged reachability? `members`
+   * maps CRO identifier to CRO object for the mechanism entries (a plain
+   * object or a Map both work); `bridges` is the store's bridges (empty ->
+   * 1.0.0 literal reachability).
    */
   function hierarchyConsistent(
     parent: CausalRelationObject,
     members:
       | ReadonlyMap<string, CausalRelationObject>
       | Readonly<Record<string, CausalRelationObject>>,
+    bridges?: readonly Bridge[],
   ): HierarchyVerdict;
+
+  /* ------------------------------------------------------------------ *
+   * 2.0.0 normative algorithms (Section 12)                             *
+   * ------------------------------------------------------------------ */
+
+  /** The field-to-kind validity and entry shapes for each enrichment field. */
+  const ENRICHMENT_FIELDS: {
+    readonly [F in EnrichmentField]: readonly [readonly Kind[], string];
+  };
+
+  /** The stratal classification of a Causal Relation Object (Rule 15). */
+  type Classification =
+    | "intra_stratal"
+    | "adjacent_stratal"
+    | "skipping"
+    | "mixed"
+    | "unclassifiable"
+    | "scheme_mismatch";
+
+  /** ALGORITHM A: every finer occurrent an occurrent resolves to via Bridges. */
+  function bridgeClosure(
+    occurrentId: string,
+    bridges: readonly Bridge[],
+  ): Set<string>;
+
+  /** ALGORITHM C (Rule 15): the stratal classification of a CRO. */
+  function classifyCro(
+    cro: CausalRelationObject,
+    occMap: Readonly<Record<string, { stratum?: string }>>,
+    stratumMap: Readonly<Record<string, { scheme: string; ordinal: number }>>,
+  ): Classification;
+
+  /** True iff causes or effects span more than one distinct stratum. */
+  function endpointsMixed(
+    cro: CausalRelationObject,
+    occMap: Readonly<Record<string, { stratum?: string }>>,
+  ): boolean;
+
+  /** ALGORITHM D (Rule 16): the gaps a CRO surfaces for the skip decision. */
+  function skipGaps(cro: CausalRelationObject, classification: string): string[];
+
+  /** ALGORITHM E helper: normalize a delay to seconds by the fixed table. */
+  function toSeconds(duration: number, unit: string): number;
+
+  /** ALGORITHM E (Rule 20): does an observed delay fall within a window? */
+  function delayWithinWindow(
+    actualDelay: { duration: number; unit: string } | null | undefined,
+    temporal: TemporalWindow | null | undefined,
+  ): boolean;
+
+  /** Rule 14: Bridge well-formedness. Returns [ok, reason]. */
+  function bridgeWellformed(
+    bridge: Bridge,
+    occMap: Readonly<Record<string, { stratum?: string }>>,
+    stratumMap: Readonly<Record<string, { scheme: string; ordinal: number }>>,
+  ): [ok: boolean, reason: string];
+
+  /** Rule 17: Conduit well-formedness. Returns [ok, reason]. */
+  function conduitWellformed(
+    conduit: {
+      from: string;
+      to: string;
+      carries: string[];
+      transform?: string;
+    },
+    portMap: Readonly<Record<string, {
+      direction: string;
+      accepts: string[];
+    }>>,
+    croMap?: Readonly<Record<string, { effects: string[] }>>,
+  ): [ok: boolean, reason: string];
+
+  /** Rule 19: the HARD gaps a state assertion surfaces against its quality. */
+  function stateGaps(
+    state: { value?: Record<string, unknown> },
+    quality: { datatype?: string; unit?: string },
+  ): string[];
+
+  /** Rule 20: does the token claim mismatch its covering law? */
+  function coveringLawMismatch(
+    tcc: { causes: string[]; effects: string[] },
+    tokenMap: Readonly<Record<string, { instantiates: string }>>,
+    law: { causes: string[]; effects: string[] } | null | undefined,
+  ): boolean;
+
+  /** Rule 21: does any cause token start after any effect token? */
+  function retrocausal(
+    tcc: { causes: string[]; effects: string[] },
+    tokenMap: Readonly<Record<string, { interval: { start: string } }>>,
+  ): boolean;
+
+  /** Rules 4 / 6.1: does a directed graph (node -> successors) have a cycle? */
+  function hasCycle(
+    edges:
+      | ReadonlyMap<string, Iterable<string>>
+      | Readonly<Record<string, Iterable<string>>>,
+  ): boolean;
 
   /* ------------------------------------------------------------------ *
    * Signing (Ed25519, RFC 8032, over the canonical bytes)               *

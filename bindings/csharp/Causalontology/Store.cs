@@ -21,7 +21,7 @@ public sealed class RejectedWrite : Exception
 public sealed class InMemoryStore
 {
     private static readonly HashSet<string> ContentKinds =
-        new() { "occurrent", "cro", "continuant", "realizable" };
+        new() { "occurrent", "causal_relation_object", "continuant", "realizable" };
     private static readonly HashSet<string> RecordKinds =
         new() { "assertion", "enrichment", "retraction", "succession" };
 
@@ -444,7 +444,7 @@ public sealed class InMemoryStore
         foreach (var oid in _objectOrder)
         {
             var obj = _objects[oid];
-            if (obj.GetString("type") == "cro"
+            if (obj.GetString("type") == "causal_relation_object"
                 && obj.GetString("refines") is string parentId
                 && _objects.TryGetValue(parentId, out var parent))
             {
@@ -456,7 +456,7 @@ public sealed class InMemoryStore
         foreach (var oid in _objectOrder)
         {
             var obj = _objects[oid];
-            if (obj.GetString("type") != "cro")
+            if (obj.GetString("type") != "causal_relation_object")
                 continue;
             // missing_field: lacking the temporal window or the modality -
             // mechanism and context may legitimately stay unspecified forever
@@ -503,7 +503,7 @@ public sealed class InMemoryStore
         {
             var obj = _objects[oid];
             var references = new List<string>();
-            if (obj.GetString("type") == "cro")
+            if (obj.GetString("type") == "causal_relation_object")
             {
                 references.AddRange(StringList(obj.Get("causes")));
                 references.AddRange(StringList(obj.Get("effects")));
@@ -534,7 +534,7 @@ public sealed class InMemoryStore
         // conflict: pairs of claims satisfying the formal test (rule 6).
         var cros = _objectOrder
             .Select(id => _objects[id])
-            .Where(o => o.GetString("type") == "cro")
+            .Where(o => o.GetString("type") == "causal_relation_object")
             .ToList();
         for (var i = 0; i < cros.Count; i++)
         {

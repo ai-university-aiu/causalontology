@@ -25,30 +25,49 @@ import Data.Char (isDigit)
 import Data.List (isPrefixOf, tails)
 import System.FilePath ((</>))
 
--- | The eight loaded schemas, keyed by kind.
+-- | The seventeen loaded schemas, keyed by their file name (so cross-file
+-- @$ref@s, which name a sibling file, resolve directly).
 type Schemas = [(String, JValue)]
 
--- | Kind to schema file name.
+-- | Kind to schema file name. Three token kinds keep their original
+-- 1.0.0-reserved file names (individual\/token\/state); the id scheme is
+-- the whole word.
 schemaFileTable :: [(String, String)]
 schemaFileTable =
-  [ ("cro", "cro.schema.json")
-  , ("occurrent", "occurrent.schema.json")
+  [ ("occurrent", "occurrent.schema.json")
+  , ("causal_relation_object", "causal_relation_object.schema.json")
   , ("continuant", "continuant.schema.json")
   , ("realizable", "realizable.schema.json")
+  , ("stratum", "stratum.schema.json")
+  , ("bridge", "bridge.schema.json")
+  , ("port", "port.schema.json")
+  , ("conduit", "conduit.schema.json")
+  , ("quality", "quality.schema.json")
+  , ("token_individual", "individual.schema.json")
+  , ("token_occurrence", "token.schema.json")
+  , ("state_assertion", "state.schema.json")
+  , ("token_causal_claim", "token_causal_claim.schema.json")
   , ("assertion", "assertion.schema.json")
   , ("enrichment", "enrichment.schema.json")
   , ("retraction", "retraction.schema.json")
   , ("succession", "succession.schema.json")
   ]
 
--- | Load all eight schemas from a schema directory (spec\/schema).
+-- | The base URL under which every cross-file @$ref@ names a sibling.
+schemaBaseUrl :: String
+schemaBaseUrl = "https://causalontology.org/schema/"
+
+-- | Load all seventeen schemas from a schema directory (spec\/schema),
+-- keyed by file name.
 loadSchemas :: FilePath -> IO Schemas
-loadSchemas schemaDir = mapM loadOne schemaFileTable
+loadSchemas schemaDir = mapM loadOne files
   where
-    loadOne (kind, file) = do
+    files = distinct [ file | (_, file) <- schemaFileTable ]
+    distinct = foldr (\x acc -> if x `elem` acc then acc else x : acc) []
+    loadOne file = do
       bytes <- B.readFile (schemaDir </> file)
       case parseJson (utf8Decode (B.unpack bytes)) of
-        Right v -> return (kind, v)
+        Right v -> return (file, v)
         Left err -> ioError (userError ("cannot parse " ++ file ++ ": " ++ err))
 
 -- | @(ok, reasons)@ - structural validity against the kind's JSON Schema.
@@ -58,22 +77,44 @@ validateSchema schemas obj mkind = do
   kind <- case mkind of
     Just k -> Right k
     Nothing -> inferKind obj
-  root <- case lookup kind schemas of
-    Just r -> Right r
+  file <- case lookup kind schemaFileTable of
+    Just f -> Right f
     Nothing -> Left ("unknown kind: " ++ kind)
-  let errs = check obj root root "$"
+  root <- case lookup file schemas of
+    Just r -> Right r
+    Nothing -> Left ("schema file not loaded: " ++ file)
+  let errs = check schemas obj root root "$"
   Right (null errs, errs)
 
--- | Follow local @$ref@ chains to the referenced schema node.
-resolveRef :: JValue -> JValue -> JValue
-resolveRef schema root = case objGet "$ref" schema of
+-- | Follow local and cross-file @$ref@ chains to the referenced schema
+-- node, returning the node together with the root it must be resolved
+-- against (which changes when the reference crosses into another file).
+resolveRef :: Schemas -> JValue -> JValue -> (JValue, JValue)
+resolveRef files schema root = case objGet "$ref" schema of
   Just (JStr ref)
     | "#/" `isPrefixOf` ref ->
         let parts = splitOn '/' (drop 2 ref)
             node = foldl (\n part -> maybe JNull id (objGet part n)) root parts
-        in resolveRef node root
-  Just _ -> error "only local $ref supported"
-  Nothing -> schema
+        in resolveRef files node root
+    | schemaBaseUrl `isPrefixOf` ref ->
+        let rest = drop (length schemaBaseUrl) ref
+            (file, pointer) = breakOnHash rest
+            newRoot = maybe JNull id (lookup file files)
+            node = case pointer of
+              "" -> newRoot
+              p ->
+                let parts = splitOn '/' p
+                in foldl (\n part -> maybe JNull id (objGet part n)) newRoot parts
+        in resolveRef files node newRoot
+  Just _ -> error "unsupported $ref"
+  Nothing -> (schema, root)
+
+-- | Split a cross-file reference into (file name, JSON pointer without the
+-- leading @#\/@). @a.schema.json#\/$defs\/x@ -> @(\"a.schema.json\", \"$defs\/x\")@.
+breakOnHash :: String -> (String, String)
+breakOnHash s = case break (== '#') s of
+  (file, '#' : '/' : ptr) -> (file, ptr)
+  (file, _) -> (file, "")
 
 -- | Split a string on a separator character.
 splitOn :: Char -> String -> [String]
@@ -91,12 +132,13 @@ jRepr JNull = "None"
 jRepr (JArr xs) = "[" ++ concatMap (\x -> jRepr x ++ ", ") xs ++ "]"
 jRepr (JObj kvs) = "{" ++ concatMap (\(k, v) -> "'" ++ k ++ "': " ++ jRepr v ++ ", ") kvs ++ "}"
 
--- | The recursive keyword interpreter; returns the error list.
-check :: JValue -> JValue -> JValue -> String -> [String]
-check value schema0 root path =
+-- | The recursive keyword interpreter; returns the error list. @files@ is
+-- the file-name-keyed schema table needed to resolve cross-file @$ref@s.
+check :: Schemas -> JValue -> JValue -> JValue -> String -> [String]
+check files value schema0 root0 path =
   case objGet "oneOf" schema of
     Just (JArr subs) ->
-      let passing = length [ () | sub <- subs, null (check value sub root path) ]
+      let passing = length [ () | sub <- subs, null (check files value sub root path) ]
       in [ path ++ ": matches " ++ show passing ++ " of the oneOf branches (need exactly 1)"
          | passing /= 1
          ]
@@ -114,7 +156,7 @@ check value schema0 root path =
           , objectErrors
           ]
   where
-    schema = resolveRef schema0 root
+    (schema, root) = resolveRef files schema0 root0
 
     typeError = case objGet "type" schema of
       Just (JStr t)
@@ -126,6 +168,7 @@ check value schema0 root path =
       ("array", JArr _) -> True
       ("string", JStr _) -> True
       ("boolean", JBool _) -> True
+      ("integer", JInt _) -> True
       ("number", JInt _) -> True
       ("number", JFloat _) -> True
       _ -> False
@@ -175,7 +218,7 @@ check value schema0 root path =
             itemErrs = case objGet "items" schema of
               Just sub ->
                 concat
-                  [ check item sub root (path ++ "[" ++ show i ++ "]")
+                  [ check files item sub root (path ++ "[" ++ show i ++ "]")
                   | (i, item) <- zip [0 :: Int ..] xs
                   ]
               Nothing -> []
@@ -199,7 +242,7 @@ check value schema0 root path =
               _ -> []
             propErrs =
               concat
-                [ check v sub root (path ++ "." ++ k)
+                [ check files v sub root (path ++ "." ++ k)
                 | (k, sub) <- props
                 , Just v <- [lookup k kvs]
                 ]

@@ -18,12 +18,25 @@ namespace {
 
 std::string g_schema_dir;
 
+const std::string kBaseUrl = "https://causalontology.org/schema/";
+
+// kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+// file names (individual/token/state); the id scheme is the whole word.
 const std::map<std::string, std::string>& schemaFiles() {
     static const std::map<std::string, std::string> files = {
-        {"cro", "cro.schema.json"},
         {"occurrent", "occurrent.schema.json"},
+        {"causal_relation_object", "causal_relation_object.schema.json"},
         {"continuant", "continuant.schema.json"},
         {"realizable", "realizable.schema.json"},
+        {"stratum", "stratum.schema.json"},
+        {"bridge", "bridge.schema.json"},
+        {"port", "port.schema.json"},
+        {"conduit", "conduit.schema.json"},
+        {"quality", "quality.schema.json"},
+        {"token_individual", "individual.schema.json"},
+        {"token_occurrence", "token.schema.json"},
+        {"state_assertion", "state.schema.json"},
+        {"token_causal_claim", "token_causal_claim.schema.json"},
         {"assertion", "assertion.schema.json"},
         {"enrichment", "enrichment.schema.json"},
         {"retraction", "retraction.schema.json"},
@@ -41,43 +54,66 @@ std::string schemaDir() {
         "CAUSALONTOLOGY_SPEC");
 }
 
-const JValue& loadSchema(const std::string& kind) {
+// Load a schema document by filename, cached by filename so cross-file $refs
+// share one parse.
+const JValue& loadFile(const std::string& filename) {
     static std::map<std::string, JValue> cache;
-    auto hit = cache.find(kind);
+    auto hit = cache.find(filename);
     if (hit != cache.end()) return hit->second;
-    auto file = schemaFiles().find(kind);
-    if (file == schemaFiles().end())
-        throw std::runtime_error("unknown kind: '" + kind + "'");
-    std::string path = schemaDir() + "/" + file->second;
+    std::string path = schemaDir() + "/" + filename;
     std::ifstream in(path, std::ios::binary);
     if (!in) throw std::runtime_error("cannot open schema " + path);
     std::ostringstream buf;
     buf << in.rdbuf();
-    return cache.emplace(kind, json_parse(buf.str())).first->second;
+    return cache.emplace(filename, json_parse(buf.str())).first->second;
 }
 
-// Follow local $ref chains (#/$defs/...) to the referenced subschema.
-const JValue& resolveRef(const JValue& schema, const JValue& root) {
-    const JValue* node = &schema;
-    while (node->isObject() && node->has("$ref")) {
-        const std::string& ref = node->at("$ref").str;
-        if (ref.rfind("#/", 0) != 0)
-            throw std::runtime_error("only local $ref supported: " + ref);
-        const JValue* cursor = &root;
-        std::string rest = ref.substr(2);
-        size_t pos = 0;
-        while (pos <= rest.size()) {
-            size_t slash = rest.find('/', pos);
-            std::string part = rest.substr(
-                pos, slash == std::string::npos ? std::string::npos
-                                                : slash - pos);
-            cursor = &cursor->at(part);
-            if (slash == std::string::npos) break;
-            pos = slash + 1;
-        }
-        node = cursor;
+const JValue& loadSchema(const std::string& kind) {
+    auto file = schemaFiles().find(kind);
+    if (file == schemaFiles().end())
+        throw std::runtime_error("unknown kind: '" + kind + "'");
+    return loadFile(file->second);
+}
+
+// Navigate a JSON Pointer body ("$defs/interval") from a document root.
+const JValue* navigate(const JValue* root, const std::string& pointer) {
+    const JValue* cursor = root;
+    size_t pos = 0;
+    if (pointer.empty()) return cursor;
+    while (pos <= pointer.size()) {
+        size_t slash = pointer.find('/', pos);
+        std::string part = pointer.substr(
+            pos, slash == std::string::npos ? std::string::npos : slash - pos);
+        if (!part.empty()) cursor = &cursor->at(part);
+        if (slash == std::string::npos) break;
+        pos = slash + 1;
     }
-    return *node;
+    return cursor;
+}
+
+// Follow local (#/$defs/...) and cross-file ($BASE<file>#/...) $ref chains to
+// the concrete subschema; returns the node and the document root it lives in
+// (the root changes across a cross-file hop, mirroring the Python binding).
+std::pair<const JValue*, const JValue*> resolveRef(const JValue* schema,
+                                                   const JValue* root) {
+    while (schema->isObject() && schema->has("$ref")) {
+        const std::string& ref = schema->at("$ref").str;
+        if (ref.rfind("#/", 0) == 0) {
+            schema = navigate(root, ref.substr(2));
+        } else if (ref.rfind(kBaseUrl, 0) == 0) {
+            std::string rest = ref.substr(kBaseUrl.size());
+            size_t hash = rest.find("#/");
+            std::string filename =
+                hash == std::string::npos ? rest : rest.substr(0, hash);
+            root = &loadFile(filename);
+            schema = (hash == std::string::npos)
+                         ? root
+                         : navigate(root, rest.substr(hash + 2));
+        } else {
+            throw std::runtime_error("unsupported $ref: " + ref);
+        }
+    }
+    return {schema, root};
 }
 
 // A cached, compiled ECMAScript regex for a schema pattern.
@@ -101,12 +137,15 @@ bool typeMatches(const JValue& value, const std::string& t) {
     if (t == "string") return value.isString();
     if (t == "boolean") return value.isBool();
     if (t == "number") return value.isNumber();  // bools are a distinct tag
+    if (t == "integer") return value.isInt();
     return false;
 }
 
-void check(const JValue& value, const JValue& schemaIn, const JValue& root,
+void check(const JValue& value, const JValue& schemaIn, const JValue& rootIn,
            const std::string& path, std::vector<std::string>& errors) {
-    const JValue& schema = resolveRef(schemaIn, root);
+    auto [schemaP, rootP] = resolveRef(&schemaIn, &rootIn);
+    const JValue& schema = *schemaP;
+    const JValue& root = *rootP;
 
     if (schema.has("oneOf")) {
         int passing = 0;

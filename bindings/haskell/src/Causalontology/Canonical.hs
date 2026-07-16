@@ -31,28 +31,32 @@ import Data.Word (Word8)
 -- (the order is cosmetic: RFC 8785 sorts keys anyway).
 identityFieldsTable :: [(String, [String])]
 identityFieldsTable =
-  [ ("occurrent", ["label", "category"])
-  , ("cro", ["causes", "effects", "mechanism", "temporal", "modality", "context", "refines"])
+  -- type tier
+  [ ("occurrent", ["label", "category", "stratum"])
+  , ("causal_relation_object", ["causes", "effects", "mechanism", "temporal", "modality", "context", "refines", "skips"])
   , ("continuant", ["label", "category"])
-  , ("realizable", ["kind", "bearer"])
-  , ("assertion", ["about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp"])
+  , ("realizable", ["kind", "bearer", "label"])
+  , ("stratum", ["label", "scheme", "ordinal", "unit", "governs"])
+  , ("bridge", ["coarse", "fine", "relation"])
+  , ("port", ["bearer", "label", "direction", "accepts", "realizable"])
+  , ("conduit", ["label", "from", "to", "carries", "transform"])
+  , ("quality", ["label", "datatype", "unit", "stratum"])
+  -- token tier
+  , ("token_individual", ["instantiates", "designator", "part_of"])
+  , ("token_occurrence", ["instantiates", "interval", "participants", "locus", "observer"])
+  , ("state_assertion", ["subject", "quality", "value", "interval"])
+  , ("token_causal_claim", ["causes", "effects", "covering_law", "actual_delay", "counterfactual"])
+  -- provenance tier
+  , ("assertion", ["about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp", "evidenced_by"])
   , ("enrichment", ["about", "field", "entry", "source", "timestamp"])
   , ("retraction", ["retracts", "source", "timestamp"])
   , ("succession", ["predecessor", "successor", "timestamp"])
   ]
 
--- | Kind to identifier scheme.
+-- | Kind to identifier scheme. Whole-word re-mint (P7): the scheme IS the
+-- type value for every kind.
 prefixTable :: [(String, String)]
-prefixTable =
-  [ ("occurrent", "occ")
-  , ("cro", "cro")
-  , ("continuant", "cnt")
-  , ("realizable", "rlz")
-  , ("assertion", "ast")
-  , ("enrichment", "enr")
-  , ("retraction", "ret")
-  , ("succession", "suc")
-  ]
+prefixTable = [ (k, k) | (k, _) <- identityFieldsTable ]
 
 -- | The identifier scheme for a kind.
 prefixOf :: String -> Maybe String
@@ -69,7 +73,7 @@ inferKind obj = case objGet "type" obj of
   Just _ -> Left "unknown kind: non-string type field"
   Nothing
     | Just k <- kindFromId -> Right k
-    | objHas "causes" obj && objHas "effects" obj -> Right "cro"
+    | objHas "causes" obj && objHas "effects" obj -> Right "causal_relation_object"
     | objHas "retracts" obj -> Right "retraction"
     | objHas "predecessor" obj && objHas "successor" obj -> Right "succession"
     | objHas "field" obj && objHas "entry" obj -> Right "enrichment"

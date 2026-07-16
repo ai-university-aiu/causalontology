@@ -24,34 +24,55 @@ const Allocator = jcs.Allocator;
 const Validation = jcs.Validation;
 
 // Module-level schema location and cache (the harness is single-threaded,
-// mirroring the Python module's _cache dict).
+// mirroring the Python module's _cache dict, which is keyed by filename so a
+// cross-file $ref shares the same parsed schema instance).
 var spec_dir: ?[]const u8 = null;
 var spec_alloc: ?Allocator = null;
-var cache = [_]?Value{null} ** canonical.kind_specs.len;
+var file_cache: ?std.StringArrayHashMap(Value) = null;
 
-/// Point the validator at the directory holding the eight *.schema.json files.
+const _BASE = "https://causalontology.org/schema/";
+
+// kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+// file names (individual/token/state); the id scheme is the whole word. Every
+// other kind's file is named <kind>.schema.json.
+fn schemaFileForKind(kind: []const u8) ?[]const u8 {
+    const eql = std.mem.eql;
+    if (eql(u8, kind, "token_individual")) return "individual.schema.json";
+    if (eql(u8, kind, "token_occurrence")) return "token.schema.json";
+    if (eql(u8, kind, "state_assertion")) return "state.schema.json";
+    // Confirm the kind is a real one before synthesizing a filename.
+    if (canonical.specOfKind(kind) == null) return null;
+    return null; // sentinel: use <kind>.schema.json (built by loadSchema)
+}
+
+/// Point the validator at the directory holding the seventeen *.schema.json
+/// files (nine new + eight re-minted).
 pub fn setSpecDir(a: Allocator, dir: []const u8) void {
     spec_alloc = a;
     spec_dir = dir;
-    cache = [_]?Value{null} ** canonical.kind_specs.len;
+    file_cache = std.StringArrayHashMap(Value).init(a);
+}
+
+/// Load (and cache) a parsed JSON Schema file by its bare filename.
+pub fn loadFile(filename: []const u8) !Value {
+    const a = spec_alloc orelse return error.SpecDirNotSet;
+    const dir = spec_dir orelse return error.SpecDirNotSet;
+    if (file_cache == null) file_cache = std.StringArrayHashMap(Value).init(a);
+    if (file_cache.?.get(filename)) |v| return v;
+    const path = try std.fmt.allocPrint(a, "{s}{c}{s}", .{ dir, std.fs.path.sep, filename });
+    const bytes = try std.fs.cwd().readFileAlloc(a, path, 1 << 20);
+    const parsed = try std.json.parseFromSliceLeaky(Value, a, bytes, .{});
+    try file_cache.?.put(try a.dupe(u8, filename), parsed);
+    return parsed;
 }
 
 /// Load (and cache) the parsed JSON Schema for a kind.
 pub fn loadSchema(kind: []const u8) !Value {
+    if (canonical.specOfKind(kind) == null) return error.UnknownKind;
+    if (schemaFileForKind(kind)) |fname| return loadFile(fname);
     const a = spec_alloc orelse return error.SpecDirNotSet;
-    const dir = spec_dir orelse return error.SpecDirNotSet;
-    var index: ?usize = null;
-    for (&canonical.kind_specs, 0..) |*s, i| {
-        if (std.mem.eql(u8, s.kind, kind)) index = i;
-    }
-    const i = index orelse return error.UnknownKind;
-    if (cache[i] == null) {
-        // Every schema file is named <kind>.schema.json.
-        const path = try std.fmt.allocPrint(a, "{s}{c}{s}.schema.json", .{ dir, std.fs.path.sep, kind });
-        const bytes = try std.fs.cwd().readFileAlloc(a, path, 1 << 20);
-        cache[i] = try std.json.parseFromSliceLeaky(Value, a, bytes, .{});
-    }
-    return cache[i].?;
+    const fname = try std.fmt.allocPrint(a, "{s}.schema.json", .{kind});
+    return loadFile(fname);
 }
 
 /// (ok, reasons) - structural validity against the kind's JSON Schema.
@@ -63,24 +84,52 @@ pub fn validateSchema(a: Allocator, obj: Value, kind_opt: ?[]const u8) !Validati
     return .{ .ok = errors.items.len == 0, .errors = errors.items };
 }
 
-/// Follow local $ref chains (#/$defs/...) to the referenced subschema.
-fn resolveRef(schema_in: Value, root: Value) Value {
+/// A resolved subschema together with the root document it must be navigated
+/// against (a cross-file $ref changes the root, exactly as Python's _resolve).
+const Resolved = struct { schema: Value, root: Value };
+
+/// Follow local (#/$defs/...) and cross-file $ref chains to a concrete node.
+fn resolveRef(schema_in: Value, root_in: Value) !Resolved {
     var schema = schema_in;
+    var root = root_in;
     while (schema == .object) {
         const ref = schema.object.get("$ref") orelse break;
-        // Only local references appear in the eight schemas.
-        var node = root;
-        var it = std.mem.splitScalar(u8, ref.string[2..], '/');
-        while (it.next()) |part| {
-            node = node.object.get(part).?;
+        const r = ref.string;
+        if (std.mem.startsWith(u8, r, "#/")) {
+            var node = root;
+            var it = std.mem.splitScalar(u8, r[2..], '/');
+            while (it.next()) |part| {
+                if (part.len == 0) continue;
+                node = node.object.get(part).?;
+            }
+            schema = node;
+        } else if (std.mem.startsWith(u8, r, _BASE)) {
+            const rest = r[_BASE.len..];
+            const hash = std.mem.indexOf(u8, rest, "#/");
+            const filename = if (hash) |h| rest[0..h] else rest;
+            root = try loadFile(filename);
+            if (hash) |h| {
+                var node = root;
+                var it = std.mem.splitScalar(u8, rest[h + 2 ..], '/');
+                while (it.next()) |part| {
+                    if (part.len == 0) continue;
+                    node = node.object.get(part).?;
+                }
+                schema = node;
+            } else {
+                schema = root;
+            }
+        } else {
+            return error.UnsupportedRef;
         }
-        schema = node;
     }
-    return schema;
+    return .{ .schema = schema, .root = root };
 }
 
-fn check(a: Allocator, value: Value, schema_in: Value, root: Value, path: []const u8, errors: *std.ArrayList([]const u8)) anyerror!void {
-    const schema = resolveRef(schema_in, root);
+fn check(a: Allocator, value: Value, schema_in: Value, root_in: Value, path: []const u8, errors: *std.ArrayList([]const u8)) anyerror!void {
+    const resolved = try resolveRef(schema_in, root_in);
+    const schema = resolved.schema;
+    const root = resolved.root;
     const so = schema.object;
 
     if (so.get("oneOf")) |branches| {
@@ -110,6 +159,10 @@ fn check(a: Allocator, value: Value, schema_in: Value, root: Value, path: []cons
             // booleans are a distinct tag in std.json.Value, so the Python
             // bool-is-an-int exclusion is automatic here
             (value == .integer or value == .float)
+        else if (std.mem.eql(u8, t, "integer"))
+            // an integral JSON number; a float (even integer-valued) is not an
+            // integer, matching Python's isinstance(x, int)
+            value == .integer
         else
             false;
         if (!ok) {

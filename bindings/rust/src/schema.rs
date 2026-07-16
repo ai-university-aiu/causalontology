@@ -10,40 +10,105 @@ use std::sync::OnceLock;
 
 use crate::canonical::infer_kind;
 
+const BASE: &str = "https://causalontology.org/schema/";
+
+/// kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+/// file names (individual/token/state); the id scheme is the whole word.
+fn schema_file(kind: &str) -> Option<&'static str> {
+    Some(match kind {
+        "occurrent" => "occurrent.schema.json",
+        "causal_relation_object" => "causal_relation_object.schema.json",
+        "continuant" => "continuant.schema.json",
+        "realizable" => "realizable.schema.json",
+        "stratum" => "stratum.schema.json",
+        "bridge" => "bridge.schema.json",
+        "port" => "port.schema.json",
+        "conduit" => "conduit.schema.json",
+        "quality" => "quality.schema.json",
+        "token_individual" => "individual.schema.json",
+        "token_occurrence" => "token.schema.json",
+        "state_assertion" => "state.schema.json",
+        "token_causal_claim" => "token_causal_claim.schema.json",
+        "assertion" => "assertion.schema.json",
+        "enrichment" => "enrichment.schema.json",
+        "retraction" => "retraction.schema.json",
+        "succession" => "succession.schema.json",
+        _ => return None,
+    })
+}
+
+// The seventeen whole-word schemas, embedded at compile time and keyed by
+// their file name so cross-file $ref resolution is a simple lookup.
 static SCHEMAS: OnceLock<HashMap<&'static str, Value>> = OnceLock::new();
+
+macro_rules! embed {
+    ($m:ident, $file:literal) => {
+        $m.insert($file, serde_json::from_str(include_str!(
+            concat!("../spec_schema/", $file))).unwrap());
+    };
+}
 
 fn schemas() -> &'static HashMap<&'static str, Value> {
     SCHEMAS.get_or_init(|| {
-        let mut m = HashMap::new();
-        m.insert("cro", serde_json::from_str(include_str!(
-            "../spec_schema/cro.schema.json")).unwrap());
-        m.insert("occurrent", serde_json::from_str(include_str!(
-            "../spec_schema/occurrent.schema.json")).unwrap());
-        m.insert("continuant", serde_json::from_str(include_str!(
-            "../spec_schema/continuant.schema.json")).unwrap());
-        m.insert("realizable", serde_json::from_str(include_str!(
-            "../spec_schema/realizable.schema.json")).unwrap());
-        m.insert("assertion", serde_json::from_str(include_str!(
-            "../spec_schema/assertion.schema.json")).unwrap());
-        m.insert("enrichment", serde_json::from_str(include_str!(
-            "../spec_schema/enrichment.schema.json")).unwrap());
-        m.insert("retraction", serde_json::from_str(include_str!(
-            "../spec_schema/retraction.schema.json")).unwrap());
-        m.insert("succession", serde_json::from_str(include_str!(
-            "../spec_schema/succession.schema.json")).unwrap());
+        let mut m: HashMap<&'static str, Value> = HashMap::new();
+        embed!(m, "occurrent.schema.json");
+        embed!(m, "causal_relation_object.schema.json");
+        embed!(m, "continuant.schema.json");
+        embed!(m, "realizable.schema.json");
+        embed!(m, "stratum.schema.json");
+        embed!(m, "bridge.schema.json");
+        embed!(m, "port.schema.json");
+        embed!(m, "conduit.schema.json");
+        embed!(m, "quality.schema.json");
+        embed!(m, "individual.schema.json");
+        embed!(m, "token.schema.json");
+        embed!(m, "state.schema.json");
+        embed!(m, "token_causal_claim.schema.json");
+        embed!(m, "assertion.schema.json");
+        embed!(m, "enrichment.schema.json");
+        embed!(m, "retraction.schema.json");
+        embed!(m, "succession.schema.json");
         m
     })
 }
 
-fn resolve<'a>(mut schema: &'a Value, root: &'a Value) -> &'a Value {
-    while let Some(Value::String(r)) = schema.get("$ref") {
-        let mut node = root;
-        for part in r.trim_start_matches("#/").split('/') {
-            node = node.get(part).expect("unresolvable local $ref");
+fn schema_by_file(file: &str) -> &'static Value {
+    schemas().get(file).unwrap_or_else(|| panic!("unknown schema file: {}", file))
+}
+
+fn navigate<'a>(mut node: &'a Value, pointer: &str) -> &'a Value {
+    for part in pointer.split('/') {
+        if part.is_empty() {
+            continue;
         }
-        schema = node;
+        node = node.get(part).expect("unresolvable $ref pointer");
     }
-    schema
+    node
+}
+
+/// Resolve local (`#/...`) and cross-file
+/// (`https://causalontology.org/schema/<file>#/...`) $refs to a concrete
+/// schema node and the root document it belongs to.
+fn resolve<'a>(mut schema: &'a Value, mut root: &'a Value)
+               -> (&'a Value, &'a Value) {
+    while let Some(Value::String(r)) = schema.get("$ref") {
+        if let Some(rest) = r.strip_prefix("#/") {
+            schema = navigate(root, rest);
+        } else if let Some(rest) = r.strip_prefix(BASE) {
+            let (file, pointer) = match rest.split_once("#/") {
+                Some((f, p)) => (f, Some(p)),
+                None => (rest, None),
+            };
+            root = schema_by_file(file);
+            schema = match pointer {
+                Some(p) => navigate(root, p),
+                None => root,
+            };
+        } else {
+            panic!("unsupported $ref: {}", r);
+        }
+    }
+    (schema, root)
 }
 
 fn type_matches(t: &str, value: &Value) -> bool {
@@ -51,7 +116,10 @@ fn type_matches(t: &str, value: &Value) -> bool {
         "object" => value.is_object(),
         "array" => value.is_array(),
         "string" => value.is_string(),
+        // serde keeps booleans distinct from numbers, so integer/number
+        // naturally reject a JSON boolean (as RFC 8785 / the Python ref do).
         "number" => value.is_number(),
+        "integer" => value.is_i64() || value.is_u64(),
         "boolean" => value.is_boolean(),
         _ => false,
     }
@@ -59,7 +127,7 @@ fn type_matches(t: &str, value: &Value) -> bool {
 
 fn check(value: &Value, schema: &Value, root: &Value, path: &str,
          errors: &mut Vec<String>) {
-    let schema = resolve(schema, root);
+    let (schema, root) = resolve(schema, root);
 
     if let Some(Value::Array(branches)) = schema.get("oneOf") {
         let mut passing = 0;
@@ -175,8 +243,8 @@ pub fn validate_schema(obj: &Map<String, Value>, kind: Option<&str>)
             Err(e) => return (false, vec![e]),
         },
     };
-    let root = match schemas().get(kind.as_str()) {
-        Some(s) => s,
+    let root = match schema_file(&kind) {
+        Some(file) => schema_by_file(file),
         None => return (false, vec![format!("unknown kind: {}", kind)]),
     };
     let mut errors = Vec::new();

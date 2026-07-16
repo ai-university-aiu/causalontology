@@ -19,20 +19,40 @@ struct KindFields {
 };
 
 // The identity-bearing fields per kind (spec/identity.md), in spec order.
+// 2.0.0 whole-word re-mint (Principle P7): the scheme IS the type value.
 const std::vector<KindFields>& table() {
     static const std::vector<KindFields> t = {
-        {"occurrent", "occ", {"label", "category"}},
-        {"cro", "cro",
+        // ---- type tier ----
+        {"occurrent", "occurrent", {"label", "category", "stratum"}},
+        {"causal_relation_object", "causal_relation_object",
          {"causes", "effects", "mechanism", "temporal", "modality", "context",
-          "refines"}},
-        {"continuant", "cnt", {"label", "category"}},
-        {"realizable", "rlz", {"kind", "bearer"}},
-        {"assertion", "ast",
+          "refines", "skips"}},
+        {"continuant", "continuant", {"label", "category"}},
+        {"realizable", "realizable", {"kind", "bearer", "label"}},
+        {"stratum", "stratum", {"label", "scheme", "ordinal", "unit", "governs"}},
+        {"bridge", "bridge", {"coarse", "fine", "relation"}},
+        {"port", "port", {"bearer", "label", "direction", "accepts",
+                          "realizable"}},
+        {"conduit", "conduit", {"label", "from", "to", "carries", "transform"}},
+        {"quality", "quality", {"label", "datatype", "unit", "stratum"}},
+        // ---- token tier ----
+        {"token_individual", "token_individual",
+         {"instantiates", "designator", "part_of"}},
+        {"token_occurrence", "token_occurrence",
+         {"instantiates", "interval", "participants", "locus", "observer"}},
+        {"state_assertion", "state_assertion",
+         {"subject", "quality", "value", "interval"}},
+        {"token_causal_claim", "token_causal_claim",
+         {"causes", "effects", "covering_law", "actual_delay",
+          "counterfactual"}},
+        // ---- provenance tier ----
+        {"assertion", "assertion",
          {"about", "source", "evidence_type", "evidence", "strength",
-          "confidence", "timestamp"}},
-        {"enrichment", "enr", {"about", "field", "entry", "source", "timestamp"}},
-        {"retraction", "ret", {"retracts", "source", "timestamp"}},
-        {"succession", "suc", {"predecessor", "successor", "timestamp"}},
+          "confidence", "timestamp", "evidenced_by"}},
+        {"enrichment", "enrichment",
+         {"about", "field", "entry", "source", "timestamp"}},
+        {"retraction", "retraction", {"retracts", "source", "timestamp"}},
+        {"succession", "succession", {"predecessor", "successor", "timestamp"}},
     };
     return t;
 }
@@ -67,7 +87,8 @@ std::string infer_kind(const JValue& obj) {
             if (!kind.empty()) return kind;
         }
     }
-    if (obj.has("causes") && obj.has("effects")) return "cro";
+    if (obj.has("coarse") && obj.has("fine")) return "bridge";
+    if (obj.has("causes") && obj.has("effects")) return "causal_relation_object";
     if (obj.has("retracts")) return "retraction";
     if (obj.has("predecessor") && obj.has("successor")) return "succession";
     if (obj.has("field") && obj.has("entry")) return "enrichment";

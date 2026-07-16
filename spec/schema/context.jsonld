@@ -4,7 +4,7 @@
     "bfo": "http://purl.obolibrary.org/obo/BFO_",
     "ro": "http://purl.obolibrary.org/obo/RO_",
     "prov": "http://www.w3.org/ns/prov#",
-    "cro": "co:CausalRelationObject",
+    "causal_relation_object": "co:CausalRelationObject",
     "occurrent": {
       "@id": "bfo:0000003"
     },

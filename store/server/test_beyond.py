@@ -57,8 +57,8 @@ def main():
                     "category": "state_change"})
     press, light = press["id"], light["id"]
     _, P = req(A, "POST", "/objects",
-               {"type": "cro", "causes": [press], "effects": [light],
-                "temporal": {"dmin": 0, "dmax": 1, "unit": "seconds"},
+               {"type": "causal_relation_object", "causes": [press], "effects": [light],
+                "temporal": {"minimum_delay": 0, "maximum_delay": 1, "unit": "seconds"},
                 "modality": "sufficient"})
     P = P["id"]
     sk, alice = keypair_from_seed(hashlib.sha256(b"alice").digest())

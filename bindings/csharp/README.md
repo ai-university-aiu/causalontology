@@ -48,7 +48,7 @@ var press = store.Put(new JsonMap {
 var light = store.Put(new JsonMap {
     { "type", "occurrent" }, { "label", "light_on" }, { "category", "state_change" } });
 var claim = store.Put(new JsonMap {
-    { "type", "cro" },
+    { "type", "causal_relation_object" },
     { "causes", new List<object?> { press } },
     { "effects", new List<object?> { light } } });
 

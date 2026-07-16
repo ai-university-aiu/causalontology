@@ -16,7 +16,10 @@
 # below (names(s$objects), names(s$records)) deliberately mirrors the
 # Python dict iteration order of the reference.
 
-co_content_kinds <- c("occurrent", "cro", "continuant", "realizable")
+co_content_kinds <- c("occurrent", "causal_relation_object", "continuant",
+                      "realizable", "stratum", "bridge", "port", "conduit",
+                      "quality", "token_individual", "token_occurrence",
+                      "state_assertion", "token_causal_claim")
 co_record_kinds  <- c("assertion", "enrichment", "retraction", "succession")
 
 # Raise the RejectedWrite condition (catch with
@@ -384,7 +387,7 @@ co_store_gaps <- function(s, kind = NULL) {
   refined <- character(0)
   for (oid in names(s$objects)) {
     obj <- s$objects[[oid]]
-    if (!identical(co_get(obj, "type"), "cro")) next
+    if (!identical(co_get(obj, "type"), "causal_relation_object")) next
     ref <- co_get(obj, "refines")
     if (!co_is_str(ref) || !nzchar(ref)) next
     parent <- if (co_has_key(s$objects, ref)) s$objects[[ref]] else NULL
@@ -394,7 +397,7 @@ co_store_gaps <- function(s, kind = NULL) {
   }
   for (oid in names(s$objects)) {
     obj <- s$objects[[oid]]
-    if (!identical(co_get(obj, "type"), "cro")) next
+    if (!identical(co_get(obj, "type"), "causal_relation_object")) next
     # missing_field: lacking the temporal window or the modality --
     # mechanism and context may legitimately stay unspecified forever
     # (empty_mechanism is its own kind; absent context = context-free).
@@ -426,7 +429,7 @@ co_store_gaps <- function(s, kind = NULL) {
     obj <- s$objects[[oid]]
     ty <- co_get(obj, "type")
     refs <- character(0)
-    if (identical(ty, "cro")) {
+    if (identical(ty, "causal_relation_object")) {
       refs <- c(co_strings(co_get(obj, "causes")),
                 co_strings(co_get(obj, "effects")),
                 co_strings(co_get(obj, "context")),
@@ -449,7 +452,7 @@ co_store_gaps <- function(s, kind = NULL) {
   cros <- list()
   for (oid in names(s$objects)) {
     obj <- s$objects[[oid]]
-    if (identical(co_get(obj, "type"), "cro")) {
+    if (identical(co_get(obj, "type"), "causal_relation_object")) {
       cros[[length(cros) + 1L]] <- obj
     }
   }

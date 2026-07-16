@@ -15,14 +15,14 @@
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^enr:[0-9a-f]{64}$"
+      "pattern": "^enrichment:[0-9a-f]{64}$"
     },
     "type": {
       "const": "enrichment"
     },
     "about": {
       "type": "string",
-      "pattern": "^(occ|cnt|rlz):[0-9a-f]{64}$",
+      "pattern": "^(occurrent|continuant|realizable):[0-9a-f]{64}$",
       "description": "the content object being enriched (Causal Relation Objects are never enriched in place - they are refined)"
     },
     "field": {
@@ -31,9 +31,11 @@
         "participants",
         "subsumes",
         "part_of",
-        "realized_in"
+        "realized_in",
+        "occurrent_subsumes",
+        "occurrent_part_of"
       ],
-      "description": "field-to-kind validity is fixed by semantics.md rule 12"
+      "description": "field-to-kind validity is fixed by semantics.md rule 12 (amended in 2.0.0: two occurrent forms added)"
     },
     "entry": {
       "oneOf": [
@@ -57,7 +59,7 @@
         },
         {
           "type": "string",
-          "pattern": "^(occ|cnt):[0-9a-f]{64}$",
+          "pattern": "^(occurrent|continuant):[0-9a-f]{64}$",
           "description": "the entry shape for the reference fields, checked per field by semantics.md rule 12"
         }
       ]

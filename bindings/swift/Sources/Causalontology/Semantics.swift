@@ -25,10 +25,12 @@ public let unitSeconds: [String: Double] = [
 /// the scheme prefix a string entry must carry.
 public let enrichmentFields: [String: (legalKinds: [String], entryShape: String)] = [
     "aliases": (["occurrent", "continuant"], "alias"),
-    "participants": (["occurrent"], "cnt"),
-    "subsumes": (["continuant"], "cnt"),
-    "part_of": (["continuant"], "cnt"),
-    "realized_in": (["realizable"], "occ"),
+    "participants": (["occurrent"], "continuant"),
+    "subsumes": (["continuant"], "continuant"),
+    "part_of": (["continuant"], "continuant"),
+    "realized_in": (["realizable"], "occurrent"),
+    "occurrent_subsumes": (["occurrent"], "occurrent"),
+    "occurrent_part_of": (["occurrent"], "occurrent"),
 ]
 
 /// The optional Causal Relation Object fields, in canonical order.
@@ -65,12 +67,12 @@ public func validateSemantics(
     }
     var errors: [String] = []
 
-    if resolvedKind == "cro" {
+    if resolvedKind == "causal_relation_object" {
         if let temporal = obj["temporal"]?.objectValue,
-           let dmin = temporal["dmin"]?.numberValue,
-           let dmax = temporal["dmax"]?.numberValue,
-           dmin > dmax {
-            errors.append("dmin must be <= dmax")
+           let minimum_delay = temporal["minimum_delay"]?.numberValue,
+           let maximum_delay = temporal["maximum_delay"]?.numberValue,
+           minimum_delay > maximum_delay {
+            errors.append("minimum_delay must be <= maximum_delay")
         }
         if let identifier = obj["id"]?.stringValue {
             let mechanism = obj["mechanism"]?.arrayValue ?? []
@@ -81,6 +83,13 @@ public func validateSemantics(
             if obj["refines"]?.stringValue == identifier {
                 errors.append("refines must be acyclic")
             }
+        }
+        // Rule 16, clause 1 (contradictory_skip): a HARD, locally-decidable
+        // contradiction between skips:true and a non-empty mechanism.
+        let mechanismPresent = !(obj["mechanism"]?.arrayValue?.isEmpty ?? true)
+        if obj["skips"]?.boolValue == true && mechanismPresent {
+            errors.append("contradictory_skip: skips is true but a mechanism "
+                          + "is present")
         }
     }
 
@@ -132,12 +141,12 @@ public func admissible(_ cro: [String: JsonValue], elapsedSeconds: Double) -> Bo
     }
     guard let unitName = temporal["unit"]?.stringValue,
           let unit = unitSeconds[unitName],
-          let dmin = temporal["dmin"]?.numberValue,
-          let dmax = temporal["dmax"]?.numberValue else {
+          let minimum_delay = temporal["minimum_delay"]?.numberValue,
+          let maximum_delay = temporal["maximum_delay"]?.numberValue else {
         return false
     }
-    let lo = dmin * unit
-    let hi = dmax * unit
+    let lo = minimum_delay * unit
+    let hi = maximum_delay * unit
     return lo <= elapsedSeconds && elapsedSeconds <= hi
 }
 
@@ -149,8 +158,8 @@ func windowOverlap(_ a: [String: JsonValue], _ b: [String: JsonValue]) -> Bool {
     }
     guard let ua = unitSeconds[ta["unit"]?.stringValue ?? ""],
           let ub = unitSeconds[tb["unit"]?.stringValue ?? ""],
-          let dminA = ta["dmin"]?.numberValue, let dmaxA = ta["dmax"]?.numberValue,
-          let dminB = tb["dmin"]?.numberValue, let dmaxB = tb["dmax"]?.numberValue else {
+          let dminA = ta["minimum_delay"]?.numberValue, let dmaxA = ta["maximum_delay"]?.numberValue,
+          let dminB = tb["minimum_delay"]?.numberValue, let dmaxB = tb["maximum_delay"]?.numberValue else {
         return true
     }
     let loA = dminA * ua
@@ -171,8 +180,10 @@ func contextsCompatible(_ a: [String: JsonValue], _ b: [String: JsonValue]) -> B
     return ca == cb || ca.isSubset(of: cb) || cb.isSubset(of: ca)
 }
 
-/// The positive modalities, against which "preventive" conflicts.
-let positiveModalities: Set<String> = ["necessary", "sufficient", "contributory"]
+/// The positive modalities, against which "preventive" conflicts. Rule 6
+/// (amended): necessary, sufficient, contributory, enabling are mutually
+/// compatible; preventive opposes all four.
+let positiveModalities: Set<String> = ["necessary", "sufficient", "contributory", "enabling"]
 
 /// Rule 6: the formal conflict test.
 public func conflicts(_ a: [String: JsonValue], _ b: [String: JsonValue]) -> Bool {
@@ -228,55 +239,402 @@ public func refinementValid(
     return (true, "valid refinement")
 }
 
-/// Rule 7: "consistent" | "inconsistent" | "indeterminate".
+/// The ordered list of string members of a JSON array field.
+func stringArray(_ value: JsonValue?) -> [String] {
+    var out: [String] = []
+    for item in value?.arrayValue ?? [] {
+        if let text = item.stringValue {
+            out.append(text)
+        }
+    }
+    return out
+}
+
+// ===========================================================================
+// 2.0.0 NORMATIVE ALGORITHMS (Section 12)
+// ===========================================================================
+
+/// ALGORITHM A (N12.1): every finer occurrent an occurrent resolves to,
+/// following Bridges downward, transitively. Includes the starting
+/// occurrent; the visited guard prevents an infinite loop on cyclic data.
+public func bridgeClosure(_ occurrentId: String, _ bridges: [[String: JsonValue]]) -> Set<String> {
+    var result: Set<String> = [occurrentId]
+    var frontier: [String] = [occurrentId]
+    var visited: Set<String> = []
+    var coarseIndex: [String: [[String: JsonValue]]] = [:]
+    for bridge in bridges {
+        if let coarse = bridge["coarse"]?.stringValue {
+            coarseIndex[coarse, default: []].append(bridge)
+        }
+    }
+    while let current = frontier.popLast() {
+        if visited.contains(current) {
+            continue
+        }
+        visited.insert(current)
+        for bridge in coarseIndex[current] ?? [] {
+            for fine in stringArray(bridge["fine"]) {
+                result.insert(fine)
+                frontier.append(fine)
+            }
+        }
+    }
+    return result
+}
+
+/// Depth-first reachability over an adjacency map.
+func pathExists(_ edges: [String: Set<String>], _ src: String, _ dst: String) -> Bool {
+    var seen: Set<String> = []
+    var stack: [String] = [src]
+    while let node = stack.popLast() {
+        if node == dst {
+            return true
+        }
+        if seen.contains(node) {
+            continue
+        }
+        seen.insert(node)
+        for next in edges[node] ?? [] {
+            stack.append(next)
+        }
+    }
+    return false
+}
+
+/// ALGORITHM B (amended Rule 7): "consistent" | "inconsistent" |
+/// "indeterminate", ACROSS STRATA via bridged reachability.
 ///
 /// members: a mapping from CRO identifier to CRO object for the parent's
-/// mechanism entries (the store's view of them).
+/// mechanism entries. bridges: the store's bridges (empty -> 1.0.0 literal
+/// reachability, the degenerate case).
 public func hierarchyConsistent(
     _ parent: [String: JsonValue],
-    _ members: [String: [String: JsonValue]]
+    _ members: [String: [String: JsonValue]],
+    _ bridges: [[String: JsonValue]] = []
 ) -> String {
     let mechanism = parent["mechanism"]?.arrayValue ?? []
     if mechanism.isEmpty {
-        // Nothing claimed, nothing to check.
-        return "consistent"
+        return "consistent"  // nothing claimed, nothing to check
     }
     var edges: [String: Set<String>] = [:]
     for entry in mechanism {
         guard let memberId = entry.stringValue, let member = members[memberId] else {
-            // A dangling_reference gap, not a failure.
-            return "indeterminate"
+            return "indeterminate"  // dangling; ignorance, not refutation
         }
-        let effects = stringSet(member["effects"])
-        for cause in stringSet(member["causes"]) {
+        let effects = Set(stringArray(member["effects"]))
+        for cause in stringArray(member["causes"]) {
             edges[cause, default: []].formUnion(effects)
         }
     }
-
-    func reachable(_ src: String, _ dst: String) -> Bool {
-        var seen: Set<String> = []
-        var stack: [String] = [src]
-        while let node = stack.popLast() {
-            if node == dst {
-                return true
-            }
-            if seen.contains(node) {
-                continue
-            }
-            seen.insert(node)
-            for next in edges[node] ?? [] {
-                stack.append(next)
-            }
-        }
-        return false
+    var bCause: [String: Set<String>] = [:]
+    for cause in stringArray(parent["causes"]) {
+        bCause[cause] = bridgeClosure(cause, bridges)
     }
-
-    for cause in stringSet(parent["causes"]) {
-        for effect in stringSet(parent["effects"]) {
-            if !reachable(cause, effect) {
+    var bEffect: [String: Set<String>] = [:]
+    for effect in stringArray(parent["effects"]) {
+        bEffect[effect] = bridgeClosure(effect, bridges)
+    }
+    for cause in stringArray(parent["causes"]) {
+        for effect in stringArray(parent["effects"]) {
+            var connected = false
+            outer: for cp in bCause[cause] ?? [] {
+                for ep in bEffect[effect] ?? [] {
+                    if pathExists(edges, cp, ep) {
+                        connected = true
+                        break outer
+                    }
+                }
+            }
+            if !connected {
                 return "inconsistent"
             }
         }
     }
     return "consistent"
+}
+
+/// The stratum id of an occurrent by id, or nil.
+private func stratumOf(_ occId: String, _ occMap: [String: [String: JsonValue]]) -> String? {
+    return occMap[occId]?["stratum"]?.stringValue
+}
+
+/// ALGORITHM C (Rule 15): "intra_stratal" | "adjacent_stratal" | "skipping"
+/// | "mixed" | "unclassifiable" | "scheme_mismatch". Derived, never asserted.
+public func classifyCro(
+    _ cro: [String: JsonValue],
+    _ occMap: [String: [String: JsonValue]],
+    _ stratumMap: [String: [String: JsonValue]]
+) -> String {
+    let causeStrata = stringArray(cro["causes"]).map { stratumOf($0, occMap) }
+    let effectStrata = stringArray(cro["effects"]).map { stratumOf($0, occMap) }
+    if (causeStrata + effectStrata).contains(where: { $0 == nil }) {
+        return "unclassifiable"
+    }
+    let cStrata = causeStrata.compactMap { $0 }
+    let eStrata = effectStrata.compactMap { $0 }
+    let allStrata = Set(cStrata).union(eStrata)
+    var schemes: Set<String> = []
+    for s in allStrata {
+        if let scheme = stratumMap[s]?["scheme"]?.stringValue {
+            schemes.insert(scheme)
+        }
+    }
+    if schemes.count > 1 {
+        return "scheme_mismatch"  // HARD
+    }
+    let cOrd = cStrata.compactMap { stratumMap[$0]?["ordinal"]?.numberValue }
+    let eOrd = eStrata.compactMap { stratumMap[$0]?["ordinal"]?.numberValue }
+    if let cMax = cOrd.max(), let cMin = cOrd.min(),
+       let eMax = eOrd.max(), let eMin = eOrd.min(),
+       cMax == cMin && cMin == eMax && eMax == eMin {
+        return "intra_stratal"
+    }
+    var gap = Double.infinity
+    var span = -Double.infinity
+    for i in cOrd {
+        for j in eOrd {
+            let d = abs(i - j)
+            gap = Swift.min(gap, d)
+            span = Swift.max(span, d)
+        }
+    }
+    if span == 1 {
+        return "adjacent_stratal"
+    }
+    if gap > 1 {
+        return "skipping"
+    }
+    return "mixed"  // some pairs adjacent, some skipping
+}
+
+/// True iff causes or effects span more than one distinct stratum
+/// (surfaces mixed_stratal_endpoints, an invitation).
+public func endpointsMixed(
+    _ cro: [String: JsonValue],
+    _ occMap: [String: [String: JsonValue]]
+) -> Bool {
+    let cs = stringArray(cro["causes"]).map { stratumOf($0, occMap) }
+    let es = stringArray(cro["effects"]).map { stratumOf($0, occMap) }
+    if cs.contains(where: { $0 == nil }) || es.contains(where: { $0 == nil }) {
+        return false
+    }
+    return Set(cs.compactMap { $0 }).count > 1 || Set(es.compactMap { $0 }).count > 1
+}
+
+/// ALGORITHM D (Rule 16): the gaps a Causal Relation Object surfaces for the
+/// skip decision. The asymmetry (clause 3) is implemented exactly.
+public func skipGaps(_ cro: [String: JsonValue], _ classification: String) -> [String] {
+    var gaps: [String] = []
+    let hasMech = !(cro["mechanism"]?.arrayValue?.isEmpty ?? true)
+    let skipsTrue = (cro["skips"]?.boolValue == true)
+    if skipsTrue && hasMech {
+        gaps.append("contradictory_skip")  // HARD
+        return gaps
+    }
+    if skipsTrue && classification != "skipping" && classification != "unclassifiable" {
+        gaps.append("vacuous_skip")  // invitation
+    }
+    if classification == "skipping" && !hasMech {
+        if skipsTrue {
+            // NOTHING: absence is a finding.
+        } else {
+            gaps.append("incomplete_mechanism")  // invitation
+        }
+    }
+    return gaps
+}
+
+/// ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+public func toSeconds(_ duration: Double, _ unit: String) -> Double {
+    if unit == "instant" {
+        return 0
+    }
+    return duration * (unitSeconds[unit] ?? 0)
+}
+
+/// ALGORITHM E (Rule 20): does an observed delay fall within a covering
+/// law's temporal window? Inclusive at both ends.
+public func delayWithinWindow(
+    _ actualDelay: [String: JsonValue]?,
+    _ temporal: [String: JsonValue]?
+) -> Bool {
+    guard let actualDelay = actualDelay, !actualDelay.isEmpty,
+          let temporal = temporal, !temporal.isEmpty else {
+        return true  // nothing to check
+    }
+    let observed = toSeconds(actualDelay["duration"]?.numberValue ?? 0,
+                             actualDelay["unit"]?.stringValue ?? "")
+    let lo = toSeconds(temporal["minimum_delay"]?.numberValue ?? 0,
+                       temporal["unit"]?.stringValue ?? "")
+    let hi = toSeconds(temporal["maximum_delay"]?.numberValue ?? 0,
+                       temporal["unit"]?.stringValue ?? "")
+    return lo <= observed && observed <= hi
+}
+
+/// Rule 14 / N3.2.1: Bridge well-formedness. All of (a)-(e) must hold, else
+/// malformed_bridge.
+public func bridgeWellformed(
+    _ bridge: [String: JsonValue],
+    _ occMap: [String: [String: JsonValue]],
+    _ stratumMap: [String: [String: JsonValue]]
+) -> (ok: Bool, reason: String) {
+    guard let coarseId = bridge["coarse"]?.stringValue,
+          let cs = occMap[coarseId]?["stratum"]?.stringValue else {
+        return (false, "malformed_bridge: coarse has no stratum (a)")
+    }
+    let fineStrata = stringArray(bridge["fine"]).map { occMap[$0]?["stratum"]?.stringValue }
+    if fineStrata.contains(where: { $0 == nil }) {
+        return (false, "malformed_bridge: a fine member has no stratum (b)")
+    }
+    let concreteFine = fineStrata.compactMap { $0 }
+    if Set(concreteFine).count != 1 {
+        return (false, "malformed_bridge: fine members span >1 stratum (c)")
+    }
+    let fs = concreteFine[0]
+    if stratumMap[cs]?["scheme"]?.stringValue != stratumMap[fs]?["scheme"]?.stringValue {
+        return (false, "malformed_bridge: coarse and fine differ in scheme (d)")
+    }
+    let coarseOrd = stratumMap[cs]?["ordinal"]?.numberValue ?? 0
+    let fineOrd = stratumMap[fs]?["ordinal"]?.numberValue ?? 0
+    if !(coarseOrd > fineOrd) {
+        return (false, "malformed_bridge: coarse ordinal not > fine ordinal (e)")
+    }
+    return (true, "well-formed bridge")
+}
+
+/// Rule 17 / N4.2.1-2: Conduit well-formedness, with the transform exception.
+public func conduitWellformed(
+    _ conduit: [String: JsonValue],
+    _ portMap: [String: [String: JsonValue]],
+    _ croMap: [String: [String: JsonValue]] = [:]
+) -> (ok: Bool, reason: String) {
+    guard let fromId = conduit["from"]?.stringValue, let frm = portMap[fromId],
+          let toId = conduit["to"]?.stringValue, let to = portMap[toId] else {
+        return (false, "malformed_conduit: dangling port reference")
+    }
+    let fromDir = frm["direction"]?.stringValue ?? ""
+    if fromDir != "out" && fromDir != "bidirectional" {
+        return (false, "malformed_conduit: from port is not out/bidirectional (a)")
+    }
+    let toDir = to["direction"]?.stringValue ?? ""
+    if toDir != "in" && toDir != "bidirectional" {
+        return (false, "malformed_conduit: to port is not in/bidirectional (b)")
+    }
+    let carries = stringArray(conduit["carries"])
+    let fromAccepts = Set(stringArray(frm["accepts"]))
+    if !carries.allSatisfy({ fromAccepts.contains($0) }) {
+        return (false, "malformed_conduit: carries not accepted by from (c)")
+    }
+    let toAccepts = Set(stringArray(to["accepts"]))
+    if let transform = conduit["transform"]?.stringValue {
+        if let law = croMap[transform] {
+            let lawEffects = stringArray(law["effects"])
+            if !lawEffects.allSatisfy({ toAccepts.contains($0) }) {
+                return (false, "malformed_conduit: transform effects not "
+                        + "accepted by to (d, relaxed per N4.2.2)")
+            }
+        }
+    } else {
+        if !carries.allSatisfy({ toAccepts.contains($0) }) {
+            return (false, "malformed_conduit: carries not accepted by to (d)")
+        }
+    }
+    return (true, "well-formed conduit")
+}
+
+/// Rule 19 / N5.3.1-2: the HARD gaps a state assertion surfaces against its
+/// quality: value_type_mismatch and/or unit_mismatch.
+public func stateGaps(_ state: [String: JsonValue], _ quality: [String: JsonValue]) -> [String] {
+    var gaps: [String] = []
+    let dt = quality["datatype"]?.stringValue
+    let v = state["value"]?.objectValue ?? [:]
+    let shape: String?
+    if v["quantity"] != nil {
+        shape = "quantity"
+    } else if v["categorical"] != nil {
+        shape = "categorical"
+    } else if v["boolean"] != nil {
+        shape = "boolean"
+    } else {
+        shape = nil
+    }
+    if shape != dt {
+        gaps.append("value_type_mismatch")
+    } else if dt == "quantity" && v["unit"]?.stringValue != quality["unit"]?.stringValue {
+        gaps.append("unit_mismatch")
+    }
+    return gaps
+}
+
+/// Rule 20: true iff the token claim's cause/effect tokens do not instantiate
+/// the covering law's causes/effects (surfaces covering_law_mismatch).
+public func coveringLawMismatch(
+    _ tcc: [String: JsonValue],
+    _ tokenMap: [String: [String: JsonValue]],
+    _ law: [String: JsonValue]?
+) -> Bool {
+    guard let law = law, !law.isEmpty else {
+        return false
+    }
+    let lawCauses = Set(stringArray(law["causes"]))
+    let lawEffects = Set(stringArray(law["effects"]))
+    for c in stringArray(tcc["causes"]) {
+        if let inst = tokenMap[c]?["instantiates"]?.stringValue, !lawCauses.contains(inst) {
+            return true
+        }
+    }
+    for e in stringArray(tcc["effects"]) {
+        if let inst = tokenMap[e]?["instantiates"]?.stringValue, !lawEffects.contains(inst) {
+            return true
+        }
+    }
+    return false
+}
+
+/// Rule 21: true iff any cause token starts after any effect token (HARD;
+/// retrocausal_claim). RFC 3339 UTC 'Z' strings compare lexicographically.
+public func retrocausal(
+    _ tcc: [String: JsonValue],
+    _ tokenMap: [String: [String: JsonValue]]
+) -> Bool {
+    for c in stringArray(tcc["causes"]) {
+        guard let cstart = tokenMap[c]?["interval"]?["start"]?.stringValue else { continue }
+        for e in stringArray(tcc["effects"]) {
+            guard let estart = tokenMap[e]?["interval"]?["start"]?.stringValue else { continue }
+            if cstart > estart {
+                return true
+            }
+        }
+    }
+    return false
+}
+
+/// Rules 4 / 6.1: true iff a directed graph (node -> successors) has a cycle.
+/// Used for the bridge graph, occurrent_subsumes, occurrent_part_of, and
+/// token mereology.
+public func hasCycle(_ edges: [String: [String]]) -> Bool {
+    // 0 = white (unvisited), 1 = grey (on path), 2 = black (finished).
+    var state: [String: Int] = [:]
+
+    func visit(_ node: String) -> Bool {
+        state[node] = 1
+        for next in edges[node] ?? [] {
+            let s = state[next] ?? 0
+            if s == 1 {
+                return true
+            }
+            if s == 0 && visit(next) {
+                return true
+            }
+        }
+        state[node] = 2
+        return false
+    }
+
+    for node in edges.keys {
+        if (state[node] ?? 0) == 0 && visit(node) {
+            return true
+        }
+    }
+    return false
 }

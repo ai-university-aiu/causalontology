@@ -34,7 +34,7 @@ import hashlib
 store = InMemoryStore()
 press = store.put({"type": "occurrent", "label": "press_button", "category": "action"})
 light = store.put({"type": "occurrent", "label": "light_on", "category": "state_change"})
-claim = store.put({"type": "cro", "causes": [press], "effects": [light]})
+claim = store.put({"type": "causal_relation_object", "causes": [press], "effects": [light]})
 
 print(store.gaps("missing_field"))   # the degenerate claim is a visible invitation
 

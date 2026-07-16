@@ -12,19 +12,33 @@ namespace Causalontology;
 
 public static class SchemaValidator
 {
+    // kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+    // file names (individual/token/state); the id scheme is the whole word.
     private static readonly IReadOnlyDictionary<string, string> SchemaFiles =
         new Dictionary<string, string>
         {
-            ["cro"] = "cro.schema.json",
             ["occurrent"] = "occurrent.schema.json",
+            ["causal_relation_object"] = "causal_relation_object.schema.json",
             ["continuant"] = "continuant.schema.json",
             ["realizable"] = "realizable.schema.json",
+            ["stratum"] = "stratum.schema.json",
+            ["bridge"] = "bridge.schema.json",
+            ["port"] = "port.schema.json",
+            ["conduit"] = "conduit.schema.json",
+            ["quality"] = "quality.schema.json",
+            ["token_individual"] = "individual.schema.json",
+            ["token_occurrence"] = "token.schema.json",
+            ["state_assertion"] = "state.schema.json",
+            ["token_causal_claim"] = "token_causal_claim.schema.json",
             ["assertion"] = "assertion.schema.json",
             ["enrichment"] = "enrichment.schema.json",
             ["retraction"] = "retraction.schema.json",
             ["succession"] = "succession.schema.json",
         };
 
+    private const string Base = "https://causalontology.org/schema/";
+
+    // cache keyed by FILE NAME (cross-file $ref loads sibling files directly)
     private static readonly Dictionary<string, JsonMap> Cache = new();
 
     private static string SchemaDir()
@@ -49,32 +63,63 @@ public static class SchemaValidator
             + "set CAUSALONTOLOGY_SPEC or CAUSALONTOLOGY_ROOT");
     }
 
+    private static JsonMap LoadFile(string file)
+    {
+        if (!Cache.TryGetValue(file, out var schema))
+        {
+            schema = (JsonMap)Json.ParseFile(Path.Combine(SchemaDir(), file))!;
+            Cache[file] = schema;
+        }
+        return schema;
+    }
+
     /// <summary>The parsed JSON Schema for a kind (cached).</summary>
     public static JsonMap LoadSchema(string kind)
     {
         if (!SchemaFiles.TryGetValue(kind, out var file))
             throw new ArgumentException($"unknown kind: {kind}");
-        if (!Cache.TryGetValue(kind, out var schema))
-        {
-            schema = (JsonMap)Json.ParseFile(Path.Combine(SchemaDir(), file))!;
-            Cache[kind] = schema;
-        }
-        return schema;
+        return LoadFile(file);
     }
 
-    private static JsonMap Resolve(JsonMap schema, JsonMap root)
+    private static object? Navigate(JsonMap doc, string pointer)
+    {
+        object? node = doc;
+        foreach (var part in pointer.Split('/'))
+        {
+            if (part.Length == 0)
+                continue;
+            node = ((JsonMap)node!)[part];
+        }
+        return node;
+    }
+
+    // Resolve local (#/$defs/...) and cross-file $refs to a concrete schema
+    // node together with the root document it belongs to.
+    private static (JsonMap Schema, JsonMap Root) Resolve(JsonMap schema, JsonMap root)
     {
         while (schema.Get("$ref") is string reference)
         {
-            if (!reference.StartsWith("#/", StringComparison.Ordinal))
-                throw new ArgumentException(
-                    $"only local $ref supported: {reference}");
-            object? node = root;
-            foreach (var part in reference[2..].Split('/'))
-                node = ((JsonMap)node!)[part];
-            schema = (JsonMap)node!;
+            if (reference.StartsWith("#/", StringComparison.Ordinal))
+            {
+                schema = (JsonMap)Navigate(root, reference[2..])!;
+            }
+            else if (reference.StartsWith(Base, StringComparison.Ordinal))
+            {
+                var rest = reference[Base.Length..];
+                var hash = rest.IndexOf("#/", StringComparison.Ordinal);
+                var file = hash >= 0 ? rest[..hash] : rest;
+                var pointer = hash >= 0 ? rest[(hash + 2)..] : "";
+                root = LoadFile(file);
+                schema = pointer.Length > 0
+                    ? (JsonMap)Navigate(root, pointer)!
+                    : root;
+            }
+            else
+            {
+                throw new ArgumentException($"unsupported $ref: {reference}");
+            }
         }
-        return schema;
+        return (schema, root);
     }
 
     private static bool TypeMatches(object? value, string type) => type switch
@@ -83,6 +128,7 @@ public static class SchemaValidator
         "array" => value is List<object?>,
         "string" => value is string,
         "number" => Json.IsNumber(value), // bool is not a number in JSON
+        "integer" => value is long or int, // excludes bool and decimals
         "boolean" => value is bool,
         _ => throw new ArgumentException($"unknown schema type: {type}"),
     };
@@ -90,7 +136,7 @@ public static class SchemaValidator
     private static void Check(object? value, JsonMap schema, JsonMap root,
                               string path, List<string> errors)
     {
-        schema = Resolve(schema, root);
+        (schema, root) = Resolve(schema, root);
 
         if (schema.Get("oneOf") is List<object?> branches)
         {

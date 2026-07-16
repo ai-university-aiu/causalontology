@@ -14,20 +14,36 @@ import Foundation
 /// objects against them. Not thread-safe (the schema cache is unlocked);
 /// the conformance harness is single-threaded.
 public final class SchemaValidator {
-    /// The schema file name per kind.
+    /// The schema file name per kind. Three token kinds keep their original
+    /// 1.0.0-reserved file names (individual/token/state); the id scheme is
+    /// the whole word.
     public static let schemaFiles: [String: String] = [
-        "cro": "cro.schema.json",
         "occurrent": "occurrent.schema.json",
+        "causal_relation_object": "causal_relation_object.schema.json",
         "continuant": "continuant.schema.json",
         "realizable": "realizable.schema.json",
+        "stratum": "stratum.schema.json",
+        "bridge": "bridge.schema.json",
+        "port": "port.schema.json",
+        "conduit": "conduit.schema.json",
+        "quality": "quality.schema.json",
+        "token_individual": "individual.schema.json",
+        "token_occurrence": "token.schema.json",
+        "state_assertion": "state.schema.json",
+        "token_causal_claim": "token_causal_claim.schema.json",
         "assertion": "assertion.schema.json",
         "enrichment": "enrichment.schema.json",
         "retraction": "retraction.schema.json",
         "succession": "succession.schema.json",
     ]
 
+    /// The base URI under which every cross-file $ref names a sibling schema.
+    private static let refBase = "https://causalontology.org/schema/"
+
     private let schemaDirectory: URL
     private var cache: [String: JsonValue] = [:]
+    /// filename -> parsed schema, for cross-file $ref resolution.
+    private var fileCache: [String: JsonValue] = [:]
 
     public init(schemaDirectory: URL) {
         self.schemaDirectory = schemaDirectory
@@ -99,23 +115,68 @@ public final class SchemaValidator {
 
     // MARK: - The keyword interpreter
 
-    /// Follow local $ref chains ("#/$defs/...") to the referenced subschema.
-    private func resolveRef(_ schema: JsonValue, root: JsonValue) throws -> JsonValue {
-        var current = schema
-        while let ref = current["$ref"]?.stringValue {
-            guard ref.hasPrefix("#/") else {
-                throw CausalontologyError("only local $ref supported: \(ref)")
-            }
-            var node = root
-            for part in ref.dropFirst(2).split(separator: "/") {
-                guard let next = node[String(part)] else {
-                    throw CausalontologyError("unresolvable $ref: \(ref)")
-                }
-                node = next
-            }
-            current = node
+    /// Load (and cache) a sibling schema file by name, for cross-file $refs.
+    private func loadFile(_ fileName: String) throws -> JsonValue {
+        if let cached = fileCache[fileName] {
+            return cached
         }
-        return current
+        let url = schemaDirectory.appendingPathComponent(fileName)
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch {
+            throw CausalontologyError("cannot read schema file: \(url.path)")
+        }
+        let schema = try JsonValue.parse(data)
+        fileCache[fileName] = schema
+        return schema
+    }
+
+    /// Navigate a JSON pointer ("$defs/interval") within a document.
+    private func navigate(_ document: JsonValue, pointer: Substring) throws -> JsonValue {
+        var node = document
+        for part in pointer.split(separator: "/") {
+            guard let next = node[String(part)] else {
+                throw CausalontologyError("unresolvable pointer: \(pointer)")
+            }
+            node = next
+        }
+        return node
+    }
+
+    /// Follow local ("#/$defs/...") and cross-file
+    /// ("https://causalontology.org/schema/<file>.schema.json#/...") $ref
+    /// chains, returning both the resolved subschema and its (possibly new)
+    /// root document, exactly as the Python binding's _resolve does.
+    private func resolveRef(
+        _ schema: JsonValue,
+        root: JsonValue
+    ) throws -> (schema: JsonValue, root: JsonValue) {
+        var current = schema
+        var currentRoot = root
+        while let ref = current["$ref"]?.stringValue {
+            if ref.hasPrefix("#/") {
+                current = try navigate(currentRoot, pointer: ref.dropFirst(2)[...])
+            } else if ref.hasPrefix(SchemaValidator.refBase) {
+                let rest = ref.dropFirst(SchemaValidator.refBase.count)
+                let fileName: String
+                let pointer: Substring
+                if let hash = rest.range(of: "#/") {
+                    fileName = String(rest[rest.startIndex..<hash.lowerBound])
+                    pointer = rest[hash.upperBound...]
+                } else {
+                    fileName = String(rest)
+                    pointer = ""
+                }
+                currentRoot = try loadFile(fileName)
+                current = pointer.isEmpty
+                    ? currentRoot
+                    : try navigate(currentRoot, pointer: pointer)
+            } else {
+                throw CausalontologyError("unsupported $ref: \(ref)")
+            }
+        }
+        return (current, currentRoot)
     }
 
     /// True when the value is an instance of the named JSON Schema type.
@@ -130,6 +191,10 @@ public final class SchemaValidator {
         case "number":
             // Booleans are never numbers here (JsonValue keeps them apart).
             return value.numberValue != nil
+        case "integer":
+            // Only integer literals; a floating literal is not an integer,
+            // exactly as Python's isinstance(value, int) rejects a float.
+            return value.intValue != nil
         case "boolean":
             return value.boolValue != nil
         case "null":
@@ -170,7 +235,7 @@ public final class SchemaValidator {
         path: String,
         errors: inout [String]
     ) throws {
-        let schema = try resolveRef(rawSchema, root: root)
+        let (schema, root) = try resolveRef(rawSchema, root: root)
 
         if let branches = schema["oneOf"]?.arrayValue {
             var passing = 0

@@ -70,7 +70,7 @@ light.set("type", JValue::of("occurrent"));
 light.set("label", JValue::of("light_on"));
 light.set("category", JValue::of("state_change"));
 JValue claim = JValue::makeObject();
-claim.set("type", JValue::of("cro"));
+claim.set("type", JValue::of("causal_relation_object"));
 JValue causes = JValue::makeArray();
 causes.array.push_back(JValue::of(store.put(press)));
 JValue effects = JValue::makeArray();

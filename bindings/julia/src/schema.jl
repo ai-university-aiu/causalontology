@@ -6,18 +6,30 @@
 # maximum, oneOf, and local ref (#/defs/...).  "format" is treated as an
 # annotation, as the 2020-12 draft does by default.
 
+# kind -> schema file.  Three token kinds keep their original 1.0.0-reserved
+# file names (individual/token/state); the id scheme is the whole word.
 const SCHEMA_FILES = Dict{String,String}(
-    "cro"        => "cro.schema.json",
     "occurrent"  => "occurrent.schema.json",
+    "causal_relation_object" => "causal_relation_object.schema.json",
     "continuant" => "continuant.schema.json",
     "realizable" => "realizable.schema.json",
+    "stratum"    => "stratum.schema.json",
+    "bridge"     => "bridge.schema.json",
+    "port"       => "port.schema.json",
+    "conduit"    => "conduit.schema.json",
+    "quality"    => "quality.schema.json",
+    "token_individual"   => "individual.schema.json",
+    "token_occurrence"   => "token.schema.json",
+    "state_assertion"    => "state.schema.json",
+    "token_causal_claim" => "token_causal_claim.schema.json",
     "assertion"  => "assertion.schema.json",
     "enrichment" => "enrichment.schema.json",
     "retraction" => "retraction.schema.json",
     "succession" => "succession.schema.json",
 )
 
-const _schema_cache = Dict{String,JObj}()
+const _schema_cache = Dict{String,JObj}()   # by filename
+const _SCHEMA_BASE = "https://causalontology.org/schema/"
 
 function _schema_dir()
     env = get(ENV, "CAUSALONTOLOGY_SPEC", nothing)
@@ -26,24 +38,48 @@ function _schema_dir()
     return normpath(joinpath(@__DIR__, "..", "..", "..", "spec", "schema"))
 end
 
-function load_schema(kind)
-    haskey(SCHEMA_FILES, kind) || error("unknown kind: $(repr(kind))")
-    get!(_schema_cache, kind) do
-        json_parse(read(joinpath(_schema_dir(), SCHEMA_FILES[kind]), String))
+function _load_file(filename::AbstractString)
+    get!(_schema_cache, filename) do
+        json_parse(read(joinpath(_schema_dir(), filename), String))
     end
 end
 
+function load_schema(kind)
+    haskey(SCHEMA_FILES, kind) || error("unknown kind: $(repr(kind))")
+    return _load_file(SCHEMA_FILES[kind])
+end
+
+function _navigate(doc, pointer::AbstractString)
+    node = doc
+    for part in split(pointer, '/')
+        part == "" && continue
+        node = node[String(part)]
+    end
+    return node
+end
+
+"Resolve local and cross-file \$refs to a concrete schema node + its root."
 function _resolve_ref(schema, root::JObj)
     while schema isa JObj && jhas(schema, "\$ref")
         ref = jget(schema, "\$ref")
-        startswith(ref, "#/") || error("only local \$ref supported: $ref")
-        node = root
-        for part in split(ref[3:end], '/')
-            node = node[String(part)]
+        if startswith(ref, "#/")
+            schema = _navigate(root, ref[3:end])
+        elseif startswith(ref, _SCHEMA_BASE)
+            rest = ref[length(_SCHEMA_BASE)+1:end]
+            idx = findfirst("#/", rest)
+            if idx === nothing
+                filename, pointer = rest, ""
+            else
+                filename = rest[1:first(idx)-1]
+                pointer = rest[first(idx)+2:end]
+            end
+            root = _load_file(filename)
+            schema = pointer == "" ? root : _navigate(root, pointer)
+        else
+            error("unsupported \$ref: $ref")
         end
-        schema = node
     end
-    return schema
+    return schema, root
 end
 
 function _type_ok(value, t)
@@ -51,14 +87,16 @@ function _type_ok(value, t)
     t == "array"   && return value isa AbstractVector
     t == "string"  && return value isa AbstractString
     t == "boolean" && return value isa Bool
-    # "number": Int64 or Float64, and never Bool (mirrors the Python check)
+    # "number"/"integer": never Bool (mirrors the Python check).  Julia parses
+    # every integer literal to Int64, so "integer" accepts an Int64 value.
     t == "number"  && return value isa Union{Int64,Float64}
+    t == "integer" && return value isa Int64
     return false
 end
 
 function _schema_check(value, schema, root::JObj, path::String,
                        errors::Vector{String})
-    schema = _resolve_ref(schema, root)
+    schema, root = _resolve_ref(schema, root)
 
     oneof = jget(schema, "oneOf")
     if oneof !== nothing

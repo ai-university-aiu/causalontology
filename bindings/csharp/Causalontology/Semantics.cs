@@ -27,10 +27,12 @@ public static class Semantics
         EnrichmentFields = new Dictionary<string, (string[], string)>
         {
             ["aliases"] = (new[] { "occurrent", "continuant" }, "alias"),
-            ["participants"] = (new[] { "occurrent" }, "cnt"),
-            ["subsumes"] = (new[] { "continuant" }, "cnt"),
-            ["part_of"] = (new[] { "continuant" }, "cnt"),
-            ["realized_in"] = (new[] { "realizable" }, "occ"),
+            ["participants"] = (new[] { "occurrent" }, "continuant"),
+            ["subsumes"] = (new[] { "continuant" }, "continuant"),
+            ["part_of"] = (new[] { "continuant" }, "continuant"),
+            ["realized_in"] = (new[] { "realizable" }, "occurrent"),
+            ["occurrent_subsumes"] = (new[] { "occurrent" }, "occurrent"),
+            ["occurrent_part_of"] = (new[] { "occurrent" }, "occurrent"),
         };
 
     public static readonly string[] CroOptionalFields =
@@ -52,19 +54,25 @@ public static class Semantics
         kind ??= Canonical.InferKind(obj);
         var errors = new List<string>();
 
-        if (kind == "cro")
+        if (kind == "causal_relation_object")
         {
             if (obj.Get("temporal") is JsonMap temporal
-                && temporal.Get("dmin") is not null
-                && temporal.Get("dmax") is not null
-                && Json.ToDouble(temporal["dmin"]) > Json.ToDouble(temporal["dmax"]))
-                errors.Add("dmin must be <= dmax");
+                && temporal.Get("minimum_delay") is not null
+                && temporal.Get("maximum_delay") is not null
+                && Json.ToDouble(temporal["minimum_delay"]) > Json.ToDouble(temporal["maximum_delay"]))
+                errors.Add("minimum_delay must be <= maximum_delay");
             var oid = obj.GetString("id");
             if (oid is not null && StringList(obj.Get("mechanism")).Contains(oid))
                 errors.Add("mechanism must be acyclic "
                            + "(a Causal Relation Object may not contain itself)");
             if (oid is not null && obj.GetString("refines") == oid)
                 errors.Add("refines must be acyclic");
+            // Rule 16, clause 1 (contradictory_skip): a HARD, locally-decidable
+            // contradiction between skips:true and a non-empty mechanism.
+            if (obj.Get("skips") is true
+                && obj.Get("mechanism") is List<object?> mech && mech.Count > 0)
+                errors.Add("contradictory_skip: skips is true but a mechanism "
+                           + "is present");
         }
 
         if (kind == "enrichment")
@@ -113,8 +121,8 @@ public static class Semantics
         if (cro.Get("temporal") is not JsonMap temporal)
             return true; // no window imposes no constraint
         var unit = UnitSeconds[(string)temporal["unit"]!];
-        var lo = Json.ToDouble(temporal["dmin"]) * unit;
-        var hi = Json.ToDouble(temporal["dmax"]) * unit;
+        var lo = Json.ToDouble(temporal["minimum_delay"]) * unit;
+        var hi = Json.ToDouble(temporal["maximum_delay"]) * unit;
         return lo <= elapsedSeconds && elapsedSeconds <= hi;
     }
 
@@ -125,10 +133,10 @@ public static class Semantics
             return true; // either absent counts as overlapping
         var ua = UnitSeconds[(string)ta["unit"]!];
         var ub = UnitSeconds[(string)tb["unit"]!];
-        var loA = Json.ToDouble(ta["dmin"]) * ua;
-        var hiA = Json.ToDouble(ta["dmax"]) * ua;
-        var loB = Json.ToDouble(tb["dmin"]) * ub;
-        var hiB = Json.ToDouble(tb["dmax"]) * ub;
+        var loA = Json.ToDouble(ta["minimum_delay"]) * ua;
+        var hiA = Json.ToDouble(ta["maximum_delay"]) * ua;
+        var loB = Json.ToDouble(tb["minimum_delay"]) * ub;
+        var hiB = Json.ToDouble(tb["maximum_delay"]) * ub;
         return loA <= hiB && loB <= hiA;
     }
 
@@ -143,8 +151,10 @@ public static class Semantics
         return sa.SetEquals(sb) || sa.IsSubsetOf(sb) || sb.IsSubsetOf(sa);
     }
 
+    // Rule 6 (amended): necessary, sufficient, contributory, enabling are
+    // mutually compatible; preventive opposes all four.
     private static readonly HashSet<string> Positive =
-        new() { "necessary", "sufficient", "contributory" };
+        new() { "necessary", "sufficient", "contributory", "enabling" };
 
     /// <summary>Rule 6: the formal conflict test.</summary>
     public static bool Conflicts(JsonMap a, JsonMap b)
@@ -196,10 +206,72 @@ public static class Semantics
         return (true, "valid refinement");
     }
 
-    /// <summary>Rule 7: "consistent" | "inconsistent" | "indeterminate".</summary>
-    public static string HierarchyConsistent(
-        JsonMap parent, IReadOnlyDictionary<string, JsonMap> members)
+    // =======================================================================
+    // 2.0.0 NORMATIVE ALGORITHMS (Section 12)
+    // =======================================================================
+
+    /// <summary>ALGORITHM A. Every finer occurrent an occurrent resolves to,
+    /// following Bridges downward, transitively (includes the start).</summary>
+    public static HashSet<string> BridgeClosure(
+        string occurrentId, IEnumerable<JsonMap> bridges)
     {
+        var result = new HashSet<string> { occurrentId };
+        var frontier = new Stack<string>();
+        frontier.Push(occurrentId);
+        var visited = new HashSet<string>();
+        var coarseIndex = new Dictionary<string, List<JsonMap>>();
+        foreach (var b in bridges)
+        {
+            var coarse = (string)b["coarse"]!;
+            if (!coarseIndex.TryGetValue(coarse, out var list))
+                coarseIndex[coarse] = list = new List<JsonMap>();
+            list.Add(b);
+        }
+        while (frontier.Count > 0)
+        {
+            var current = frontier.Pop();
+            if (!visited.Add(current))
+                continue;
+            if (!coarseIndex.TryGetValue(current, out var bs))
+                continue;
+            foreach (var b in bs)
+                foreach (var f in StringList(b["fine"]))
+                {
+                    result.Add(f);
+                    frontier.Push(f);
+                }
+        }
+        return result;
+    }
+
+    private static bool PathExists(
+        IReadOnlyDictionary<string, HashSet<string>> edges, string src, string dst)
+    {
+        var seen = new HashSet<string>();
+        var stack = new Stack<string>();
+        stack.Push(src);
+        while (stack.Count > 0)
+        {
+            var node = stack.Pop();
+            if (node == dst)
+                return true;
+            if (!seen.Add(node))
+                continue;
+            if (edges.TryGetValue(node, out var targets))
+                foreach (var next in targets)
+                    stack.Push(next);
+        }
+        return false;
+    }
+
+    /// <summary>ALGORITHM B (amended Rule 7): "consistent" | "inconsistent" |
+    /// "indeterminate", ACROSS STRATA via bridged reachability.</summary>
+    public static string HierarchyConsistent(
+        JsonMap parent, IReadOnlyDictionary<string, JsonMap> members,
+        IEnumerable<JsonMap>? bridges = null)
+    {
+        bridges ??= Array.Empty<JsonMap>();
+        var bridgeList = bridges as IReadOnlyList<JsonMap> ?? bridges.ToList();
         var mechanism = StringList(parent.Get("mechanism"));
         if (mechanism.Count == 0)
             return "consistent"; // nothing claimed, nothing to check
@@ -207,7 +279,7 @@ public static class Semantics
         foreach (var mid in mechanism)
         {
             if (!members.TryGetValue(mid, out var member))
-                return "indeterminate"; // a dangling_reference gap, not a failure
+                return "indeterminate"; // dangling; ignorance, not refutation
             foreach (var cause in StringList(member["causes"]))
             {
                 if (!edges.TryGetValue(cause, out var targets))
@@ -215,36 +287,278 @@ public static class Semantics
                 targets.UnionWith(StringList(member["effects"]));
             }
         }
-
-        bool Reachable(string src, string dst)
-        {
-            var seen = new HashSet<string>();
-            var stack = new Stack<string>();
-            stack.Push(src);
-            while (stack.Count > 0)
-            {
-                var node = stack.Pop();
-                if (node == dst)
-                    return true;
-                if (!seen.Add(node))
-                    continue;
-                if (edges.TryGetValue(node, out var targets))
-                {
-                    foreach (var next in targets)
-                        stack.Push(next);
-                }
-            }
-            return false;
-        }
-
+        var bCause = StringList(parent["causes"])
+            .ToDictionary(c => c, c => BridgeClosure(c, bridgeList));
+        var bEffect = StringList(parent["effects"])
+            .ToDictionary(e => e, e => BridgeClosure(e, bridgeList));
         foreach (var cause in StringList(parent["causes"]))
         {
             foreach (var effect in StringList(parent["effects"]))
             {
-                if (!Reachable(cause, effect))
+                var connected = false;
+                foreach (var cp in bCause[cause])
+                {
+                    foreach (var ep in bEffect[effect])
+                    {
+                        if (PathExists(edges, cp, ep))
+                        {
+                            connected = true;
+                            break;
+                        }
+                    }
+                    if (connected)
+                        break;
+                }
+                if (!connected)
                     return "inconsistent";
             }
         }
         return "consistent";
+    }
+
+    private static string? StratumOf(
+        string occId, IReadOnlyDictionary<string, JsonMap> occMap)
+        => occMap.TryGetValue(occId, out var o) ? o.GetString("stratum") : null;
+
+    /// <summary>ALGORITHM C (Rule 15): the stratal classification of a CRO.</summary>
+    public static string ClassifyCro(
+        JsonMap cro, IReadOnlyDictionary<string, JsonMap> occMap,
+        IReadOnlyDictionary<string, JsonMap> stratumMap)
+    {
+        var causeStrata = StringList(cro["causes"])
+            .Select(c => StratumOf(c, occMap)).ToList();
+        var effectStrata = StringList(cro["effects"])
+            .Select(e => StratumOf(e, occMap)).ToList();
+        if (causeStrata.Concat(effectStrata).Any(s => s is null))
+            return "unclassifiable";
+        var allStrata = new HashSet<string>(causeStrata!)
+            .Union(new HashSet<string>(effectStrata!)).ToList();
+        var schemes = allStrata
+            .Select(s => stratumMap[s!].GetString("scheme")).Distinct().ToList();
+        if (schemes.Count > 1)
+            return "scheme_mismatch"; // HARD
+        long Ord(string? s) => (long)Json.ToDouble(stratumMap[s!]["ordinal"]);
+        var cOrd = causeStrata.Select(Ord).ToList();
+        var eOrd = effectStrata.Select(Ord).ToList();
+        if (cOrd.Max() == cOrd.Min() && eOrd.Max() == eOrd.Min()
+            && cOrd.Max() == eOrd.Max())
+            return "intra_stratal";
+        var gap = (from i in cOrd from j in eOrd select Math.Abs(i - j)).Min();
+        var span = (from i in cOrd from j in eOrd select Math.Abs(i - j)).Max();
+        if (span == 1)
+            return "adjacent_stratal";
+        if (gap > 1)
+            return "skipping";
+        return "mixed"; // some pairs adjacent, some skipping
+    }
+
+    /// <summary>True iff causes or effects span more than one distinct stratum
+    /// (surfaces mixed_stratal_endpoints, an invitation).</summary>
+    public static bool EndpointsMixed(
+        JsonMap cro, IReadOnlyDictionary<string, JsonMap> occMap)
+    {
+        var cs = StringList(cro["causes"]).Select(c => StratumOf(c, occMap))
+            .ToList();
+        var es = StringList(cro["effects"]).Select(e => StratumOf(e, occMap))
+            .ToList();
+        if (cs.Any(s => s is null) || es.Any(s => s is null))
+            return false;
+        return cs.Distinct().Count() > 1 || es.Distinct().Count() > 1;
+    }
+
+    /// <summary>ALGORITHM D (Rule 16): the gaps a CRO surfaces for the skip
+    /// decision. The asymmetry of clause 3 is implemented exactly.</summary>
+    public static List<string> SkipGaps(JsonMap cro, string classification)
+    {
+        var gaps = new List<string>();
+        var hasMech = cro.Get("mechanism") is List<object?> m && m.Count > 0;
+        var skipsTrue = cro.Get("skips") is true;
+        if (skipsTrue && hasMech)
+        {
+            gaps.Add("contradictory_skip"); // HARD
+            return gaps;
+        }
+        if (skipsTrue && classification != "skipping"
+            && classification != "unclassifiable")
+            gaps.Add("vacuous_skip"); // invitation
+        if (classification == "skipping" && !hasMech)
+        {
+            if (skipsTrue)
+            {
+                // NOTHING: absence is a finding
+            }
+            else
+            {
+                gaps.Add("incomplete_mechanism"); // invitation
+            }
+        }
+        return gaps;
+    }
+
+    /// <summary>ALGORITHM E helper: normalize a delay to seconds.</summary>
+    public static long ToSeconds(long duration, string unit)
+        => unit == "instant" ? 0 : duration * UnitSeconds[unit];
+
+    /// <summary>ALGORITHM E (Rule 20): does an observed delay fall within a
+    /// covering law's temporal window? Inclusive at both ends.</summary>
+    public static bool DelayWithinWindow(JsonMap? actualDelay, JsonMap? temporal)
+    {
+        if (actualDelay is null || temporal is null)
+            return true; // nothing to check
+        var observed = ToSeconds(
+            (long)Json.ToDouble(actualDelay["duration"]),
+            (string)actualDelay["unit"]!);
+        var lo = ToSeconds(
+            (long)Json.ToDouble(temporal["minimum_delay"]),
+            (string)temporal["unit"]!);
+        var hi = ToSeconds(
+            (long)Json.ToDouble(temporal["maximum_delay"]),
+            (string)temporal["unit"]!);
+        return lo <= observed && observed <= hi;
+    }
+
+    /// <summary>Rule 14 / N3.2.1: Bridge well-formedness. All of (a)-(e).</summary>
+    public static (bool Ok, string Reason) BridgeWellformed(
+        JsonMap bridge, IReadOnlyDictionary<string, JsonMap> occMap,
+        IReadOnlyDictionary<string, JsonMap> stratumMap)
+    {
+        var cs = StratumOf((string)bridge["coarse"]!, occMap);
+        if (cs is null)
+            return (false, "malformed_bridge: coarse has no stratum (a)");
+        var fineStrata = StringList(bridge["fine"])
+            .Select(f => StratumOf(f, occMap)).ToList();
+        if (fineStrata.Any(s => s is null))
+            return (false, "malformed_bridge: a fine member has no stratum (b)");
+        if (fineStrata.Distinct().Count() != 1)
+            return (false, "malformed_bridge: fine members span >1 stratum (c)");
+        var fs = fineStrata[0]!;
+        if (stratumMap[cs].GetString("scheme") != stratumMap[fs].GetString("scheme"))
+            return (false, "malformed_bridge: coarse and fine differ in scheme (d)");
+        if (!(Json.ToDouble(stratumMap[cs]["ordinal"])
+              > Json.ToDouble(stratumMap[fs]["ordinal"])))
+            return (false, "malformed_bridge: coarse ordinal not > fine ordinal (e)");
+        return (true, "well-formed bridge");
+    }
+
+    /// <summary>Rule 17 / N4.2.1-2: Conduit well-formedness.</summary>
+    public static (bool Ok, string Reason) ConduitWellformed(
+        JsonMap conduit, IReadOnlyDictionary<string, JsonMap> portMap,
+        IReadOnlyDictionary<string, JsonMap>? croMap = null)
+    {
+        if (!portMap.TryGetValue((string)conduit["from"]!, out var frm)
+            || !portMap.TryGetValue((string)conduit["to"]!, out var to))
+            return (false, "malformed_conduit: dangling port reference");
+        var fromDir = frm.GetString("direction");
+        if (fromDir != "out" && fromDir != "bidirectional")
+            return (false, "malformed_conduit: from port is not out/bidirectional (a)");
+        var toDir = to.GetString("direction");
+        if (toDir != "in" && toDir != "bidirectional")
+            return (false, "malformed_conduit: to port is not in/bidirectional (b)");
+        var carries = StringList(conduit["carries"]);
+        var fromAccepts = new HashSet<string>(StringList(frm["accepts"]));
+        if (!carries.All(o => fromAccepts.Contains(o)))
+            return (false, "malformed_conduit: carries not accepted by from (c)");
+        var toAccepts = new HashSet<string>(StringList(to["accepts"]));
+        if (conduit.Get("transform") is not string transform)
+        {
+            if (!carries.All(o => toAccepts.Contains(o)))
+                return (false, "malformed_conduit: carries not accepted by to (d)");
+        }
+        else
+        {
+            if (croMap is not null && croMap.TryGetValue(transform, out var law))
+            {
+                if (!StringList(law["effects"]).All(o => toAccepts.Contains(o)))
+                    return (false, "malformed_conduit: transform effects not "
+                                   + "accepted by to (d, relaxed per N4.2.2)");
+            }
+        }
+        return (true, "well-formed conduit");
+    }
+
+    /// <summary>Rule 19 / N5.3.1-2: the HARD gaps a state assertion surfaces
+    /// against its quality: value_type_mismatch and/or unit_mismatch.</summary>
+    public static List<string> StateGaps(JsonMap state, JsonMap quality)
+    {
+        var gaps = new List<string>();
+        var dt = quality.GetString("datatype");
+        var v = state.Get("value") as JsonMap ?? new JsonMap();
+        var shape = v.ContainsKey("quantity") ? "quantity"
+            : v.ContainsKey("categorical") ? "categorical"
+            : v.ContainsKey("boolean") ? "boolean" : null;
+        if (shape != dt)
+            gaps.Add("value_type_mismatch");
+        else if (dt == "quantity" && v.GetString("unit") != quality.GetString("unit"))
+            gaps.Add("unit_mismatch");
+        return gaps;
+    }
+
+    /// <summary>Rule 20: true iff the token claim's cause/effect tokens do not
+    /// instantiate the covering law's causes/effects.</summary>
+    public static bool CoveringLawMismatch(
+        JsonMap tcc, IReadOnlyDictionary<string, JsonMap> tokenMap, JsonMap? law)
+    {
+        if (law is null)
+            return false;
+        var lawCauses = new HashSet<string>(StringList(law["causes"]));
+        var lawEffects = new HashSet<string>(StringList(law["effects"]));
+        foreach (var c in StringList(tcc["causes"]))
+            if (!lawCauses.Contains((string)tokenMap[c]["instantiates"]!))
+                return true;
+        foreach (var e in StringList(tcc["effects"]))
+            if (!lawEffects.Contains((string)tokenMap[e]["instantiates"]!))
+                return true;
+        return false;
+    }
+
+    /// <summary>Rule 21: true iff any cause token starts after any effect token
+    /// (HARD; retrocausal_claim). RFC 3339 UTC 'Z' strings compare lexically.</summary>
+    public static bool Retrocausal(
+        JsonMap tcc, IReadOnlyDictionary<string, JsonMap> tokenMap)
+    {
+        foreach (var c in StringList(tcc["causes"]))
+        {
+            var cstart = (string)((JsonMap)tokenMap[c]["interval"]!)["start"]!;
+            foreach (var e in StringList(tcc["effects"]))
+            {
+                var estart = (string)((JsonMap)tokenMap[e]["interval"]!)["start"]!;
+                if (string.CompareOrdinal(cstart, estart) > 0)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>Rules 4 / 6.1: true iff a directed graph (node -> successors)
+    /// has a cycle. Used for bridge graph and occurrent/token mereology.</summary>
+    public static bool HasCycle(IReadOnlyDictionary<string, List<string>> edges)
+    {
+        const int White = 0, Grey = 1, Black = 2;
+        var state = new Dictionary<string, int>();
+
+        bool Visit(string node)
+        {
+            state[node] = Grey;
+            if (edges.TryGetValue(node, out var nexts))
+            {
+                foreach (var next in nexts)
+                {
+                    var s = state.TryGetValue(next, out var st) ? st : White;
+                    if (s == Grey)
+                        return true;
+                    if (s == White && Visit(next))
+                        return true;
+                }
+            }
+            state[node] = Black;
+            return false;
+        }
+
+        foreach (var n in edges.Keys.ToList())
+        {
+            if ((state.TryGetValue(n, out var st) ? st : White) == White && Visit(n))
+                return true;
+        }
+        return false;
     }
 }

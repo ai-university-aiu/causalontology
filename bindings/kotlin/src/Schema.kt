@@ -11,18 +11,31 @@ package org.causalontology
 
 object Schema {
 
+    // kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+    // file names (individual/token/state); the id scheme is the whole word.
     val SCHEMA_FILES: Map<String, String> = mapOf(
-        "cro" to "cro.schema.json",
         "occurrent" to "occurrent.schema.json",
+        "causal_relation_object" to "causal_relation_object.schema.json",
         "continuant" to "continuant.schema.json",
         "realizable" to "realizable.schema.json",
+        "stratum" to "stratum.schema.json",
+        "bridge" to "bridge.schema.json",
+        "port" to "port.schema.json",
+        "conduit" to "conduit.schema.json",
+        "quality" to "quality.schema.json",
+        "token_individual" to "individual.schema.json",
+        "token_occurrence" to "token.schema.json",
+        "state_assertion" to "state.schema.json",
+        "token_causal_claim" to "token_causal_claim.schema.json",
         "assertion" to "assertion.schema.json",
         "enrichment" to "enrichment.schema.json",
         "retraction" to "retraction.schema.json",
         "succession" to "succession.schema.json"
     )
 
-    private val cache = HashMap<String, JObj>()
+    private const val BASE = "https://causalontology.org/schema/"
+    private val cache = HashMap<String, JObj>()      // kind -> root schema
+    private val fileCache = HashMap<String, JObj>()  // filename -> root schema
 
     // The repository root: CAUSALONTOLOGY_ROOT when set, else the working
     // directory (the conformance script runs from the repository root).
@@ -36,43 +49,61 @@ object Schema {
         return repoRoot() + "/spec/schema"
     }
 
+    private fun loadFile(filename: String): JObj = fileCache.getOrPut(filename) {
+        asObj(Json.parse(readFile(schemaDir() + "/" + filename)))
+    }
+
     fun loadSchema(kind: String): JObj {
         val file = SCHEMA_FILES[kind]
             ?: throw IllegalArgumentException("unknown kind: $kind")
-        return cache.getOrPut(kind) {
-            asObj(Json.parse(readFile(schemaDir() + "/" + file)))
-        }
+        return cache.getOrPut(kind) { loadFile(file) }
     }
 
-    // Follow local $ref chains (#/$defs/...) to the referenced subschema.
-    private fun resolve(schemaIn: JObj, root: JObj): JObj {
+    private fun navigate(doc: JObj, pointer: String): JObj {
+        var node: Any? = doc
+        for (part in pointer.split("/")) {
+            if (part.isEmpty()) continue
+            node = asObj(node)[part]
+        }
+        return asObj(node)
+    }
+
+    // Resolve local (#/$defs/...) and cross-file $refs to a concrete subschema
+    // and its (possibly new) root document. Mirrors schema.py's _resolve.
+    private fun resolve(schemaIn: JObj, rootIn: JObj): Pair<JObj, JObj> {
         var schema = schemaIn
+        var root = rootIn
         while (schema.containsKey("\$ref")) {
             val ref = schema["\$ref"] as String
-            if (!ref.startsWith("#/")) {
-                throw IllegalArgumentException("only local \$ref supported: $ref")
+            if (ref.startsWith("#/")) {
+                schema = navigate(root, ref.substring(2))
+            } else if (ref.startsWith(BASE)) {
+                val rest = ref.substring(BASE.length)
+                val hashIdx = rest.indexOf("#/")
+                val filename = if (hashIdx >= 0) rest.substring(0, hashIdx) else rest
+                val pointer = if (hashIdx >= 0) rest.substring(hashIdx + 2) else ""
+                root = loadFile(filename)
+                schema = if (pointer.isNotEmpty()) navigate(root, pointer) else root
+            } else {
+                throw IllegalArgumentException("unsupported \$ref: $ref")
             }
-            var node: Any? = root
-            for (part in ref.substring(2).split("/")) {
-                node = asObj(node)[part]
-            }
-            schema = asObj(node)
         }
-        return schema
+        return Pair(schema, root)
     }
 
     private fun typeMatches(t: String, value: Any?): Boolean = when (t) {
         "object" -> value is Map<*, *>
         "array" -> value is List<*>
         "string" -> value is String
-        "number" -> (value is Long || value is Double) && value !is Boolean
+        "number" -> (value is Long || value is Int || value is Double) && value !is Boolean
+        "integer" -> (value is Long || value is Int) && value !is Boolean
         "boolean" -> value is Boolean
         else -> throw IllegalArgumentException("unsupported schema type: $t")
     }
 
-    private fun check(value: Any?, schemaIn: JObj, root: JObj, path: String,
+    private fun check(value: Any?, schemaIn: JObj, rootIn: JObj, path: String,
                       errors: MutableList<String>) {
-        val schema = resolve(schemaIn, root)
+        val (schema, root) = resolve(schemaIn, rootIn)
 
         if (schema.containsKey("oneOf")) {
             var passing = 0

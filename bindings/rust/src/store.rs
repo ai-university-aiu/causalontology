@@ -12,7 +12,7 @@ use crate::semantics::{is_partial, refinement_valid, validate_semantics};
 use crate::signing::verify_record;
 
 const CONTENT_KINDS: [&str; 4] =
-    ["occurrent", "cro", "continuant", "realizable"];
+    ["occurrent", "causal_relation_object", "continuant", "realizable"];
 const RECORD_KINDS: [&str; 4] =
     ["assertion", "enrichment", "retraction", "succession"];
 
@@ -483,7 +483,7 @@ impl InMemoryStore {
         let mut refined: HashSet<String> = HashSet::new();
         for oid in &self.object_order {
             let obj = &self.objects[oid];
-            if obj.get("type").and_then(Value::as_str) == Some("cro") {
+            if obj.get("type").and_then(Value::as_str) == Some("causal_relation_object") {
                 if let Some(parent_id) =
                     obj.get("refines").and_then(Value::as_str) {
                     if let Some(parent) = self.objects.get(parent_id) {
@@ -497,7 +497,7 @@ impl InMemoryStore {
         }
         for oid in &self.object_order {
             let obj = &self.objects[oid];
-            if obj.get("type").and_then(Value::as_str) != Some("cro") {
+            if obj.get("type").and_then(Value::as_str) != Some("causal_relation_object") {
                 continue;
             }
             // missing_field: lacking the temporal window or the modality
@@ -543,7 +543,7 @@ impl InMemoryStore {
             let obj = &self.objects[oid];
             let mut refs: Vec<String> = Vec::new();
             match obj.get("type").and_then(Value::as_str) {
-                Some("cro") => {
+                Some("causal_relation_object") => {
                     for f in ["causes", "effects", "context", "mechanism"] {
                         if let Some(Value::Array(items)) = obj.get(f) {
                             refs.extend(items.iter()
@@ -575,7 +575,7 @@ impl InMemoryStore {
         // conflict pairs
         let cros: Vec<&String> = self.object_order.iter()
             .filter(|oid| self.objects[*oid].get("type")
-                    .and_then(Value::as_str) == Some("cro"))
+                    .and_then(Value::as_str) == Some("causal_relation_object"))
             .collect();
         for i in 0..cros.len() {
             for j in (i + 1)..cros.len() {

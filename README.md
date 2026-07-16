@@ -11,8 +11,8 @@
 
 <!-- ROW 2: THE STANDARD -->
 <p align="center">
-  <img src="https://img.shields.io/badge/CONFORMANCE_VECTORS-38-FA842F?style=for-the-badge" alt="Conformance Vectors 38">
-  <img src="https://img.shields.io/badge/OBJECT_KINDS-8-F47223?style=for-the-badge" alt="Object Kinds 8">
+  <img src="https://img.shields.io/badge/CONFORMANCE_VECTORS-107-FA842F?style=for-the-badge" alt="Conformance Vectors 107">
+  <img src="https://img.shields.io/badge/OBJECT_KINDS-17-F47223?style=for-the-badge" alt="Object Kinds 17">
   <img src="https://img.shields.io/badge/LOCKED_DECISIONS-27-EC5F1C?style=for-the-badge" alt="Locked Decisions 27">
 </p>
 
@@ -57,9 +57,9 @@ Each badge above is a claim, and every claim deserves a plain explanation. Here 
 
 **Row 2 — The Standard**
 
-- **`CONFORMANCE VECTORS | 38`** — a *conformance vector* is a published test case: an input and the exact result a correct implementation must produce. There are 38 of them in this repository, and the rule is simple: an implementation is Causalontology-conformant **if and only if it passes every one**. This is how a Python version, a Java version, and a Prolog version can all be guaranteed to agree without sharing a single line of code.
+- **`CONFORMANCE VECTORS | 107`** — a *conformance vector* is a published test case: an input and the exact result a correct implementation must produce. There are 107 of them in this repository (V01–V38 the re-frozen original suite, V39–V107 the 2.0.0 additions), and the rule is simple: an implementation is Causalontology-conformant **if and only if it passes every one**. This is how a Python version, a Java version, and a Prolog version can all be guaranteed to agree without sharing a single line of code.
 
-- **`OBJECT KINDS | 8`** — everything in Causalontology is one of exactly eight kinds of object: four *content* kinds (the occurrent — a happening; the Causal Relation Object — a causal claim; the continuant — an enduring thing; the realizable — a disposition, function, or role) and four *provenance* kinds (the assertion, enrichment, retraction, and succession — the signed records saying who claims, adds, withdraws, or rotates what). Eight kinds, no exceptions — a small, learnable vocabulary for all causal knowledge.
+- **`OBJECT KINDS | 17`** — everything in Causalontology is one of exactly seventeen kinds of object: nine *type-tier content* kinds (occurrent, causal_relation_object, continuant, realizable, stratum, bridge, port, conduit, quality), four *token-tier content* kinds (token_individual, token_occurrence, state_assertion, token_causal_claim — a particular history, local by default), and four *provenance* kinds (assertion, enrichment, retraction, succession — the signed records saying who claims, adds, withdraws, or rotates what). Seventeen kinds, no exceptions — a learnable vocabulary for all causal knowledge, at every level of description and for both laws and histories.
 
 - **`LOCKED DECISIONS | 27`** — the specification records 27 design decisions as *locked*: settled on purpose, in writing, so builders can proceed without the ground shifting under them. Changing one requires a formal, versioned process — not a quiet edit.
 
@@ -85,7 +85,7 @@ Each badge above is a claim, and every claim deserves a plain explanation. Here 
 
 - **`FLAGSHIP APPLICATION | MENTOVA PROLOGAI`** — **PrologAI** is the glass-box cognitive architecture that serves as Causalontology's reference implementation, and **Mentova** is the synthetic mind built on it — the first full application of this ontology, and one day the first machine mind to read the commons' gaps and contribute causal knowledge back. The badge links to Mentova.
 
-- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v14.txt`](Causalontology_Standalone_Design_v14.txt).
+- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v15.txt`](Causalontology_Standalone_Design_v15.txt).
 
 - **`LICENSE | ATTRIBUTION ALWAYS; NO PROFIT, NO PROBLEM`** — the project's license, in its own words: credit the source always, and using it without profit is never a problem. It is the friendly name for the Apache License 2.0 text (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)), one license covering everything here — the code, the data, the specification, and the architecture.
 
@@ -113,7 +113,7 @@ Causalontology's identity, stated from five angles — each the same claim, that
 
 And this repository adds a further first of its own: to our knowledge, the first specification to deliver reified, provenance-signed causation as a **language-neutral standard** with a **shared, stigmergic commons** — offered, glass-box style, with its evidence: the specification, the conformance vectors, and the running implementations, all inspectable.
 
-Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v14.txt`](Causalontology_Standalone_Design_v14.txt) — the complete, self-contained canon of this repository.
+Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v15.txt`](Causalontology_Standalone_Design_v15.txt) — the complete, self-contained canon of this repository.
 
 ---
 
@@ -128,25 +128,39 @@ Every term above is explained for a newcomer in the master document: [`Causalont
 
 The reference implementation is [**PrologAI**](https://github.com/ai-university-aiu/PrologAI), a glass-box cognitive architecture, driving the synthetic mind [**Mentova**](https://github.com/ai-university-aiu/Mentova).
 
-## The eight kinds of thing
+## The seventeen kinds of thing
 
-Four **content kinds** — pure, immutable, content-addressed (SHA-256 over RFC 8785 canonical bytes):
+Nine **type-tier content kinds** — pure, immutable, content-addressed (SHA-256 over RFC 8785 canonical bytes):
 
 | Kind | Prefix | What it is |
 |---|---|---|
-| Occurrent | `occ:` | a process or event **type** (a verb) — the vocabulary of causes and effects |
-| **Causal Relation Object (CRO)** | `cro:` | the fundamental unit: a reified causal claim — causes, effects, mechanism, temporal window, modality, context, `refines` lineage |
-| Continuant | `cnt:` | a thing that endures (a noun) |
-| Realizable entity | `rlz:` | a disposition, function, or role — the hinge between nouns and verbs |
+| Occurrent | `occurrent:` | a process or event **type** (a verb), optionally pitched at a `stratum` |
+| Causal Relation Object | `causal_relation_object:` | the fundamental unit: a reified causal claim — causes, effects, mechanism, temporal window, modality, context, `refines` lineage, `skips` |
+| Continuant | `continuant:` | a thing that endures (a noun) |
+| Realizable entity | `realizable:` | a disposition, function, or role — with an identity-bearing `label` |
+| Stratum | `stratum:` | a level of description within a named stratification scheme |
+| Bridge | `bridge:` | a cross-stratal identity map: one coarse occurrent IS a set of finer ones |
+| Port | `port:` | a typed interface borne by a continuant |
+| Conduit | `conduit:` | a typed connection from port to port — a pipe, or a computer |
+| Quality | `quality:` | a property type a thing can bear |
+
+Four **token-tier content kinds** — immutable, content-addressed, **local by default** (see `spec/safety.md`):
+
+| Kind | Prefix | What it is |
+|---|---|---|
+| Token Individual | `token_individual:` | a particular thing (THIS one) |
+| Token Occurrence | `token_occurrence:` | a particular happening, at absolute time |
+| State Assertion | `state_assertion:` | a particular value over a particular interval |
+| Token Causal Claim | `token_causal_claim:` | a particular causing, optionally under a covering law |
 
 Four **provenance kinds** — signed (Ed25519), add-only records:
 
 | Kind | Prefix | What it says |
 |---|---|---|
-| Assertion | `ast:` | who claims it, on what evidence (intervention > observation), how strongly |
-| Enrichment | `enr:` | who added which alias, participant, or taxonomy link — **every word has an author** |
-| Retraction | `ret:` | a source's honest withdrawal of its own record — history never erased |
-| Succession | `suc:` | key rotation with lineage |
+| Assertion | `assertion:` | who claims it, on what evidence (intervention > observation > simulation), how strongly, optionally citing token `evidenced_by` |
+| Enrichment | `enrichment:` | who added which alias, participant, or taxonomy link — **every word has an author** |
+| Retraction | `retraction:` | a source's honest withdrawal of its own record — history never erased |
+| Succession | `succession:` | key rotation with lineage |
 
 **The load-bearing decision:** content is separated from provenance, uniformly. The same claim from any number of sources is *one* object; contradictory claims coexist, each with signed provenance; trust is a consumer-chosen policy, never forced consensus. The whole store merges by set union — a CRDT by construction.
 
@@ -155,10 +169,10 @@ Four **provenance kinds** — signed (Ed25519), add-only records:
 ```json
 { "type": "occurrent", "label": "press_button", "category": "action" }
 { "type": "occurrent", "label": "light_on",     "category": "state_change" }
-{ "type": "cro", "causes": ["occ:press_button"], "effects": ["occ:light_on"] }
+{ "type": "causal_relation_object", "causes": ["occurrent:press_button"], "effects": ["occurrent:light_on"] }
 ```
 
-That third document — a *degenerate* CRO, just cause and effect — is already valid, and the store lists it as a **gap** inviting enrichment (`GET /gaps?kind=missing_field`). Someone (or some mind) later `refines` it with a temporal window and modality, and the gap visibly closes. That is **stigmergy**: the structure's own partiality guides the next contribution. Full walkthrough: [`examples/quickstart.md`](examples/quickstart.md).
+That third document — a *degenerate* causal_relation_object, just cause and effect — is already valid, and the store lists it as a **gap** inviting enrichment (`GET /gaps?kind=missing_field`). Someone (or some mind) later `refines` it with a temporal window and modality, and the gap visibly closes. That is **stigmergy**: the structure's own partiality guides the next contribution. Full walkthrough: [`examples/quickstart.md`](examples/quickstart.md).
 
 ## Install (one line, your language)
 
@@ -185,12 +199,12 @@ All published at **specification 1.0.0** (vectors frozen 2026-07-13). Reach, sta
 
 ```
 causalontology/
-  Causalontology_Standalone_Design_v14.txt   the canon (complete, lay-readable)
+  Causalontology_Standalone_Design_v15.txt   the canon (complete, lay-readable)
   spec/                    normative core, identity, semantics, provenance,
                            store, safety; schema/ = 8 JSON Schemas + JSON-LD
                            context + Protobuf + the OWL mapping (BFO/RO/PROV)
-  conformance/             the 38 FROZEN vectors (specification 1.0.0) + the
-                           freeze tool; the meaning of "correct"
+  conformance/             the 107 vectors (specification 2.0.0, whole-word
+                           baseline) + the re-freeze tool; the meaning of "correct"
   bindings/                python · javascript (+ TypeScript typings) · rust
                            (+ the WebAssembly core) · java · swift · go —
                            all conformant; PrologAI is the reference
@@ -208,6 +222,15 @@ causalontology/
 ## Conformance
 
 **An implementation is Causalontology-conformant if and only if it passes every vector in [`conformance/vectors/`](conformance/vectors/) for the specification version it declares.** That single rule is how twenty implementations in twenty languages — Prolog, Python, JavaScript, Rust, Java, Swift, Go, C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua, C++, Zig, Julia, and Kotlin/Native — agree without sharing a line of code — down to the length of a month (2,629,746 seconds) and the ranking of a `resolve()`.
+
+> **Specification 2.0.0 status (whole-word re-mint).** The suite is now **107
+> vectors** (V01–V38 re-frozen unaltered in meaning under the whole-word
+> schemes of Principle P7, plus V39–V107 for the nine new object kinds and the
+> five normative algorithms). The **Python reference passes all 107 locally**.
+> The `38/38` milestones below record the completed 1.0.0 effort; under 2.0.0
+> the other bindings carry the whole-word re-mint and their 2.0.0 semantic port
+> (nine new kinds, Algorithms A–E) is the open work. Registry republication is
+> pending (Section 10.8 / OC1).
 
 ## Roadmap — built, proven, and shipped
 

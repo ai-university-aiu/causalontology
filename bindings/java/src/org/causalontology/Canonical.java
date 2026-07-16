@@ -30,15 +30,36 @@ public final class Canonical {
 
     static {
         Map<String, List<String>> fields = new LinkedHashMap<>();
-        fields.put("occurrent", List.of("label", "category"));
-        fields.put("cro", List.of("causes", "effects", "mechanism",
-                                  "temporal", "modality", "context",
-                                  "refines"));
+        // ---- type tier ----
+        fields.put("occurrent", List.of("label", "category", "stratum"));
+        fields.put("causal_relation_object", List.of("causes", "effects",
+                                  "mechanism", "temporal", "modality",
+                                  "context", "refines", "skips"));
         fields.put("continuant", List.of("label", "category"));
-        fields.put("realizable", List.of("kind", "bearer"));
+        fields.put("realizable", List.of("kind", "bearer", "label"));
+        fields.put("stratum", List.of("label", "scheme", "ordinal", "unit",
+                                      "governs"));
+        fields.put("bridge", List.of("coarse", "fine", "relation"));
+        fields.put("port", List.of("bearer", "label", "direction", "accepts",
+                                   "realizable"));
+        fields.put("conduit", List.of("label", "from", "to", "carries",
+                                      "transform"));
+        fields.put("quality", List.of("label", "datatype", "unit", "stratum"));
+        // ---- token tier ----
+        fields.put("token_individual", List.of("instantiates", "designator",
+                                               "part_of"));
+        fields.put("token_occurrence", List.of("instantiates", "interval",
+                                               "participants", "locus",
+                                               "observer"));
+        fields.put("state_assertion", List.of("subject", "quality", "value",
+                                              "interval"));
+        fields.put("token_causal_claim", List.of("causes", "effects",
+                                  "covering_law", "actual_delay",
+                                  "counterfactual"));
+        // ---- provenance tier ----
         fields.put("assertion", List.of("about", "source", "evidence_type",
                                         "evidence", "strength", "confidence",
-                                        "timestamp"));
+                                        "timestamp", "evidenced_by"));
         fields.put("enrichment", List.of("about", "field", "entry",
                                          "source", "timestamp"));
         fields.put("retraction", List.of("retracts", "source", "timestamp"));
@@ -46,15 +67,11 @@ public final class Canonical {
                                          "timestamp"));
         IDENTITY_FIELDS = Collections.unmodifiableMap(fields);
 
+        // Whole-word re-mint (P7): the scheme IS the type value for every kind.
         Map<String, String> prefix = new LinkedHashMap<>();
-        prefix.put("occurrent", "occ");
-        prefix.put("cro", "cro");
-        prefix.put("continuant", "cnt");
-        prefix.put("realizable", "rlz");
-        prefix.put("assertion", "ast");
-        prefix.put("enrichment", "enr");
-        prefix.put("retraction", "ret");
-        prefix.put("succession", "suc");
+        for (String kind : fields.keySet()) {
+            prefix.put(kind, kind);
+        }
         PREFIX = Collections.unmodifiableMap(prefix);
 
         Map<String, String> reverse = new LinkedHashMap<>();
@@ -83,8 +100,11 @@ public final class Canonical {
                 }
             }
         }
+        if (obj.containsKey("coarse") && obj.containsKey("fine")) {
+            return "bridge";
+        }
         if (obj.containsKey("causes") && obj.containsKey("effects")) {
-            return "cro";
+            return "causal_relation_object";
         }
         if (obj.containsKey("retracts")) {
             return "retraction";

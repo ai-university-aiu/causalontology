@@ -13,7 +13,10 @@ from .semantics import (validate_semantics, refinement_valid, is_partial,
                         conflicts, ENRICHMENT_FIELDS)
 from .signing import verify_record
 
-CONTENT_KINDS = {"occurrent", "cro", "continuant", "realizable"}
+CONTENT_KINDS = {"occurrent", "causal_relation_object", "continuant",
+                 "realizable", "stratum", "bridge", "port", "conduit",
+                 "quality", "token_individual", "token_occurrence",
+                 "state_assertion", "token_causal_claim"}
 RECORD_KINDS = {"assertion", "enrichment", "retraction", "succession"}
 
 
@@ -256,14 +259,14 @@ class InMemoryStore:
         out = []
         refined = set()
         for obj in self.objects.values():
-            if obj.get("type") == "cro" and obj.get("refines"):
+            if obj.get("type") == "causal_relation_object" and obj.get("refines"):
                 parent = self.objects.get(obj["refines"])
                 if parent is not None:
                     ok, _ = refinement_valid(obj, parent)
                     if ok:
                         refined.add(parent["id"])
         for oid, obj in self.objects.items():
-            if obj.get("type") != "cro":
+            if obj.get("type") != "causal_relation_object":
                 continue
             # missing_field: lacking the temporal window or the modality -
             # mechanism and context may legitimately stay unspecified forever
@@ -285,7 +288,7 @@ class InMemoryStore:
         # the red link that says "this page is wanted".
         for oid, obj in self.objects.items():
             refs = []
-            if obj.get("type") == "cro":
+            if obj.get("type") == "causal_relation_object":
                 refs = (list(obj.get("causes", []))
                         + list(obj.get("effects", []))
                         + list(obj.get("context", []))
@@ -299,7 +302,7 @@ class InMemoryStore:
                     out.append({"id": oid, "kind": "dangling_reference",
                                 "ref": ref})
         # conflict: pairs of claims satisfying the formal test (rule 6).
-        cros = [o for o in self.objects.values() if o.get("type") == "cro"]
+        cros = [o for o in self.objects.values() if o.get("type") == "causal_relation_object"]
         for i in range(len(cros)):
             for j in range(i + 1, len(cros)):
                 if conflicts(cros[i], cros[j]):

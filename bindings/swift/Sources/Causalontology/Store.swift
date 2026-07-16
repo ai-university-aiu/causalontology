@@ -26,7 +26,7 @@ public struct RejectedWrite: Error, CustomStringConvertible {
 }
 
 /// The four immutable content object kinds.
-public let contentKinds: Set<String> = ["occurrent", "cro", "continuant", "realizable"]
+public let contentKinds: Set<String> = ["occurrent", "causal_relation_object", "continuant", "realizable"]
 
 /// The four signed provenance record kinds.
 public let recordKinds: Set<String> = ["assertion", "enrichment", "retraction", "succession"]
@@ -512,7 +512,7 @@ public final class InMemoryStore {
         // The parents closed by a valid refinement in the store.
         var refined: Set<String> = []
         for objectId in objectOrder {
-            guard let obj = objects[objectId], obj["type"]?.stringValue == "cro" else { continue }
+            guard let obj = objects[objectId], obj["type"]?.stringValue == "causal_relation_object" else { continue }
             guard let refines = obj["refines"]?.stringValue,
                   let parent = objects[refines] else {
                 continue
@@ -524,7 +524,7 @@ public final class InMemoryStore {
         }
 
         for objectId in objectOrder {
-            guard let obj = objects[objectId], obj["type"]?.stringValue == "cro" else { continue }
+            guard let obj = objects[objectId], obj["type"]?.stringValue == "causal_relation_object" else { continue }
             // missing_field: lacking the temporal window or the modality -
             // mechanism and context may legitimately stay unspecified forever
             // (empty_mechanism is its own kind; absent context = context-free).
@@ -566,7 +566,7 @@ public final class InMemoryStore {
             guard let obj = objects[objectId] else { continue }
             var refs: [String] = []
             let typeName = obj["type"]?.stringValue ?? ""
-            if typeName == "cro" {
+            if typeName == "causal_relation_object" {
                 for fieldName in ["causes", "effects", "context", "mechanism"] {
                     for item in obj[fieldName]?.arrayValue ?? [] {
                         if let text = item.stringValue {
@@ -594,7 +594,7 @@ public final class InMemoryStore {
         // conflict: pairs of claims satisfying the formal test (rule 6).
         var cros: [[String: JsonValue]] = []
         for objectId in objectOrder {
-            if let obj = objects[objectId], obj["type"]?.stringValue == "cro" {
+            if let obj = objects[objectId], obj["type"]?.stringValue == "causal_relation_object" {
                 cros.append(obj)
             }
         }

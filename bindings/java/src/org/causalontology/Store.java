@@ -43,7 +43,7 @@ public final class Store {
     }
 
     private static final Set<String> CONTENT_KINDS =
-        Set.of("occurrent", "cro", "continuant", "realizable");
+        Set.of("occurrent", "causal_relation_object", "continuant", "realizable");
     private static final Set<String> RECORD_KINDS =
         Set.of("assertion", "enrichment", "retraction", "succession");
 
@@ -556,7 +556,7 @@ public final class Store {
         // Parents that have at least one valid refinement in the store.
         Set<String> refined = new HashSet<>();
         for (Map<String, Object> obj : objects.values()) {
-            if (!"cro".equals(obj.get("type"))) {
+            if (!"causal_relation_object".equals(obj.get("type"))) {
                 continue;
             }
             Object refinesObj = obj.get("refines");
@@ -576,7 +576,7 @@ public final class Store {
         for (Map.Entry<String, Map<String, Object>> e : objects.entrySet()) {
             String oid = e.getKey();
             Map<String, Object> obj = e.getValue();
-            if (!"cro".equals(obj.get("type"))) {
+            if (!"causal_relation_object".equals(obj.get("type"))) {
                 continue;
             }
             // missing_field: lacking the temporal window or the modality -
@@ -621,7 +621,7 @@ public final class Store {
             String oid = e.getKey();
             Map<String, Object> obj = e.getValue();
             List<Object> refs = new ArrayList<>();
-            if ("cro".equals(obj.get("type"))) {
+            if ("causal_relation_object".equals(obj.get("type"))) {
                 addAllIfList(refs, obj.get("causes"));
                 addAllIfList(refs, obj.get("effects"));
                 addAllIfList(refs, obj.get("context"));
@@ -649,7 +649,7 @@ public final class Store {
         // conflict: pairs of claims satisfying the formal test (rule 6).
         List<Map<String, Object>> cros = new ArrayList<>();
         for (Map<String, Object> obj : objects.values()) {
-            if ("cro".equals(obj.get("type"))) {
+            if ("causal_relation_object".equals(obj.get("type"))) {
                 cros.add(obj);
             }
         }

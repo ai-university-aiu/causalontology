@@ -24,7 +24,10 @@ local signing = require("causalontology.signing")
 local store = {}
 
 local CONTENT_KINDS = {
-  occurrent = true, cro = true, continuant = true, realizable = true,
+  occurrent = true, causal_relation_object = true, continuant = true,
+  realizable = true, stratum = true, bridge = true, port = true,
+  conduit = true, quality = true, token_individual = true,
+  token_occurrence = true, state_assertion = true, token_causal_claim = true,
 }
 local RECORD_KINDS = {
   assertion = true, enrichment = true, retraction = true, succession = true,
@@ -405,7 +408,7 @@ function InMemoryStore:gaps(kind)
   local refined = {}
   for _, oid in ipairs(self.object_order) do
     local obj = self.objects[oid]
-    if obj["type"] == "cro" and obj["refines"] ~= nil then
+    if obj["type"] == "causal_relation_object" and obj["refines"] ~= nil then
       local parent = self.objects[obj["refines"]]
       if parent ~= nil then
         local ok = semantics.refinement_valid(obj, parent)
@@ -415,7 +418,7 @@ function InMemoryStore:gaps(kind)
   end
   for _, oid in ipairs(self.object_order) do
     local obj = self.objects[oid]
-    if obj["type"] == "cro" then
+    if obj["type"] == "causal_relation_object" then
       -- missing_field: lacking the temporal window or the modality -
       -- mechanism and context may legitimately stay unspecified forever
       -- (empty_mechanism is its own kind; absent context = context-free).
@@ -446,7 +449,7 @@ function InMemoryStore:gaps(kind)
   for _, oid in ipairs(self.object_order) do
     local obj = self.objects[oid]
     local refs = {}
-    if obj["type"] == "cro" then
+    if obj["type"] == "causal_relation_object" then
       for _, list_field in ipairs({ "causes", "effects", "context", "mechanism" }) do
         for _, ref in ipairs(obj[list_field] or {}) do
           refs[#refs + 1] = ref
@@ -466,7 +469,7 @@ function InMemoryStore:gaps(kind)
   local cros = {}
   for _, oid in ipairs(self.object_order) do
     local obj = self.objects[oid]
-    if obj["type"] == "cro" then cros[#cros + 1] = obj end
+    if obj["type"] == "causal_relation_object" then cros[#cros + 1] = obj end
   end
   for i = 1, #cros do
     for j = i + 1, #cros do

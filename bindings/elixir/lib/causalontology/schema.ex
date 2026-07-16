@@ -3,24 +3,38 @@ defmodule Causalontology.Schema do
   Schema validation against spec/schema/*.schema.json.
 
   A deliberately small interpreter for exactly the JSON Schema keywords the
-  eight Causalontology schemas use: type, const, enum, pattern, required,
+  seventeen Causalontology schemas use: type, const, enum, pattern, required,
   properties, additionalProperties, items, minItems, minLength, minimum,
-  maximum, oneOf, and local $ref (#/$defs/...). "format" is treated as an
-  annotation, as the 2020-12 draft does by default.
+  maximum, oneOf, local $ref (#/$defs/...), and cross-file $ref to a sibling
+  schema (https://causalontology.org/schema/<file>.schema.json#/...). "format"
+  is treated as an annotation, as the 2020-12 draft does by default.
   """
 
   alias Causalontology.{Canonical, Json}
 
+  # kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+  # file names (individual/token/state); the id scheme is the whole word.
   @schema_files %{
-    "cro" => "cro.schema.json",
     "occurrent" => "occurrent.schema.json",
+    "causal_relation_object" => "causal_relation_object.schema.json",
     "continuant" => "continuant.schema.json",
     "realizable" => "realizable.schema.json",
+    "stratum" => "stratum.schema.json",
+    "bridge" => "bridge.schema.json",
+    "port" => "port.schema.json",
+    "conduit" => "conduit.schema.json",
+    "quality" => "quality.schema.json",
+    "token_individual" => "individual.schema.json",
+    "token_occurrence" => "token.schema.json",
+    "state_assertion" => "state.schema.json",
+    "token_causal_claim" => "token_causal_claim.schema.json",
     "assertion" => "assertion.schema.json",
     "enrichment" => "enrichment.schema.json",
     "retraction" => "retraction.schema.json",
     "succession" => "succession.schema.json"
   }
+
+  @base "https://causalontology.org/schema/"
 
   @doc "{ok, reasons} — structural validity against the kind's JSON Schema."
   def validate_schema(obj, kind \\ nil) do
@@ -36,7 +50,12 @@ defmodule Causalontology.Schema do
       Map.get(@schema_files, kind) ||
         raise(ArgumentError, "unknown kind: #{inspect(kind)}")
 
-    schema_dir() |> Path.join(file) |> File.read!() |> Json.parse!()
+    load_file(file)
+  end
+
+  # Load and parse a schema file by its bare filename (for cross-file $refs).
+  defp load_file(filename) do
+    schema_dir() |> Path.join(filename) |> File.read!() |> Json.parse!()
   end
 
   # The spec directory: the CAUSALONTOLOGY_SPEC environment variable when set
@@ -52,7 +71,7 @@ defmodule Causalontology.Schema do
   # ------------------------------------------------------------ the checker
 
   defp check(value, schema, root, path, errors) do
-    schema = deref(schema, root)
+    {schema, root} = deref(schema, root)
 
     if Map.has_key?(schema, "oneOf") do
       passing =
@@ -88,7 +107,10 @@ defmodule Causalontology.Schema do
   defp type_ok?(value, "object"), do: is_map(value)
   defp type_ok?(value, "array"), do: is_list(value)
   defp type_ok?(value, "string"), do: is_binary(value)
+  # Elixir keeps booleans (atoms) distinct from numbers, so no bool guard is
+  # needed here as it is in the Python reference (where bool subclasses int).
   defp type_ok?(value, "number"), do: is_number(value)
+  defp type_ok?(value, "integer"), do: is_integer(value)
   defp type_ok?(value, "boolean"), do: is_boolean(value)
 
   defp check_keywords(value, schema, root, path, errors) do
@@ -225,20 +247,41 @@ defmodule Causalontology.Schema do
 
   defp check_object(errors, _value, _schema, _root, _path), do: errors
 
-  # Follow local $ref chains (#/$defs/...).
+  # Resolve local (#/$defs/...) and cross-file $ref chains to a concrete schema
+  # node together with the root document it must be navigated against. A
+  # cross-file $ref switches the root to the referenced sibling schema.
   defp deref(%{"$ref" => ref}, root) do
-    unless String.starts_with?(ref, "#/") do
-      raise ArgumentError, "only local $ref supported: #{inspect(ref)}"
+    cond do
+      String.starts_with?(ref, "#/") ->
+        node = navigate(root, binary_part(ref, 2, byte_size(ref) - 2))
+        deref(node, root)
+
+      String.starts_with?(ref, @base) ->
+        rest = binary_part(ref, byte_size(@base), byte_size(ref) - byte_size(@base))
+        {filename, pointer} = split_ref(rest)
+        new_root = load_file(filename)
+        node = if pointer == "", do: new_root, else: navigate(new_root, pointer)
+        deref(node, new_root)
+
+      true ->
+        raise ArgumentError, "unsupported $ref: #{inspect(ref)}"
     end
-
-    node =
-      ref
-      |> binary_part(2, byte_size(ref) - 2)
-      |> String.split("/")
-      |> Enum.reduce(root, fn part, acc -> Map.fetch!(acc, part) end)
-
-    deref(node, root)
   end
 
-  defp deref(schema, _root), do: schema
+  defp deref(schema, root), do: {schema, root}
+
+  # Split "<file>.schema.json#/pointer" into {filename, pointer}.
+  defp split_ref(rest) do
+    case String.split(rest, "#/", parts: 2) do
+      [filename, pointer] -> {filename, pointer}
+      [filename] -> {filename, ""}
+    end
+  end
+
+  defp navigate(doc, pointer) do
+    pointer
+    |> String.split("/")
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.reduce(doc, fn part, acc -> Map.fetch!(acc, part) end)
+  end
 end

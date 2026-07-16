@@ -12,7 +12,9 @@
 // stigmergy gap read with its five gap kinds.
 package org.causalontology
 
-val CONTENT_KINDS = setOf("occurrent", "cro", "continuant", "realizable")
+val CONTENT_KINDS = setOf("occurrent", "causal_relation_object", "continuant",
+    "realizable", "stratum", "bridge", "port", "conduit", "quality",
+    "token_individual", "token_occurrence", "state_assertion", "token_causal_claim")
 val RECORD_KINDS = setOf("assertion", "enrichment", "retraction", "succession")
 
 // An enforcing store refused a write, with the reason as the message.
@@ -292,7 +294,7 @@ class InMemoryStore(val enforcing: Boolean = true) {
         val refined = mutableSetOf<String>()
         for (obj in objects.values) {
             val refines = obj["refines"] as? String
-            if (obj["type"] == "cro" && !refines.isNullOrEmpty()) {
+            if (obj["type"] == "causal_relation_object" && !refines.isNullOrEmpty()) {
                 val parent = objects[refines]
                 if (parent != null) {
                     val (ok, _) = Semantics.refinementValid(obj, parent)
@@ -301,7 +303,7 @@ class InMemoryStore(val enforcing: Boolean = true) {
             }
         }
         for ((oid, obj) in objects) {
-            if (obj["type"] != "cro") continue
+            if (obj["type"] != "causal_relation_object") continue
             // missing_field: lacking the temporal window or the modality -
             // mechanism and context may legitimately stay unspecified forever
             // (empty_mechanism is its own kind; absent context = context-free).
@@ -331,7 +333,7 @@ class InMemoryStore(val enforcing: Boolean = true) {
         // the red link that says "this page is wanted".
         for ((oid, obj) in objects) {
             val refs = mutableListOf<String?>()
-            if (obj["type"] == "cro") {
+            if (obj["type"] == "causal_relation_object") {
                 for (key in listOf("causes", "effects", "context", "mechanism")) {
                     val vals = obj[key] as? List<*> ?: emptyList<Any?>()
                     for (v in vals) refs.add(v as? String)
@@ -349,7 +351,7 @@ class InMemoryStore(val enforcing: Boolean = true) {
             }
         }
         // conflict: pairs of claims satisfying the formal test (rule 6).
-        val cros = objects.values.filter { it["type"] == "cro" }
+        val cros = objects.values.filter { it["type"] == "causal_relation_object" }
         for (i in cros.indices) {
             for (j in i + 1 until cros.size) {
                 if (Semantics.conflicts(cros[i], cros[j])) {

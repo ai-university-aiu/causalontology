@@ -12,31 +12,49 @@ namespace Causalontology;
 
 public static class Canonical
 {
+    // The identity-bearing fields of each of the seventeen kinds. "type" is
+    // always injected, so it is not listed here. Order does not matter (JCS
+    // sorts keys). 2.0.0: whole-word re-mint (Principle P7).
     public static readonly IReadOnlyDictionary<string, string[]> IdentityFields =
         new Dictionary<string, string[]>
         {
-            ["occurrent"] = new[] { "label", "category" },
-            ["cro"] = new[] { "causes", "effects", "mechanism", "temporal",
-                              "modality", "context", "refines" },
+            // ---- type tier ----
+            ["occurrent"] = new[] { "label", "category", "stratum" },
+            ["causal_relation_object"] = new[] { "causes", "effects",
+                "mechanism", "temporal", "modality", "context", "refines",
+                "skips" },
             ["continuant"] = new[] { "label", "category" },
-            ["realizable"] = new[] { "kind", "bearer" },
+            ["realizable"] = new[] { "kind", "bearer", "label" },
+            ["stratum"] = new[] { "label", "scheme", "ordinal", "unit",
+                "governs" },
+            ["bridge"] = new[] { "coarse", "fine", "relation" },
+            ["port"] = new[] { "bearer", "label", "direction", "accepts",
+                "realizable" },
+            ["conduit"] = new[] { "label", "from", "to", "carries",
+                "transform" },
+            ["quality"] = new[] { "label", "datatype", "unit", "stratum" },
+            // ---- token tier ----
+            ["token_individual"] = new[] { "instantiates", "designator",
+                "part_of" },
+            ["token_occurrence"] = new[] { "instantiates", "interval",
+                "participants", "locus", "observer" },
+            ["state_assertion"] = new[] { "subject", "quality", "value",
+                "interval" },
+            ["token_causal_claim"] = new[] { "causes", "effects",
+                "covering_law", "actual_delay", "counterfactual" },
+            // ---- provenance tier ----
             ["assertion"] = new[] { "about", "source", "evidence_type",
-                                    "evidence", "strength", "confidence",
-                                    "timestamp" },
+                "evidence", "strength", "confidence", "timestamp",
+                "evidenced_by" },
             ["enrichment"] = new[] { "about", "field", "entry", "source",
-                                     "timestamp" },
+                "timestamp" },
             ["retraction"] = new[] { "retracts", "source", "timestamp" },
             ["succession"] = new[] { "predecessor", "successor", "timestamp" },
         };
 
+    // Whole-word re-mint (P7): the scheme IS the type value for every kind.
     public static readonly IReadOnlyDictionary<string, string> Prefix =
-        new Dictionary<string, string>
-        {
-            ["occurrent"] = "occ", ["cro"] = "cro", ["continuant"] = "cnt",
-            ["realizable"] = "rlz", ["assertion"] = "ast",
-            ["enrichment"] = "enr", ["retraction"] = "ret",
-            ["succession"] = "suc",
-        };
+        IdentityFields.Keys.ToDictionary(k => k, k => k);
 
     public static readonly IReadOnlyDictionary<string, string> KindOfPrefix =
         Prefix.ToDictionary(kv => kv.Value, kv => kv.Key);
@@ -52,8 +70,10 @@ public static class Canonical
             if (KindOfPrefix.TryGetValue(pre, out var kind))
                 return kind;
         }
+        if (obj.ContainsKey("coarse") && obj.ContainsKey("fine"))
+            return "bridge";
         if (obj.ContainsKey("causes") && obj.ContainsKey("effects"))
-            return "cro";
+            return "causal_relation_object";
         if (obj.ContainsKey("retracts"))
             return "retraction";
         if (obj.ContainsKey("predecessor") && obj.ContainsKey("successor"))

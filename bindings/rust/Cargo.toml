@@ -1,6 +1,6 @@
 [package]
 name = "causalontology"
-version = "1.0.0"
+version = "2.0.0"
 edition = "2021"
 description = "The Rust binding of the Causalontology standard - a verb-first noun-hosting ontology; reified causation as a language-neutral standard and shared commons."
 license-file = "LICENSE"

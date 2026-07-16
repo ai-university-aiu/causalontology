@@ -1,6 +1,6 @@
 # The Dart binding of the Causalontology standard.
 name: causalontology
-version: 1.0.0
+version: 2.0.0
 description: >-
   The Dart binding of the Causalontology standard - a verb-first
   noun-hosting ontology; a language-neutral standard and shared commons for

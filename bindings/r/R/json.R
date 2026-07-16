@@ -2,9 +2,9 @@
 #
 # A lossless JSON layer written in base R.
 #
-# R has no built-in JSON support and the allowed dependencies (sodium,
-# openssl) carry none, so this file implements a recursive-descent JSON
-# parser over base R string operations. The representation is designed so
+# R has no built-in JSON support, so this file implements a
+# recursive-descent JSON parser over base R string operations. The
+# representation is designed so
 # that the canonicalizer (jcs.R) can reproduce RFC 8785 byte-for-byte:
 #
 #   JSON object  -> a named list of class "co_obj" (named lists preserve
@@ -141,14 +141,84 @@ co_hex2bin <- function(hex) {
   as.raw(strtoi(pairs, base = 16L))
 }
 
+# SHA-256 in pure base R (FIPS 180-4). No CRAN crypto package is available
+# in this toolchain (neither openssl nor sodium is installed), so the hash
+# is hand-rolled. 32-bit words are carried as DOUBLES in [0, 2^32): R's
+# native 32-bit signed integer cannot represent 0x80000000 (that bit
+# pattern is NA_integer_), and bitwShiftL overflows to NA past bit 31, so a
+# signed-int representation is unusable. Bitwise ops are done on 16-bit
+# halves (each < 2^16, safely an R integer); shifts and the modular add use
+# ordinary floating arithmetic (exact for integers up to 2^53).
+.co_bitop16 <- function(op) function(a, b) {
+  op(a %% 65536, b %% 65536) + op(a %/% 65536, b %/% 65536) * 65536
+}
+.co_band <- .co_bitop16(bitwAnd)
+.co_bor  <- .co_bitop16(bitwOr)
+.co_bxor <- .co_bitop16(bitwXor)
+.co_bnot <- function(a) 4294967295 - a
+.co_shr  <- function(x, n) floor(x / (2^n))
+.co_shl  <- function(x, n) (x * (2^n)) %% 4294967296
+.co_rotr <- function(x, n) (.co_shr(x, n) + .co_shl(x, 32 - n)) %% 4294967296
+.co_add32 <- function(...) { s <- 0; for (a in list(...)) s <- s + a; s %% 4294967296 }
+.co_xor3 <- function(a, b, c) .co_bxor(.co_bxor(a, b), c)
+
+.co_sha256_K <- c(
+  0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2)
+.co_sha256_H0 <- c(0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,
+                   0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19)
+
 # SHA-256 digest of raw bytes, as a plain raw vector.
-# openssl::sha256 must ALWAYS be fed raw bytes: on character input it
-# would hash a string per element and return hex, a different contract.
 co_sha256_raw <- function(bytes) {
   stopifnot(is.raw(bytes))
-  h <- openssl::sha256(bytes)
-  attributes(h) <- NULL
-  h
+  bits <- length(bytes) * 8
+  msg <- c(as.double(as.integer(bytes)), 128)   # append the 0x80 marker byte
+  while (length(msg) %% 64 != 56) msg <- c(msg, 0)
+  lenb <- numeric(8); b <- bits                  # 64-bit big-endian bit length
+  for (i in 8:1) { lenb[i] <- b %% 256; b <- floor(b / 256) }
+  msg <- c(msg, lenb)
+  K <- .co_sha256_K
+  H <- .co_sha256_H0
+  for (blk in seq_len(length(msg) / 64)) {
+    off <- (blk - 1) * 64
+    w <- numeric(64)
+    for (t in 1:16) {
+      j <- off + (t - 1) * 4
+      w[t] <- msg[j+1]*2^24 + msg[j+2]*2^16 + msg[j+3]*2^8 + msg[j+4]
+    }
+    for (t in 17:64) {
+      s0 <- .co_xor3(.co_rotr(w[t-15],7),  .co_rotr(w[t-15],18), .co_shr(w[t-15],3))
+      s1 <- .co_xor3(.co_rotr(w[t-2],17),  .co_rotr(w[t-2],19),  .co_shr(w[t-2],10))
+      w[t] <- .co_add32(w[t-16], s0, w[t-7], s1)
+    }
+    a<-H[1]; b<-H[2]; c<-H[3]; d<-H[4]; e<-H[5]; f<-H[6]; g<-H[7]; h<-H[8]
+    for (t in 1:64) {
+      S1 <- .co_xor3(.co_rotr(e,6), .co_rotr(e,11), .co_rotr(e,25))
+      ch <- .co_bxor(.co_band(e,f), .co_band(.co_bnot(e),g))
+      t1 <- .co_add32(h, S1, ch, K[t], w[t])
+      S0 <- .co_xor3(.co_rotr(a,2), .co_rotr(a,13), .co_rotr(a,22))
+      maj <- .co_xor3(.co_band(a,b), .co_band(a,c), .co_band(b,c))
+      t2 <- .co_add32(S0, maj)
+      h<-g; g<-f; f<-e; e<-.co_add32(d,t1); d<-c; c<-b; b<-a; a<-.co_add32(t1,t2)
+    }
+    H <- c(.co_add32(H[1],a), .co_add32(H[2],b), .co_add32(H[3],c), .co_add32(H[4],d),
+           .co_add32(H[5],e), .co_add32(H[6],f), .co_add32(H[7],g), .co_add32(H[8],h))
+  }
+  out <- raw(32)
+  for (i in 1:8) {
+    u <- H[i]
+    out[(i-1)*4+1] <- as.raw(floor(u/2^24) %% 256)
+    out[(i-1)*4+2] <- as.raw(floor(u/2^16) %% 256)
+    out[(i-1)*4+3] <- as.raw(floor(u/2^8)  %% 256)
+    out[(i-1)*4+4] <- as.raw(u %% 256)
+  }
+  out
 }
 
 # SHA-256 digest of raw bytes as lowercase hex.

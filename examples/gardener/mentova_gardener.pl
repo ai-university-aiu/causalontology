@@ -143,7 +143,7 @@ main :-
     % Step 4: induce the missing fields from the interventions.
     ( Rate >= 0.9 -> Modality = sufficient ; Modality = contributory ),
     % The temporal window: never slower than one second.
-    Temporal = _{dmin: 0, dmax: 1, unit: seconds},
+    Temporal = _{minimum_delay: 0, maximum_delay: 1, unit: seconds},
     % Narrate the induction, glass-box.
     narrate("induced: modality ~w (rate ~w), window 0..1 seconds - because acting beats watching", [Modality, Rate]),
     % Step 5: contribute the refinement object.

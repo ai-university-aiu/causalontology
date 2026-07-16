@@ -22,16 +22,30 @@ pub const KindSpec = struct {
     fields: []const []const u8,
 };
 
-/// The eight kinds and their identity-bearing fields (IDENTITY_FIELDS + PREFIX).
+/// The seventeen kinds and their identity-bearing fields (IDENTITY_FIELDS +
+/// PREFIX). Whole-word re-mint (P7): the scheme IS the type value for every
+/// kind, so prefix == kind throughout.
 pub const kind_specs = [_]KindSpec{
-    .{ .kind = "occurrent", .prefix = "occ", .fields = &.{ "label", "category" } },
-    .{ .kind = "cro", .prefix = "cro", .fields = &.{ "causes", "effects", "mechanism", "temporal", "modality", "context", "refines" } },
-    .{ .kind = "continuant", .prefix = "cnt", .fields = &.{ "label", "category" } },
-    .{ .kind = "realizable", .prefix = "rlz", .fields = &.{ "kind", "bearer" } },
-    .{ .kind = "assertion", .prefix = "ast", .fields = &.{ "about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp" } },
-    .{ .kind = "enrichment", .prefix = "enr", .fields = &.{ "about", "field", "entry", "source", "timestamp" } },
-    .{ .kind = "retraction", .prefix = "ret", .fields = &.{ "retracts", "source", "timestamp" } },
-    .{ .kind = "succession", .prefix = "suc", .fields = &.{ "predecessor", "successor", "timestamp" } },
+    // ---- type tier ----
+    .{ .kind = "occurrent", .prefix = "occurrent", .fields = &.{ "label", "category", "stratum" } },
+    .{ .kind = "causal_relation_object", .prefix = "causal_relation_object", .fields = &.{ "causes", "effects", "mechanism", "temporal", "modality", "context", "refines", "skips" } },
+    .{ .kind = "continuant", .prefix = "continuant", .fields = &.{ "label", "category" } },
+    .{ .kind = "realizable", .prefix = "realizable", .fields = &.{ "kind", "bearer", "label" } },
+    .{ .kind = "stratum", .prefix = "stratum", .fields = &.{ "label", "scheme", "ordinal", "unit", "governs" } },
+    .{ .kind = "bridge", .prefix = "bridge", .fields = &.{ "coarse", "fine", "relation" } },
+    .{ .kind = "port", .prefix = "port", .fields = &.{ "bearer", "label", "direction", "accepts", "realizable" } },
+    .{ .kind = "conduit", .prefix = "conduit", .fields = &.{ "label", "from", "to", "carries", "transform" } },
+    .{ .kind = "quality", .prefix = "quality", .fields = &.{ "label", "datatype", "unit", "stratum" } },
+    // ---- token tier ----
+    .{ .kind = "token_individual", .prefix = "token_individual", .fields = &.{ "instantiates", "designator", "part_of" } },
+    .{ .kind = "token_occurrence", .prefix = "token_occurrence", .fields = &.{ "instantiates", "interval", "participants", "locus", "observer" } },
+    .{ .kind = "state_assertion", .prefix = "state_assertion", .fields = &.{ "subject", "quality", "value", "interval" } },
+    .{ .kind = "token_causal_claim", .prefix = "token_causal_claim", .fields = &.{ "causes", "effects", "covering_law", "actual_delay", "counterfactual" } },
+    // ---- provenance tier ----
+    .{ .kind = "assertion", .prefix = "assertion", .fields = &.{ "about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp", "evidenced_by" } },
+    .{ .kind = "enrichment", .prefix = "enrichment", .fields = &.{ "about", "field", "entry", "source", "timestamp" } },
+    .{ .kind = "retraction", .prefix = "retraction", .fields = &.{ "retracts", "source", "timestamp" } },
+    .{ .kind = "succession", .prefix = "succession", .fields = &.{ "predecessor", "successor", "timestamp" } },
 };
 
 /// The spec for a kind name, or null if unknown.
@@ -58,7 +72,8 @@ pub fn inferKind(obj: ObjectMap) ![]const u8 {
             if (kindOfPrefix(id[0..i])) |k| return k;
         }
     }
-    if (obj.contains("causes") and obj.contains("effects")) return "cro";
+    if (obj.contains("coarse") and obj.contains("fine")) return "bridge";
+    if (obj.contains("causes") and obj.contains("effects")) return "causal_relation_object";
     if (obj.contains("retracts")) return "retraction";
     if (obj.contains("predecessor") and obj.contains("successor")) return "succession";
     if (obj.contains("field") and obj.contains("entry")) return "enrichment";

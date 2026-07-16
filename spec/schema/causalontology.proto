@@ -12,18 +12,18 @@ enum ContinuantCategory { CNT_CAT_UNSPECIFIED = 0; OBJECT = 1; AGENT = 2; PLACE 
 enum RealizableKind { RLZ_KIND_UNSPECIFIED = 0; DISPOSITION = 1; FUNCTION = 2; ROLE = 3; }
 enum EnrichmentField { FIELD_UNSPECIFIED = 0; ALIASES = 1; PARTICIPANTS = 2; SUBSUMES = 3; PART_OF = 4; REALIZED_IN = 5; }
 
-message TemporalWindow { double dmin = 1; double dmax = 2; TemporalUnit unit = 3; }
+message TemporalWindow { double minimum_delay = 1; double maximum_delay = 2; TemporalUnit unit = 3; }
 message Alias { string lang = 1; string text = 2; }
 
 message CausalRelationObject {
-  string id = 1;                 // cro:<sha256 hex>
-  repeated string causes = 2;    // occ:<hex>
-  repeated string effects = 3;   // occ:<hex>
-  repeated string mechanism = 4; // cro:<hex>
+  string id = 1;                 // causal_relation_object:<sha256 hex>
+  repeated string causes = 2;    // occurrent:<hex>
+  repeated string effects = 3;   // occurrent:<hex>
+  repeated string mechanism = 4; // causal_relation_object:<hex>
   TemporalWindow temporal = 5;
   Modality modality = 6;
-  repeated string context = 7;   // occ:<hex>
-  string refines = 8;            // cro:<hex>
+  repeated string context = 7;   // occurrent:<hex>
+  string refines = 8;            // causal_relation_object:<hex>
 }
 message Occurrent  { string id = 1; string label = 2; OccurrentCategory category = 3; }
 message Continuant { string id = 1; string label = 2; ContinuantCategory category = 3; }

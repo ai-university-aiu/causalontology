@@ -17,42 +17,79 @@ namespace Causalontology;
 
 final class Canonical
 {
-    /** The identity-bearing fields per kind (spec/identity.md). */
+    /**
+     * The identity-bearing fields of each of the seventeen kinds. "type" is
+     * always injected, so it is not listed here. Order does not matter (JCS
+     * sorts keys). 2.0.0: every identifier scheme is a whole English word
+     * (Principle P7); scheme = type value = id prefix.
+     */
     public const IDENTITY_FIELDS = [
-        'occurrent'  => ['label', 'category'],
-        'cro'        => ['causes', 'effects', 'mechanism', 'temporal', 'modality',
-                         'context', 'refines'],
+        // ---- type tier ----
+        'occurrent'  => ['label', 'category', 'stratum'],
+        'causal_relation_object' => ['causes', 'effects', 'mechanism', 'temporal',
+                                     'modality', 'context', 'refines', 'skips'],
         'continuant' => ['label', 'category'],
-        'realizable' => ['kind', 'bearer'],
+        'realizable' => ['kind', 'bearer', 'label'],
+        'stratum'    => ['label', 'scheme', 'ordinal', 'unit', 'governs'],
+        'bridge'     => ['coarse', 'fine', 'relation'],
+        'port'       => ['bearer', 'label', 'direction', 'accepts', 'realizable'],
+        'conduit'    => ['label', 'from', 'to', 'carries', 'transform'],
+        'quality'    => ['label', 'datatype', 'unit', 'stratum'],
+        // ---- token tier ----
+        'token_individual'   => ['instantiates', 'designator', 'part_of'],
+        'token_occurrence'   => ['instantiates', 'interval', 'participants',
+                                 'locus', 'observer'],
+        'state_assertion'    => ['subject', 'quality', 'value', 'interval'],
+        'token_causal_claim' => ['causes', 'effects', 'covering_law',
+                                 'actual_delay', 'counterfactual'],
+        // ---- provenance tier ----
         'assertion'  => ['about', 'source', 'evidence_type', 'evidence', 'strength',
-                         'confidence', 'timestamp'],
+                         'confidence', 'timestamp', 'evidenced_by'],
         'enrichment' => ['about', 'field', 'entry', 'source', 'timestamp'],
         'retraction' => ['retracts', 'source', 'timestamp'],
         'succession' => ['predecessor', 'successor', 'timestamp'],
     ];
 
-    /** The identifier scheme prefix per kind. */
+    /** The identifier scheme prefix per kind (whole-word: scheme = kind). */
     public const PREFIX = [
-        'occurrent'  => 'occ',
-        'cro'        => 'cro',
-        'continuant' => 'cnt',
-        'realizable' => 'rlz',
-        'assertion'  => 'ast',
-        'enrichment' => 'enr',
-        'retraction' => 'ret',
-        'succession' => 'suc',
+        'occurrent'              => 'occurrent',
+        'causal_relation_object' => 'causal_relation_object',
+        'continuant'             => 'continuant',
+        'realizable'             => 'realizable',
+        'stratum'                => 'stratum',
+        'bridge'                 => 'bridge',
+        'port'                   => 'port',
+        'conduit'                => 'conduit',
+        'quality'                => 'quality',
+        'token_individual'       => 'token_individual',
+        'token_occurrence'       => 'token_occurrence',
+        'state_assertion'        => 'state_assertion',
+        'token_causal_claim'     => 'token_causal_claim',
+        'assertion'              => 'assertion',
+        'enrichment'             => 'enrichment',
+        'retraction'             => 'retraction',
+        'succession'             => 'succession',
     ];
 
     /** The inverse of PREFIX: scheme prefix back to kind. */
     public const KIND_OF_PREFIX = [
-        'occ' => 'occurrent',
-        'cro' => 'cro',
-        'cnt' => 'continuant',
-        'rlz' => 'realizable',
-        'ast' => 'assertion',
-        'enr' => 'enrichment',
-        'ret' => 'retraction',
-        'suc' => 'succession',
+        'occurrent'              => 'occurrent',
+        'causal_relation_object' => 'causal_relation_object',
+        'continuant'             => 'continuant',
+        'realizable'             => 'realizable',
+        'stratum'                => 'stratum',
+        'bridge'                 => 'bridge',
+        'port'                   => 'port',
+        'conduit'                => 'conduit',
+        'quality'                => 'quality',
+        'token_individual'       => 'token_individual',
+        'token_occurrence'       => 'token_occurrence',
+        'state_assertion'        => 'state_assertion',
+        'token_causal_claim'     => 'token_causal_claim',
+        'assertion'              => 'assertion',
+        'enrichment'             => 'enrichment',
+        'retraction'             => 'retraction',
+        'succession'             => 'succession',
     ];
 
     /** A static utility class, never an instance. */
@@ -72,8 +109,11 @@ final class Canonical
                 return self::KIND_OF_PREFIX[$prefix];
             }
         }
+        if (array_key_exists('coarse', $obj) && array_key_exists('fine', $obj)) {
+            return 'bridge';
+        }
         if (array_key_exists('causes', $obj) && array_key_exists('effects', $obj)) {
-            return 'cro';
+            return 'causal_relation_object';
         }
         if (array_key_exists('retracts', $obj)) {
             return 'retraction';

@@ -65,7 +65,7 @@ main = do
       (Right light, s2) = put (JObj [ ("type", JStr "occurrent")
                                     , ("label", JStr "light_on")
                                     , ("category", JStr "state_change") ]) Nothing s1
-      (Right claim, s3) = put (JObj [ ("type", JStr "cro")
+      (Right claim, s3) = put (JObj [ ("type", JStr "causal_relation_object")
                                     , ("causes", JArr [JStr press])
                                     , ("effects", JArr [JStr light]) ]) Nothing s2
   print claim

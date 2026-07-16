@@ -12,43 +12,52 @@
 import Foundation
 import Crypto
 
-/// The identity-bearing fields per kind, exactly as in the Python binding.
+/// The identity-bearing fields of each of the seventeen kinds, exactly as in
+/// the Python binding. "type" is always injected, so it is not listed here.
 public let identityFields: [String: [String]] = [
-    "occurrent": ["label", "category"],
-    "cro": ["causes", "effects", "mechanism", "temporal", "modality",
-            "context", "refines"],
+    // ---- type tier ----
+    "occurrent": ["label", "category", "stratum"],
+    "causal_relation_object": ["causes", "effects", "mechanism", "temporal",
+            "modality", "context", "refines", "skips"],
     "continuant": ["label", "category"],
-    "realizable": ["kind", "bearer"],
+    "realizable": ["kind", "bearer", "label"],
+    "stratum": ["label", "scheme", "ordinal", "unit", "governs"],
+    "bridge": ["coarse", "fine", "relation"],
+    "port": ["bearer", "label", "direction", "accepts", "realizable"],
+    "conduit": ["label", "from", "to", "carries", "transform"],
+    "quality": ["label", "datatype", "unit", "stratum"],
+    // ---- token tier ----
+    "token_individual": ["instantiates", "designator", "part_of"],
+    "token_occurrence": ["instantiates", "interval", "participants",
+            "locus", "observer"],
+    "state_assertion": ["subject", "quality", "value", "interval"],
+    "token_causal_claim": ["causes", "effects", "covering_law",
+            "actual_delay", "counterfactual"],
+    // ---- provenance tier ----
     "assertion": ["about", "source", "evidence_type", "evidence", "strength",
-                  "confidence", "timestamp"],
+                  "confidence", "timestamp", "evidenced_by"],
     "enrichment": ["about", "field", "entry", "source", "timestamp"],
     "retraction": ["retracts", "source", "timestamp"],
     "succession": ["predecessor", "successor", "timestamp"],
 ]
 
-/// The identifier scheme prefix per kind.
-public let idPrefix: [String: String] = [
-    "occurrent": "occ",
-    "cro": "cro",
-    "continuant": "cnt",
-    "realizable": "rlz",
-    "assertion": "ast",
-    "enrichment": "enr",
-    "retraction": "ret",
-    "succession": "suc",
-]
+/// Whole-word re-mint (P7): the scheme IS the type value for every kind.
+public let idPrefix: [String: String] = {
+    var out: [String: String] = [:]
+    for kind in identityFields.keys {
+        out[kind] = kind
+    }
+    return out
+}()
 
 /// The kind per identifier scheme prefix (the inverse of idPrefix).
-public let kindOfPrefix: [String: String] = [
-    "occ": "occurrent",
-    "cro": "cro",
-    "cnt": "continuant",
-    "rlz": "realizable",
-    "ast": "assertion",
-    "enr": "enrichment",
-    "ret": "retraction",
-    "suc": "succession",
-]
+public let kindOfPrefix: [String: String] = {
+    var out: [String: String] = [:]
+    for kind in identityFields.keys {
+        out[kind] = kind
+    }
+    return out
+}()
 
 /// Lowercase hex encoding of any bytes.
 public func hexEncode<D: DataProtocol>(_ data: D) -> String {
@@ -97,8 +106,11 @@ public func inferKind(_ obj: [String: JsonValue]) throws -> String {
             return kind
         }
     }
+    if obj["coarse"] != nil && obj["fine"] != nil {
+        return "bridge"
+    }
     if obj["causes"] != nil && obj["effects"] != nil {
-        return "cro"
+        return "causal_relation_object"
     }
     if obj["retracts"] != nil {
         return "retraction"

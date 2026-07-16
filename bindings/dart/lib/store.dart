@@ -19,7 +19,7 @@ import 'schema.dart';
 import 'semantics.dart';
 import 'signing.dart';
 
-const Set<String> contentKinds = {'occurrent', 'cro', 'continuant', 'realizable'};
+const Set<String> contentKinds = {'occurrent', 'causal_relation_object', 'continuant', 'realizable'};
 const Set<String> recordKinds = {'assertion', 'enrichment', 'retraction', 'succession'};
 
 /// An enforcing store refused a write, with the reason as [message].
@@ -345,7 +345,7 @@ class InMemoryStore {
     final refined = <String>{};
     for (final obj in objects.values) {
       final refines = obj['refines'];
-      if (obj['type'] == 'cro' && refines is String && refines.isNotEmpty) {
+      if (obj['type'] == 'causal_relation_object' && refines is String && refines.isNotEmpty) {
         final parent = objects[refines];
         if (parent != null) {
           final (ok, _) = refinementValid(obj, parent);
@@ -358,7 +358,7 @@ class InMemoryStore {
     for (final entry in objects.entries) {
       final oid = entry.key;
       final obj = entry.value;
-      if (obj['type'] != 'cro') continue;
+      if (obj['type'] != 'causal_relation_object') continue;
       // missing_field: lacking the temporal window or the modality -
       // mechanism and context may legitimately stay unspecified forever
       // (empty_mechanism is its own kind; absent context = context-free).
@@ -389,7 +389,7 @@ class InMemoryStore {
       final oid = entry.key;
       final obj = entry.value;
       var refs = <String?>[];
-      if (obj['type'] == 'cro') {
+      if (obj['type'] == 'causal_relation_object') {
         refs = [
           ...((obj['causes'] as List?) ?? const []).cast<String>(),
           ...((obj['effects'] as List?) ?? const []).cast<String>(),
@@ -410,7 +410,7 @@ class InMemoryStore {
       }
     }
     // conflict: pairs of claims satisfying the formal test (rule 6).
-    final cros = objects.values.where((o) => o['type'] == 'cro').toList();
+    final cros = objects.values.where((o) => o['type'] == 'causal_relation_object').toList();
     for (var i = 0; i < cros.length; i++) {
       for (var j = i + 1; j < cros.length; j++) {
         if (conflicts(cros[i], cros[j])) {

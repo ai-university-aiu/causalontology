@@ -18,6 +18,8 @@
 #include <fstream>
 #include <functional>
 #include <map>
+#include <regex>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -109,7 +111,11 @@ bool is64hex(const std::string& s) {
 
 bool isScheme(const std::string& s) {
     static const std::vector<std::string> schemes = {
-        "occ", "cro", "cnt", "rlz", "ast", "enr", "ret", "suc", "ed25519"};
+        "occurrent", "causal_relation_object", "continuant", "realizable",
+        "assertion", "enrichment", "retraction", "succession",
+        "stratum", "bridge", "port", "conduit", "quality",
+        "token_individual", "token_occurrence", "state_assertion",
+        "token_causal_claim", "ed25519"};
     for (const auto& scheme : schemes)
         if (s == scheme) return true;
     return false;
@@ -218,6 +224,208 @@ void internalChecks() {
     check(jcs(JValue::of(1.0)) == "1", "JCS 1.0 -> 1");
     check(jcs(JValue::of(6.000)) == "6", "JCS 6.000 -> 6");
     check(jcs(JValue::of(0.7)) == "0.7", "JCS 0.7 stays 0.7");
+    check(to_seconds(1, "months") == 2629746, "months constant");
+    check(to_seconds(1, "years") == 31556952, "years constant");
+}
+
+// ----------------------------------------------------------- object builders
+
+// A content object completed with its real content-addressed id.
+JValue mk(JValue o) {
+    o.set("id", JValue::of(identify(o)));
+    return o;
+}
+
+JValue strv(const std::vector<std::string>& items) {
+    JValue a = JValue::makeArray();
+    for (const std::string& s : items) a.array.push_back(JValue::of(s));
+    return a;
+}
+
+JValue buildStratum(const std::string& label, const std::string& scheme,
+                    int ordinal, const std::string& unit = "",
+                    const std::vector<std::string>& governs = {}) {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("stratum"));
+    o.set("label", JValue::of(label));
+    o.set("scheme", JValue::of(scheme));
+    o.set("ordinal", JValue::of(ordinal));
+    if (!unit.empty()) o.set("unit", JValue::of(unit));
+    if (!governs.empty()) o.set("governs", strv(governs));
+    return mk(std::move(o));
+}
+
+JValue buildOcc(const std::string& label, const std::string& stratumId = "",
+                const std::string& category = "event") {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("occurrent"));
+    o.set("label", JValue::of(label));
+    o.set("category", JValue::of(category));
+    if (!stratumId.empty()) o.set("stratum", JValue::of(stratumId));
+    return mk(std::move(o));
+}
+
+JValue buildCnt(const std::string& label, const std::string& category = "object") {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("continuant"));
+    o.set("label", JValue::of(label));
+    o.set("category", JValue::of(category));
+    return mk(std::move(o));
+}
+
+// A CRO from cause/effect id lists, with optional extra fields patched in.
+JValue buildCro(const std::vector<std::string>& causes,
+                const std::vector<std::string>& effects,
+                const std::function<void(JValue&)>& patch = nullptr) {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("causal_relation_object"));
+    o.set("causes", strv(causes));
+    o.set("effects", strv(effects));
+    if (patch) patch(o);
+    return mk(std::move(o));
+}
+
+JValue buildBridge(const std::string& coarse,
+                   const std::vector<std::string>& fine,
+                   const std::string& relation) {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("bridge"));
+    o.set("coarse", JValue::of(coarse));
+    o.set("fine", strv(fine));
+    o.set("relation", JValue::of(relation));
+    return mk(std::move(o));
+}
+
+JValue buildPort(const std::string& bearer, const std::string& label,
+                 const std::string& direction,
+                 const std::vector<std::string>& accepts,
+                 const std::string& realizable = "") {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("port"));
+    o.set("bearer", JValue::of(bearer));
+    o.set("label", JValue::of(label));
+    o.set("direction", JValue::of(direction));
+    o.set("accepts", strv(accepts));
+    if (!realizable.empty()) o.set("realizable", JValue::of(realizable));
+    return mk(std::move(o));
+}
+
+JValue buildConduit(const std::string& frm, const std::string& to,
+                    const std::vector<std::string>& carries,
+                    const std::string& label = "conn",
+                    const std::string& transform = "") {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("conduit"));
+    o.set("label", JValue::of(label));
+    o.set("from", JValue::of(frm));
+    o.set("to", JValue::of(to));
+    o.set("carries", strv(carries));
+    if (!transform.empty()) o.set("transform", JValue::of(transform));
+    return mk(std::move(o));
+}
+
+JValue buildQuality(const std::string& label, const std::string& datatype,
+                    const std::string& unit = "",
+                    const std::string& stratumId = "") {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("quality"));
+    o.set("label", JValue::of(label));
+    o.set("datatype", JValue::of(datatype));
+    if (!unit.empty()) o.set("unit", JValue::of(unit));
+    if (!stratumId.empty()) o.set("stratum", JValue::of(stratumId));
+    return mk(std::move(o));
+}
+
+JValue buildRlz(const std::string& bearer, const std::string& kind,
+                const std::string& label = "") {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("realizable"));
+    o.set("kind", JValue::of(kind));
+    o.set("bearer", JValue::of(bearer));
+    if (!label.empty()) o.set("label", JValue::of(label));
+    return mk(std::move(o));
+}
+
+JValue buildIndividual(const std::string& instantiates,
+                       const std::string& designator = "",
+                       const std::string& partOf = "") {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("token_individual"));
+    o.set("instantiates", JValue::of(instantiates));
+    if (!designator.empty()) o.set("designator", JValue::of(designator));
+    if (!partOf.empty()) o.set("part_of", JValue::of(partOf));
+    return mk(std::move(o));
+}
+
+JValue interval(const std::string& start, const std::string& end = "",
+                int open = -1) {
+    JValue iv = JValue::makeObject();
+    iv.set("start", JValue::of(start));
+    if (!end.empty()) iv.set("end", JValue::of(end));
+    if (open >= 0) iv.set("open", JValue::of(open != 0));
+    return iv;
+}
+
+JValue buildToken(const std::string& instantiates, JValue iv,
+                  JValue participants = JValue()) {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("token_occurrence"));
+    o.set("instantiates", JValue::of(instantiates));
+    o.set("interval", std::move(iv));
+    if (participants.isArray()) o.set("participants", std::move(participants));
+    return mk(std::move(o));
+}
+
+JValue buildState(const std::string& subject, const std::string& qual,
+                  JValue value, JValue iv) {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("state_assertion"));
+    o.set("subject", JValue::of(subject));
+    o.set("quality", JValue::of(qual));
+    o.set("value", std::move(value));
+    o.set("interval", std::move(iv));
+    return mk(std::move(o));
+}
+
+JValue buildTcc(const std::vector<std::string>& causes,
+                const std::vector<std::string>& effects,
+                const std::string& coveringLaw = "",
+                JValue actualDelay = JValue(), int counterfactual = -1) {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("token_causal_claim"));
+    o.set("causes", strv(causes));
+    o.set("effects", strv(effects));
+    if (!coveringLaw.empty()) o.set("covering_law", JValue::of(coveringLaw));
+    if (actualDelay.isObject()) o.set("actual_delay", std::move(actualDelay));
+    if (counterfactual >= 0)
+        o.set("counterfactual", JValue::of(counterfactual != 0));
+    return mk(std::move(o));
+}
+
+JValue delayObj(double duration, const std::string& unit) {
+    JValue d = JValue::makeObject();
+    d.set("duration", JValue::of(duration));
+    d.set("unit", JValue::of(unit));
+    return d;
+}
+
+JValue temporalObj(double lo, double hi, const std::string& unit) {
+    JValue t = JValue::makeObject();
+    t.set("minimum_delay", JValue::of(lo));
+    t.set("maximum_delay", JValue::of(hi));
+    t.set("unit", JValue::of(unit));
+    return t;
+}
+
+// The neuroendocrine stratum fixture (ordinal -> stratum object).
+std::map<int, JValue> neuro() {
+    std::map<int, std::string> labels = {
+        {4, "macromolecular"}, {5, "subcellular"}, {6, "cellular"},
+        {7, "synaptic"}, {9, "region"}, {14, "community_and_society"}};
+    std::map<int, JValue> out;
+    for (const auto& [ord, label] : labels)
+        out[ord] = buildStratum(label, "neuroendocrine", ord);
+    return out;
 }
 
 std::string join(const std::vector<std::string>& v) {
@@ -295,7 +503,7 @@ void semanticsFails(int n, const std::string& mustMention) {
 void v14() {
     JValue inp = normalize(vec(14).at("input"));
     check(validate_schema(inp).first, "schema");
-    semanticsFails(14, "dmin");
+    semanticsFails(14, "minimum_delay");
 }
 
 void v15() { semanticsFails(15, "acyclic"); }
@@ -313,8 +521,8 @@ void v18() { semanticsFails(18, "not a legal field"); }
 void v19() { semanticsFails(19, "language-tagged"); }
 
 void v20() {
-    std::string dog = sym("cnt:dog"), mam = sym("cnt:mammal"),
-                ani = sym("cnt:animal");
+    std::string dog = sym("continuant:dog"), mam = sym("continuant:mammal"),
+                ani = sym("continuant:animal");
     auto enrich = [](const std::string& about, const std::string& entry,
                      int i) {
         JValue body = JValue::makeObject();
@@ -357,9 +565,9 @@ bool adm(int n) {
     JValue g = vec(n).at("given");
     JValue cro = JValue::makeObject();
     JValue causes = JValue::makeArray();
-    causes.array.push_back(JValue::of(sym("occ:c")));
+    causes.array.push_back(JValue::of(sym("occurrent:c")));
     JValue effects = JValue::makeArray();
-    effects.array.push_back(JValue::of(sym("occ:e")));
+    effects.array.push_back(JValue::of(sym("occurrent:e")));
     cro.set("causes", std::move(causes));
     cro.set("effects", std::move(effects));
     cro.set("temporal", g.at("temporal"));
@@ -425,11 +633,11 @@ void v27() {
 void v28() {
     InMemoryStore s;
     JValue claim = JValue::makeObject();
-    claim.set("type", JValue::of("cro"));
+    claim.set("type", JValue::of("causal_relation_object"));
     JValue causes = JValue::makeArray();
-    causes.array.push_back(JValue::of(sym("occ:A")));
+    causes.array.push_back(JValue::of(sym("occurrent:A")));
     JValue effects = JValue::makeArray();
-    effects.array.push_back(JValue::of(sym("occ:B")));
+    effects.array.push_back(JValue::of(sym("occurrent:B")));
     claim.set("causes", std::move(causes));
     claim.set("effects", std::move(effects));
     claim.set("modality", JValue::of("sufficient"));
@@ -450,7 +658,7 @@ void v28() {
 
 JValue demoAssertion() {
     JValue body = JValue::makeObject();
-    body.set("about", JValue::of(sym("cro:demo")));
+    body.set("about", JValue::of(sym("causal_relation_object:demo")));
     body.set("evidence_type", JValue::of("intervention"));
     body.set("strength", JValue::of(0.7));
     body.set("confidence", JValue::of(0.9));
@@ -468,11 +676,11 @@ void v30() {
 void v31() {
     InMemoryStore s;
     JValue claim = JValue::makeObject();
-    claim.set("type", JValue::of("cro"));
+    claim.set("type", JValue::of("causal_relation_object"));
     JValue causes = JValue::makeArray();
-    causes.array.push_back(JValue::of(sym("occ:A")));
+    causes.array.push_back(JValue::of(sym("occurrent:A")));
     JValue effects = JValue::makeArray();
-    effects.array.push_back(JValue::of(sym("occ:B")));
+    effects.array.push_back(JValue::of(sym("occurrent:B")));
     claim.set("causes", std::move(causes));
     claim.set("effects", std::move(effects));
     std::string x = s.put(claim);
@@ -542,7 +750,7 @@ void v33() {
     std::string k1 = key("K1").second;
     std::string k2 = key("K2").second;
     JValue aBody = JValue::makeObject();
-    aBody.set("about", JValue::of(sym("cro:claim")));
+    aBody.set("about", JValue::of(sym("causal_relation_object:claim")));
     aBody.set("evidence_type", JValue::of("observation"));
     aBody.set("confidence", JValue::of(0.9));
     JValue a = makeSigned("assertion", aBody, "K1", 1);
@@ -557,7 +765,7 @@ void v33() {
     rBody.set("retracts", JValue::of(a.getString("id")));
     JValue r = makeSigned("retraction", rBody, "K2", 3);
     s.put_record(r);  // successor may retract the predecessor's record
-    check(s.assertions_about(sym("cro:claim")).empty(),
+    check(s.assertions_about(sym("causal_relation_object:claim")).empty(),
           "the retraction must take effect");
 }
 
@@ -572,8 +780,8 @@ void v35() {
 }
 
 void v36() {
-    std::string A = sym("occ:A"), B = sym("occ:B"), C = sym("occ:C"),
-                D = sym("occ:D");
+    std::string A = sym("occurrent:A"), B = sym("occurrent:B"), C = sym("occurrent:C"),
+                D = sym("occurrent:D");
     auto makeCro = [](const std::string& id, const std::string& cause,
                       const std::string& effect) {
         JValue m = JValue::makeObject();
@@ -586,9 +794,9 @@ void v36() {
         m.set("effects", std::move(effects));
         return m;
     };
-    JValue m1 = makeCro(sym("cro:m1"), A, B);
-    JValue m2 = makeCro(sym("cro:m2"), B, C);
-    JValue m3 = makeCro(sym("cro:m3"), D, C);
+    JValue m1 = makeCro(sym("causal_relation_object:m1"), A, B);
+    JValue m2 = makeCro(sym("causal_relation_object:m2"), B, C);
+    JValue m3 = makeCro(sym("causal_relation_object:m3"), D, C);
     JValue P = JValue::makeObject();
     JValue pCauses = JValue::makeArray();
     pCauses.array.push_back(JValue::of(A));
@@ -635,11 +843,11 @@ void v37() {
 void v38() {
     InMemoryStore s;
     JValue claim = JValue::makeObject();
-    claim.set("type", JValue::of("cro"));
+    claim.set("type", JValue::of("causal_relation_object"));
     JValue causes = JValue::makeArray();
-    causes.array.push_back(JValue::of(sym("occ:A")));
+    causes.array.push_back(JValue::of(sym("occurrent:A")));
     JValue effects = JValue::makeArray();
-    effects.array.push_back(JValue::of(sym("occ:B")));
+    effects.array.push_back(JValue::of(sym("occurrent:B")));
     claim.set("causes", causes);
     claim.set("effects", effects);
     std::string P = s.put(claim);
@@ -653,12 +861,12 @@ void v38() {
     check(std::find(before.begin(), before.end(), P) != before.end(),
           "P must be a missing_field gap");
     JValue refinement = JValue::makeObject();
-    refinement.set("type", JValue::of("cro"));
+    refinement.set("type", JValue::of("causal_relation_object"));
     refinement.set("causes", causes);
     refinement.set("effects", effects);
     JValue temporal = JValue::makeObject();
-    temporal.set("dmin", JValue::of(0));
-    temporal.set("dmax", JValue::of(1));
+    temporal.set("minimum_delay", JValue::of(0));
+    temporal.set("maximum_delay", JValue::of(1));
     temporal.set("unit", JValue::of("seconds"));
     refinement.set("temporal", std::move(temporal));
     refinement.set("modality", JValue::of("sufficient"));
@@ -669,6 +877,771 @@ void v38() {
           "the gap did not close");
     check(std::find(after.begin(), after.end(), R) == after.end(),
           "the refinement itself must be complete");
+}
+
+// ------------------------------------------------ V39-V107: 2.0.0 additions
+
+// Build an id-keyed map from a list of content objects.
+std::map<std::string, JValue> mapOf(const std::vector<JValue>& objs) {
+    std::map<std::string, JValue> m;
+    for (const JValue& o : objs) m[o.getString("id")] = o;
+    return m;
+}
+
+void schemaOk(const JValue& obj, const std::string& kind = "") {
+    auto [ok, why] = validate_schema(obj, kind);
+    check(ok, join(why));
+}
+
+void v39() {
+    JValue st = buildStratum("cellular", "neuroendocrine", 6, "cell",
+                             {"cell_biology"});
+    schemaOk(st);
+}
+
+void v40() {
+    JValue bad = JValue::makeObject();
+    bad.set("type", JValue::of("stratum"));
+    bad.set("label", JValue::of("cellular"));
+    bad.set("ordinal", JValue::of(6));
+    bad = mk(std::move(bad));
+    auto [ok, why] = validate_schema(bad, "stratum");
+    check(!ok && contains(why, "scheme"), "expected scheme error: " + join(why));
+}
+
+void v41() {
+    JValue a = buildStratum("cellular", "neuroendocrine", 6);
+    JValue b = buildStratum("neuronal", "neuroendocrine", 6);
+    schemaOk(a);
+    schemaOk(b);
+    check(a.getString("id") != b.getString("id"), "ids must differ");
+}
+
+void v42() {
+    auto s = neuro();
+    JValue s4p = buildStratum("molecular", "physics", 4);
+    JValue c = buildOcc("chronic_social_subordination", s[14].getString("id"));
+    JValue e = buildOcc("gene_expression", s4p.getString("id"));
+    auto smap = mapOf({s[14], s4p});
+    auto omap = mapOf({c, e});
+    JValue P = buildCro({c.getString("id")}, {e.getString("id")});
+    check(classify_cro(P, omap, smap) == "scheme_mismatch", "scheme_mismatch");
+}
+
+void v43() {
+    schemaOk(buildStratum("macromolecular", "neuroendocrine", 4));
+    schemaOk(buildStratum("region", "neuroendocrine", 9));
+}
+
+void v44() {
+    JValue st = buildStratum("cellular", "neuroendocrine", 6);
+    JValue o = buildOcc("neuron_fires", st.getString("id"));
+    schemaOk(o);
+    check(validate_semantics(o).first, "semantics");
+}
+
+void v45() {
+    JValue o = buildOcc("press_button");
+    schemaOk(o);
+    JValue e = buildOcc("light_on");
+    JValue P = buildCro({o.getString("id")}, {e.getString("id")});
+    check(classify_cro(P, mapOf({o, e}), {}) == "unclassifiable",
+          "unclassifiable");
+}
+
+void v46() {
+    auto s = neuro();
+    JValue a = buildOcc("depolarization", s[5].getString("id"));
+    JValue b = buildOcc("depolarization", s[6].getString("id"));
+    check(a.getString("id") != b.getString("id"), "ids must differ");
+}
+
+struct BridgeFixture {
+    JValue bridge;
+    std::map<std::string, JValue> omap;
+    std::map<std::string, JValue> smap;
+};
+
+BridgeFixture bridgeFixture(const std::string& relation) {
+    auto s = neuro();
+    JValue coarse = buildOcc("action_potential_fires", s[6].getString("id"));
+    JValue f1 = buildOcc("sodium_channels_open", s[4].getString("id"));
+    JValue f2 = buildOcc("sodium_influx", s[4].getString("id"));
+    JValue b = buildBridge(coarse.getString("id"),
+                           {f1.getString("id"), f2.getString("id")}, relation);
+    return {b, mapOf({coarse, f1, f2}), mapOf({s[4], s[6]})};
+}
+
+void validBridge(const std::string& relation) {
+    BridgeFixture f = bridgeFixture(relation);
+    schemaOk(f.bridge);
+    auto [ok, why] = bridge_wellformed(f.bridge, f.omap, f.smap);
+    check(ok, why);
+}
+
+void v47() { validBridge("constitutes"); }
+void v48() { validBridge("aggregates"); }
+void v49() { validBridge("realizes"); }
+void v50() { validBridge("supervenes_on"); }
+
+void v51() {
+    auto s = neuro();
+    JValue coarse = buildOcc("x_coarse", s[4].getString("id"));
+    JValue fine = buildOcc("x_fine", s[6].getString("id"));
+    JValue b = buildBridge(coarse.getString("id"), {fine.getString("id")},
+                           "constitutes");
+    check(!bridge_wellformed(b, mapOf({coarse, fine}), mapOf({s[4], s[6]})).first,
+          "must be malformed");
+}
+
+void v52() {
+    auto s = neuro();
+    JValue coarse = buildOcc("c", s[6].getString("id"));
+    JValue f1 = buildOcc("f1", s[4].getString("id"));
+    JValue f2 = buildOcc("f2", s[5].getString("id"));
+    JValue b = buildBridge(coarse.getString("id"),
+                           {f1.getString("id"), f2.getString("id")},
+                           "constitutes");
+    check(!bridge_wellformed(b, mapOf({coarse, f1, f2}),
+                             mapOf({s[4], s[5], s[6]})).first,
+          "must be malformed");
+}
+
+void v53() {
+    std::string x = sym("occurrent:x"), y = sym("occurrent:y");
+    JValue b1 = buildBridge(x, {y}, "constitutes");
+    JValue b2 = buildBridge(y, {x}, "constitutes");
+    std::map<std::string, std::vector<std::string>> edges;
+    for (const JValue* b : {&b1, &b2})
+        for (const JValue& f : b->at("fine").array)
+            edges[f.str].push_back(b->getString("coarse"));
+    check(has_cycle(edges), "must have a cycle");
+}
+
+void v54() {
+    JValue a = buildStratum("cellular", "neuroendocrine", 6);
+    JValue b = buildStratum("molecular", "physics", 4);
+    JValue coarse = buildOcc("c", a.getString("id"));
+    JValue fine = buildOcc("f", b.getString("id"));
+    JValue br = buildBridge(coarse.getString("id"), {fine.getString("id")},
+                            "constitutes");
+    check(!bridge_wellformed(br, mapOf({coarse, fine}), mapOf({a, b})).first,
+          "must be malformed");
+}
+
+void v55() {
+    auto s = neuro();
+    JValue coarse = buildOcc("decision_made", s[6].getString("id"));
+    JValue f1 = buildOcc("cascade_a", s[4].getString("id"));
+    JValue f2 = buildOcc("cascade_b", s[4].getString("id"));
+    JValue b1 = buildBridge(coarse.getString("id"), {f1.getString("id")},
+                            "realizes");
+    JValue b2 = buildBridge(coarse.getString("id"), {f2.getString("id")},
+                            "realizes");
+    check(b1.getString("id") != b2.getString("id"), "ids must differ");
+    schemaOk(b1);
+    schemaOk(b2);
+}
+
+struct ReachFixture {
+    JValue parent;
+    std::map<std::string, JValue> members;
+    std::vector<JValue> bridges;
+};
+
+ReachFixture reachFixture() {
+    auto s = neuro();
+    JValue ap = buildOcc("action_potential_fires", s[6].getString("id"));
+    JValue nt = buildOcc("neurotransmitter_released", s[6].getString("id"));
+    JValue fa = buildOcc("calcium_enters", s[4].getString("id"));
+    JValue fb = buildOcc("vesicle_fuses", s[4].getString("id"));
+    JValue m1 = buildCro({fa.getString("id")}, {fb.getString("id")});
+    JValue P = buildCro({ap.getString("id")}, {nt.getString("id")},
+                        [&](JValue& o) {
+                            o.set("mechanism", strv({m1.getString("id")}));
+                        });
+    std::vector<JValue> bridges = {
+        buildBridge(ap.getString("id"), {fa.getString("id")}, "constitutes"),
+        buildBridge(nt.getString("id"), {fb.getString("id")}, "constitutes")};
+    return {P, mapOf({m1}), bridges};
+}
+
+void v56() {
+    ReachFixture f = reachFixture();
+    check(hierarchy_consistent(f.parent, f.members, f.bridges) == "consistent",
+          "must be consistent");
+}
+
+void v57() {
+    ReachFixture f = reachFixture();
+    check(hierarchy_consistent(f.parent, f.members, {}) == "inconsistent",
+          "must be inconsistent without bridges");
+}
+
+void v58() {
+    ReachFixture f = reachFixture();
+    std::string literal = hierarchy_consistent(f.parent, f.members, {});
+    std::string bridged = hierarchy_consistent(f.parent, f.members, f.bridges);
+    check(literal != "consistent" && bridged == "consistent",
+          "literal must fail where bridged succeeds");
+}
+
+std::string classifyOrds(int causeOrd, int effectOrd) {
+    auto s = neuro();
+    JValue c = buildOcc("c", s[causeOrd].getString("id"));
+    JValue e = buildOcc("e", s[effectOrd].getString("id"));
+    auto smap = mapOf({s[causeOrd], s[effectOrd]});
+    auto omap = mapOf({c, e});
+    return classify_cro(buildCro({c.getString("id")}, {e.getString("id")}),
+                        omap, smap);
+}
+
+void v59() { check(classifyOrds(6, 6) == "intra_stratal", "intra_stratal"); }
+void v60() { check(classifyOrds(6, 5) == "adjacent_stratal", "adjacent"); }
+void v61() { check(classifyOrds(14, 4) == "skipping", "skipping"); }
+
+struct SkipFixture {
+    JValue parent;
+    std::string classification;
+};
+
+SkipFixture skipFixture(int causeOrd, int effectOrd,
+                        const std::function<void(JValue&)>& patch = nullptr) {
+    auto s = neuro();
+    JValue c = buildOcc("c", s[causeOrd].getString("id"));
+    JValue e = buildOcc("e", s[effectOrd].getString("id"));
+    auto smap = mapOf({s[causeOrd], s[effectOrd]});
+    auto omap = mapOf({c, e});
+    JValue P = buildCro({c.getString("id")}, {e.getString("id")}, patch);
+    return {P, classify_cro(P, omap, smap)};
+}
+
+bool eqList(const std::vector<std::string>& a,
+            const std::vector<std::string>& b) {
+    return a == b;
+}
+
+void v62() {
+    SkipFixture f = skipFixture(14, 4);
+    check(eqList(skip_gaps(f.parent, f.classification),
+                 {"incomplete_mechanism"}),
+          "expected [incomplete_mechanism]");
+}
+
+void v63() {
+    SkipFixture f = skipFixture(14, 4,
+                               [](JValue& o) { o.set("skips", JValue::of(true)); });
+    check(skip_gaps(f.parent, f.classification).empty(), "expected []");
+}
+
+void v64() {
+    SkipFixture f = skipFixture(14, 4, [](JValue& o) {
+        o.set("skips", JValue::of(true));
+        o.set("mechanism", strv({sym("causal_relation_object:m")}));
+    });
+    check(eqList(skip_gaps(f.parent, f.classification), {"contradictory_skip"}),
+          "expected [contradictory_skip]");
+    auto [ok, why] = validate_semantics(f.parent);
+    check(!ok && contains(why, "contradictory_skip"),
+          "semantics must reject: " + join(why));
+}
+
+void v65() {
+    SkipFixture f = skipFixture(6, 6,
+                               [](JValue& o) { o.set("skips", JValue::of(true)); });
+    check(eqList(skip_gaps(f.parent, f.classification), {"vacuous_skip"}),
+          "expected [vacuous_skip]");
+}
+
+void v66() {
+    auto s = neuro();
+    JValue c = buildOcc("c", s[14].getString("id"));
+    JValue e = buildOcc("e", s[4].getString("id"));
+    JValue absent = buildCro({c.getString("id")}, {e.getString("id")});
+    JValue falseSkip = buildCro({c.getString("id")}, {e.getString("id")},
+                                [](JValue& o) { o.set("skips", JValue::of(false)); });
+    check(absent.getString("id") != falseSkip.getString("id"),
+          "skips:false must be distinct from skips absent");
+}
+
+void v67() {
+    auto s = neuro();
+    JValue c1 = buildOcc("c1", s[4].getString("id"));
+    JValue c2 = buildOcc("c2", s[6].getString("id"));
+    JValue e = buildOcc("e", s[6].getString("id"));
+    JValue P = buildCro({c1.getString("id"), c2.getString("id")},
+                        {e.getString("id")});
+    check(endpoints_mixed(P, mapOf({c1, c2, e})), "must be mixed");
+}
+
+void v68() {
+    JValue P = buildCro({sym("occurrent:a")}, {sym("occurrent:b")},
+                        [](JValue& o) { o.set("modality", JValue::of("enabling")); });
+    schemaOk(P);
+}
+
+JValue modalityPair(const std::string& modality) {
+    JValue o = JValue::makeObject();
+    o.set("causes", strv({sym("occurrent:a")}));
+    o.set("effects", strv({sym("occurrent:b")}));
+    o.set("modality", JValue::of(modality));
+    return o;
+}
+
+void v69() {
+    check(conflicts(modalityPair("enabling"), modalityPair("sufficient")) == false,
+          "enabling must be compatible with sufficient");
+}
+
+void v70() {
+    check(conflicts(modalityPair("enabling"), modalityPair("preventive")) == true,
+          "enabling must be opposed by preventive");
+}
+
+void v71() {
+    JValue b = buildCnt("hippocampus");
+    JValue p = buildPort(b.getString("id"), "perforant_path", "in",
+                         {sym("occurrent:signal")});
+    schemaOk(p);
+}
+
+void v72() {
+    std::string b = buildCnt("hippocampus").getString("id");
+    std::string x = sym("occurrent:signal");
+    check(buildPort(b, "perforant_path", "in", {x}).getString("id") !=
+              buildPort(b, "fornix", "in", {x}).getString("id"),
+          "distinct labels must yield distinct ids");
+}
+
+struct ConduitFixture {
+    JValue conduit;
+    std::map<std::string, JValue> pmap;
+    std::map<std::string, JValue> cro_map;
+};
+
+ConduitFixture conduitFixture(bool transform = false, bool bad_carry = false,
+                              bool in_from = false) {
+    std::string x = sym("occurrent:motor_command");
+    std::string y = sym("occurrent:error_signal");
+    std::string z = sym("occurrent:unrelated");
+    std::string m1 = buildCnt("motor_cortex").getString("id");
+    std::string m2 = buildCnt("spinal_neuron").getString("id");
+    JValue frm = buildPort(m1, "out_port", in_from ? "in" : "out", {x});
+    JValue to = buildPort(m2, "in_port", "in", transform ? std::vector<std::string>{y}
+                                                         : std::vector<std::string>{x});
+    std::vector<std::string> carries = bad_carry ? std::vector<std::string>{z}
+                                                 : std::vector<std::string>{x};
+    std::string xform;
+    std::map<std::string, JValue> croMap;
+    if (transform) {
+        JValue law = buildCro({x}, {y});
+        croMap[law.getString("id")] = law;
+        xform = law.getString("id");
+    }
+    JValue c = buildConduit(frm.getString("id"), to.getString("id"), carries,
+                            "conn", xform);
+    return {c, mapOf({frm, to}), croMap};
+}
+
+void v73() {
+    ConduitFixture f = conduitFixture();
+    schemaOk(f.conduit);
+    auto [ok, why] = conduit_wellformed(f.conduit, f.pmap);
+    check(ok, why);
+}
+
+void v74() {
+    ConduitFixture f = conduitFixture(true);
+    schemaOk(f.conduit);
+    auto [ok, why] = conduit_wellformed(f.conduit, f.pmap, &f.cro_map);
+    check(ok, why);
+}
+
+void v75() {
+    ConduitFixture f = conduitFixture(false, true);
+    check(!conduit_wellformed(f.conduit, f.pmap).first, "must be malformed");
+}
+
+void v76() {
+    ConduitFixture f = conduitFixture(false, false, true);
+    check(!conduit_wellformed(f.conduit, f.pmap).first, "must be malformed");
+}
+
+void v77() {
+    ConduitFixture f = conduitFixture(true);
+    auto [ok, why] = conduit_wellformed(f.conduit, f.pmap, &f.cro_map);
+    check(ok, why);
+    const JValue& law = f.cro_map.begin()->second;
+    std::string effect0 = law.at("effects").array[0].str;
+    bool inCarries = false;
+    for (const JValue& c : f.conduit.at("carries").array)
+        if (c.str == effect0) inCarries = true;
+    check(!inCarries, "the emitted effect must not be among carries");
+}
+
+void v78() {
+    std::string b = buildCnt("hippocampus").getString("id");
+    check(buildRlz(b, "disposition", "long_term_potentiation").getString("id") !=
+              buildRlz(b, "disposition", "pattern_separation").getString("id"),
+          "distinct labels must yield distinct ids");
+}
+
+void v79() {
+    std::string b = buildCnt("hippocampus").getString("id");
+    JValue u1 = buildRlz(b, "disposition");
+    JValue u2 = buildRlz(b, "disposition");
+    schemaOk(u1);
+    check(u1.getString("id") == u2.getString("id"), "unlabelled must be equal");
+    check(buildRlz(b, "disposition", "some_function").getString("id") !=
+              u1.getString("id"),
+          "a label must change identity");
+}
+
+JValue occEnrichment(const std::string& about, const std::string& field,
+                     const std::string& entry) {
+    JValue e = JValue::makeObject();
+    e.set("type", JValue::of("enrichment"));
+    e.set("about", JValue::of(about));
+    e.set("field", JValue::of(field));
+    e.set("entry", JValue::of(entry));
+    return e;
+}
+
+void v80() {
+    JValue parent = buildOcc("fires");
+    JValue child = buildOcc("fires_action_potential");
+    JValue e = occEnrichment(child.getString("id"), "occurrent_subsumes",
+                             parent.getString("id"));
+    auto [ok, why] = validate_semantics(e);
+    check(ok, join(why));
+}
+
+void v81() {
+    std::string a = sym("occurrent:a"), b = sym("occurrent:b");
+    std::map<std::string, std::vector<std::string>> edges = {{a, {b}}, {b, {a}}};
+    check(has_cycle(edges), "must have a cycle");
+}
+
+void v82() {
+    JValue whole = buildOcc("eat");
+    JValue part = buildOcc("chew");
+    JValue e = occEnrichment(part.getString("id"), "occurrent_part_of",
+                             whole.getString("id"));
+    auto [ok, why] = validate_semantics(e);
+    check(ok, join(why));
+}
+
+void v83() {
+    // occurrent_part_of is legal only for occurrents: an enrichment about a
+    // continuant must be rejected (proves the field-to-kind constraint).
+    JValue illegal = occEnrichment(sym("continuant:body"), "occurrent_part_of",
+                                   sym("occurrent:mouth"));
+    check(!validate_semantics(illegal).first,
+          "occurrent_part_of about a continuant must be illegal");
+    InMemoryStore s;
+    std::string whole = s.put(buildOcc("eat"));
+    std::string part = s.put(buildOcc("chew"));
+    check(s.object_count() == 2, "two occurrents expected");
+    check(s.get(whole)->at("object").getString("type") == "occurrent" &&
+              s.get(part)->at("object").getString("type") == "occurrent",
+          "no causal relation object should have been created");
+}
+
+void v84() {
+    auto s = neuro();
+    JValue a = buildOcc("run", s[9].getString("id"));
+    JValue b = buildOcc("sprint", s[6].getString("id"));
+    check(a.getString("stratum") != b.getString("stratum"),
+          "strata must differ");
+}
+
+void v85() {
+    JValue c = buildCnt("human_patient");
+    JValue ti = buildIndividual(c.getString("id"), "salted_hash_abc123");
+    schemaOk(ti);
+}
+
+void v86() {
+    JValue bad = JValue::makeObject();
+    bad.set("type", JValue::of("token_individual"));
+    bad.set("designator", JValue::of("x"));
+    bad = mk(std::move(bad));
+    auto [ok, why] = validate_schema(bad, "token_individual");
+    check(!ok && contains(why, "instantiates"),
+          "expected instantiates error: " + join(why));
+}
+
+void v87() {
+    std::string c = buildCnt("human_patient").getString("id");
+    check(buildIndividual(c, "hash_a").getString("id") !=
+              buildIndividual(c, "hash_b").getString("id"),
+          "distinct designators must yield distinct ids");
+}
+
+void v88() {
+    JValue o = buildOcc("bilateral_hippocampal_resection");
+    JValue t = buildToken(o.getString("id"),
+                          interval("1953-08-25T00:00:00Z", "1953-08-25T00:00:00Z"));
+    schemaOk(t);
+}
+
+void v89() {
+    std::string o = buildOcc("amnesia_onset").getString("id");
+    JValue bounded = buildToken(o, interval("1953-08-25T00:00:00Z",
+                                            "1953-08-26T00:00:00Z"));
+    JValue instantaneous = buildToken(o, interval("1953-08-25T00:00:00Z"));
+    JValue ongoing = buildToken(o, interval("1953-08-25T00:00:00Z", "", 1));
+    std::set<std::string> ids = {bounded.getString("id"),
+                                 instantaneous.getString("id"),
+                                 ongoing.getString("id")};
+    check(ids.size() == 3, "three distinct interval shapes expected");
+}
+
+void v90() {
+    std::string o = buildOcc("resection").getString("id");
+    std::string c = buildCnt("human_patient").getString("id");
+    std::string patient = buildIndividual(c, "p").getString("id");
+    std::string surgeon = buildIndividual(c, "s").getString("id");
+    JValue participants = JValue::makeArray();
+    JValue r1 = JValue::makeObject();
+    r1.set("role", JValue::of("patient"));
+    r1.set("filler", JValue::of(patient));
+    JValue r2 = JValue::makeObject();
+    r2.set("role", JValue::of("agent"));
+    r2.set("filler", JValue::of(surgeon));
+    participants.array.push_back(std::move(r1));
+    participants.array.push_back(std::move(r2));
+    JValue t = buildToken(o, interval("1953-08-25T00:00:00Z"),
+                          std::move(participants));
+    schemaOk(t);
+}
+
+void v91() {
+    JValue q = buildQuality("cortisol_concentration", "quantity", "ug/dL");
+    schemaOk(q);
+}
+
+struct StateFixture {
+    JValue state;
+    JValue quality;
+};
+
+StateFixture stateFixture(const std::string& datatype, JValue value,
+                          const std::string& unit = "") {
+    JValue q = buildQuality("cortisol_concentration", datatype, unit);
+    std::string c = buildCnt("human_patient").getString("id");
+    std::string subj = buildIndividual(c, "p").getString("id");
+    JValue st = buildState(subj, q.getString("id"), std::move(value),
+                           interval("2026-01-01T00:00:00Z",
+                                    "2026-01-01T01:00:00Z"));
+    return {st, q};
+}
+
+JValue quantityValue(double q, const std::string& unit) {
+    JValue v = JValue::makeObject();
+    v.set("quantity", JValue::of(q));
+    v.set("unit", JValue::of(unit));
+    return v;
+}
+
+void v92() {
+    StateFixture f = stateFixture("quantity", quantityValue(15.0, "ug/dL"),
+                                  "ug/dL");
+    schemaOk(f.state);
+    check(state_gaps(f.state, f.quality).empty(), "no gaps expected");
+}
+
+void v93() {
+    JValue v = JValue::makeObject();
+    v.set("categorical", JValue::of("elevated"));
+    StateFixture f = stateFixture("categorical", std::move(v));
+    schemaOk(f.state);
+    check(state_gaps(f.state, f.quality).empty(), "no gaps expected");
+}
+
+void v94() {
+    JValue v = JValue::makeObject();
+    v.set("boolean", JValue::of(true));
+    StateFixture f = stateFixture("boolean", std::move(v));
+    schemaOk(f.state);
+    check(state_gaps(f.state, f.quality).empty(), "no gaps expected");
+}
+
+void v95() {
+    JValue v = JValue::makeObject();
+    v.set("categorical", JValue::of("elevated"));
+    StateFixture f = stateFixture("quantity", std::move(v), "ug/dL");
+    check(eqList(state_gaps(f.state, f.quality), {"value_type_mismatch"}),
+          "expected [value_type_mismatch]");
+}
+
+void v96() {
+    StateFixture f = stateFixture("quantity", quantityValue(15.0, "mg/dL"),
+                                  "ug/dL");
+    check(eqList(state_gaps(f.state, f.quality), {"unit_mismatch"}),
+          "expected [unit_mismatch]");
+}
+
+struct LawTokens {
+    JValue law, tCause, tEffect;
+};
+
+LawTokens lawAndTokens() {
+    JValue oCause = buildOcc("resection");
+    JValue oEffect = buildOcc("amnesia_onset");
+    JValue law = buildCro({oCause.getString("id")}, {oEffect.getString("id")},
+                          [](JValue& o) {
+                              o.set("temporal", temporalObj(0, 1, "days"));
+                              o.set("modality", JValue::of("sufficient"));
+                          });
+    JValue tCause = buildToken(oCause.getString("id"),
+                               interval("1953-08-25T00:00:00Z"));
+    JValue tEffect = buildToken(oEffect.getString("id"),
+                                interval("1953-08-25T00:00:00Z", "", 1));
+    return {law, tCause, tEffect};
+}
+
+void v97() {
+    LawTokens lt = lawAndTokens();
+    JValue claim = buildTcc({lt.tCause.getString("id")},
+                            {lt.tEffect.getString("id")},
+                            lt.law.getString("id"), delayObj(0, "instant"), 1);
+    schemaOk(claim);
+}
+
+void v98() {
+    LawTokens lt = lawAndTokens();
+    JValue claim = buildTcc({lt.tCause.getString("id")},
+                            {lt.tEffect.getString("id")});
+    schemaOk(claim);
+    check(!claim.has("covering_law"), "covering_law must be absent");
+}
+
+void v99() {
+    LawTokens lt = lawAndTokens();
+    check(delay_within_window(delayObj(0, "instant"), lt.law.at("temporal")),
+          "must be within the window");
+}
+
+void v100() {
+    JValue temporal = temporalObj(0, 1, "hours");
+    check(delay_within_window(delayObj(5, "days"), temporal) == false,
+          "must be outside the window");
+}
+
+void v101() {
+    std::string o = buildOcc("x").getString("id");
+    JValue cause = buildToken(o, interval("2026-01-02T00:00:00Z"));
+    JValue effect = buildToken(o, interval("2026-01-01T00:00:00Z"));
+    JValue claim = buildTcc({cause.getString("id")}, {effect.getString("id")});
+    check(retrocausal(claim, mapOf({cause, effect})), "must be retrocausal");
+}
+
+void v102() {
+    JValue other = buildCro({sym("occurrent:foo")}, {sym("occurrent:bar")});
+    LawTokens lt = lawAndTokens();
+    JValue claim = buildTcc({lt.tCause.getString("id")},
+                            {lt.tEffect.getString("id")}, other.getString("id"));
+    check(covering_law_mismatch(claim, mapOf({lt.tCause, lt.tEffect}), other),
+          "must surface a covering-law mismatch");
+}
+
+void v103() {
+    JValue body = JValue::makeObject();
+    body.set("about", JValue::of(sym("token_occurrence:t")));
+    body.set("evidence_type", JValue::of("observation"));
+    body.set("confidence", JValue::of(0.9));
+    JValue a = makeSigned("assertion", body, "signer");
+    schemaOk(a);
+}
+
+void v104() {
+    JValue base = JValue::makeObject();
+    base.set("type", JValue::of("assertion"));
+    base.set("about", JValue::of(sym("causal_relation_object:law")));
+    base.set("source", JValue::of(key("signer").second));
+    base.set("evidence_type", JValue::of("intervention"));
+    base.set("strength", JValue::of(0.95));
+    base.set("confidence", JValue::of(0.99));
+    base.set("timestamp", JValue::of("2026-07-14T00:00:00Z"));
+    JValue a = base;
+    a.set("evidenced_by", strv({sym("token_occurrence:t1"),
+                                sym("token_causal_claim:c1")}));
+    JValue withId = a;
+    withId.set("id", JValue::of(identify(a)));
+    schemaOk(withId);
+    check(identify(a) != identify(base), "evidenced_by must be identity-bearing");
+}
+
+void v105() {
+    JValue body = JValue::makeObject();
+    body.set("about", JValue::of(sym("causal_relation_object:law")));
+    body.set("evidence_type", JValue::of("simulation"));
+    body.set("confidence", JValue::of(0.5));
+    JValue a = makeSigned("assertion", body, "signer");
+    schemaOk(a);
+}
+
+void v106() {
+    static const std::set<std::string> wholeWord = {
+        "occurrent", "causal_relation_object", "continuant", "realizable",
+        "assertion", "enrichment", "retraction", "succession", "stratum",
+        "bridge", "port", "conduit", "quality", "token_individual",
+        "token_occurrence", "state_assertion", "token_causal_claim", "ed25519"};
+    std::regex idPattern("^([a-z0-9_]+):[0-9a-f]{64}$");
+    std::function<void(const JValue&, std::vector<std::string>&)> scan =
+        [&](const JValue& node, std::vector<std::string>& ids) {
+            if (node.isString()) {
+                std::smatch m;
+                if (std::regex_match(node.str, m, idPattern))
+                    ids.push_back(m[1].str());
+            } else if (node.isArray()) {
+                for (const JValue& x : node.array) scan(x, ids);
+            } else if (node.isObject()) {
+                for (const auto& kv : node.object) scan(kv.second, ids);
+            }
+        };
+    for (int n = 1; n <= 38; ++n) {
+        std::vector<std::string> ids;
+        scan(vec(n), ids);
+        for (const std::string& scheme : ids)
+            check(wholeWord.count(scheme) > 0,
+                  "V106: abbreviated scheme '" + scheme + "' in vector " +
+                      std::to_string(n));
+    }
+    JValue rec = occurrentPressButton();
+    check(identify(rec) == identify(rec), "identity must be deterministic");
+    check(identify(rec).substr(0, identify(rec).find(':')) == "occurrent",
+          "prefix must be the whole word 'occurrent'");
+}
+
+void v107() {
+    std::string hexid(64, '0');
+    // The abbreviated prefix here is the deliberate negative test; assemble it
+    // so it survives any whole-word re-mint pass.
+    std::string croAbbr = std::string("c") + "r" + "o";
+    JValue abbreviated = JValue::makeObject();
+    abbreviated.set("type", JValue::of("causal_relation_object"));
+    abbreviated.set("id", JValue::of(croAbbr + ":" + hexid));
+    abbreviated.set("causes", strv({"occurrent:" + hexid}));
+    abbreviated.set("effects", strv({"occurrent:" + hexid}));
+    check(!validate_schema(abbreviated, "causal_relation_object").first,
+          "abbreviated scheme must be rejected");
+    JValue abbrStr = JValue::makeObject();
+    abbrStr.set("type", JValue::of("stratum"));
+    abbrStr.set("id", JValue::of(std::string("str:") + hexid));
+    abbrStr.set("label", JValue::of("cellular"));
+    abbrStr.set("scheme", JValue::of("neuroendocrine"));
+    abbrStr.set("ordinal", JValue::of(6));
+    check(!validate_schema(abbrStr, "stratum").first,
+          "abbreviated stratum scheme must be rejected");
+    JValue whole = JValue::makeObject();
+    whole.set("type", JValue::of("causal_relation_object"));
+    whole.set("id", JValue::of("causal_relation_object:" + hexid));
+    whole.set("causes", strv({"occurrent:" + hexid}));
+    whole.set("effects", strv({"occurrent:" + hexid}));
+    auto [ok, why] = validate_schema(whole, "causal_relation_object");
+    check(ok, join(why));
 }
 
 }  // namespace
@@ -694,8 +1667,15 @@ int main() {
     const std::vector<std::function<void()>> tests = {
         v01, v02, v03, v04, v05, v06, v07, v08, v09, v10, v11, v12, v13,
         v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26,
-        v27, v28, v29, v30, v31, v32, v33, v34, v35, v36, v37, v38};
-    for (int n = 1; n <= 38; ++n) {
+        v27, v28, v29, v30, v31, v32, v33, v34, v35, v36, v37, v38, v39,
+        v40, v41, v42, v43, v44, v45, v46, v47, v48, v49, v50, v51, v52,
+        v53, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63, v64, v65,
+        v66, v67, v68, v69, v70, v71, v72, v73, v74, v75, v76, v77, v78,
+        v79, v80, v81, v82, v83, v84, v85, v86, v87, v88, v89, v90, v91,
+        v92, v93, v94, v95, v96, v97, v98, v99, v100, v101, v102, v103,
+        v104, v105, v106, v107};
+    const int total = static_cast<int>(tests.size());
+    for (int n = 1; n <= total; ++n) {
         std::string stem = vectorFile(n).second;
         try {
             tests[static_cast<size_t>(n - 1)]();
@@ -705,12 +1685,11 @@ int main() {
             std::printf("FAIL  %s :: %s\n", stem.c_str(), e.what());
         }
     }
-    const int total = 38;
     for (int i = 0; i < 60; ++i) std::printf("-");
     std::printf("\n%d/%d vectors passed\n", total - failures, total);
     if (failures) return 1;
     std::printf(
         "causalontology-cpp is CONFORMANT to the suite "
-        "(vectors frozen at specification 1.0.0).\n");
+        "(vectors frozen at specification 2.0.0).\n");
     return 0;
 }

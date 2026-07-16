@@ -21,18 +21,45 @@ use Causalontology::JSON qw(
 
 our @EXPORT_OK = qw(validate_schema load_schema);
 
+# kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+# file names (individual/token/state); the id scheme is the whole word.
 my %SCHEMA_FILES = (
-    cro        => 'cro.schema.json',
     occurrent  => 'occurrent.schema.json',
+    causal_relation_object => 'causal_relation_object.schema.json',
     continuant => 'continuant.schema.json',
     realizable => 'realizable.schema.json',
+    stratum    => 'stratum.schema.json',
+    bridge     => 'bridge.schema.json',
+    port       => 'port.schema.json',
+    conduit    => 'conduit.schema.json',
+    quality    => 'quality.schema.json',
+    token_individual   => 'individual.schema.json',
+    token_occurrence   => 'token.schema.json',
+    state_assertion    => 'state.schema.json',
+    token_causal_claim => 'token_causal_claim.schema.json',
     assertion  => 'assertion.schema.json',
     enrichment => 'enrichment.schema.json',
     retraction => 'retraction.schema.json',
     succession => 'succession.schema.json',
 );
 
-my %CACHE;
+my $BASE = 'https://causalontology.org/schema/';
+my %CACHE;       # kind -> parsed schema
+my %FILE_CACHE;  # filename -> parsed schema
+
+# load a schema document by its file name (for cross-file $ref)
+sub _load_file {
+    my ($filename) = @_;
+    unless (exists $FILE_CACHE{$filename}) {
+        my $path = _schema_dir() . '/' . $filename;
+        open my $fh, '<:raw', $path or die "cannot open $path: $!\n";
+        local $/;
+        my $raw = <$fh>;
+        close $fh;
+        $FILE_CACHE{$filename} = decode_json($raw);
+    }
+    return $FILE_CACHE{$filename};
+}
 
 # spec/schema under the repository root (or $CAUSALONTOLOGY_SPEC/schema)
 sub _schema_dir {
@@ -48,30 +75,42 @@ sub _schema_dir {
 sub load_schema {
     my ($kind) = @_;
     die "unknown kind: '$kind'\n" unless exists $SCHEMA_FILES{$kind};
-    unless (exists $CACHE{$kind}) {
-        my $path = _schema_dir() . '/' . $SCHEMA_FILES{$kind};
-        open my $fh, '<:raw', $path or die "cannot open $path: $!\n";
-        local $/;
-        my $raw = <$fh>;
-        close $fh;
-        $CACHE{$kind} = decode_json($raw);
-    }
+    $CACHE{$kind} = _load_file($SCHEMA_FILES{$kind}) unless exists $CACHE{$kind};
     return $CACHE{$kind};
 }
 
-# follow local $ref chains (#/$defs/...) within the same schema document
+# navigate a JSON pointer (already stripped of a leading marker) within a doc
+sub _navigate {
+    my ($doc, $pointer) = @_;
+    my $node = $doc;
+    for my $part (split m{/}, $pointer) {
+        next if $part eq '';
+        $node = oget($node, $part);
+    }
+    return $node;
+}
+
+# follow local and cross-file $ref chains; returns the resolved (schema, root),
+# swapping the root document when a cross-file reference is taken.
 sub _resolve {
     my ($schema, $root) = @_;
-    while (ohas($schema, '$ref')) {
+    while (is_obj($schema) && ohas($schema, '$ref')) {
         my $ref = sval(oget($schema, '$ref'));
-        die "only local \$ref supported: '$ref'\n" unless $ref =~ /^#\//;
-        my $node = $root;
-        for my $part (split /\//, substr($ref, 2)) {
-            $node = oget($node, $part);
+        if ($ref =~ m{^#/}) {
+            $schema = _navigate($root, substr($ref, 2));
         }
-        $schema = $node;
+        elsif (index($ref, $BASE) == 0) {
+            my $rest = substr($ref, length $BASE);
+            my ($filename, $pointer) = split /#\//, $rest, 2;
+            $root = _load_file($filename);
+            $schema = (defined $pointer && length $pointer)
+                ? _navigate($root, $pointer) : $root;
+        }
+        else {
+            die "unsupported \$ref: '$ref'\n";
+        }
     }
-    return $schema;
+    return ($schema, $root);
 }
 
 # tag expected for each JSON Schema type name
@@ -82,7 +121,7 @@ my %TYPE_TAG = (
 
 sub _check {
     my ($value, $schema, $root, $path, $errors) = @_;
-    $schema = _resolve($schema, $root);
+    ($schema, $root) = _resolve($schema, $root);
 
     if (ohas($schema, 'oneOf')) {
         my $passing = 0;
@@ -100,7 +139,15 @@ sub _check {
 
     if (ohas($schema, 'type')) {
         my $t = sval(oget($schema, 'type'));
-        unless ($value->[0] eq $TYPE_TAG{$t}) {
+        my $type_ok;
+        if ($t eq 'integer') {
+            # an integer is a number whose source literal has no '.', 'e', 'E'
+            $type_ok = is_num($value) && $value->[1] !~ /[.eE]/;
+        }
+        else {
+            $type_ok = defined $TYPE_TAG{$t} && $value->[0] eq $TYPE_TAG{$t};
+        }
+        unless ($type_ok) {
             push @$errors, "$path: expected $t";
             return;
         }

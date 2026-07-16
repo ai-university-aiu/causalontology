@@ -54,7 +54,7 @@ store = Store.new()
   Store.put(store, %{"type" => "occurrent", "label" => "light_on", "category" => "state_change"})
 
 {:ok, store, claim} =
-  Store.put(store, %{"type" => "cro", "causes" => [press], "effects" => [light]})
+  Store.put(store, %{"type" => "causal_relation_object", "causes" => [press], "effects" => [light]})
 
 # The degenerate claim is a visible invitation.
 IO.inspect({claim, Store.gaps(store, "missing_field")})

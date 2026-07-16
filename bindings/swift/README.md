@@ -48,7 +48,7 @@ let press = try store.put(["type": .string("occurrent"),
 let light = try store.put(["type": .string("occurrent"),
                            "label": .string("light_on"),
                            "category": .string("state_change")])
-let claim = try store.put(["type": .string("cro"),
+let claim = try store.put(["type": .string("causal_relation_object"),
                            "causes": .array([.string(press)]),
                            "effects": .array([.string(light)])])
 

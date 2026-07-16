@@ -30,7 +30,7 @@ func (e *RejectedWrite) Error() string {
 // ContentKinds names the four immutable content object kinds.
 var ContentKinds = map[string]bool{
 	"occurrent":  true,
-	"cro":        true,
+	"causal_relation_object":        true,
 	"continuant": true,
 	"realizable": true,
 }
@@ -577,7 +577,7 @@ func (s *Store) Gaps(kind string) []map[string]any {
 	refined := map[string]bool{}
 	for _, objectID := range s.objectOrder {
 		obj := s.objects[objectID]
-		if typeName, _ := obj["type"].(string); typeName != "cro" {
+		if typeName, _ := obj["type"].(string); typeName != "causal_relation_object" {
 			continue
 		}
 		refines, _ := obj["refines"].(string)
@@ -596,7 +596,7 @@ func (s *Store) Gaps(kind string) []map[string]any {
 	}
 	for _, objectID := range s.objectOrder {
 		obj := s.objects[objectID]
-		if typeName, _ := obj["type"].(string); typeName != "cro" {
+		if typeName, _ := obj["type"].(string); typeName != "causal_relation_object" {
 			continue
 		}
 		// missing_field: lacking the temporal window or the modality -
@@ -641,7 +641,7 @@ func (s *Store) Gaps(kind string) []map[string]any {
 		obj := s.objects[objectID]
 		typeName, _ := obj["type"].(string)
 		refs := []string{}
-		if typeName == "cro" {
+		if typeName == "causal_relation_object" {
 			for _, fieldName := range []string{"causes", "effects", "context", "mechanism"} {
 				refs = append(refs, stringList(obj[fieldName])...)
 			}
@@ -665,7 +665,7 @@ func (s *Store) Gaps(kind string) []map[string]any {
 	cros := []map[string]any{}
 	for _, objectID := range s.objectOrder {
 		obj := s.objects[objectID]
-		if typeName, _ := obj["type"].(string); typeName == "cro" {
+		if typeName, _ := obj["type"].(string); typeName == "causal_relation_object" {
 			cros = append(cros, obj)
 		}
 	}

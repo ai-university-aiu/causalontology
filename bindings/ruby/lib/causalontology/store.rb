@@ -18,7 +18,10 @@ require_relative "semantics"
 require_relative "signing"
 
 module Causalontology
-  CONTENT_KINDS = Set.new(["occurrent", "cro", "continuant", "realizable"]).freeze
+  CONTENT_KINDS = Set.new(["occurrent", "causal_relation_object", "continuant",
+                           "realizable", "stratum", "bridge", "port", "conduit",
+                           "quality", "token_individual", "token_occurrence",
+                           "state_assertion", "token_causal_claim"]).freeze
   RECORD_KINDS = Set.new(["assertion", "enrichment", "retraction", "succession"]).freeze
 
   # An enforcing store refused a write, with the reason as the message.
@@ -289,14 +292,14 @@ module Causalontology
       out = []
       refined = Set.new
       @objects.each_value do |obj|
-        next unless obj["type"] == "cro" && obj["refines"]
+        next unless obj["type"] == "causal_relation_object" && obj["refines"]
         parent = @objects[obj["refines"]]
         next if parent.nil?
         ok, _reason = Semantics.refinement_valid(obj, parent)
         refined << parent["id"] if ok
       end
       @objects.each do |oid, obj|
-        next unless obj["type"] == "cro"
+        next unless obj["type"] == "causal_relation_object"
         # missing_field: lacking the temporal window or the modality -
         # mechanism and context may legitimately stay unspecified forever
         # (empty_mechanism is its own kind; absent context = context-free).
@@ -323,7 +326,7 @@ module Causalontology
       # the red link that says "this page is wanted".
       @objects.each do |oid, obj|
         refs = []
-        if obj["type"] == "cro"
+        if obj["type"] == "causal_relation_object"
           refs = (obj["causes"] || []).to_a +
                  (obj["effects"] || []).to_a +
                  (obj["context"] || []).to_a +
@@ -339,7 +342,7 @@ module Causalontology
         end
       end
       # conflict: pairs of claims satisfying the formal test (rule 6).
-      cros = @objects.values.select { |o| o["type"] == "cro" }
+      cros = @objects.values.select { |o| o["type"] == "causal_relation_object" }
       (0...cros.length).each do |i|
         ((i + 1)...cros.length).each do |j|
           if Semantics.conflicts(cros[i], cros[j])

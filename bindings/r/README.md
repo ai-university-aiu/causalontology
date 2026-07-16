@@ -74,7 +74,7 @@ press <- co_store_put(store, co_obj(type = "occurrent",
 light <- co_store_put(store, co_obj(type = "occurrent",
                                     label = "light_on",
                                     category = "state_change"))
-claim <- co_store_put(store, co_obj(type = "cro",
+claim <- co_store_put(store, co_obj(type = "causal_relation_object",
                                     causes = co_arr(press),
                                     effects = co_arr(light)))
 
