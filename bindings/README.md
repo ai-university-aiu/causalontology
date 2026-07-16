@@ -7,7 +7,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | Binding | Registry | Status |
 |---|---|---|
 | PrologAI (`co_*` packs) | github.com/ai-university-aiu/PrologAI | reference implementation |
-| [causalontology-py](python/) | **[PyPI — LIVE](https://pypi.org/project/causalontology/)** (`pip install causalontology`) | **published 1.0.0 — 107/107 conformance vectors; zero dependencies** |
+| [causalontology-py](python/) | **[PyPI — LIVE](https://pypi.org/project/causalontology/)** (`pip install causalontology==2.0.0`) | **published 2.0.0 — 107/107 conformance vectors; zero dependencies** (1.0.0 yanked) |
 | [causalontology-js](javascript/) | **[npm — LIVE](https://www.npmjs.com/package/causalontology)** (`npm install causalontology`) | **published 1.0.0 — 107/107 conformance vectors; zero dependencies; TypeScript typings included** |
 | [causalontology-rust](rust/) | **[crates.io — LIVE](https://crates.io/crates/causalontology)** (`cargo add causalontology`) | **published 1.0.0 — 107/107 conformance vectors; vetted primitives only** |
 | [WebAssembly core](rust/) | built from the Rust crate | **available — `wasm32-unknown-unknown` build; 6/6 cross-checks against the JS binding pass locally (byte-identical ids, canonical bytes, and Ed25519 verification)** |
