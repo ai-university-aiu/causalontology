@@ -13,19 +13,19 @@ RFC 8032 — deterministic signatures, seed-derived keypairs), `ext-hash`
 | `src/Jcs.php` | RFC 8785 (JSON Canonicalization Scheme) serialization: bytewise key ordering (equals UTF-16 code-unit order for ASCII keys), minimal string escapes, ECMAScript-style canonical numbers (`1.0` → `1`, `0.7` stays `0.7`, `e-7` not `e-07`) |
 | `src/Canonical.php` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
 | `src/Signing.php` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key; Ed25519 via libsodium, gated on the RFC 8032 TEST 1 known answer |
-| `src/SchemaValidator.php` | validation against the eight JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
-| `src/Semantics.php` | the 13 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `src/SchemaValidator.php` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `src/Semantics.php` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `src/Store.php` | an in-memory conformant store (the Python binding's `InMemoryStore`): idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
 | `src/RejectedWrite.php` | the exception an enforcing store raises when it refuses a write |
 | `src/Causalontology.php` | the facade holding the declared specification version |
-| `conformance.php` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 38 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.php` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ php bindings/php/conformance.php
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-php is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 

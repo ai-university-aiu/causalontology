@@ -13,8 +13,8 @@ Zero dependencies — Node.js builtins only (`node:crypto`, `node:fs`,
 | canonical | RFC 8785 (JSON Canonicalization Scheme) serialization, identity-bearing field filtering, SHA-256 content-addressed `identify()`. JavaScript gets RFC 8785 primitives natively: `JSON.stringify`'s number and string serialization IS the ES6 rule the RFC is based on. |
 | ed25519 | Ed25519 (RFC 8032) via `node:crypto` KeyObjects (raw 32-byte seeds and public keys wrapped in PKCS8/SPKI DER), verified against the RFC's known-answer test |
 | signing | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes |
-| schema | validation against the eight JSON Schemas in `spec/schema/` |
-| semantics | the 13 semantic rules: temporal admissibility (fixed constants), formal conflict, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| schema | validation against the seventeen JSON Schemas in `spec/schema/` |
+| semantics | the 21 semantic rules: temporal admissibility (fixed constants), formal conflict, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | store | an in-memory conformant store: idempotent immutable puts, signed add-only records, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
 
 ## API surface
@@ -66,7 +66,7 @@ declared as `Uint8Array` (`co.Bytes`), which every Node `Buffer` is.
 ```
 $ node tests/run_conformance.js
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-js is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 

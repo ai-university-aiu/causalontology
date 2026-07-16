@@ -15,17 +15,17 @@ CI runs JDK 21).
 | `Canonical` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
 | `Ed25519` | Ed25519 (RFC 8032): signing and verification through `java.security` `Signature("Ed25519")`; public-key derivation from a 32-byte seed via BigInteger point arithmetic (the JDK exposes no derive-public-from-private API); verified against the RFC 8032 TEST 1 known answer at startup |
 | `Signing` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `SchemaValidator` | validation against the eight JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
-| `Semantics` | the 13 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `SchemaValidator` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `Semantics` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `Store` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
-| `Conformance` | the conformance runner: internal sanity checks, then all 38 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `Conformance` | the conformance runner: internal sanity checks, then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ ./run_conformance.sh
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-java is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 

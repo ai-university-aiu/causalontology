@@ -15,10 +15,10 @@ specification.
 | `Sources/Causalontology/Jcs.swift` | RFC 8785 (JSON Canonicalization Scheme) serialization: UTF-16 key order, minimal string escaping, canonical numbers |
 | `Sources/Causalontology/Canonical.swift` | identity-bearing field filtering and SHA-256 content-addressed `identify()` |
 | `Sources/Causalontology/Signing.swift` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (Ed25519, RFC 8032) |
-| `Sources/Causalontology/SchemaValidator.swift` | validation against the eight JSON Schemas in `spec/schema/` |
-| `Sources/Causalontology/Semantics.swift` | the 13 semantic rules: temporal admissibility (fixed constants), formal conflict, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `Sources/Causalontology/SchemaValidator.swift` | validation against the seventeen JSON Schemas in `spec/schema/` |
+| `Sources/Causalontology/Semantics.swift` | the 21 semantic rules: temporal admissibility (fixed constants), formal conflict, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `Sources/Causalontology/Store.swift` | an in-memory conformant store: idempotent immutable puts, signed add-only records, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
-| `Sources/conformance/main.swift` | the conformance runner: internal known-answer checks, then all 38 vectors from `conformance/vectors/` |
+| `Sources/conformance/main.swift` | the conformance runner: internal known-answer checks, then all 107 vectors from `conformance/vectors/` |
 
 ## Conformance
 
@@ -26,7 +26,7 @@ specification.
 $ cd bindings/swift
 $ swift run conformance
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-swift is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 

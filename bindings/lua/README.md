@@ -18,18 +18,18 @@ division, and bitwise operators; no LuaJIT, no C modules, no rocks).
 | `causalontology/sha2.lua` | SHA-256 and SHA-512 (FIPS 180-4); SHA-512 runs in the signed 64-bit word with naturally wrapping adds and Lua's logical shifts; both gated on empty-string known answers at load |
 | `causalontology/ed25519.lua` | Ed25519 (RFC 8032): a bignum layer (base-2^24 limbs, schoolbook multiplication, fold reduction mod 2^255-19, Fermat inversion), the twisted Edwards point group in extended coordinates, deterministic signing and verification; gated on the RFC 8032 TEST 1 known answer at load |
 | `causalontology/canonical.lua` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
-| `causalontology/schema.lua` | validation against the eight JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use); Lua has no regex engine, so a dedicated, regex-free matcher recognizes the schemas' four anchored pattern families (fixed-length hex, prefixed 64-hex identifiers, prefix alternations, snake_case labels) and refuses anything else |
-| `causalontology/semantics.lua` | the 13 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `causalontology/schema.lua` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use); Lua has no regex engine, so a dedicated, regex-free matcher recognizes the schemas' four anchored pattern families (fixed-length hex, prefixed 64-hex identifiers, prefix alternations, snake_case labels) and refuses anything else |
+| `causalontology/semantics.lua` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `causalontology/signing.lua` | record-level `sign_record()` / `verify_record()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
 | `causalontology/store.lua` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read - with explicit insertion-order arrays everywhere the Python iterates dicts, since Lua tables have no key order |
-| `conformance.lua` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 38 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.lua` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ lua bindings/lua/conformance.lua
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-lua is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
@@ -67,7 +67,7 @@ print(claim, #store:gaps("missing_field"))
 
 Source complete, ported line-for-line from the Python binding, and
 **verified locally**: a Lua 5.4.7 built from source runs the suite at
-38/38, the bignum layer is cross-checked against Python big-integer
+107/107, the bignum layer is cross-checked against Python big-integer
 arithmetic (288 random-operand and curve-intermediate cases), and both
 hash functions and the signature scheme carry load-time known-answer
 gates. CI runs the same `lua bindings/lua/conformance.lua` command.

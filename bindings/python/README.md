@@ -10,8 +10,8 @@ Zero dependencies — Python standard library only:
 | `causalontology.canonical` | RFC 8785 (JSON Canonicalization Scheme) serialization, identity-bearing field filtering, SHA-256 content-addressed `identify()` |
 | `causalontology.ed25519` | pure-Python Ed25519 (RFC 8032), verified against the RFC's known-answer test |
 | `causalontology.signing` | record-level `sign_record()` / `verify_record()` over canonical identity-bearing bytes |
-| `causalontology.schema` | validation against the eight JSON Schemas in `spec/schema/` |
-| `causalontology.semantics` | the 13 semantic rules: temporal admissibility (fixed constants), formal conflict, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `causalontology.schema` | validation against the seventeen JSON Schemas in `spec/schema/` |
+| `causalontology.semantics` | the 21 semantic rules: temporal admissibility (fixed constants), formal conflict, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `causalontology.store` | an in-memory conformant store: idempotent immutable puts, signed add-only records, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
 
 ## Conformance
@@ -19,7 +19,7 @@ Zero dependencies — Python standard library only:
 ```
 $ python3 tests/run_conformance.py
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-py is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 

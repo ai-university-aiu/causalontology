@@ -15,10 +15,10 @@ because base R has none and the canonicalizer needs a lossless one anyway.
 | `R/jcs.R` | RFC 8785 (JSON Canonicalization Scheme) serialization: code-point key ordering via radix sort (C locale, immune to `LC_COLLATE`), minimal string escaping, ECMAScript-style canonical numbers (`1.0` → `1`, `0.7` stays `0.7`, `1e-07` → `1e-7`) |
 | `R/canonical.R` | identity-bearing field filtering per kind and SHA-256 content-addressed `co_identify()` (spec/identity.md) |
 | `R/signing.R` | record-level `co_sign_record()` / `co_verify_record()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `R/schema.R` | validation against the eight JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
-| `R/semantics.R` | the 13 semantic rules: temporal admissibility with the fixed unit constants (month = 2629746 s, year = 31556952 s), the formal conflict test, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `R/schema.R` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `R/semantics.R` | the 21 semantic rules: temporal admissibility with the fixed unit constants (month = 2629746 s, year = 31556952 s), the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `R/store.R` | an in-memory conformant store (an R environment holding insertion-ordered named lists): idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with canonical-entry dedup and contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule (latest `(timestamp, id)` loses, compared code-point-wise, timestamp first then id), and the stigmergy `co_store_gaps()` read |
-| `conformance.R` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 38 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.R` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## The sodium API, pinned down
 
@@ -45,7 +45,7 @@ $ sudo apt-get install -y libsodium-dev libssl-dev
 $ Rscript -e "install.packages(c('sodium','openssl'), repos='https://cloud.r-project.org')"
 $ Rscript bindings/r/conformance.R
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-r is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 

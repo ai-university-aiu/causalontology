@@ -16,17 +16,17 @@ Requires **Ruby 3.0 or newer** (CI runs 3.3).
 | `lib/causalontology/canonical.rb` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify` (spec/identity.md) |
 | `lib/causalontology/ed25519.rb` | pure-Ruby Ed25519 (RFC 8032) over native bignums, verified against the RFC's TEST 1 known answer before any vector runs |
 | `lib/causalontology/signing.rb` | record-level `sign_record` / `verify_record` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `lib/causalontology/schema.rb` | validation against the eight JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
-| `lib/causalontology/semantics.rb` | the 13 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `lib/causalontology/schema.rb` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `lib/causalontology/semantics.rb` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `lib/causalontology/store.rb` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps` read — Ruby Hashes preserve insertion order, and the iteration order deliberately mirrors the reference store's |
-| `conformance.rb` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 38 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.rb` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ ruby bindings/ruby/conformance.rb
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-ruby is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 

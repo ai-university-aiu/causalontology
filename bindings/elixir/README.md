@@ -16,10 +16,10 @@ the JSON layer — is hand-written from the specification. Requires
 | `lib/causalontology/jcs.ex` | RFC 8785 (JSON Canonicalization Scheme) serialization: sorted keys, minimal string escaping, ECMAScript-style canonical numbers (`1.0` → `1`, `0.7` stays `0.7`, `e-7` not `e-07`) |
 | `lib/causalontology/canonical.ex` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify/2` (spec/identity.md) |
 | `lib/causalontology/signing.ex` | record-level `sign_record/3` / `verify_record/2` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `lib/causalontology/schema.ex` | validation against the eight JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
-| `lib/causalontology/semantics.ex` | the 13 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `lib/causalontology/schema.ex` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `lib/causalontology/semantics.ex` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `lib/causalontology/store.ex` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps/2` read — immutable-functional (`{:ok, store, id}` tuples thread the store through), with explicit insertion-order bookkeeping, since Elixir maps are unordered where Python dicts are not |
-| `conformance.exs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 38 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly; a standalone script that `Code.require_file`'s the lib modules, so no mix compile is needed |
+| `conformance.exs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly; a standalone script that `Code.require_file`'s the lib modules, so no mix compile is needed |
 
 ## Conformance
 
@@ -27,7 +27,7 @@ the JSON layer — is hand-written from the specification. Requires
 $ cd bindings/elixir
 $ elixir conformance.exs
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-elixir is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 

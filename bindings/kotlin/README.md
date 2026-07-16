@@ -22,19 +22,19 @@ ships with the compiler. Built and verified with **Kotlin/Native 2.0.20**.
 | `src/Bignum.kt` | arbitrary-precision non-negative integers over base-2^16 IntArray limbs: add/sub/cmp/mul, shifts, binary modulus, small division, and exact decimal rendering |
 | `src/Ed25519.kt` | Ed25519 (RFC 8032): the twisted Edwards point group in extended coordinates over the bignum layer, with a limb-aligned fold reduction (2^256 = 38 mod p), Fermat inversion, deterministic signing and verification; all field arithmetic stays non-negative (`a - b` mod p is computed as `a + p - b`); gated on the RFC 8032 TEST 1 known answer (public key, exact signature, verify, reject) |
 | `src/Canonical.kt` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
-| `src/Schema.kt` | validation against the eight JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use); the schemas' four anchored pattern families are interpreted with `kotlin.text.Regex` |
-| `src/Semantics.kt` | the 13 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s; year = 31,556,952 s), the formal conflict test, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `src/Schema.kt` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use); the schemas' four anchored pattern families are interpreted with `kotlin.text.Regex` |
+| `src/Semantics.kt` | the 21 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s; year = 31,556,952 s), the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `src/Signing.kt` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
 | `src/Store.kt` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors (deduplicated by canonical entry), retraction and succession lineage, the resolve minimum (label before alias), the deterministic cycle-breaking view rule (greatest (timestamp, id) loses), `forceMergeRecord()` replica merges, and the stigmergy `gaps()` read with its five gap kinds |
 | `src/Io.kt` | the single POSIX touchpoint: `readFile()`, `listDir()`, and environment lookup via `platform.posix` |
-| `src/Conformance.kt` | the conformance runner: internal known-answer checks (FIPS 180-4, RFC 8032 TEST 1, RFC 8785 basics), then all 38 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `src/Conformance.kt` | the conformance runner: internal known-answer checks (FIPS 180-4, RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ bash bindings/kotlin/run_conformance.sh
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-kotlin is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
@@ -55,7 +55,7 @@ harness's old normalization now simply passes frozen values through.
 
 Source complete, ported line-for-line from the Python binding, and
 **verified locally**: Kotlin/Native 2.0.20 on linux x86_64 compiles the
-suite and runs it at 38/38 (about a second end to end). The hand-built
+suite and runs it at 107/107 (about a second end to end). The hand-built
 layers are cross-checked against the Python reference: 422
 random-operand bignum and Ed25519 cases (add/sub/mul/mod/modpow at
 assorted bit widths, public-key derivation, and deterministic signatures

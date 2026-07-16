@@ -17,21 +17,21 @@ lists only the `SHA` stdlib. Requires **Julia 1.6 or newer** (CI runs
 | `src/canonical.jl` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify` (spec/identity.md) |
 | `src/ed25519.jl` | pure-Julia Ed25519 (RFC 8032) over native `BigInt` with `mod`/`powermod` (floored, non-negative remainders, matching Python's `%`), verified against the RFC's TEST 1 known answer before any vector runs |
 | `src/signing.jl` | record-level `sign_record` / `verify_record` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `src/schema.jl` | validation against the eight JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
-| `src/semantics.jl` | the 13 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s, year = 31,556,952 s), the formal conflict test, refinement validity, hierarchy reachability, enrichment field/shape rules |
+| `src/schema.jl` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `src/semantics.jl` | the 21 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s, year = 31,556,952 s), the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `src/store.jl` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps` read — with explicit insertion-order bookkeeping (`object_order`, `record_order`), since Julia's `Dict` iterates in arbitrary order where Python's dict does not |
-| `conformance.jl` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 38 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.jl` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ julia bindings/julia/conformance.jl
 ...
-38/38 vectors passed
+107/107 vectors passed
 causalontology-julia is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
-Verified locally (38/38, exit 0) and run in CI by the `julia` job of
+Verified locally (107/107, exit 0) and run in CI by the `julia` job of
 `.github/workflows/conformance.yml` on Julia 1.10. The runner locates the
 repository root relative to its own location inside `bindings/julia/`; the
 schemas are read from `spec/schema` under the same root (overridable with
