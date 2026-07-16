@@ -1,0 +1,17 @@
+.{
+    // Repository-root Zig manifest so the package is consumable via the clean
+    // `zig fetch --save <tag tarball>` + `dep.module("causalontology")` flow.
+    // The library sources live under bindings/zig/src/; this root manifest
+    // exposes the module, mirroring the root Package.swift (SwiftPM) and the
+    // root composer.json (Packagist) — tag-based channels read the repo root.
+    .name = "causalontology",
+    .version = "2.0.1",
+    .minimum_zig_version = "0.13.0",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "bindings/zig/src",
+        "LICENSE",
+    },
+}

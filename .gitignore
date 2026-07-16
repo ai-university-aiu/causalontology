@@ -72,6 +72,8 @@ node_modules/
 /bindings/ruby/*.gem
 
 # Zig
+/.zig-cache/
+/zig-out/
 /bindings/zig/.zig-cache/
 /bindings/zig/zig-out/
 
