@@ -147,7 +147,7 @@ main :-
     % Narrate the induction, glass-box.
     narrate("induced: modality ~w (rate ~w), window 0..1 seconds - because acting beats watching", [Modality, Rate]),
     % Step 5: contribute the refinement object.
-    Refinement = _{type: cro, causes: Causes, effects: Effects,
+    Refinement = _{type: causal_relation_object, causes: Causes, effects: Effects,
                    temporal: Temporal, modality: Modality,
                    refines: ClaimId},
     % Write it to the commons.

@@ -166,7 +166,7 @@ def main():
     check("query is_partial finds the partials", len(out["items"]) >= 1)
 
     # 404s
-    code, _ = req(base, "GET", "/objects/cro:" + "0" * 64)
+    code, _ = req(base, "GET", "/objects/causal_relation_object:" + "0" * 64)
     check("missing object -> 404", code == 404)
 
     server.shutdown()
