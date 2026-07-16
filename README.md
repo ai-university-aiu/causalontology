@@ -189,7 +189,7 @@ That third document — a *degenerate* causal_relation_object, just cause and ef
 | Dart | `dart pub add causalontology` (2.0.0 live on pub.dev; 1.0.0 retracted) |
 | Elixir / Erlang | `{:causalontology, "~> 2.0"}` (2.0.0 live on Hex; 1.0.0 retired) |
 | Lua | `luarocks install causalontology` (2.0.0 live on LuaRocks; 1.0.0 remains listed) |
-| Swift | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "1.0.0")` |
+| Swift | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "2.0.0")` (2.0.0 via SwiftPM git tag; Swift Package Index listing submitted — [PackageList PR #14440](https://github.com/SwiftPackageIndex/PackageList/pull/14440)) |
 | Go | `go get github.com/ai-university-aiu/causalontology/bindings/go/v2@v2.0.0` — 2.0.0 uses the `/v2` module-path suffix (Go's major-version rule); import `.../bindings/go/v2/causalontology` |
 | Zig | git URL + tag in `build.zig.zon` |
 
