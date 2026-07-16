@@ -88,10 +88,13 @@ declare namespace causalontology {
     | "months"
     | "years";
 
-  /** How an assertion's source came to the claim; intervention is strongest. */
+  /** How an assertion's source came to the claim; intervention is strongest.
+   * Ordering strongest to weakest: intervention, observation, simulation,
+   * testimony (2.0.0). */
   type EvidenceType =
     | "intervention"
     | "observation"
+    | "simulation"
     | "derivation"
     | "human_hint"
     | "imported";

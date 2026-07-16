@@ -3551,9 +3551,9 @@ A1.4 EVIDENCE GRADES.
 
 The strength ranking of how a claim was learned, best first:
 
-intervention > observation > derivation > human_hint > imported.
+intervention > observation > simulation > derivation > human_hint > imported.
 
-Intervention means you acted on the world and watched what changed; observation means you only watched; derivation means you reasoned it out; human_hint means a person told you; imported means it came from somewhere outside.
+Intervention means you acted on the world and watched what changed; observation means you only watched; simulation means you ran the intervention in your head - an internal rehearsal or model-based rollout, the 2.0.0 grade for an internally simulated intervention, real evidence but ranked below plain observation and never silently counted as it; derivation means you reasoned it out; human_hint means a person told you; imported means it came from somewhere outside.
 
 Acting beats watching.
 
@@ -3799,7 +3799,7 @@ GLOSSARY - EVERY TERM, FOR EVERY READER
 
 • ENRICHMENT - the signed record that adds one entry - an alias, a participant, a category link - to one field of a content object: every word has an author.
 
-• EVIDENCE GRADE - the declared way a source knows something: intervention, observation, derivation, human hint, or imported - with acting outranking watching.
+• EVIDENCE GRADE - the declared way a source knows something: intervention, observation, simulation, derivation, human hint, or imported - with acting outranking watching, and both outranking a merely simulated intervention. (The ordering from strongest to weakest is intervention, observation, simulation, then the testimony grades; simulation is the 2.0.0 addition.)
 
 • GLASS BOX - the design discipline in which the explanation IS the representation: every belief is readable, every change is traceable to who made it, and every "why" is a simple lookup.
 

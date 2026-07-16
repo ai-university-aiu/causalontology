@@ -6,7 +6,7 @@ package causalontology.v1;
 
 enum Modality { MODALITY_UNSPECIFIED = 0; NECESSARY = 1; SUFFICIENT = 2; CONTRIBUTORY = 3; PREVENTIVE = 4; }
 enum TemporalUnit { UNIT_UNSPECIFIED = 0; INSTANT = 1; SECONDS = 2; MINUTES = 3; HOURS = 4; DAYS = 5; WEEKS = 6; MONTHS = 7; YEARS = 8; }
-enum EvidenceType { EVIDENCE_UNSPECIFIED = 0; INTERVENTION = 1; OBSERVATION = 2; DERIVATION = 3; HUMAN_HINT = 4; IMPORTED = 5; }
+enum EvidenceType { EVIDENCE_UNSPECIFIED = 0; INTERVENTION = 1; OBSERVATION = 2; DERIVATION = 3; HUMAN_HINT = 4; IMPORTED = 5; SIMULATION = 6; }  // 2.0.0: SIMULATION appended (ranks intervention > observation > simulation > testimony); appended, not renumbered, to preserve wire compatibility
 enum OccurrentCategory { OCC_CAT_UNSPECIFIED = 0; ACTION = 1; EVENT = 2; PROCESS = 3; STATE = 4; STATE_CHANGE = 5; }
 enum ContinuantCategory { CNT_CAT_UNSPECIFIED = 0; OBJECT = 1; AGENT = 2; PLACE = 3; SUBSTANCE = 4; COLLECTION = 5; INFORMATION = 6; }
 enum RealizableKind { RLZ_KIND_UNSPECIFIED = 0; DISPOSITION = 1; FUNCTION = 2; ROLE = 3; }

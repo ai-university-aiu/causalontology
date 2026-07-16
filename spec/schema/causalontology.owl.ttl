@@ -88,7 +88,7 @@ co:temporalDmin    a owl:DatatypeProperty ; rdfs:range xsd:double .
 co:temporalDmax    a owl:DatatypeProperty ; rdfs:range xsd:double .
 co:temporalUnit    a owl:DatatypeProperty ; rdfs:range xsd:string .
 co:evidenceType    a owl:DatatypeProperty ; rdfs:range xsd:string ;
-    rdfs:comment "intervention | observation | derivation | human_hint | imported (intervention is the strongest grade)" .
+    rdfs:comment "intervention | observation | simulation | derivation | human_hint | imported (intervention is the strongest grade; ordering strongest to weakest is intervention, observation, simulation, testimony; 2.0.0)" .
 co:strengthEstimate a owl:DatatypeProperty ; rdfs:range xsd:double .
 co:confidence      a owl:DatatypeProperty ; rdfs:range xsd:double .
 

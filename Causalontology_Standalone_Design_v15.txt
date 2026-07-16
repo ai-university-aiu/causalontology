@@ -960,9 +960,9 @@ Two deliberate, locked decisions run through them: in the Causal Relation Object
       "source":    { "type": "string",
                      "pattern": "^ed25519:[0-9a-f]{64}$",
                      "description": "the asserter's Ed25519 public key" },
-      "evidence_type": { "enum": ["intervention", "observation", "derivation",
-                                   "human_hint", "imported"],
-                     "description": "how the source came to the claim; intervention (acting and watching the result) is the strongest grade of causal evidence" },
+      "evidence_type": { "enum": ["intervention", "observation", "simulation",
+                                   "derivation", "human_hint", "imported"],
+                     "description": "how the source came to the claim; ordering from strongest to weakest is intervention (acting and watching the result), observation, simulation (an internally simulated intervention; 2.0.0), then the weaker testimony grades" },
       "evidence":  { "type": "string",
                      "description": "free text or a Uniform Resource Identifier pointing at the supporting material" },
       "strength":  { "type": "number", "minimum": 0, "maximum": 1,
@@ -1273,7 +1273,7 @@ Because Ed25519 is deterministic, the same record signed by the same key always 
 
 8.4 Evidence types, graded.
 
-The evidence_type field records how the source came to the claim, in Causalontology's canonical grading: • intervention - the source acted and observed the result (do-calculus evidence; the strongest grade - acting beats watching); • observation - the source watched without intervening (correlational); • derivation - inferred from other claims in the store (the evidence field should cite them); • human_hint - a person supplied it as guidance (high-confidence but defeasible); • imported - carried in from an external knowledge base (typically arriving as a degenerate Causal Relation Object - the subsumption principle).
+The evidence_type field records how the source came to the claim, in Causalontology's canonical grading: • intervention - the source acted and observed the result (do-calculus evidence; the strongest grade - acting beats watching); • observation - the source watched without intervening (correlational); • simulation - the source internally simulated the intervention, a model-based or counterfactual rollout (2.0.0; real evidence, ranked below observation and above the weaker testimony grades, and never silently counted as observation); • derivation - inferred from other claims in the store (the evidence field should cite them); • human_hint - a person supplied it as guidance (high-confidence but defeasible); • imported - carried in from an external knowledge base (typically arriving as a degenerate Causal Relation Object - the subsumption principle).
 
 8.5 Materialized views.
 
@@ -2215,7 +2215,7 @@ THE SEMANTIC RULES, IN ESSENCE.
 
 EVIDENCE, GRADED.
 
-• intervention > observation > derivation > human_hint > imported.
+• intervention > observation > simulation > derivation > human_hint > imported.
 
 • Acting beats watching: your own hand on the switch outranks any amount of staring.
 
