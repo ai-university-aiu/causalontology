@@ -2,9 +2,9 @@
 #
 # A lossless JSON layer written in base R.
 #
-# R has no built-in JSON support and the allowed dependencies (sodium,
-# openssl) carry none, so this file implements a recursive-descent JSON
-# parser over base R string operations. The representation is designed so
+# R has no built-in JSON support, so this file implements a
+# recursive-descent JSON parser over base R string operations. The
+# representation is designed so
 # that the canonicalizer (jcs.R) can reproduce RFC 8785 byte-for-byte:
 #
 #   JSON object  -> a named list of class "co_obj" (named lists preserve
