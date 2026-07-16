@@ -16,7 +16,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | [causalontology-csharp](csharp/) | **[NuGet — LIVE](https://www.nuget.org/packages/causalontology)** (`dotnet add package causalontology`) | **published 2.0.0 — 107/107**; pure-C# Ed25519, zero runtime dependencies (1.0.0 unlisted) |
 | [causalontology-dart](dart/) | **[pub.dev — LIVE](https://pub.dev/packages/causalontology)** (`dart pub add causalontology`) | **published 1.0.0 — 107/107**; pure-Dart crypto, zero dependencies |
 | [causalontology-perl](perl/) | CPAN (publication pending) | **verified locally — 107/107 in 8.9 s**; core modules only |
-| [causalontology-lua](lua/) | **LuaRocks — LIVE** (`luarocks install causalontology`) | **published 1.0.0 — 107/107**; pure-Lua crypto incl. a hand-built bignum layer |
+| [causalontology-lua](lua/) | **LuaRocks — LIVE** (`luarocks install causalontology`) | **published 2.0.0 — 107/107**; pure-Lua crypto incl. a hand-built bignum layer (1.0.0 remains listed — LuaRocks has no yank) |
 | [causalontology-ruby](ruby/) | **[RubyGems — LIVE](https://rubygems.org/gems/causalontology)** (`gem install causalontology`) | **published 2.0.0 — 107/107 in CI**; stdlib only (1.0.0 yanked) |
 | [causalontology-php](php/) | **[Packagist — LIVE](https://packagist.org/packages/causalontology/causalontology)** (`composer require causalontology/causalontology`) | **published 1.0.0 — 107/107 in CI**; bundled sodium/hash only |
 | [causalontology-elixir](elixir/) | **[Hex — LIVE](https://hex.pm/packages/causalontology)** (`{:causalontology, "~> 2.0"}`) | **published 2.0.0 — 107/107 in CI**; OTP :crypto only (1.0.0 retired) |
