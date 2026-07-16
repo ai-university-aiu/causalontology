@@ -93,7 +93,7 @@ Each badge above is a claim, and every claim deserves a plain explanation. Here 
 
 # Causalontology
 
-**A verb-first noun-hosting ontology — reality is what happens, and things are its participants. A language-neutral standard and a shared global commons for reified causation — the data-structure layer of the book *Causalontology: AGI's Missing Link*.**
+**A verb-first noun-hosting ontology — reality is what happens, and things are its participants. A programming-language-neutral standard and a shared global commons for reified causation — the data-structure layer of the book *Causalontology: AGI's Missing Link*.**
 
 ---
 
