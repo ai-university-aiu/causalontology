@@ -3,7 +3,7 @@
 **Causalontology's purest form is a specification, not a program.** This file is
 the normative core; the complete design rationale, glossary, and lay-readable
 explanations live in the master document at the repository root,
-`Causalontology_Standalone_Design_v15.txt`, which is authoritative where this
+`Causalontology_Standalone_Design_v16.txt`, which is authoritative where this
 summary and it could ever be read to differ.
 
 Every identifier scheme and type value in this standard is a whole English word

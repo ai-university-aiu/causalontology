@@ -1,0 +1,263 @@
+CAUSALONTOLOGY: AGI'S MISSING LINK
+
+THE MANIFESTO - OUTLINE (v3)
+
+For THE AGI 2026 conference, San Francisco.
+
+D. R. Dison, Founder of AIU, Creator and Owner of PrologAI and Mentova, ORCID 0009-0001-9246-5758, linkedin.com/in/d-r-dison/
+
+Working thesis, held as the frame of every chapter: Causalontology is important to achieve Artificial General Intelligence (AGI) - not as one more model, but as the missing DATA STRUCTURE: causation itself, reified into signed, mergeable, inspectable objects that any mind, human or synthetic, can read, write, and verify.
+
+Three arguments braided through the whole book:
+
+• Causalontology is important TO AGI: the faculties AGI needs - planning, imagination, transfer, explanation, agency - are all operations OVER causal structure, and today's systems have nowhere to keep it.
+
+• Causalontology is an ENABLER of AGI: it does not compete with neural networks or language models; it gives them the missing organ - a shared, verifiable world model layer - and it climbs Pearl's ladder by data structure rather than by hope.
+
+• Causalontology is important IN GENERAL: signed, provenance-first causal knowledge is what science, medicine, engineering, and a misinformation-soaked civilization need, with or without AGI.
+
+FRONT MATTER
+
+• Title page, byline, epigraph.
+
+• THE CLAIM - one page, five angles: the world-first synthesis, stated up front and defended for the rest of the book.
+
+PART ONE - THE WALL (why the current road does not reach AGI)
+
+Chapter 1. The Age of Miracles That Cannot Reason.
+
+• The paradox of 2026: systems that write sonnets and pass bar exams, yet fail at cause and effect a child masters at a light switch.
+
+• Grounding from the current literature: state-of-the-art Large Language Models (LLMs) score an average F1 of roughly 0.535 at inferring causal relationships from real-world text; performance collapses as causal information becomes implicit.
+
+• Next-token prediction captures statistical patterns, not mechanisms - the correlation engine at civilization's center.
+
+Chapter 2. The Ladder They Cannot Climb.
+
+• Judea Pearl's Ladder of Causation: association, intervention, counterfactual.
+
+• The verdict from the causal-inference community: machine learning remains at rung one; LLMs are sophisticated statistical approximators stuck at the bottom.
+
+• Why scale does not climb ladders: more association is still association.
+
+Chapter 3. The Billion-Dollar Admission.
+
+• The field's own pivot: world-model startups with billion-dollar seeds; deep-learning pioneers conceding that symbol manipulation is necessary; the neurosymbolic turn now mainstream.
+
+• The concession read honestly: everyone now agrees SOMETHING is missing - the fight is over what.
+
+• Our answer: what is missing is not another model; it is a missing DATA STRUCTURE.
+
+Chapter 4. The Black Box Crisis.
+
+• You cannot align what you cannot read: interpretability as the bottleneck of safety.
+
+• Explanations bolted on after the fact versus explanations that ARE the representation.
+
+• The stakes: minds we can audit versus minds we can only hope about.
+
+PART TWO - THE MISSING LINK (what Causalontology is)
+
+Chapter 5. What If Causation Were a Thing?
+
+• Reification, explained for everyone: turning "A causes B" from a sentence into an OBJECT with fields - causes, effects, mechanism, timing, modality, context, lineage.
+
+• The Causal Relation Object: the atom of understanding - and, in 2.0.0, the object that now carries skips, so a cause can be traced across non-adjacent levels of description.
+
+Chapter 6. A Verb-First, Noun-Hosting Ontology.
+
+• Reality is what happens; things are its participants.
+
+• Governing the verbs, hosting the nouns; the realizable hinge (fragility is only fully itself in the shattering) - and, in 2.0.0, the realizable now carries an identity-bearing label, a defect repaired.
+
+• Why verb-first inverts the entire noun-first history of computing - databases, objects, knowledge graphs.
+
+Chapter 7. Seventeen Kinds of Thing.
+
+• Where 1.0.0 had eight kinds, 2.0.0 has seventeen, arranged in three tiers: nine type-tier content kinds, four token-tier content kinds, and four provenance kinds.
+
+• Nine type-tier content kinds - pure, immutable, content-addressed - the laws and the furniture of the world:
+
+  • occurrent - a happening; may now be pitched at a particular stratum (level of description).
+
+  • Causal Relation Object - the reified causing; now carries skips (layer-skipping causation).
+
+  • continuant - a thing that persists through change.
+
+  • realizable - a disposition; now carries an identity-bearing label (a defect repair).
+
+  • stratum - a level of description; the new answer to "at what level does this claim sit?"
+
+  • bridge - a cross-stratal identity map: the assertion that one coarse occurrent IS a set of finer ones; the same happening seen at two levels.
+
+  • port - a typed interface on a continuant.
+
+  • conduit - a typed connection, port-to-port; a pipe or a computer, decided by the Perfect Wire Test.
+
+  • quality - a property type.
+
+• Four token-tier content kinds - LOCAL BY DEFAULT - the history of what actually happened, not merely what the laws permit:
+
+  • token_individual - a particular thing.
+
+  • token_occurrence - a particular happening at absolute time.
+
+  • state_assertion - a value holding over an interval.
+
+  • token_causal_claim - a particular causing under a covering law, carrying a token counterfactual.
+
+• Four provenance kinds - signed, add-only:
+
+  • assertion - now cites token evidence via evidenced_by; evidence ladder intervention > observation > simulation.
+
+  • enrichment - now also offers occurrent_subsumes / occurrent_part_of.
+
+  • retraction - the honest exit.
+
+  • succession - institutional memory.
+
+• The load-bearing separation persists at every tier: content versus provenance, uniformly; disagreement lives in provenance, never in contested cells.
+
+Chapter 8. The Four Things 2.0.0 Added.
+
+• 2.0.0 answers four questions 1.0.0 could not:
+
+  • What LEVEL does a claim sit at? - the stratum.
+
+  • Are two claims at different levels the SAME HAPPENING? - the bridge.
+
+  • Are two things CONNECTED? - ports and conduits.
+
+  • Did something ACTUALLY OCCUR - a history, not just laws? - the token tier.
+
+• Levels and bridges: multi-scale causation made first-class; a neuron firing and a decision being made can be the same event bridged across strata; the amended Rule 7 makes reachability BRIDGED, so a chain may cross levels without breaking.
+
+• Ports and conduits: connection made explicit; the Perfect Wire Test that decides pipe (carries without transforming) versus computer (transforms what it carries); typed interfaces that let mechanisms plug together.
+
+• Layer-skipping causation and the skips flag: a cause may cross non-adjacent strata with NO intervening mechanism - and the ABSENCE of a mechanism is recorded as a positive finding, not a gap left blank.
+
+• The new enabling modality: alongside cause and prevent, a relation may ENABLE - the making-possible that mechanism composition demands.
+
+• Principle P7: whole words, never abbreviations - names spelled out in full across the standard.
+
+Chapter 9. The Token Tier: A History, Not Only Laws.
+
+• Type tier tells you what CAN happen; the token tier records what DID happen - a mind needs both.
+
+• token_occurrence, state_assertion, token_causal_claim, token_individual: episodic memory as signed objects; the token counterfactual that lets a mind ask "what if THIS particular thing had not happened?"
+
+• The clinical case: a single patient's history as token occurrences and state assertions over intervals, each token causal claim tied to a covering law yet particular to this life.
+
+• Local by default: the token tier is private unless deliberately shared - privacy built into the data structure, not bolted on.
+
+Chapter 10. Identity Without a Committee.
+
+• Content addressing: the same claim minted anywhere on Earth gets the same identifier.
+
+• Merge is set union; the commons is a Conflict-free Replicated Data Type (CRDT) by construction; no coordinator, no gatekeeper, no vote.
+
+Chapter 11. Every Word Has an Author.
+
+• Ed25519 signatures on every mutable datum, down to a single alias in a single language.
+
+• Retraction as the honest exit; succession as institutional memory; framing made impossible.
+
+• Acting beats watching: the evidence ladder with intervention on top - your own hand on the switch outranks any amount of staring - and, in 2.0.0, assertions cite the very token evidence they rest on via evidenced_by.
+
+PART THREE - THE ENABLER (how Causalontology powers AGI)
+
+Chapter 12. Climbing the Ladder by Data Structure.
+
+• Rung one lives in the assertion's evidence grades; rung two lives in intervention-graded Causal Relation Objects; rung three lives in refinement, context, quarantined imagined realities, and the token counterfactual.
+
+• The ladder is not climbed by bigger models but by a representation in which every rung is a first-class object.
+
+Chapter 13. The Faculties of a General Mind.
+
+• Planning is search over causal chains; imagination is counterfactual composition of Causal Relation Objects; transfer is analogy over relation structure; explanation is reading the mechanism field aloud; agency is choosing interventions; memory consolidation is refinement lineage; episodic recall is reading the token tier.
+
+• Each faculty, shown as an OPERATION over the same seventeen kinds - one substrate, many faculties - now including reasoning up and down the strata through bridges and along conduits.
+
+Chapter 14. The Glass Box Mind.
+
+• Alignment transformed: a mind whose beliefs are signed, inspectable causal objects can be audited claim by claim.
+
+• "Why?" always has a readable answer - by construction, not by interpretability archaeology.
+
+Chapter 15. The Commons: A World Model for Everyone.
+
+• One shared, provenance-first store of causal knowledge - Wikidata's lesson, specialized to causation.
+
+• Federation and offline replication; convergence without consensus machinery; the type tier shared, the token tier local by default.
+
+Chapter 16. Stigmergy: The Wall That Teaches.
+
+• The half-built wall shows the next worker where the next brick goes.
+
+• Six gap kinds, value-ranked; the store announces its own most valuable next contribution; demand measured from real readership.
+
+Chapter 17. The First Gardener.
+
+• The receipts from the reference implementation: perfect public-training-set scores on the first two Abstraction and Reasoning Corpus benchmarks (ARC-AGI-1: 400 of 400; ARC-AGI-2: 120 of 120) by pure symbolic induction, no LLM - stated precisely, never inflated.
+
+• The live demonstration: a glass-box synthetic mind (Mentova, on PrologAI) reads the gap list, intervenes a hundred times with its own hand on the switch, induces the missing fields, signs an intervention-grade assertion, and the gap closes on everyone's frontier.
+
+• The first brick laid in the shared wall by a machine - and every step of it narrated.
+
+PART FOUR - THE PROOF (why you can believe any of this)
+
+Chapter 18. The Freeze.
+
+• 107 conformance vectors with concrete bytes (the original thirty-eight, V01-V38, re-frozen, plus sixty-nine new, V39-V107); a deterministic, idempotent freeze; the locked decisions; specification 2.0.0.
+
+Chapter 19. Twenty Languages, Zero Shared Code.
+
+• Twenty independent implementations - Prolog, Python, JavaScript, Rust, Java, Swift, Go, C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua, C++, Zig, Julia, Kotlin/Native - agreeing byte for byte, down to the length of a month and the bytes of a signature.
+
+• Programming-language-neutrality is not a claim; it is a table.
+
+Chapter 20. Install It Before Breakfast.
+
+• Thirteen live distribution channels; one-line installs; twenty-one Continuous Integration gates re-proving everything on every change; every claim in this book checkable in public.
+
+PART FIVE - THE WORLD (why this matters beyond AGI)
+
+Chapter 21. Science, Medicine, Engineering.
+
+• Fields that run on causation but store it as prose; what signed, mergeable causal claims do for reproducibility, drug interactions, failure analysis - and what strata, bridges, ports, conduits, and a local-by-default token tier do for multi-scale models and private patient histories.
+
+Chapter 22. Truth in the Age of Noise.
+
+• Provenance-first knowledge against misinformation: no anonymous edits, honest retraction, disagreement surfaced rather than averaged away.
+
+Chapter 23. The Child at the Light Switch.
+
+• Education and human understanding: the same structure that teaches machines teaches us; curiosity as gap-reading.
+
+PART SIX - THE INVITATION
+
+Chapter 24. Monday Morning.
+
+• The one-line installs, the quickstart, the first gap you can close this week.
+
+Chapter 25. To the Builders, the Researchers, the Leaders.
+
+• Three letters: what each audience can do, concretely, starting now.
+
+Chapter 26. The Road Ahead.
+
+• The token tier is DELIVERED, not deferred - histories, episodic memory, and the clinical case ship in 2.0.0.
+
+• The reserved future, now genuinely short: the bounty layer as the one remaining reserved item, the federation of minds, and the labeled bet on the third benchmark.
+
+THE MANIFESTO - the declarations, numbered, one page of thunder.
+
+CODA - the closing image: the wall, the door, the bricks, the hands - human and synthetic - building together.
+
+APPENDIX 1 - THE SPECIFICATION, COMPLETE AND TERSE: the seventeen kinds (nine type-tier content, four token-tier content, four provenance), the identity procedure, the semantic rules - now including the amended Rule 7 for BRIDGED reachability, skip semantics, and the enabling modality - the evidence grades (intervention > observation > simulation), the store operations, the conformance rule against 107 vectors - the whole standard, specification 2.0.0, on a few pages.
+
+APPENDIX 2 - THE REPOSITORY AND THE RECEIPTS: github.com/ai-university-aiu/causalontology; every install line; the release, the dashboard, the gardener; how to verify every claim made in this book.
+
+SOURCES - the contemporary literature grounding Part One, listed plainly.
+
+COLOPHON.
