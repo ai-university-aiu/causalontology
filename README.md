@@ -111,7 +111,7 @@ Causalontology's identity, stated from five angles — each the same claim, that
 
 > **Succinctly.** "Causalontology is the world's first synthesis of reification, temporal causation, and interventional learning in one unified, glass-box ontology."
 
-And this repository adds a further first of its own: to our knowledge, the first specification to deliver reified, provenance-signed causation as a **language-neutral standard** with a **shared, stigmergic commons** — offered, glass-box style, with its evidence: the specification, the conformance vectors, and the running implementations, all inspectable.
+And this repository adds a further first of its own: to our knowledge, the first specification to deliver reified, provenance-signed causation as a **programming-language-neutral standard** with a **shared, stigmergic commons** — offered, glass-box style, with its evidence: the specification, the conformance vectors, and the running implementations, all inspectable.
 
 Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v15.txt`](Causalontology_Standalone_Design_v15.txt) — the complete, self-contained canon of this repository.
 
@@ -121,7 +121,7 @@ Every term above is explained for a newcomer in the master document: [`Causalont
 
 **Causalontology is a verb-first noun-hosting ontology.** Verb-first: the atomic building block is the occurrent — the happening — and the fundamental unit reifies the master verb, *causes*, itself; even knowing is verb-first, because knowledge enters by acting (intervention) rather than by watching. Noun-hosting: things (continuants) are first-class citizens, but they are understood through what they do and what happens to them — Causalontology *governs* the verbs and *hosts* the nouns, with realizable entities as the hinge between them.
 
-**Causalontology's purest form is a specification, not a program.** It separates the *data structure of causation and its rules* (language-neutral) from any *implementation* (twenty exist, from Prolog to Kotlin/Native). Two familiar pictures, held together:
+**Causalontology's purest form is a specification, not a program.** It separates the *data structure of causation and its rules* (programming-language-neutral) from any *implementation* (twenty exist, from Prolog to Kotlin/Native). Two familiar pictures, held together:
 
 - **A standard** — like a W3C or IETF specification: a normative document plus a conformance test suite, with independent implementations that all agree because they all pass the same tests.
 - **A commons** — like Wikidata, specialized to causation: one shared, world-wide, provenance-first store of causal knowledge that developers everywhere (and autonomous minds) draw from and contribute to.

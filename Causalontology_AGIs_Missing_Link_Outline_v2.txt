@@ -144,7 +144,7 @@ Chapter 17. Twenty Languages, Zero Shared Code.
 
 • Twenty independent implementations - Prolog, Python, JavaScript, Rust, Java, Swift, Go, C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua, C++, Zig, Julia, Kotlin/Native - agreeing byte for byte, down to the length of a month and the bytes of a signature.
 
-• Language-neutrality is not a claim; it is a table.
+• Programming-language-neutrality is not a claim; it is a table.
 
 Chapter 18. Install It Before Breakfast.
 

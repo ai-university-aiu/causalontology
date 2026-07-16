@@ -2031,7 +2031,7 @@ Here is the empirical heart of the whole enterprise - the experiment that turns 
 
 Empirical means resting on real, observable evidence rather than on argument.
 
-If Causalontology is truly a LANGUAGE-NEUTRAL data structure - knowledge itself, not software, where language-neutral means it does not depend on any one programming language - then independent implementations in wildly different programming languages, sharing not one line of code, should agree perfectly.
+If Causalontology is truly a PROGRAMMING-LANGUAGE-NEUTRAL data structure - knowledge itself, not software, where programming-language-neutral means it does not depend on any one programming language - then independent implementations in wildly different programming languages, sharing not one line of code, should agree perfectly.
 
 An implementation is one working version of the standard, written out in an actual programming language.
 
@@ -2091,9 +2091,9 @@ A hash is a short fingerprint that a fixed calculation produces from a chunk of 
 
 Different languages, different authors, different decades of design philosophy - one identical behavior, because the MEANING lives in the standard, not in any implementation.
 
-To our knowledge, no causal knowledge system in history has demonstrated language-neutrality at this breadth.
+To our knowledge, no causal knowledge system in history has demonstrated programming-language-neutrality at this breadth.
 
-Language-neutrality is no longer a claim.
+Programming-language-neutrality is no longer a claim.
 
 It is a table, and every row of it is green.
 

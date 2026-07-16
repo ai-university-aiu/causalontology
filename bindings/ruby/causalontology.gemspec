@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
   spec.summary = "The Ruby binding of the Causalontology standard"
   spec.description =
     "The Ruby binding of the Causalontology standard - a verb-first " \
-    "noun-hosting ontology; a language-neutral standard and shared commons " \
+    "noun-hosting ontology; a programming-language-neutral standard and shared commons " \
     "for reified causation. Zero dependencies: RFC 8785 canonicalization, " \
     "SHA-256 identity, pure-Ruby Ed25519 (RFC 8032), schema and semantics " \
     "validation, and an in-memory conformant store."

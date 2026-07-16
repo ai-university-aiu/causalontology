@@ -1,6 +1,6 @@
         CAUSALONTOLOGY: THE STANDALONE STANDARD AND THE SHARED COMMONS
 
-        A Language-Neutral Specification, a Conformance Test Suite, a Canonical
+        A Programming-Language-Neutral Specification, a Conformance Test Suite, a Canonical
         Serialization, and a Content-Addressed, Provenance-First Global Data
         Store - with the Store's Own Partial Structures Serving as the
         Stigmergic Invitation to the Next Contribution
@@ -202,7 +202,7 @@ Human contributors and autonomous minds alike can ask the commons "what is the m
 
 Knowledge then compounds - the mechanism by which a commons, like a civilization, becomes smarter than any of its members.
 
-• The language-neutral standard makes minds interoperable.
+• The programming-language-neutral standard makes minds interoperable.
 
 Because Causalontology is a specification with a conformance suite - not a program - any system in any programming language can speak it, and all of them read and write the same store.
 
@@ -264,7 +264,7 @@ Causalontology realized as the PrologAI cognitive-architecture packs - the refer
 
 • The Standalone Branch (this document).
 
-Causalontology delivered in its purest, language-neutral form, so anyone can implement and use it in any programming language and contribute to one global commons.
+Causalontology delivered in its purest, programming-language-neutral form, so anyone can implement and use it in any programming language and contribute to one global commons.
 
 The reframe that separates them, and the thesis of this whole document: Causalontology's purest form is a specification, not a program.
 
@@ -321,7 +321,7 @@ To free it so that it can be used everywhere, we separate two things:
 
 • The data structure and its rules - the Causal Relation Object (CRO), the occurrent, the continuant, the realizable entity, and the signed provenance records about them, together with the rules that say what a valid instance is.
 
-This is language-neutral.
+This is programming-language-neutral.
 
 • Any one implementation of those rules - in Prolog, in Python, in Java, in Swift.
 
@@ -535,7 +535,7 @@ What the words mean:
 
 A note for the standard's readers: the claim above is the IDENTITY of Causalontology; the parts that follow are its ENGINEERING.
 
-This Standalone Branch adds a further first of its own - to our knowledge, the first specification to deliver reified, provenance-signed causation as a language-neutral standard with a shared, stigmergic commons - but that claim, like every claim in a glass-box system, is offered with its evidence: the specification, the conformance vectors, and the running implementations are the proof, and they are all inspectable.
+This Standalone Branch adds a further first of its own - to our knowledge, the first specification to deliver reified, provenance-signed causation as a programming-language-neutral standard with a shared, stigmergic commons - but that claim, like every claim in a glass-box system, is offered with its evidence: the specification, the conformance vectors, and the running implementations are the proof, and they are all inspectable.
 
 PART 2. THE STANDALONE REPOSITORY: SHIP THE SPECIFICATION, NOT THE CODE
 
@@ -567,7 +567,7 @@ A repository, github.com/ai-university-aiu/causalontology, whose core is normati
         safety.md                  abuse resistance, claims of consequence, and
                                    takedown by tier (Part 11)
       conformance/
-        vectors/                   the thirty-eight language-neutral test cases
+        vectors/                   the thirty-eight programming-language-neutral test cases
                                    (Part 14), one file per vector
         README.md                  "an implementation is conformant if and only
                                    if it passes every vector here"
@@ -2005,7 +2005,7 @@ Seven independent implementations in seven programming languages - Prolog, Pytho
 
 Eight CI gates re-prove all of it on every change, and the Prolog gardener tends the commons at the end of every run.
 
-Language-neutrality is no longer a claim.
+Programming-language-neutrality is no longer a claim.
 
 It is a table.
 
@@ -2159,7 +2159,7 @@ The whole Causalontology Architecture Standard (CAS), at a glance.
 
 THE IDEA, IN ONE LINE.
 
-• A verb-first noun-hosting ontology - reality is what happens, and things are its participants - delivering reified causation as a language-neutral standard and a shared, stigmergic, provenance-first commons.
+• A verb-first noun-hosting ontology - reality is what happens, and things are its participants - delivering reified causation as a programming-language-neutral standard and a shared, stigmergic, provenance-first commons.
 
 THE EIGHT KINDS.
 
@@ -2339,7 +2339,7 @@ What you get:
 
 • Thirty-eight frozen conformance vectors, passed by seven independent implementations in seven languages (Prolog, Python, JavaScript, Rust, Java, Swift, Go), plus TypeScript typings and a WebAssembly core.
 
-Language-neutrality is not a claim; it is a table.
+Programming-language-neutrality is not a claim; it is a table.
 
 • And a first for the history books: a glass-box synthetic mind (Mentova, on PrologAI - perfect public-training-set scores on ARC-AGI-1, 400/400, and ARC-AGI-2, 120/120, by pure symbolic induction, no Large Language Model) already reads the gap list, intervenes, and contributes signed, intervention-grade causal knowledge back to the commons.
 
