@@ -3,22 +3,37 @@
 # Schema validation against spec/schema/*.schema.json, ported from the
 # reference bindings/python/causalontology/schema.py.
 #
-# A deliberately small interpreter for exactly the JSON Schema keywords
-# the eight Causalontology schemas use: type, const, enum, pattern,
+# A deliberately small interpreter for exactly the JSON Schema keywords the
+# seventeen Causalontology schemas use: type, const, enum, pattern,
 # required, properties, additionalProperties, items, minItems, minLength,
-# minimum, maximum, oneOf, and local $ref (#/$defs/...). "format" is
-# treated as an annotation, as the 2020-12 draft does by default.
+# minimum, maximum, oneOf, local $ref (#/$defs/...), and cross-file $ref to
+# a sibling schema (https://causalontology.org/schema/<file>.schema.json#/
+# ...). "format" is treated as an annotation, as the 2020-12 draft does by
+# default.
 
+# kind -> schema file. Three token kinds keep their original 1.0.0-reserved
+# file names (individual/token/state); the id scheme is the whole word.
 co_schema_files <- c(
-  cro        = "cro.schema.json",
   occurrent  = "occurrent.schema.json",
+  causal_relation_object = "causal_relation_object.schema.json",
   continuant = "continuant.schema.json",
   realizable = "realizable.schema.json",
+  stratum    = "stratum.schema.json",
+  bridge     = "bridge.schema.json",
+  port       = "port.schema.json",
+  conduit    = "conduit.schema.json",
+  quality    = "quality.schema.json",
+  token_individual   = "individual.schema.json",
+  token_occurrence   = "token.schema.json",
+  state_assertion    = "state.schema.json",
+  token_causal_claim = "token_causal_claim.schema.json",
   assertion  = "assertion.schema.json",
   enrichment = "enrichment.schema.json",
   retraction = "retraction.schema.json",
   succession = "succession.schema.json"
 )
+
+co_schema_base <- "https://causalontology.org/schema/"
 
 co_schema_dir <- function() {
   env <- Sys.getenv("CAUSALONTOLOGY_SPEC", unset = "")
@@ -26,34 +41,61 @@ co_schema_dir <- function() {
   file.path(co_repo_root(), "spec", "schema")
 }
 
-co_load_schema <- function(kind) {
-  if (!(kind %in% names(co_schema_files))) stop("unknown kind: ", kind)
+# Load and cache one schema file by its filename.
+co_load_schema_file <- function(filename) {
   if (!exists("schemas", envir = co_state, inherits = FALSE)) {
     assign("schemas", list(), envir = co_state)
   }
   cache <- get("schemas", envir = co_state, inherits = FALSE)
-  if (!co_has_key(cache, kind)) {
-    path <- file.path(co_schema_dir(), co_schema_files[[kind]])
+  if (!co_has_key(cache, filename)) {
+    path <- file.path(co_schema_dir(), filename)
     text <- paste(readLines(path, warn = FALSE, encoding = "UTF-8"),
                   collapse = "\n")
-    cache[[kind]] <- co_parse_json(text)
+    cache[[filename]] <- co_parse_json(text)
     assign("schemas", cache, envir = co_state)
   }
-  cache[[kind]]
+  cache[[filename]]
 }
 
-# Follow local $ref chains (#/$defs/...) to the referenced subschema.
-co_schema_resolve <- function(schema, root) {
-  while (co_has(schema, "$ref")) {
-    ref <- schema[["$ref"]]
-    if (!startsWith(ref, "#/")) stop("only local $ref supported: ", ref)
-    node <- root
-    for (part in strsplit(substring(ref, 3L), "/", fixed = TRUE)[[1]]) {
-      node <- node[[part]]
-    }
-    schema <- node
+co_load_schema <- function(kind) {
+  if (!(kind %in% names(co_schema_files))) stop("unknown kind: ", kind)
+  co_load_schema_file(co_schema_files[[kind]])
+}
+
+# Navigate a JSON pointer body (already stripped of a leading "#/" or "").
+co_schema_navigate <- function(doc, pointer) {
+  node <- doc
+  for (part in strsplit(pointer, "/", fixed = TRUE)[[1]]) {
+    if (!nzchar(part)) next
+    node <- node[[part]]
   }
-  schema
+  node
+}
+
+# Follow local and cross-file $ref chains to a concrete node + its root.
+# Returns list(schema = <node>, root = <root doc>).
+co_schema_resolve <- function(schema, root) {
+  while (co_is_obj(schema) && co_has(schema, "$ref")) {
+    ref <- schema[["$ref"]]
+    if (startsWith(ref, "#/")) {
+      schema <- co_schema_navigate(root, substring(ref, 3L))
+    } else if (startsWith(ref, co_schema_base)) {
+      rest <- substring(ref, nchar(co_schema_base) + 1L)
+      idx <- regexpr("#/", rest, fixed = TRUE)
+      if (idx > 0L) {
+        filename <- substr(rest, 1L, idx - 1L)
+        pointer <- substring(rest, idx + 2L)
+      } else {
+        filename <- rest
+        pointer <- ""
+      }
+      root <- co_load_schema_file(filename)
+      schema <- if (nzchar(pointer)) co_schema_navigate(root, pointer) else root
+    } else {
+      stop("unsupported $ref: ", ref)
+    }
+  }
+  list(schema = schema, root = root)
 }
 
 # Does this value have the given JSON Schema type?
@@ -62,13 +104,18 @@ co_schema_type_ok <- function(value, t) {
   if (identical(t, "array"))   return(co_is_arr(value))
   if (identical(t, "string"))  return(co_is_str(value))
   if (identical(t, "boolean")) return(co_is_bool(value))
+  if (identical(t, "integer")) return(co_is_num(value) &&
+                                        isTRUE(as.numeric(value) ==
+                                               floor(as.numeric(value))))
   if (identical(t, "number"))  return(co_is_num(value))  # excludes logicals
   stop("unsupported schema type: ", t)
 }
 
 # One recursive check; errors accumulate in the collector environment.
 co_schema_check <- function(value, schema, root, path, errs) {
-  schema <- co_schema_resolve(schema, root)
+  rr <- co_schema_resolve(schema, root)
+  schema <- rr$schema
+  root <- rr$root
 
   if (co_has(schema, "oneOf")) {
     passing <- 0L
@@ -118,7 +165,6 @@ co_schema_check <- function(value, schema, root, path, errs) {
     }
   }
   if (co_has(schema, "minLength") && co_is_str(value)) {
-    # length in characters (code points), not bytes, as Python len() counts
     if (nchar(value, type = "chars") < as.numeric(schema[["minLength"]])) {
       errs$msgs <- c(errs$msgs, sprintf("%s: shorter than minLength", path))
     }
@@ -144,7 +190,6 @@ co_schema_check <- function(value, schema, root, path, errs) {
     }
     if (co_has(schema, "items")) {
       for (i in seq_along(value)) {
-        # 0-based item paths, matching the reference messages
         co_schema_check(value[[i]], schema[["items"]], root,
                         sprintf("%s[%d]", path, i - 1L), errs)
       }

@@ -16,7 +16,10 @@
 # below (names(s$objects), names(s$records)) deliberately mirrors the
 # Python dict iteration order of the reference.
 
-co_content_kinds <- c("occurrent", "causal_relation_object", "continuant", "realizable")
+co_content_kinds <- c("occurrent", "causal_relation_object", "continuant",
+                      "realizable", "stratum", "bridge", "port", "conduit",
+                      "quality", "token_individual", "token_occurrence",
+                      "state_assertion", "token_causal_claim")
 co_record_kinds  <- c("assertion", "enrichment", "retraction", "succession")
 
 # Raise the RejectedWrite condition (catch with
