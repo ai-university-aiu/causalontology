@@ -9,7 +9,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | PrologAI (`co_*` packs) | github.com/ai-university-aiu/PrologAI | reference implementation |
 | [causalontology-py](python/) | **[PyPI — LIVE](https://pypi.org/project/causalontology/)** (`pip install causalontology==2.0.0`) | **published 2.0.0 — 107/107 conformance vectors; zero dependencies** (1.0.0 yanked) |
 | [causalontology-js](javascript/) | **[npm — LIVE](https://www.npmjs.com/package/causalontology)** (`npm install causalontology`) | **published 2.0.0 — 107/107 conformance vectors; zero dependencies; TypeScript typings included** (1.0.0 deprecated) |
-| [causalontology-rust](rust/) | **[crates.io — LIVE](https://crates.io/crates/causalontology)** (`cargo add causalontology`) | **published 1.0.0 — 107/107 conformance vectors; vetted primitives only** |
+| [causalontology-rust](rust/) | **[crates.io — LIVE](https://crates.io/crates/causalontology)** (`cargo add causalontology`) | **published 2.0.0 — 107/107 conformance vectors; vetted primitives only** (1.0.0 yanked) |
 | [WebAssembly core](rust/) | built from the Rust crate | **available — `wasm32-unknown-unknown` build; 6/6 cross-checks against the JS binding pass locally (byte-identical ids, canonical bytes, and Ed25519 verification)** |
 | [causalontology-java](java/) | **Maven Central — LIVE** (`io.github.ai-university-aiu:causalontology:1.0.0`) | **published 1.0.0 — 107/107 conformance vectors; JDK standard library only** |
 | [causalontology-swift](swift/) | Swift Package Manager (publication pending) | **available — 107/107 conformance vectors pass in CI (Swift 5.10)**; one dependency (swift-crypto) |
