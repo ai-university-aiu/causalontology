@@ -14,7 +14,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | [causalontology-java](java/) | **Maven Central — LIVE** (`io.github.ai-university-aiu:causalontology:2.0.0`) | **published 2.0.0 — 107/107 conformance vectors; JDK standard library only** |
 | [causalontology-swift](swift/) | Swift Package Manager (publication pending) | **available — 107/107 conformance vectors pass in CI (Swift 5.10)**; one dependency (swift-crypto) |
 | [causalontology-csharp](csharp/) | **[NuGet — LIVE](https://www.nuget.org/packages/causalontology)** (`dotnet add package causalontology`) | **published 2.0.0 — 107/107**; pure-C# Ed25519, zero runtime dependencies (1.0.0 unlisted) |
-| [causalontology-dart](dart/) | **[pub.dev — LIVE](https://pub.dev/packages/causalontology)** (`dart pub add causalontology`) | **published 1.0.0 — 107/107**; pure-Dart crypto, zero dependencies |
+| [causalontology-dart](dart/) | **[pub.dev — LIVE](https://pub.dev/packages/causalontology)** (`dart pub add causalontology`) | **published 2.0.0 — 107/107**; pure-Dart crypto, zero dependencies (1.0.0 retraction pending admin UI) |
 | [causalontology-perl](perl/) | CPAN (publication pending) | **verified locally — 107/107 in 8.9 s**; core modules only |
 | [causalontology-lua](lua/) | **LuaRocks — LIVE** (`luarocks install causalontology`) | **published 2.0.0 — 107/107**; pure-Lua crypto incl. a hand-built bignum layer (1.0.0 remains listed — LuaRocks has no yank) |
 | [causalontology-ruby](ruby/) | **[RubyGems — LIVE](https://rubygems.org/gems/causalontology)** (`gem install causalontology`) | **published 2.0.0 — 107/107 in CI**; stdlib only (1.0.0 yanked) |
