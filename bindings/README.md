@@ -26,7 +26,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | [causalontology-go](go/) | **live by Go module proxy** (`go get github.com/ai-university-aiu/causalontology/bindings/go/v2@v2.0.0`) | **published 2.0.0 — 107/107**; stdlib only; `/v2` module-path suffix, import `.../bindings/go/v2/causalontology` (resolves + downloads via proxy.golang.org, sumdb-verified; v1 line deprecated + retracted at `bindings/go/v1.0.1`) |
 | [causalontology-zig](zig/) | **live by git tag** — `zig fetch --save <v2.0.1 tag tarball>` then `dep.module("causalontology")` (repo-root `build.zig.zon` at `v2.0.1` exposes the module; sources under `bindings/zig/src/`) | **verified locally — 107/107**; std-lib crypto (Zig 0.13.0), insertion-ordered maps throughout |
 | [causalontology-julia](julia/) | General registry (registration is a pull-request process, stated plainly) | **verified locally — 107/107**; stdlib SHA + pure-Julia Ed25519 over BigInt; byte-parity with Python |
-| [causalontology-kotlin](kotlin/) | **Maven Central — LIVE** (`io.github.ai-university-aiu:causalontology-kotlin:1.0.0`, linux_x64 klib) | **published 1.0.0 — 107/107 on the binary's first run**; pure Kotlin/Native, all crypto hand-built |
+| [causalontology-kotlin](kotlin/) | **Maven Central — LIVE** (`io.github.ai-university-aiu:causalontology-kotlin:2.0.0`, linuxX64 klib) | **published 2.0.0** — Kotlin/Native klib built via Kotlin Multiplatform (root manifest + POSIX `expect`/`actual` IO); core is the same sources verified 107/107 on Kotlin/JVM; pure Kotlin, all crypto hand-built |
 
 Every binding MUST ship `../conformance/vectors/` as its own test suite and
 gate releases on it. Interoperability is through shared data and the shared

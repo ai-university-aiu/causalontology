@@ -182,7 +182,7 @@ That third document — a *degenerate* causal_relation_object, just cause and ef
 | JavaScript / TypeScript | `npm install causalontology` (typings included; 2.0.0 live on npm, 1.0.0 deprecated) |
 | Rust | `cargo add causalontology` (2.0.0 live on crates.io; 1.0.0 yanked) |
 | Java | `io.github.ai-university-aiu:causalontology:2.0.0` (Maven Central) |
-| Kotlin/Native | `io.github.ai-university-aiu:causalontology-kotlin:1.0.2` (Maven Central) |
+| Kotlin/Native | `io.github.ai-university-aiu:causalontology-kotlin:2.0.0` (Maven Central, linuxX64 klib) |
 | C# / .NET | `dotnet add package causalontology` (2.0.0 published, indexing; 1.0.0 unlisted) |
 | Ruby | `gem install causalontology` (2.0.0 live on RubyGems; 1.0.0 yanked) |
 | PHP | `composer require causalontology/causalontology` (2.0.0 live on Packagist; earlier tags remain) |

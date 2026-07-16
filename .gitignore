@@ -58,6 +58,7 @@ node_modules/
 
 # Kotlin / Native
 /bindings/kotlin/build/
+/bindings/kotlin/.gradle/
 
 # Haskell
 /bindings/haskell/dist-newstyle/
