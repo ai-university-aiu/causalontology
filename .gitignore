@@ -64,6 +64,14 @@ node_modules/
 /bindings/haskell/dist-newstyle/
 /bindings/haskell/.stack-work/
 
+# Perl (ExtUtils::MakeMaker build outputs)
+/bindings/perl/Makefile
+/bindings/perl/MYMETA.*
+/bindings/perl/MANIFEST
+/bindings/perl/blib/
+/bindings/perl/pm_to_blib
+/bindings/perl/*.tar.gz
+
 # Elixir
 /bindings/elixir/_build/
 /bindings/elixir/deps/

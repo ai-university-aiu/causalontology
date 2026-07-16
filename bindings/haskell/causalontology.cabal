@@ -17,6 +17,7 @@ author:             AI University (AIU)
 maintainer:         ai.university.aiu@gmail.com
 homepage:           https://github.com/ai-university-aiu/causalontology
 bug-reports:        https://github.com/ai-university-aiu/causalontology/issues
+license:            Apache-2.0
 license-file:       LICENSE
 category:           Data
 build-type:         Simple
