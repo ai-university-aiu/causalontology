@@ -128,7 +128,7 @@ Every term above is explained for a newcomer in the master document: [`Causalont
 
 The reference implementation is [**PrologAI**](https://github.com/ai-university-aiu/PrologAI), a glass-box cognitive architecture, driving the synthetic mind [**Mentova**](https://github.com/ai-university-aiu/Mentova).
 
-## The seventeen kinds of thing
+## The Seventeen Kinds of Thing
 
 Nine **type-tier content kinds** — pure, immutable, content-addressed (SHA-256 over RFC 8785 canonical bytes):
 
