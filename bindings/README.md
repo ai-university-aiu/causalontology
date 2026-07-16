@@ -23,6 +23,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | [causalontology-haskell](haskell/) | Hackage (publication pending) | source complete, GHC-bundled packages only, pure-Haskell SHA-2 + Ed25519 — **verified in CI** |
 | [causalontology-r](r/) | CRAN (submission is a human-review process, stated plainly) | source complete (sodium + openssl CRAN packages) — **verified in CI** |
 | [causalontology-cpp](cpp/) | source + release (vcpkg/Conan manifests welcome) | **verified locally — 107/107, zero warnings**; zero dependencies incl. a hand-built uint64-limb bignum (361/361 cross-checks vs Python) |
+| [causalontology-go](go/) | **live by Go module proxy** (`go get github.com/ai-university-aiu/causalontology/bindings/go/v2@v2.0.0`) | **published 2.0.0 — 107/107**; stdlib only; `/v2` module-path suffix, import `.../bindings/go/v2/causalontology` (resolves + downloads via proxy.golang.org, sumdb-verified) |
 | [causalontology-zig](zig/) | **live by git tag** (build.zig.zon; Zig consumes git URLs) | **verified locally — 107/107**; std-lib crypto (Zig 0.13.0), insertion-ordered maps throughout |
 | [causalontology-julia](julia/) | General registry (registration is a pull-request process, stated plainly) | **verified locally — 107/107**; stdlib SHA + pure-Julia Ed25519 over BigInt; byte-parity with Python |
 | [causalontology-kotlin](kotlin/) | **Maven Central — LIVE** (`io.github.ai-university-aiu:causalontology-kotlin:1.0.0`, linux_x64 klib) | **published 1.0.0 — 107/107 on the binary's first run**; pure Kotlin/Native, all crypto hand-built |
