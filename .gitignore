@@ -1,29 +1,80 @@
-*.pyc
-__pycache__/
+# Editor / OS cruft
 .DS_Store
-node_modules/
+Thumbs.db
+*.swp
+*~
+*.bak
+*.orig
+*.rej
+.idea/
+.vscode/
+
+# Logs
 *.log
 
-# build artifacts (per-binding toolchains)
+# Secrets (never commit)
+.env
+.envrc
+*.pem
+*.key
+
+# Python
+*.pyc
+*.pyo
+__pycache__/
+/bindings/python/dist/
+/bindings/python/build/
+/bindings/python/*.egg-info/
+/bindings/python/.pytest_cache/
+
+# JavaScript
+node_modules/
+
+# Rust
 /bindings/rust/target/
+
+# Swift
 /bindings/swift/.build/
 /bindings/swift/Package.resolved
+
+# Go
+/bindings/go/go.sum
+
+# Dart
 /bindings/dart/.dart_tool/
 /bindings/dart/pubspec.lock
-/bindings/csharp/**/obj/
-/bindings/csharp/**/bin/
-/bindings/java/out/
-/bindings/kotlin/*.jar
-/bindings/haskell/dist-newstyle/
-/bindings/go/go.sum
-/bindings/python/dist/
-/bindings/python/*.egg-info/
-/.build/
-/bindings/**/.build/
-/bindings/dart/.dart_tool/
-/bindings/haskell/dist-newstyle/
-/bindings/kotlin/*.jar
-/bindings/java/out/
+
+# C# / .NET
 /bindings/**/obj/
 /bindings/**/bin/Debug/
 /bindings/**/bin/Release/
+*.nupkg
+*.snupkg
+
+# Java (Maven)
+/bindings/java/out/
+/bindings/java/target/
+/bindings/kotlin/*.jar
+
+# Kotlin / Native
+/bindings/kotlin/build/
+
+# Haskell
+/bindings/haskell/dist-newstyle/
+/bindings/haskell/.stack-work/
+
+# Elixir
+/bindings/elixir/_build/
+/bindings/elixir/deps/
+/bindings/elixir/*.tar
+
+# Ruby
+/bindings/ruby/*.gem
+
+# Zig
+/bindings/zig/.zig-cache/
+/bindings/zig/zig-out/
+
+# Generic per-binding build dir catch-all
+/.build/
+/bindings/**/.build/
