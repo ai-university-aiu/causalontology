@@ -13,7 +13,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | [WebAssembly core](rust/) | built from the Rust crate | **available — `wasm32-unknown-unknown` build; 6/6 cross-checks against the JS binding pass locally (byte-identical ids, canonical bytes, and Ed25519 verification)** |
 | [causalontology-java](java/) | **Maven Central — LIVE** (`io.github.ai-university-aiu:causalontology:2.0.0`) | **published 2.0.0 — 107/107 conformance vectors; JDK standard library only** |
 | [causalontology-swift](swift/) | Swift Package Manager (publication pending) | **available — 107/107 conformance vectors pass in CI (Swift 5.10)**; one dependency (swift-crypto) |
-| [causalontology-csharp](csharp/) | **[NuGet — LIVE](https://www.nuget.org/packages/causalontology)** (`dotnet add package causalontology`) | **published 1.0.0 — 107/107**; pure-C# Ed25519, zero runtime dependencies |
+| [causalontology-csharp](csharp/) | **[NuGet — LIVE](https://www.nuget.org/packages/causalontology)** (`dotnet add package causalontology`) | **published 2.0.0 — 107/107**; pure-C# Ed25519, zero runtime dependencies (1.0.0 unlisted) |
 | [causalontology-dart](dart/) | **[pub.dev — LIVE](https://pub.dev/packages/causalontology)** (`dart pub add causalontology`) | **published 1.0.0 — 107/107**; pure-Dart crypto, zero dependencies |
 | [causalontology-perl](perl/) | CPAN (publication pending) | **verified locally — 107/107 in 8.9 s**; core modules only |
 | [causalontology-lua](lua/) | **LuaRocks — LIVE** (`luarocks install causalontology`) | **published 1.0.0 — 107/107**; pure-Lua crypto incl. a hand-built bignum layer |
