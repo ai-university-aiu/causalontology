@@ -1,6 +1,6 @@
 # Causalontology — Web Ontology Language (OWL) mapping (governance-track draft)
-# Aligns the eight object kinds and their fields to Basic Formal Ontology (BFO),
-# the Relation Ontology (RO), and the W3C Provenance Ontology (PROV).
+# Aligns the seventeen object kinds and their fields to Basic Formal Ontology
+# (BFO), the Relation Ontology (RO), and the W3C Provenance Ontology (PROV).
 # The JSON form (the *.schema.json files) remains normative; this mapping is
 # for interoperability with OWL/RDF tooling.
 
@@ -9,13 +9,14 @@
 @prefix ro:   <http://purl.obolibrary.org/obo/RO_> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
 <https://causalontology.org/ns> a owl:Ontology ;
     rdfs:label "Causalontology" ;
     rdfs:comment "A verb-first noun-hosting ontology: reality is what happens, and things are its participants. Reified causation as a programming-language-neutral standard and a shared commons." ;
-    owl:versionInfo "specification 1.0.0 (vectors frozen 2026-07-13)" .
+    owl:versionInfo "specification 2.0.0 (seventeen kinds; vectors re-frozen)" .
 
 # ---------------------------------------------------------------- content kinds
 co:Occurrent a owl:Class ;
@@ -46,6 +47,53 @@ co:Retraction a owl:Class ; rdfs:subClassOf prov:Entity ;
 co:Succession a owl:Class ; rdfs:subClassOf prov:Entity ;
     rdfs:comment "A signed key rotation: successor succeeds predecessor." .
 
+# ------------------------------------------- 2.0.0 new type-tier content kinds
+co:Stratum a owl:Class ;
+    rdfs:label "stratum" ;
+    rdfs:comment "A level of description within a named stratification scheme; strata are comparable only within a scheme, and a strictly lower ordinal is finer-grained. Stratification machinery: BFO/RO/PROV have no stable granularity-level class, so this is left co:-native rather than forced under an upstream term." .
+
+co:Bridge a owl:Class ;
+    rdfs:label "bridge" ;
+    rdfs:comment "A cross-stratal identity map: one coarse occurrent IS a set of finer ones under a closed relation (constitutes | aggregates | realizes | supervenes_on). Stratification machinery; the relation echoes philosophical constitution/supervenience/realization but no single BFO/RO/PROV property covers all four, so the class stays co:-native." .
+
+co:Port a owl:Class ;
+    rdfs:label "port" ;
+    rdfs:comment "A typed interface borne by a continuant. Interface machinery: it depends on its bearer (compare bfo:0000020 specifically dependent continuant and the ro:0000052 inheres-in relation carried by co:bearer), but is left co:-native rather than asserted a BFO dependent continuant." ;
+    rdfs:seeAlso bfo:0000020 .
+
+co:Conduit a owl:Class ;
+    rdfs:label "conduit" ;
+    rdfs:comment "A directed, typed connection from one port to another; TRANSMISSIVE when it has no transform, COMPUTATIONAL when it names the Causal Relation Object it performs on what it carries. Interface machinery, co:-native." .
+
+co:Quality a owl:Class ;
+    rdfs:label "quality" ;
+    rdfs:subClassOf bfo:0000019 ;
+    rdfs:comment "A property TYPE a thing can bear (quantity, categorical, or boolean). Aligned to bfo:0000019 (quality)." .
+
+# ------------------------------------------ 2.0.0 new token-tier content kinds
+co:TokenIndividual a owl:Class ;
+    rdfs:label "token individual" ;
+    rdfs:subClassOf bfo:0000002 ;
+    rdfs:comment "A particular thing: one instance of a continuant type. Kept at bfo:0000002 (continuant) rather than bfo:0000004 (independent continuant) / bfo:0000040 (material entity) because a token individual may instantiate an information continuant, which is generically dependent; most are independent/material. Corresponds to a prov:Entity." ;
+    rdfs:seeAlso prov:Entity .
+
+co:TokenOccurrence a owl:Class ;
+    rdfs:label "token occurrence" ;
+    rdfs:subClassOf bfo:0000003 , prov:Activity ;
+    rdfs:comment "A particular happening at absolute time, with participants. Aligned to bfo:0000003 (occurrent) and prov:Activity; a zero-duration occurrence corresponds to a prov:InstantaneousEvent." ;
+    rdfs:seeAlso prov:InstantaneousEvent .
+
+co:StateAssertion a owl:Class ;
+    rdfs:label "state assertion" ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:comment "A particular individual bearing a particular quality value over an interval: a quality-at-a-time. The value is a specifically dependent continuant (bfo:0000020) instance holding across the interval; modeled as a prov:Entity state." ;
+    rdfs:seeAlso bfo:0000019 .
+
+co:TokenCausalClaim a owl:Class ;
+    rdfs:label "token causal claim" ;
+    rdfs:comment "A particular happening causing a particular happening (token-level causation), optionally instantiating a type-level Causal Relation Object. Like co:CausalRelationObject it is a reified relation and stays co:-native; its cause-to-effect edge aligns with ro:0002410 (causally related to) and prov:wasInfluencedBy, and each token effect is prov:wasGeneratedBy its token causes." ;
+    rdfs:seeAlso ro:0002410 , prov:wasInfluencedBy .
+
 # ------------------------------------------------------------- object properties
 co:hasCause a owl:ObjectProperty ;
     rdfs:domain co:CausalRelationObject ; rdfs:range co:Occurrent ;
@@ -72,7 +120,10 @@ co:realizedIn a owl:ObjectProperty ;
     rdfs:domain co:Realizable ; rdfs:range co:Occurrent ;
     rdfs:seeAlso bfo:0000054 .
 co:bearer a owl:ObjectProperty ;
-    rdfs:domain co:Realizable ; rdfs:range co:Continuant .
+    rdfs:domain [ a owl:Class ; owl:unionOf ( co:Realizable co:Port ) ] ;
+    rdfs:range co:Continuant ;
+    rdfs:seeAlso ro:0000052 ;
+    rdfs:comment "The continuant a realizable or a port inheres in (compare ro:0000052 inheres in)." .
 co:about a owl:ObjectProperty ;
     rdfs:comment "The content object a provenance record is about." .
 co:retracts a owl:ObjectProperty ;
@@ -91,6 +142,99 @@ co:evidenceType    a owl:DatatypeProperty ; rdfs:range xsd:string ;
     rdfs:comment "intervention | observation | simulation | derivation | human_hint | imported (intervention is the strongest grade; ordering strongest to weakest is intervention, observation, simulation, testimony; 2.0.0)" .
 co:strengthEstimate a owl:DatatypeProperty ; rdfs:range xsd:double .
 co:confidence      a owl:DatatypeProperty ; rdfs:range xsd:double .
+
+# ------------------------------------------- 2.0.0 new kinds: object properties
+# Stratification machinery (stratum / bridge / port / conduit): co:-native links.
+co:coarseGrain a owl:ObjectProperty ;
+    rdfs:domain co:Bridge ; rdfs:range co:Occurrent ;
+    rdfs:comment "The occurrent at the coarser stratum of a bridge." .
+co:fineGrain a owl:ObjectProperty ;
+    rdfs:domain co:Bridge ; rdfs:range co:Occurrent ;
+    rdfs:comment "A finer-stratum occurrent that jointly constitutes/aggregates/realizes/subvenes the coarse one." .
+co:accepts a owl:ObjectProperty ;
+    rdfs:domain co:Port ; rdfs:range co:Occurrent ;
+    rdfs:comment "The kinds of occurrent a port accepts (in), emits (out), or both." .
+co:servesRealizable a owl:ObjectProperty ;
+    rdfs:domain co:Port ; rdfs:range co:Realizable ;
+    rdfs:seeAlso bfo:0000017 ;
+    rdfs:comment "Optional: the disposition, function, or role a port serves (the port.realizable field)." .
+co:fromPort a owl:ObjectProperty ;
+    rdfs:domain co:Conduit ; rdfs:range co:Port .
+co:toPort a owl:ObjectProperty ;
+    rdfs:domain co:Conduit ; rdfs:range co:Port .
+co:carries a owl:ObjectProperty ;
+    rdfs:domain co:Conduit ; rdfs:range co:Occurrent ;
+    rdfs:comment "The kinds of occurrent a conduit conducts." .
+co:transform a owl:ObjectProperty ;
+    rdfs:domain co:Conduit ; rdfs:range co:CausalRelationObject ;
+    rdfs:comment "Present makes the conduit COMPUTATIONAL: the Causal Relation Object it performs on what it carries. Absent makes it TRANSMISSIVE." .
+co:atStratum a owl:ObjectProperty ;
+    rdfs:domain co:Quality ; rdfs:range co:Stratum ;
+    rdfs:comment "Optional: the level of description at which a quality is defined." .
+
+# Token tier.
+co:instantiates a owl:ObjectProperty ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( co:TokenIndividual co:TokenOccurrence ) ] ;
+    rdfs:range [ a owl:Class ; owl:unionOf ( co:Continuant co:Occurrent ) ] ;
+    rdfs:seeAlso rdf:type ;
+    rdfs:comment "A token is an instance of its type: a token individual instantiates a continuant type, a token occurrence an occurrent type (compare rdf:type)." .
+co:interval a owl:ObjectProperty ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( co:TokenOccurrence co:StateAssertion ) ] ;
+    rdfs:seeAlso bfo:0000008 ;
+    rdfs:comment "The span of absolute time (a temporal region, bfo:0000008); its start/end map to prov:startedAtTime / prov:endedAtTime." .
+co:hasParticipant a owl:ObjectProperty ;
+    rdfs:domain co:TokenOccurrence ;
+    rdfs:seeAlso ro:0000057 ;
+    rdfs:comment "A role-filling participant of a token occurrence (role + filler); compare ro:0000057 has participant." .
+co:filler a owl:ObjectProperty ;
+    rdfs:range co:TokenIndividual ;
+    rdfs:comment "The particular individual filling a participant role." .
+co:locus a owl:ObjectProperty ;
+    rdfs:domain co:TokenOccurrence ; rdfs:range co:TokenIndividual ;
+    rdfs:comment "Optional: the particular place or bearer at which a token occurrence happened." .
+co:observer a owl:ObjectProperty ;
+    rdfs:domain co:TokenOccurrence ;
+    rdfs:comment "Optional: the source (Ed25519 key) whose experience this token belongs to." .
+co:subject a owl:ObjectProperty ;
+    rdfs:domain co:StateAssertion ; rdfs:range co:TokenIndividual ;
+    rdfs:comment "The particular individual in the asserted state." .
+co:ofQuality a owl:ObjectProperty ;
+    rdfs:domain co:StateAssertion ; rdfs:range co:Quality ;
+    rdfs:comment "The quality whose value a state assertion records." .
+co:coveringLaw a owl:ObjectProperty ;
+    rdfs:domain co:TokenCausalClaim ; rdfs:range co:CausalRelationObject ;
+    rdfs:comment "Optional: the type-level Causal Relation Object a token claim instantiates." .
+
+# ------------------------------ 2.0.0 new kinds: datatype and value properties
+co:stratificationScheme a owl:DatatypeProperty ; rdfs:domain co:Stratum ; rdfs:range xsd:string .
+co:ordinal            a owl:DatatypeProperty ; rdfs:domain co:Stratum ; rdfs:range xsd:integer ;
+    rdfs:comment "Position within the scheme; strictly lower is finer-grained." .
+co:governs            a owl:DatatypeProperty ; rdfs:domain co:Stratum ; rdfs:range xsd:string ;
+    rdfs:comment "A governing framework or body of law at this stratum." .
+co:unit               a owl:DatatypeProperty ; rdfs:range xsd:string ;
+    rdfs:comment "A unit label: UCUM code for a quality/quantity value, temporal unit for a delay, or unit of analysis for a stratum." .
+co:bridgeRelation     a owl:DatatypeProperty ; rdfs:domain co:Bridge ; rdfs:range xsd:string ;
+    rdfs:comment "constitutes | aggregates | realizes | supervenes_on" .
+co:direction          a owl:DatatypeProperty ; rdfs:domain co:Port ; rdfs:range xsd:string ;
+    rdfs:comment "in | out | bidirectional" .
+co:qualityDatatype    a owl:DatatypeProperty ; rdfs:domain co:Quality ; rdfs:range xsd:string ;
+    rdfs:comment "quantity | categorical | boolean" .
+co:designator         a owl:DatatypeProperty ; rdfs:domain co:TokenIndividual ; rdfs:range xsd:string ;
+    rdfs:comment "An OPAQUE local designator; see the privacy requirement (safety.md N5.1.3)." .
+co:intervalOpen       a owl:DatatypeProperty ; rdfs:range xsd:boolean ;
+    rdfs:comment "true asserts the occurrence had NOT ENDED as of this record." .
+co:participantRole    a owl:DatatypeProperty ; rdfs:range xsd:string ;
+    rdfs:comment "agent | patient | instrument | recipient | source | destination | medium" .
+co:stateValue         a owl:DatatypeProperty ;
+    rdfs:comment "The recorded value of a state assertion: a quantity+unit, a categorical string, or a boolean." .
+co:quantity           a owl:DatatypeProperty ; rdfs:range xsd:double .
+co:categorical        a owl:DatatypeProperty ; rdfs:range xsd:string .
+co:booleanValue       a owl:DatatypeProperty ; rdfs:range xsd:boolean .
+co:actualDelay        a owl:DatatypeProperty ;
+    rdfs:comment "The delay actually observed on a token occasion (duration + temporal unit)." .
+co:duration           a owl:DatatypeProperty ; rdfs:range xsd:double .
+co:counterfactual     a owl:DatatypeProperty ; rdfs:domain co:TokenCausalClaim ; rdfs:range xsd:boolean ;
+    rdfs:comment "true asserts the BUT-FOR test for THIS OCCASION ONLY." .
 
 # ------------------------------------------------------------------- provenance
 # A record's source maps to prov:wasAttributedTo; its timestamp to

@@ -12,6 +12,13 @@ enum ContinuantCategory { CNT_CAT_UNSPECIFIED = 0; OBJECT = 1; AGENT = 2; PLACE 
 enum RealizableKind { RLZ_KIND_UNSPECIFIED = 0; DISPOSITION = 1; FUNCTION = 2; ROLE = 3; }
 enum EnrichmentField { FIELD_UNSPECIFIED = 0; ALIASES = 1; PARTICIPANTS = 2; SUBSUMES = 3; PART_OF = 4; REALIZED_IN = 5; }
 
+// 2.0.0 (8 -> 17 kinds): closed enumerations for the nine new content kinds.
+enum BridgeRelation { BRIDGE_RELATION_UNSPECIFIED = 0; CONSTITUTES = 1; AGGREGATES = 2; REALIZES = 3; SUPERVENES_ON = 4; }  // cross-stratal relation (bridge.relation)
+enum PortDirection { PORT_DIRECTION_UNSPECIFIED = 0; IN = 1; OUT = 2; BIDIRECTIONAL = 3; }                                // port.direction
+enum QualityDatatype { QUALITY_DATATYPE_UNSPECIFIED = 0; QUANTITY = 1; CATEGORICAL = 2; BOOLEAN = 3; }                   // quality.datatype
+// role fillers on a token occurrence (token.rolefill.role); prefixed to avoid clashing with ContinuantCategory.AGENT etc. in this package
+enum ParticipantRole { PARTICIPANT_ROLE_UNSPECIFIED = 0; ROLE_AGENT = 1; ROLE_PATIENT = 2; ROLE_INSTRUMENT = 3; ROLE_RECIPIENT = 4; ROLE_SOURCE = 5; ROLE_DESTINATION = 6; ROLE_MEDIUM = 7; }
+
 message TemporalWindow { double minimum_delay = 1; double maximum_delay = 2; TemporalUnit unit = 3; }
 message Alias { string lang = 1; string text = 2; }
 
@@ -42,3 +49,91 @@ message Enrichment {
 }
 message Retraction { string id = 1; string retracts = 2; string source = 3; string reason = 4; string timestamp = 5; string signature = 6; }
 message Succession { string id = 1; string predecessor = 2; string successor = 3; string timestamp = 4; string signature = 5; }
+
+// ---------------------------------------------------------------------------
+// 2.0.0: the nine new content kinds (8 -> 17). Like the original content kinds
+// above, each message name encodes the kind (the JSON `type` const is implicit)
+// and carries no strength/confidence/source/timestamp (Principle P4).
+
+// Shared token-tier helpers.
+message Interval {           // token.$defs.interval
+  string start = 1;          // RFC 3339, UTC, mandatory Z suffix (required)
+  string end = 2;            // optional
+  bool open = 3;             // optional: true asserts NOT ended as of this record
+}
+message Quantity { double quantity = 1; string unit = 2; }   // UCUM unit; MUST match the quality's unit
+message StateValue {         // state.$defs.value (closed oneof)
+  oneof value { Quantity quantity = 1; string categorical = 2; bool boolean = 3; }
+}
+message ActualDelay { double duration = 1; TemporalUnit unit = 2; }   // token_causal_claim.actual_delay
+message RoleFill { ParticipantRole role = 1; string filler = 2; }     // filler: token_individual:<hex>
+
+// --- Type-tier (5) ---
+message Stratum {            // stratum: a level of description within a named scheme
+  string id = 1;            // stratum:<hex>
+  string label = 2;
+  string scheme = 3;        // strata are comparable only within a scheme
+  int64 ordinal = 4;        // STRICTLY LOWER IS FINER-GRAINED; need not be contiguous
+  string unit = 5;          // optional: principal unit of analysis
+  repeated string governs = 6; // optional: governing frameworks / bodies of law
+}
+message Bridge {            // bridge: one coarse occurrent IS a set of finer ones
+  string id = 1;           // bridge:<hex>
+  string coarse = 2;       // occurrent:<hex> at the coarser stratum
+  repeated string fine = 3;// occurrent:<hex> at the finer stratum (minItems 1)
+  BridgeRelation relation = 4;
+}
+message Port {             // port: a typed interface borne by a continuant
+  string id = 1;          // port:<hex>
+  string bearer = 2;      // continuant:<hex> that has this interface
+  string label = 3;
+  PortDirection direction = 4;
+  repeated string accepts = 5; // occurrent:<hex> accepted/emitted (minItems 1)
+  string realizable = 6;  // optional: realizable:<hex> the port serves
+}
+message Conduit {          // conduit: a directed, typed connection from port to port
+  string id = 1;          // conduit:<hex>
+  string label = 2;       // optional
+  string from = 3;        // port:<hex>
+  string to = 4;          // port:<hex>
+  repeated string carries = 5; // occurrent:<hex> conducted (minItems 1)
+  string transform = 6;   // optional causal_relation_object:<hex>; ABSENT => transmissive, PRESENT => computational
+}
+message Quality {          // quality: a property type a thing can bear
+  string id = 1;          // quality:<hex>
+  string label = 2;
+  QualityDatatype datatype = 3;
+  string unit = 4;        // UCUM; REQUIRED iff datatype is quantity
+  string stratum = 5;     // optional stratum:<hex>
+}
+
+// --- Token-tier (4) ---
+message TokenIndividual {   // token_individual: a particular instance of a continuant type
+  string id = 1;          // token_individual:<hex>
+  string instantiates = 2;// continuant:<hex> (mandatory, P1)
+  string designator = 3;  // optional OPAQUE local designator (privacy: safety.md N5.1.3)
+  string part_of = 4;     // optional token_individual:<hex> (TOKEN mereology)
+}
+message TokenOccurrence {   // token_occurrence: a particular happening at absolute time
+  string id = 1;          // token_occurrence:<hex>
+  string instantiates = 2;// occurrent:<hex> (mandatory, P1)
+  Interval interval = 3;  // required
+  repeated RoleFill participants = 4;
+  string locus = 5;       // optional token_individual:<hex>
+  string observer = 6;    // optional ed25519:<hex>
+}
+message StateAssertion {    // state_assertion: an individual bearing a value over an interval
+  string id = 1;          // state_assertion:<hex>
+  string subject = 2;     // token_individual:<hex>
+  string quality = 3;     // quality:<hex>
+  StateValue value = 4;
+  Interval interval = 5;
+}
+message TokenCausalClaim {  // token_causal_claim: a particular happening causing a particular happening
+  string id = 1;          // token_causal_claim:<hex>
+  repeated string causes = 2;  // token_occurrence:<hex> (minItems 1)
+  repeated string effects = 3; // token_occurrence:<hex> (minItems 1)
+  string covering_law = 4;     // optional causal_relation_object:<hex> this token claim instantiates
+  ActualDelay actual_delay = 5;// optional delay observed on this occasion
+  bool counterfactual = 6;     // true asserts the BUT-FOR test for THIS OCCASION ONLY
+}

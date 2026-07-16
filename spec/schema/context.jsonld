@@ -12,7 +12,8 @@
       "@id": "bfo:0000002"
     },
     "realizable": {
-      "@id": "bfo:0000017"
+      "@id": "bfo:0000017",
+      "@type": "@id"
     },
     "causes": {
       "@id": "co:hasCause",
@@ -82,6 +83,109 @@
     "successor": {
       "@id": "co:successorKey",
       "@type": "@id"
-    }
+    },
+
+    "bridge": "co:Bridge",
+    "port": "co:Port",
+    "conduit": "co:Conduit",
+    "token_individual": {
+      "@id": "bfo:0000002"
+    },
+    "token_occurrence": {
+      "@id": "bfo:0000003"
+    },
+    "state_assertion": "co:StateAssertion",
+    "token_causal_claim": "co:TokenCausalClaim",
+
+    "scheme": "co:stratificationScheme",
+    "ordinal": "co:ordinal",
+    "unit": "co:unit",
+    "governs": "co:governs",
+    "coarse": {
+      "@id": "co:coarseGrain",
+      "@type": "@id"
+    },
+    "fine": {
+      "@id": "co:fineGrain",
+      "@type": "@id"
+    },
+    "relation": "co:bridgeRelation",
+    "bearer": {
+      "@id": "co:bearer",
+      "@type": "@id"
+    },
+    "direction": "co:direction",
+    "accepts": {
+      "@id": "co:accepts",
+      "@type": "@id"
+    },
+    "from": {
+      "@id": "co:fromPort",
+      "@type": "@id"
+    },
+    "to": {
+      "@id": "co:toPort",
+      "@type": "@id"
+    },
+    "carries": {
+      "@id": "co:carries",
+      "@type": "@id"
+    },
+    "transform": {
+      "@id": "co:transform",
+      "@type": "@id"
+    },
+    "datatype": "co:qualityDatatype",
+    "stratum": {
+      "@id": "co:atStratum",
+      "@type": "@id"
+    },
+
+    "instantiates": {
+      "@id": "co:instantiates",
+      "@type": "@id"
+    },
+    "designator": "co:designator",
+    "interval": "co:interval",
+    "start": {
+      "@id": "prov:startedAtTime"
+    },
+    "end": {
+      "@id": "prov:endedAtTime"
+    },
+    "open": "co:intervalOpen",
+    "participants": "co:hasParticipant",
+    "role": "co:participantRole",
+    "filler": {
+      "@id": "co:filler",
+      "@type": "@id"
+    },
+    "locus": {
+      "@id": "co:locus",
+      "@type": "@id"
+    },
+    "observer": {
+      "@id": "co:observer",
+      "@type": "@id"
+    },
+    "subject": {
+      "@id": "co:subject",
+      "@type": "@id"
+    },
+    "quality": {
+      "@id": "co:ofQuality",
+      "@type": "@id"
+    },
+    "value": "co:stateValue",
+    "quantity": "co:quantity",
+    "categorical": "co:categorical",
+    "boolean": "co:booleanValue",
+    "covering_law": {
+      "@id": "co:coveringLaw",
+      "@type": "@id"
+    },
+    "actual_delay": "co:actualDelay",
+    "duration": "co:duration",
+    "counterfactual": "co:counterfactual"
   }
 }
