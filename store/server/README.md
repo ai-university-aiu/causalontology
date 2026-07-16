@@ -79,5 +79,5 @@ and auth.
   content addressing and signatures alone.
 
 Tests: `test_beyond.py` (11 checks: SPARQL, triples, reputation, two live
-servers federating) and `test_tierc.py` (8 checks: the CRDT laws, identical
+servers federating) and `test_tierc.py` (8 checks: the Conflict-free Replicated Data Type (CRDT) laws, identical
 cycle-breaking on every replica, forged bytes caught).

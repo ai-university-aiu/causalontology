@@ -70,7 +70,8 @@ corroboration.
 - Provenance records are **add-only**: present or not; rewriting is idempotent
   (Ed25519 is deterministic per RFC 8032, so even signature bytes agree).
 - Replicas merge by **set union**, in any order, with no coordinator — the
-  store is a CRDT by construction. Nothing is removed by merge; removal from
+  store is a Conflict-free Replicated Data Type (CRDT) by construction. Nothing
+  is removed by merge; removal from
   view is retraction (the author) or suppression (policy).
 
 ## Vocabulary convergence

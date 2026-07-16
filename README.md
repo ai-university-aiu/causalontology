@@ -162,7 +162,7 @@ Four **provenance kinds** — signed (Ed25519), add-only records:
 | Retraction | `retraction:` | a source's honest withdrawal of its own record — history never erased |
 | Succession | `succession:` | key rotation with lineage |
 
-**The load-bearing decision:** content is separated from provenance, uniformly. The same claim from any number of sources is *one* object; contradictory claims coexist, each with signed provenance; trust is a consumer-chosen policy, never forced consensus. The whole store merges by set union — a CRDT by construction.
+**The load-bearing decision:** content is separated from provenance, uniformly. The same claim from any number of sources is *one* object; contradictory claims coexist, each with signed provenance; trust is a consumer-chosen policy, never forced consensus. The whole store merges by set union — a Conflict-free Replicated Data Type (CRDT) by construction.
 
 ## Quickstart (30 seconds)
 

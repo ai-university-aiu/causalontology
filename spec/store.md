@@ -58,7 +58,8 @@ implementation-defined) after.
 - **A (central hosted)** — start here. One store behind the binding.
 - **B (federated)** — nodes push/pull like Git.
 - **C (decentralized)** — content-addressed Merkle DAG; the data model is a
-  CRDT by construction (immutable objects + add-only records + set-union),
+  Conflict-free Replicated Data Type (CRDT) by construction (immutable objects
+  + add-only records + set-union),
   with the deterministic cycle-breaking view rule as the only edge case.
 The data model migrates A -> B -> C unchanged.
 
