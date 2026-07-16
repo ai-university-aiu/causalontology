@@ -40,8 +40,14 @@ The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete 
 
 ## Thirty-second taste
 
+**Import path (2.0.0):** because this is a major version 2 release, the Go
+module carries the `/v2` suffix that Go requires for any version 2 or higher.
+Install it with `go get github.com/ai-university-aiu/causalontology/bindings/go/v2@v2.0.0`
+and import it as shown below (the `/v2` is part of the path). The 1.0.0 line
+remains available at the un-suffixed path, `.../bindings/go@v1.0.0`.
+
 ```go
-import co "causalontology/causalontology"
+import co "github.com/ai-university-aiu/causalontology/bindings/go/v2/causalontology"
 
 store := co.NewStore(true)
 press, _ := store.Put(map[string]any{
