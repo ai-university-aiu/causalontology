@@ -27,3 +27,4 @@ node_modules/
 /bindings/**/obj/
 /bindings/**/bin/Debug/
 /bindings/**/bin/Release/
+/bindings/zig/.zig-cache/
