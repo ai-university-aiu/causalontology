@@ -19,7 +19,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | [causalontology-lua](lua/) | **LuaRocks — LIVE** (`luarocks install causalontology`) | **published 1.0.0 — 107/107**; pure-Lua crypto incl. a hand-built bignum layer |
 | [causalontology-ruby](ruby/) | **[RubyGems — LIVE](https://rubygems.org/gems/causalontology)** (`gem install causalontology`) | **published 2.0.0 — 107/107 in CI**; stdlib only (1.0.0 yanked) |
 | [causalontology-php](php/) | **[Packagist — LIVE](https://packagist.org/packages/causalontology/causalontology)** (`composer require causalontology/causalontology`) | **published 1.0.0 — 107/107 in CI**; bundled sodium/hash only |
-| [causalontology-elixir](elixir/) | **[Hex — LIVE](https://hex.pm/packages/causalontology)** (`{:causalontology, "~> 1.0"}`) | **published 1.0.0 — 107/107 in CI**; OTP :crypto only |
+| [causalontology-elixir](elixir/) | **[Hex — LIVE](https://hex.pm/packages/causalontology)** (`{:causalontology, "~> 2.0"}`) | **published 2.0.0 — 107/107 in CI**; OTP :crypto only (1.0.0 retired) |
 | [causalontology-haskell](haskell/) | Hackage (publication pending) | source complete, GHC-bundled packages only, pure-Haskell SHA-2 + Ed25519 — **verified in CI** |
 | [causalontology-r](r/) | CRAN (submission is a human-review process, stated plainly) | source complete (sodium + openssl CRAN packages) — **verified in CI** |
 | [causalontology-cpp](cpp/) | source + release (vcpkg/Conan manifests welcome) | **verified locally — 107/107, zero warnings**; zero dependencies incl. a hand-built uint64-limb bignum (361/361 cross-checks vs Python) |
