@@ -29,7 +29,7 @@ answer). Everything else uses `dart:convert`, `dart:io`, and
 $ dart bindings/dart/bin/conformance.dart
 ...
 38/38 vectors passed
-causalontology-dart is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-dart is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
@@ -38,7 +38,7 @@ location (then the working directory) until it finds `conformance/vectors`;
 the schemas are read from `spec/schema` under the same root (overridable
 with `CAUSALONTOLOGY_SPEC` naming the `spec/` directory).
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 Ed25519 is deterministic (RFC 8032), and the canonical bytes are pinned by
 RFC 8785, so identifiers and signatures are byte-compatible across the

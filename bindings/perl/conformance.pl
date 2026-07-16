@@ -6,7 +6,7 @@
 # runner exits nonzero on any failure. Mirrors
 # bindings/python/tests/run_conformance.py exactly.
 #
-# The vectors are frozen at specification 1.0.0: they carry concrete 64-hex
+# The vectors are frozen at specification 2.0.0: they carry concrete 64-hex
 # identifiers and real keys, which pass through the (retained) normalization
 # unchanged; behavioral vectors derive deterministic keypairs from the seed
 # sha256("key:" + name).

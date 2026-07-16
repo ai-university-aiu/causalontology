@@ -28,7 +28,7 @@ $ cd bindings/go
 $ go run ./conformance
 ...
 38/38 vectors passed
-causalontology-go is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-go is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
@@ -36,7 +36,7 @@ environment variable when set, otherwise by walking up from the working
 directory until it finds `conformance/vectors`; the schemas are read from
 `spec/schema` under the same root.
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 ## Thirty-second taste
 

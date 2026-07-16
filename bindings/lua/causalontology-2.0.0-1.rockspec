@@ -7,7 +7,7 @@ version = "2.0.0-1"
 
 source = {
   url = "git+https://github.com/ai-university-aiu/causalontology.git",
-  tag = "v1.0.0",
+  tag = "v2.0.0",
 }
 
 description = {

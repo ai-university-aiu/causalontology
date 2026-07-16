@@ -5,7 +5,7 @@
 //! implementation is conformant if and only if it passes every vector; this
 //! runner exits nonzero on any failure.
 //!
-//! The vectors are frozen at specification 1.0.0: they carry concrete 64-hex
+//! The vectors are frozen at specification 2.0.0: they carry concrete 64-hex
 //! identifiers, real Ed25519 keys, and a real verifying signature, which the
 //! normalizer passes through unchanged. The remaining symbolic names used by
 //! the behavioral vectors ("continuant:dog", key "alice") normalize

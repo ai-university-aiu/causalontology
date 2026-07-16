@@ -26,7 +26,7 @@ RFC 8032 — deterministic signatures, seed-derived keypairs), `ext-hash`
 $ php bindings/php/conformance.php
 ...
 38/38 vectors passed
-causalontology-php is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-php is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 The runner reads the vectors from `../../conformance/vectors` and the
@@ -34,7 +34,7 @@ schemas from `../../spec/schema` relative to its own location; the schema
 location can be overridden with the environment variable
 `CAUSALONTOLOGY_SPEC` (naming the `spec/` directory).
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
 concrete identifiers, real keys, and a real verifying signature. The
 harness's old normalization now simply passes frozen values through.
 

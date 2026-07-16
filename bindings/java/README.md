@@ -26,7 +26,7 @@ CI runs JDK 21).
 $ ./run_conformance.sh
 ...
 38/38 vectors passed
-causalontology-java is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-java is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 The script compiles `src/` into `out/` and runs
@@ -36,7 +36,7 @@ read from `../../conformance/vectors` and the schemas from
 property `causalontology.spec` or the environment variable
 `CAUSALONTOLOGY_SPEC` (either names the `spec/` directory).
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 ## Status
 

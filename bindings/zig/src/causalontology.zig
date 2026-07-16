@@ -8,8 +8,8 @@
 //! Causalontology is a verb-first noun-hosting ontology: reality is what
 //! happens, and things are its participants.
 
-/// Specification 1.0.0 (vectors frozen 2026-07-13).
-pub const version = "1.0.0";
+/// Specification 2.0.0 (vectors frozen 2026-07-13).
+pub const version = "2.0.0";
 
 pub const jcs = @import("jcs.zig");
 pub const canonical = @import("canonical.zig");

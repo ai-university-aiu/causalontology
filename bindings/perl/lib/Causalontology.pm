@@ -13,8 +13,8 @@ package Causalontology;
 use strict;
 use warnings;
 
-# specification 1.0.0 (vectors frozen 2026-07-13)
-our $VERSION = '1.0.0';
+# specification 2.0.0 (vectors frozen 2026-07-13)
+our $VERSION = '2.0.0';
 
 use Causalontology::JSON ();
 use Causalontology::JCS ();

@@ -30,7 +30,7 @@ division, and bitwise operators; no LuaJIT, no C modules, no rocks).
 $ lua bindings/lua/conformance.lua
 ...
 38/38 vectors passed
-causalontology-lua is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-lua is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
@@ -38,7 +38,7 @@ environment variable when set, otherwise two directories above the script;
 the schemas are read from `spec/schema` under the same root (overridable
 with `CAUSALONTOLOGY_SPEC`).
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
 concrete identifiers, real keys, and a real verifying signature. The
 harness's old normalization now simply passes frozen values through.
 
@@ -72,7 +72,7 @@ arithmetic (288 random-operand and curve-intermediate cases), and both
 hash functions and the signature scheme carry load-time known-answer
 gates. CI runs the same `lua bindings/lua/conformance.lua` command.
 
-Packaging: `causalontology-1.0.0-1.rockspec` (LuaRocks, zero
+Packaging: `causalontology-2.0.0-1.rockspec` (LuaRocks, zero
 dependencies).
 
 License: "The attribution always; no profit, no problem license." - see

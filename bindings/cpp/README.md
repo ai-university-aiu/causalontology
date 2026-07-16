@@ -33,7 +33,7 @@ C++17 compiler**; compiles clean with `-Wall -Wextra`.
 $ bash bindings/cpp/run_conformance.sh
 ...
 38/38 vectors passed
-causalontology-cpp is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-cpp is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 The script compiles `src/*.cpp` and `conformance.cpp` with
@@ -44,7 +44,7 @@ otherwise by walking up from the working directory until it finds
 `conformance/vectors`; the schemas are read from `spec/schema` under the
 same root (overridable with `CAUSALONTOLOGY_SPEC`).
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
 concrete identifiers, real keys, and a real verifying signature. The
 harness's old normalization now simply passes frozen values through;
 behavioral vectors derive deterministic keypairs from the seed

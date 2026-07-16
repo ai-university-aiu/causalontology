@@ -46,10 +46,10 @@ $ Rscript -e "install.packages(c('sodium','openssl'), repos='https://cloud.r-pro
 $ Rscript bindings/r/conformance.R
 ...
 38/38 vectors passed
-causalontology-r is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-r is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
 concrete identifiers, real keys, and a real verifying signature. The
 harness's old normalization now simply passes frozen values through.
 
@@ -91,7 +91,7 @@ CRAN packages) — there is no R interpreter on the authoring machine, so
 CI is the gate, as it is for every binding.
 
 The `DESCRIPTION` file gives the directory the shape of an R package
-(`Package: causalontology`, version 1.0.0). Publishing it on CRAN is a
+(`Package: causalontology`, version 2.0.0). Publishing it on CRAN is a
 separate, human-driven process — CRAN submissions go through a manual
 review by the CRAN team and require a human maintainer to submit,
 respond, and confirm; no claim of CRAN presence is made here.

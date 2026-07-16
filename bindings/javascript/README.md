@@ -67,10 +67,10 @@ declared as `Uint8Array` (`co.Bytes`), which every Node `Buffer` is.
 $ node tests/run_conformance.js
 ...
 38/38 vectors passed
-causalontology-js is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-js is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 ## License
 

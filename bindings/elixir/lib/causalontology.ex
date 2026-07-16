@@ -11,9 +11,9 @@ defmodule Causalontology do
   happens, and things are its participants.
   """
 
-  @version "1.0.0"
+  @version "2.0.0"
 
-  @doc "The binding version (specification 1.0.0, vectors frozen 2026-07-13)."
+  @doc "The binding version (specification 2.0.0, vectors frozen 2026-07-13)."
   def version, do: @version
 
   # Canonicalization and identity.

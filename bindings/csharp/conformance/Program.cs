@@ -4,7 +4,7 @@
 // implementation is conformant if and only if it passes every vector;
 // this runner exits nonzero on any failure.
 //
-// The vectors are frozen at specification 1.0.0: they carry concrete
+// The vectors are frozen at specification 2.0.0: they carry concrete
 // 64-hex identifiers, real Ed25519 keys, and a real verifying signature,
 // which pass through normalization unchanged. Behavioral vectors still
 // derive deterministic keypairs in this harness from symbolic key names

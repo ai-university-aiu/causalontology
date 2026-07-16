@@ -33,7 +33,7 @@ entry point:
 $ bash bindings/zig/run_conformance.sh
 ...
 38/38 vectors passed
-causalontology-zig is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-zig is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 The script uses `zig` from PATH when present; otherwise it downloads the
@@ -47,14 +47,14 @@ environment variable when set, otherwise by walking up from the working
 directory until it finds `conformance/vectors`; the schemas are read from
 `spec/schema` under the same root.
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
 concrete identifiers, real keys, and a real verifying signature. The
 harness's old normalization now simply passes frozen values through.
 
 ## Consuming the package
 
 Zig packages are consumed by git URL + hash — the `build.zig.zon`
-manifest (name `causalontology`, version `1.0.0`) is the registry story:
+manifest (name `causalontology`, version `2.0.0`) is the registry story:
 
 ```
 zig fetch --save https://github.com/.../causalontology.git

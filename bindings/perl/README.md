@@ -28,7 +28,7 @@ Verified locally (Perl 5.38, pure-Perl `Math::BigInt::Calc` backend):
 $ perl bindings/perl/conformance.pl
 ...
 38/38 vectors passed
-causalontology-perl is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-perl is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 The runner locates the repository root from its own path (two levels up
@@ -49,7 +49,7 @@ Perl carries every module used:
         run: perl bindings/perl/conformance.pl
 ```
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
 concrete identifiers, real keys, and a real verifying signature. The
 harness's old normalization now simply passes frozen values through;
 behavioral vectors derive deterministic keypairs from the seed
@@ -77,7 +77,7 @@ print "$claim\n", scalar($store->gaps('missing_field')), " gap(s)\n";
 ## Packaging
 
 `Makefile.PL` and `META.json` carry standard CPAN metadata (dist
-`Causalontology`, version 1.0.0). Both declare only core prerequisites.
+`Causalontology`, version 2.0.0). Both declare only core prerequisites.
 
 License: "The attribution always; no profit, no problem license.
 (Apache 2.0 text)" — see `LICENSE` here and the repository `NOTICE`.

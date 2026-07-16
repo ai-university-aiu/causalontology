@@ -28,7 +28,7 @@ $ cd bindings/elixir
 $ elixir conformance.exs
 ...
 38/38 vectors passed
-causalontology-elixir is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-elixir is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
@@ -36,7 +36,7 @@ environment variable when set, otherwise from its own source location inside
 `bindings/elixir/`; the schemas are read from `spec/schema` under the same
 root (overridable with `CAUSALONTOLOGY_SPEC`, naming the `spec/` directory).
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry concrete
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete
 identifiers, real keys, and a real verifying signature. The harness's old
 normalization now simply passes frozen values through.
 

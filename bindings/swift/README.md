@@ -27,10 +27,10 @@ $ cd bindings/swift
 $ swift run conformance
 ...
 38/38 vectors passed
-causalontology-swift is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-swift is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
 environment variable when set, otherwise from its own source location inside

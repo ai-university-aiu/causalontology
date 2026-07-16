@@ -7,7 +7,7 @@ and the WebAssembly core.**
 cargo run --bin conformance
 ...
 38/38 vectors passed
-causalontology-rust is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-rust is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 Dependencies are the ecosystem-vetted primitives only (`sha2`,

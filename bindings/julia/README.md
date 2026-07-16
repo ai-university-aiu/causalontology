@@ -28,7 +28,7 @@ lists only the `SHA` stdlib. Requires **Julia 1.6 or newer** (CI runs
 $ julia bindings/julia/conformance.jl
 ...
 38/38 vectors passed
-causalontology-julia is CONFORMANT to the suite (vectors frozen at specification 1.0.0).
+causalontology-julia is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
 Verified locally (38/38, exit 0) and run in CI by the `julia` job of
@@ -37,7 +37,7 @@ repository root relative to its own location inside `bindings/julia/`; the
 schemas are read from `spec/schema` under the same root (overridable with
 `CAUSALONTOLOGY_SPEC`, which names the `spec/` directory).
 
-The vectors are frozen at specification 1.0.0 (2026-07-13): they carry
+The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
 concrete identifiers, real keys, and a real verifying signature. The
 harness's old normalization now simply passes frozen values through, and
 the behavioral vectors derive deterministic keypairs from the seed
