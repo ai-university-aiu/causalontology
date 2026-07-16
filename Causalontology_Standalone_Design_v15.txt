@@ -345,7 +345,7 @@ Causalontology is unusually well-architected for both roles: the Causal Relation
 
 In one phrase, the paradigm has a name: Causalontology is a VERB-FIRST NOUN-HOSTING ONTOLOGY.
 
-Verb-first: the atomic building block is the occurrent - the happening - the fundamental unit reifies the master verb, causes, and even knowing is verb-first, because knowledge enters by acting (intervention) rather than by watching.
+Verb-first: the atomic building block is the occurrent - the happening - the fundamental unit reifies the master verb, causes, and even knowing is verb-first, because knowledge enters by acting (intervention) and by active watching - in which the viewer identifies with the watched actor and internally simulates the action, as when one learns a dance from an instructional video - and not by passive watching, through which little or no knowledge enters. This dovetails with the 2.0.0 evidence_type simulation: an internally simulated intervention has a first-class evidential slot, distinct from raw observation and from physical intervention.
 
 Noun-hosting: things (continuants) are first-class citizens, understood through what they do and what happens to them - Causalontology governs the verbs and hosts the nouns, with realizable entities as the hinge between them.
 
