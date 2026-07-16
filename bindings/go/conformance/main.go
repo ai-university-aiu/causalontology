@@ -26,7 +26,7 @@ import (
 	"regexp"
 	"strings"
 
-	co "github.com/ai-university-aiu/causalontology/bindings/go/causalontology"
+	co "github.com/ai-university-aiu/causalontology/bindings/go/v2/causalontology"
 )
 
 // vectorsDir is the conformance/vectors directory, set by main.
