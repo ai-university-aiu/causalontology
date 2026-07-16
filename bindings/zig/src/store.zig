@@ -26,7 +26,12 @@ const ObjectMap = jcs.ObjectMap;
 const Array = jcs.Array;
 const Allocator = jcs.Allocator;
 
-const content_kinds = [_][]const u8{ "occurrent", "causal_relation_object", "continuant", "realizable" };
+const content_kinds = [_][]const u8{
+    "occurrent",        "causal_relation_object", "continuant",       "realizable",
+    "stratum",          "bridge",                 "port",             "conduit",
+    "quality",          "token_individual",       "token_occurrence", "state_assertion",
+    "token_causal_claim",
+};
 const record_kinds = [_][]const u8{ "assertion", "enrichment", "retraction", "succession" };
 
 fn inList(list: []const []const u8, s: []const u8) bool {
