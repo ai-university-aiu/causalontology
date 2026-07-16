@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "causalontology"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "ed25519-dalek",
  "regex",

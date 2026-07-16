@@ -18,3 +18,12 @@ node_modules/
 /bindings/go/go.sum
 /bindings/python/dist/
 /bindings/python/*.egg-info/
+/.build/
+/bindings/**/.build/
+/bindings/dart/.dart_tool/
+/bindings/haskell/dist-newstyle/
+/bindings/kotlin/*.jar
+/bindings/java/out/
+/bindings/**/obj/
+/bindings/**/bin/Debug/
+/bindings/**/bin/Release/
