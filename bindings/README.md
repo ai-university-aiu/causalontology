@@ -17,7 +17,7 @@ is thin: types can be generated from `../spec/schema/`; only identity
 | [causalontology-dart](dart/) | **[pub.dev — LIVE](https://pub.dev/packages/causalontology)** (`dart pub add causalontology`) | **published 1.0.0 — 107/107**; pure-Dart crypto, zero dependencies |
 | [causalontology-perl](perl/) | CPAN (publication pending) | **verified locally — 107/107 in 8.9 s**; core modules only |
 | [causalontology-lua](lua/) | **LuaRocks — LIVE** (`luarocks install causalontology`) | **published 1.0.0 — 107/107**; pure-Lua crypto incl. a hand-built bignum layer |
-| [causalontology-ruby](ruby/) | **[RubyGems — LIVE](https://rubygems.org/gems/causalontology)** (`gem install causalontology`) | **published 1.0.0 — 107/107 in CI**; stdlib only |
+| [causalontology-ruby](ruby/) | **[RubyGems — LIVE](https://rubygems.org/gems/causalontology)** (`gem install causalontology`) | **published 2.0.0 — 107/107 in CI**; stdlib only (1.0.0 yanked) |
 | [causalontology-php](php/) | **[Packagist — LIVE](https://packagist.org/packages/causalontology/causalontology)** (`composer require causalontology/causalontology`) | **published 1.0.0 — 107/107 in CI**; bundled sodium/hash only |
 | [causalontology-elixir](elixir/) | **[Hex — LIVE](https://hex.pm/packages/causalontology)** (`{:causalontology, "~> 1.0"}`) | **published 1.0.0 — 107/107 in CI**; OTP :crypto only |
 | [causalontology-haskell](haskell/) | Hackage (publication pending) | source complete, GHC-bundled packages only, pure-Haskell SHA-2 + Ed25519 — **verified in CI** |
