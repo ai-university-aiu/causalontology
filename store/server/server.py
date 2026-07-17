@@ -14,8 +14,12 @@ causalontology-py. Zero dependencies: Python standard library only.
   resource use; the per-record Ed25519 signatures carry the trust).
 - Unsigned or unverifiable records are accepted into quarantine only (HTTP
   202), excluded from default views, per spec/safety.md.
-- With --state, the store is loaded at start and persisted after every
-  accepted write.
+- By default the store is a persistent, content-addressed SQLite node
+  (storage.py): durable across restarts, idempotent by content address, and
+  integrity-checked on write. The database path comes from --db or the
+  CAUSALONTOLOGY_STORE_DB / CAUSALONTOLOGY_DATA environment variable, with a
+  default under store/server/data/. --in-memory keeps the volatile store, and
+  the legacy --state JSON snapshot still works over the in-memory store.
 """
 
 import argparse
@@ -633,8 +637,14 @@ def main():
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--token", default=None,
                     help="bearer token required for writes")
+    ap.add_argument("--db", default=None,
+                    help="SQLite database file for the persistent node (env "
+                         "CAUSALONTOLOGY_STORE_DB / CAUSALONTOLOGY_DATA; "
+                         "default store/server/data/causalontology.db)")
+    ap.add_argument("--in-memory", action="store_true",
+                    help="volatile store: keep data in memory only (lost on exit)")
     ap.add_argument("--state", default=None,
-                    help="JSON file for persistence across restarts")
+                    help="legacy JSON snapshot persistence over the in-memory store")
     ap.add_argument("--no-enforce", action="store_true",
                     help="replica mode: skip the enforcing-tier write gates")
     ap.add_argument("--demand-threshold", type=int, default=3,
@@ -642,19 +652,33 @@ def main():
                          "high-demand (the demand_supply gap)")
     args = ap.parse_args()
 
-    store = InMemoryStore(enforcing=not args.no_enforce)
-    server = StoreServer((args.host, args.port), store,
-                         token=args.token, state_path=args.state,
-                         demand_threshold=args.demand_threshold)
-    server.restore()
+    persistent = None
+    if args.in_memory or args.state:
+        store = InMemoryStore(enforcing=not args.no_enforce)
+        server = StoreServer((args.host, args.port), store,
+                             token=args.token, state_path=args.state,
+                             demand_threshold=args.demand_threshold)
+        server.restore()
+        backend = "state file %s" % args.state if args.state else "in-memory (volatile)"
+    else:
+        from storage import PersistentStore, default_db_path
+        db_path = args.db or default_db_path()
+        store = persistent = PersistentStore(enforcing=not args.no_enforce,
+                                             db_path=db_path)
+        server = StoreServer((args.host, args.port), store,
+                             token=args.token, state_path=None,
+                             demand_threshold=args.demand_threshold)
+        backend = "sqlite %s" % db_path
     print("causalontology Tier A store on http://%s:%d  "
-          "(spec %s, sdk %s, %d objects, %d records)"
-          % (args.host, args.port, SPEC_VERSION, SDK_VERSION,
-             len(store.objects), len(store.records)))
+          "(spec %s, sdk %s, %d objects, %d records) [%s]"
+          % (args.host, server.server_address[1], SPEC_VERSION, SDK_VERSION,
+             len(store.objects), len(store.records), backend))
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         server.persist()
+        if persistent is not None:
+            persistent.close()
         print("\nstate persisted; goodbye")
 
 
