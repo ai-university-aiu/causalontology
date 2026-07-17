@@ -27,6 +27,13 @@ CLAUDE.md
 *.db-wal
 *.db-shm
 
+# Signed snapshot dumps (Phase two): never commit a real multi-megabyte dump,
+# but DO keep the small committed example under dumps/example/ for the tests.
+/dumps/*
+!/dumps/example/
+# Private signing seeds for the genesis node (never commit)
+*.seed
+
 # Python
 *.pyc
 *.pyo

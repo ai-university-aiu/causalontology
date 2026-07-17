@@ -54,9 +54,14 @@ restarted, except that its data survived.
   database is never committed). A cold start against an existing database
   serves everything previously stored with no re-ingest step.
 
-Phases two through four remain open roadmap (Part 21): a genesis full node plus
-signed snapshot dumps, then Tier B federation with gossip and anti-entropy,
-then light clients with CDN caching and hash-prefix sharding.
+Phase two is now delivered too: a genesis full node publishes **signed snapshot
+dumps** — deterministic, content-addressed, Merkle-committed, Ed25519-signed,
+verifiable offline and mirror-able by union-merge (token tier excluded by
+default). See [`snapshot.py`](snapshot.py), [`snapshot_export.py`](snapshot_export.py),
+[`snapshot_import.py`](snapshot_import.py), and [`spec/snapshot.md`](../../spec/snapshot.md).
+Phases three and four remain open roadmap (Part 21): Tier B federation with
+gossip and anti-entropy, then light clients with CDN caching and hash-prefix
+sharding.
 
 ## What it implements
 
