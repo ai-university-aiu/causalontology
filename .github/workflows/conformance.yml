@@ -229,3 +229,43 @@ jobs:
           java-version: "21"
       - name: conformance (107 vectors)
         run: bash bindings/kotlin/run_conformance.sh
+
+  # The reference implementation gates itself. Prolog is listed first among the
+  # bindings and PrologAI is named the reference implementation, so its
+  # conformance must be gated here, not merely asserted in prose. PrologAI is
+  # checked out beside the standard and run through its own 107-vector
+  # conformance harness (built in PrologAI Work Package 425 / WP-425) against
+  # THIS repository's canonical conformance/vectors/. Both repositories thus
+  # stay in lockstep on one vector set: the reference implementation cannot
+  # silently drift from the specification. This job is distinct from the
+  # `gardener` job, which also installs SWI-Prolog but runs the Mentova gardener
+  # demo rather than the 107 conformance vectors.
+  prolog:
+    runs-on: ubuntu-latest
+    steps:
+      # The standard: this repository's canonical conformance/vectors/ frozen at
+      # specification 2.0.0.
+      - name: check out the standard (causalontology)
+        uses: actions/checkout@v4
+        with:
+          path: causalontology
+      # The reference implementation, pinned to its Order One compliance commit
+      # 7b3aa86 ("declare and pass Causalontology 2.0.0 conformance (107/107
+      # vectors)", WP-425), which is also PrologAI main HEAD.
+      - name: check out the reference implementation (PrologAI)
+        uses: actions/checkout@v4
+        with:
+          repository: ai-university-aiu/PrologAI
+          ref: 7b3aa86b00e70967bcd2438879984138e5e64024
+          path: prologai
+      - name: install SWI-Prolog
+        run: sudo apt-get update && sudo apt-get install -y swi-prolog
+      # Overlay the standard's canonical vectors onto the harness's vendored
+      # copy, then run PrologAI's harness. Overlaying the canonical set means any
+      # drift between the two repositories fails this job; a clean run gates the
+      # reference implementation on the exact 107 vectors (V01-V107) the other
+      # 21 bindings are gated on.
+      - name: conformance (107 vectors, reference implementation vs canonical)
+        run: |
+          cp -a causalontology/conformance/vectors/. prologai/tests/causalontology_conformance/vectors/
+          cd prologai && ./bin/run_causalontology_conformance.sh
