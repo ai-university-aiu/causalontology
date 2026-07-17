@@ -1,0 +1,5 @@
+# Generated for the causalontology R binding.
+exportPattern("^co_")
+importFrom(openssl, read_key, read_pubkey, signature_create, signature_verify, write_der)
+importFrom(stats, setNames)
+importFrom(utils, tail)

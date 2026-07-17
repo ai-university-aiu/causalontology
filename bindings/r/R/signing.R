@@ -3,14 +3,13 @@
 # Record-level signing and verification (spec/provenance.md), ported from
 # the reference bindings/python/causalontology/signing.py.
 #
-# Ed25519 (RFC 8032). No CRAN crypto package is installed in this toolchain
-# (neither the 'sodium' nor the 'openssl' R package is present), so the
-# primitive is delegated to the system OpenSSL command-line tool, which
-# ships a trusted Ed25519 implementation. A 32-byte seed is wrapped in the
-# fixed RFC 8410 PKCS#8 DER envelope and handed to `openssl pkeyutl`; the
-# public key is the DER SubjectPublicKeyInfo envelope. The RFC 8032 TEST 1
-# known-answer check in conformance.R gates these assumptions (the derived
-# public key must equal the vector's).
+# Ed25519 (RFC 8032) via the 'openssl' R package (Imports; openssl >= 1.4.1
+# provides Ed25519). A 32-byte seed is wrapped in the fixed RFC 8410 PKCS#8
+# DER envelope and read with openssl::read_key(); the public key is the DER
+# SubjectPublicKeyInfo envelope, read with openssl::read_pubkey(). No system
+# command-line tool is invoked. The RFC 8032 TEST 1 known-answer check in
+# conformance.R gates these assumptions (the derived public key must equal
+# the vector's).
 #
 # The signature is computed over the record's canonical identity-bearing
 # bytes (the RFC 8785 form -- id and signature are never identity-bearing),
@@ -26,69 +25,31 @@
 .co_ed_priv_prefix <- function() co_hex2bin("302e020100300506032b657004220420")
 .co_ed_pub_prefix  <- function() co_hex2bin("302a300506032b6570032100")
 
-.co_openssl <- function() {
-  bin <- Sys.getenv("OPENSSL", unset = "openssl")
-  bin
-}
-
-.co_tmp <- function(ext) tempfile(fileext = ext)
-
 # Private-key DER (raw) from a 32-byte seed.
 .co_ed_priv_der <- function(seed32) c(.co_ed_priv_prefix(), seed32)
 
-# 32-byte public key (raw) for a 32-byte seed, via `openssl pkey -pubout`.
+# The openssl private-key object for a 32-byte seed (via the PKCS#8 envelope).
+.co_ed_key <- function(seed32) openssl::read_key(.co_ed_priv_der(seed32), der = TRUE)
+
+# 32-byte public key (raw) for a 32-byte seed.
 .co_ed_public_raw <- function(seed32) {
-  skder <- .co_tmp(".der")
-  pkder <- .co_tmp(".der")
-  on.exit(unlink(c(skder, pkder)), add = TRUE)
-  writeBin(.co_ed_priv_der(seed32), skder)
-  status <- suppressWarnings(system2(
-    .co_openssl(),
-    c("pkey", "-inform", "DER", "-in", shQuote(skder),
-      "-pubout", "-outform", "DER", "-out", shQuote(pkder)),
-    stdout = FALSE, stderr = FALSE))
-  if (!identical(status, 0L) || !file.exists(pkder)) {
-    stop("openssl: could not derive the Ed25519 public key")
-  }
-  der <- readBin(pkder, "raw", n = 128L)
+  der <- openssl::write_der(.co_ed_key(seed32)$pubkey)
   utils::tail(der, 32L)   # the trailing 32 bytes are the raw public key
 }
 
 # Ed25519 signature (raw, 64 bytes) of a message under a 32-byte seed.
+# hash = NULL: Ed25519 signs the raw message (it does its own hashing).
 .co_ed_sign <- function(seed32, message_raw) {
-  skder <- .co_tmp(".der")
-  mf <- .co_tmp(".bin")
-  sf <- .co_tmp(".bin")
-  on.exit(unlink(c(skder, mf, sf)), add = TRUE)
-  writeBin(.co_ed_priv_der(seed32), skder)
-  writeBin(message_raw, mf)
-  status <- suppressWarnings(system2(
-    .co_openssl(),
-    c("pkeyutl", "-sign", "-inkey", shQuote(skder), "-keyform", "DER",
-      "-rawin", "-in", shQuote(mf), "-out", shQuote(sf)),
-    stdout = FALSE, stderr = FALSE))
-  if (!identical(status, 0L) || !file.exists(sf)) {
-    stop("openssl: Ed25519 signing failed")
-  }
-  readBin(sf, "raw", n = 64L)
+  openssl::signature_create(message_raw, hash = NULL, key = .co_ed_key(seed32))
 }
 
 # TRUE iff a signature verifies for a message under a raw 32-byte public key.
+# openssl::signature_verify signals an error on a bad signature, so the caller
+# (co_ed25519_verify) wraps this in tryCatch.
 .co_ed_verify <- function(public_raw, message_raw, signature_raw) {
-  pkder <- .co_tmp(".der")
-  mf <- .co_tmp(".bin")
-  sf <- .co_tmp(".bin")
-  on.exit(unlink(c(pkder, mf, sf)), add = TRUE)
-  writeBin(c(.co_ed_pub_prefix(), public_raw), pkder)
-  writeBin(message_raw, mf)
-  writeBin(signature_raw, sf)
-  status <- suppressWarnings(system2(
-    .co_openssl(),
-    c("pkeyutl", "-verify", "-pubin", "-inkey", shQuote(pkder),
-      "-keyform", "DER", "-rawin", "-in", shQuote(mf),
-      "-sigfile", shQuote(sf)),
-    stdout = FALSE, stderr = FALSE))
-  identical(status, 0L)
+  pubkey <- openssl::read_pubkey(c(.co_ed_pub_prefix(), public_raw), der = TRUE)
+  isTRUE(openssl::signature_verify(message_raw, signature_raw,
+                                   hash = NULL, pubkey = pubkey))
 }
 
 # Ed25519 verify as a plain TRUE/FALSE over raw byte vectors.
