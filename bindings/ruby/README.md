@@ -6,7 +6,7 @@
 **Zero gems.** The Ruby standard library carries everything the standard
 needs: `json` (whose parser keeps the integer-versus-decimal source
 distinction — `1` parses to `Integer`, `1.0` to `Float` — so it survives to
-the canonicalizer), `digest` (SHA-256 and SHA-512), and Ruby's native
+the canonicalizer), `digest` (Secure Hash Algorithm 256-bit (SHA-256) and SHA-512), and Ruby's native
 bignums with three-argument `Integer#pow` for the pure-Ruby Ed25519.
 Requires **Ruby 3.0 or newer** (CI runs 3.3).
 

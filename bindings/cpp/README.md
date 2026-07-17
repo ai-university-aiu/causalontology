@@ -5,7 +5,7 @@
 
 **Pure C++17, zero dependencies.** The C++ standard library carries no
 JSON, no cryptography, and no big integers, so this binding hand-builds
-everything - like the Lua binding, its closest cousin: SHA-256 and
+everything - like the Lua binding, its closest cousin: Secure Hash Algorithm 256-bit (SHA-256) and
 SHA-512 over `uint32_t`/`uint64_t` words, an arbitrary-precision
 magnitude bignum over `std::vector<uint64_t>` limbs with
 `unsigned __int128` products, and Ed25519 (RFC 8032) on top of it. Slow
@@ -15,7 +15,7 @@ C++17 compiler**; compiles clean with `-Wall -Wextra`.
 
 | Source file | Implements |
 |---|---|
-| `src/json.hpp/.cpp` | a shape-preserving JSON layer: a recursive-descent parser into a `JValue` tagged variant (null, bool, `int64_t`, `double`, string, array, ordered object as `std::vector<std::pair<std::string, JValue>>` - the association vector preserves insertion order and sidesteps map ordering); a numeric literal with no `.`/`e`/`E` decodes to `int64_t`, so the integer-versus-decimal distinction (`1` versus `1.0`) survives to the canonicalizer |
+| `src/json.hpp/.cpp` | a shape-preserving JavaScript Object Notation (JSON) layer: a recursive-descent parser into a `JValue` tagged variant (null, bool, `int64_t`, `double`, string, array, ordered object as `std::vector<std::pair<std::string, JValue>>` - the association vector preserves insertion order and sidesteps map ordering); a numeric literal with no `.`/`e`/`E` decodes to `int64_t`, so the integer-versus-decimal distinction (`1` versus `1.0`) survives to the canonicalizer |
 | `src/jcs.hpp/.cpp` | RFC 8785 (JSON Canonicalization Scheme) serialization: sorted keys, minimal bytewise string escaping (UTF-8 is bytes; only bytes < 0x20 are escaped), ECMAScript-style canonical numbers (`1.0` → `1` via exact long-double integer printing, `0.7` stays `0.7` via `std::to_chars` shortest round-trip, exponents normalized to `e-7` / `e+21`, never `e-07`) |
 | `src/sha2.hpp/.cpp` | SHA-256 and SHA-512 (FIPS 180-4); both gated on the empty-string known answers by the conformance runner |
 | `src/bignum.hpp/.cpp` | the arbitrary-precision magnitude layer: `std::vector<uint64_t>` limbs, `unsigned __int128` products, add/sub/cmp/mul, shift-subtract modular reduction, square-and-multiply modpow, Fermat inversion via modpow - cross-checked against Python big integers on hundreds of random operands during development |

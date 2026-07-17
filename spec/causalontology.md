@@ -3,7 +3,7 @@
 **Causalontology's purest form is a specification, not a program.** This file is
 the normative core; the complete design rationale, glossary, and lay-readable
 explanations live in the master document at the repository root,
-`Causalontology_Standalone_Design_v20.txt`, which is authoritative where this
+`Causalontology_Standalone_Design_v21.txt`, which is authoritative where this
 summary and it could ever be read to differ.
 
 Every identifier scheme and type value in this standard is a whole English word
@@ -71,9 +71,9 @@ An implementation is conformant if and only if it passes every vector in
 
 ## Normative companions
 
-- `identity.md` — canonicalization (RFC 8785), hashing (SHA-256), identity-bearing fields for all seventeen kinds, merge
+- `identity.md` — canonicalization (RFC 8785), hashing (Secure Hash Algorithm 256-bit (SHA-256)), identity-bearing fields for all seventeen kinds, merge
 - `semantics.md` — the rules beyond the schemas (rules 1–12, four amended; new rules 13–21)
 - `provenance.md` — signatures (Ed25519), evidence grading (with simulation), evidenced_by, retraction, succession, trust
-- `store.md` — abstract operations, HTTP binding, query, resolve, the complete gap taxonomy
+- `store.md` — abstract operations, Hypertext Transfer Protocol (HTTP) binding, query, resolve, the complete gap taxonomy
 - `safety.md` — abuse resistance, claims of consequence, takedown by tier, TOKEN-TIER SAFETY
 - `schema/` — the seventeen JSON Schemas, the JSON-LD context, the optional Protobuf encoding

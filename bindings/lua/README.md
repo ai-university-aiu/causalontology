@@ -4,7 +4,7 @@
 [causalontology-py](../python/), sharing the same conformance suite.
 
 **Pure Lua 5.4, zero dependencies.** Lua's standard library carries no
-cryptography, so this binding implements everything itself: SHA-256 and
+cryptography, so this binding implements everything itself: Secure Hash Algorithm 256-bit (SHA-256) and
 SHA-512 over Lua 5.4's native 64-bit integers and bitwise operators, and
 Ed25519 (RFC 8032) over a small bignum layer of base-2^24 limbs. Slow but
 correct - intended for the conformance suite and small tools, exactly like
@@ -13,7 +13,7 @@ division, and bitwise operators; no LuaJIT, no C modules, no rocks).
 
 | Source file | Implements |
 |---|---|
-| `causalontology/json.lua` | a shape-preserving JSON layer: objects keep explicit insertion-order key lists (Lua tables have none), arrays are tagged (so `[]` and `{}` stay distinct), and a numeric literal with no `.`/`e`/`E` decodes to a Lua **integer** via `math.tointeger`, so the integer-versus-decimal distinction (`1` versus `1.0`) survives to the canonicalizer |
+| `causalontology/json.lua` | a shape-preserving JavaScript Object Notation (JSON) layer: objects keep explicit insertion-order key lists (Lua tables have none), arrays are tagged (so `[]` and `{}` stay distinct), and a numeric literal with no `.`/`e`/`E` decodes to a Lua **integer** via `math.tointeger`, so the integer-versus-decimal distinction (`1` versus `1.0`) survives to the canonicalizer |
 | `causalontology/jcs.lua` | RFC 8785 (JSON Canonicalization Scheme) serialization: sorted keys, minimal bytewise string escaping, ECMAScript-style canonical numbers (`1.0` → `1`, `0.7` stays `0.7`, `e-7` not `e-07`) |
 | `causalontology/sha2.lua` | SHA-256 and SHA-512 (FIPS 180-4); SHA-512 runs in the signed 64-bit word with naturally wrapping adds and Lua's logical shifts; both gated on empty-string known answers at load |
 | `causalontology/ed25519.lua` | Ed25519 (RFC 8032): a bignum layer (base-2^24 limbs, schoolbook multiplication, fold reduction mod 2^255-19, Fermat inversion), the twisted Edwards point group in extended coordinates, deterministic signing and verification; gated on the RFC 8032 TEST 1 known answer at load |

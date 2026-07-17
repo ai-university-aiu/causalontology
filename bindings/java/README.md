@@ -10,10 +10,10 @@ CI runs JDK 21).
 
 | Class | Implements |
 |---|---|
-| `Json` | minimal JSON parser/writer over `LinkedHashMap` / `ArrayList` / `String` / `Boolean` / `Long` / `Double` / null, preserving the integer/decimal source distinction the canonicalizer needs |
+| `Json` | minimal JavaScript Object Notation (JSON) parser/writer over `LinkedHashMap` / `ArrayList` / `String` / `Boolean` / `Long` / `Double` / null, preserving the integer/decimal source distinction the canonicalizer needs |
 | `Jcs` | RFC 8785 (JSON Canonicalization Scheme) serialization: UTF-16 code-unit key ordering, minimal string escapes, ECMAScript-style number formatting |
-| `Canonical` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
-| `Ed25519` | Ed25519 (RFC 8032): signing and verification through `java.security` `Signature("Ed25519")`; public-key derivation from a 32-byte seed via BigInteger point arithmetic (the JDK exposes no derive-public-from-private API); verified against the RFC 8032 TEST 1 known answer at startup |
+| `Canonical` | identity-bearing field filtering per kind and Secure Hash Algorithm 256-bit (SHA-256) content-addressed `identify()` (spec/identity.md) |
+| `Ed25519` | Ed25519 (RFC 8032): signing and verification through `java.security` `Signature("Ed25519")`; public-key derivation from a 32-byte seed via BigInteger point arithmetic (the JDK exposes no derive-public-from-private application programming interface (API)); verified against the RFC 8032 TEST 1 known answer at startup |
 | `Signing` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
 | `SchemaValidator` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
 | `Semantics` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |

@@ -14,7 +14,7 @@ asymmetry), and the acceptance query of Section 11(8).
 python3 examples/steroid_hormone_channel/build.py
 ```
 
-Every identifier printed is the real SHA-256 of the object's RFC 8785 canonical
+Every identifier printed is the real Secure Hash Algorithm 256-bit (SHA-256) of the object's RFC 8785 canonical
 identity-bearing bytes, computed by the `causalontology` binding — never
 assigned.
 

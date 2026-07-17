@@ -11,7 +11,7 @@ B), `bridge_closure`, `classify_cro`, `skip_gaps`, `delay_within_window`,
 `assertions_about`, `enrichments_about`, `retractions_of`, `lineage`,
 `resolve`, `query`, `gaps`.
 
-## HTTP binding (Tier A reference)
+## Hypertext Transfer Protocol (HTTP) binding (Tier A reference)
 
 ```
 POST /objects            write a content object (id recomputed; idempotent)

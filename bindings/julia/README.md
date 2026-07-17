@@ -4,8 +4,8 @@
 [causalontology-py](../python/), sharing the same conformance suite.
 
 **Standard library only.** The `SHA` standard library (which ships with
-Julia) carries SHA-256 and SHA-512; everything else is implemented here:
-an own order-preserving JSON parser (no JSON.jl), and a pure-Julia Ed25519
+Julia) carries Secure Hash Algorithm 256-bit (SHA-256) and SHA-512; everything else is implemented here:
+an own order-preserving JavaScript Object Notation (JSON) parser (no JSON.jl), and a pure-Julia Ed25519
 (RFC 8032) over native `BigInt` (no crypto packages). The `Project.toml`
 lists only the `SHA` stdlib. Requires **Julia 1.6 or newer** (CI runs
 1.10).

@@ -59,9 +59,24 @@ dumps** — deterministic, content-addressed, Merkle-committed, Ed25519-signed,
 verifiable offline and mirror-able by union-merge (token tier excluded by
 default). See [`snapshot.py`](snapshot.py), [`snapshot_export.py`](snapshot_export.py),
 [`snapshot_import.py`](snapshot_import.py), and [`spec/snapshot.md`](../../spec/snapshot.md).
-Phases three and four remain open roadmap (Part 21): Tier B federation with
-gossip and anti-entropy, then light clients with CDN caching and hash-prefix
-sharding.
+
+Phase three is delivered: **live Tier B federation** — nodes gossip new records
+to their peers and a background anti-entropy pass reconciles any two replicas by
+comparing Merkle roots and exchanging only the delta. See
+[`federation.py`](federation.py) and [`test_federation.py`](test_federation.py).
+
+Phase four is delivered, and with it the four-phase design of Part 21 is
+**complete**: **light clients** that trust no server and verify every object by
+hash and every record by signature (see
+[`../client/light_client.py`](../client/light_client.py)); **content-delivery
+network (CDN)-friendly caching** of immutable content (the raw object view and
+provenance records carry long-lived immutable cache headers and an entity tag
+(ETag) equal to the identifier, while mutable/derived views do not); and
+**hash-prefix sharding** so a partial node holds only a slice
+(`--shard 0-3`), advertised on `GET /shards` and resolvable across nodes, with
+Phase-three federation running per shard. See [`sharding.py`](sharding.py) and
+[`test_scale.py`](test_scale.py). What remains is adoption, not architecture:
+standing up genesis and partner nodes and growing the commons.
 
 ## What it implements
 

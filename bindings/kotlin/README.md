@@ -6,9 +6,9 @@ of [causalontology-py](../python/), sharing the same conformance suite.
 **Pure Kotlin/Native, zero dependencies.** No kotlinx libraries, no cinterop
 definitions, no JVM at runtime: the sources compile with a bare
 `kotlinc-native` into a self-contained native executable. Kotlin/Native's
-standard library carries no cryptography, no JSON, and no arbitrary-precision
+standard library carries no cryptography, no JavaScript Object Notation (JSON), and no arbitrary-precision
 integers, so this binding implements all three itself, exactly as the Lua
-binding did: SHA-256 over Int words and SHA-512 over Long words with Kotlin's
+binding did: Secure Hash Algorithm 256-bit (SHA-256) over Int words and SHA-512 over Long words with Kotlin's
 bitwise operators, and Ed25519 (RFC 8032) over a small bignum layer of
 base-2^16 IntArray limbs (Long products cannot overflow at that base). The
 only OS surface is `platform.posix` file reads (fopen/fread/opendir), which

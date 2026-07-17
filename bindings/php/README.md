@@ -6,7 +6,7 @@
 **Zero Composer dependencies.** The extensions bundled with every stock PHP
 build carry everything the standard needs: `ext-sodium` (Ed25519 per
 RFC 8032 — deterministic signatures, seed-derived keypairs), `ext-hash`
-(SHA-256), and `ext-json`. Requires **PHP 8.2 or newer** (CI runs 8.3).
+(Secure Hash Algorithm 256-bit (SHA-256)), and `ext-json`. Requires **PHP 8.2 or newer** (CI runs 8.3).
 
 | Source file | Implements |
 |---|---|
@@ -46,7 +46,7 @@ harness's old normalization now simply passes frozen values through.
   lossless-number shim is required, unlike the Go and Java bindings.
 - **PHP arrays are ordered maps.** Insertion order is preserved, so the
   store matches the Python binding's `dict` semantics with no extra
-  bookkeeping; JSON object keys are cast back to `string` wherever they are
+  bookkeeping; JavaScript Object Notation (JSON) object keys are cast back to `string` wherever they are
   iterated, because PHP silently turns decoded keys like `"0"` into
   integers.
 - **`{}` versus `[]`.** An associative decode cannot distinguish an empty

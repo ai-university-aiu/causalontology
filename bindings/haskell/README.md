@@ -5,7 +5,7 @@
 
 **GHC-bundled packages only — pure-Haskell crypto.** The binding depends on
 nothing beyond what a stock GHC installation ships (`base`, `bytestring`,
-`containers`, `directory`, `filepath`): SHA-256, SHA-512, and Ed25519
+`containers`, `directory`, `filepath`): Secure Hash Algorithm 256-bit (SHA-256), SHA-512, and Ed25519
 (RFC 8032) are implemented by hand over `Word32`/`Word64` and `Integer`,
 JSON is parsed by the binding's own lossless recursive-descent parser, and
 RFC 8785 canonicalization is hand-written. All crypto is gated on known
@@ -15,7 +15,7 @@ newer** with cabal.
 
 | Source file | Implements |
 |---|---|
-| `src/Causalontology/Json.hs` | a lossless JSON value model: `JObj` is an association list (insertion order preserved, like a Python dict), and the recursive-descent parser tags numbers by their source literal, so the `1`-versus-`1.0` distinction survives to the canonicalizer; hand-written UTF-8 codec |
+| `src/Causalontology/Json.hs` | a lossless JavaScript Object Notation (JSON) value model: `JObj` is an association list (insertion order preserved, like a Python dict), and the recursive-descent parser tags numbers by their source literal, so the `1`-versus-`1.0` distinction survives to the canonicalizer; hand-written UTF-8 codec |
 | `src/Causalontology/Jcs.hs` | RFC 8785 (JSON Canonicalization Scheme) serialization: code-point key order, minimal string escapes with lowercase `\uXXXX`, ECMAScript-style canonical numbers (`1.0` → `1`, `0.7` stays `0.7`, `1e-07` → `1e-7`, `1e21` → `1e+21`) via `Numeric.floatToDigits` |
 | `src/Causalontology/Sha2.hs` | SHA-256 and SHA-512 (FIPS 180-4), pure Haskell over `Word32`/`Word64`, plus hex encoding |
 | `src/Causalontology/Ed25519.hs` | Ed25519 (RFC 8032), ported from the Python binding's `ed25519.py` over `Integer` (Haskell's floored `mod` matches Python's `%` for these positive moduli) |

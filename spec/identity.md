@@ -11,7 +11,7 @@ port  conduit  quality  token_individual  token_occurrence  state_assertion
 token_causal_claim  assertion  enrichment  retraction  succession
 ```
 
-and the localpart is the lowercase hexadecimal SHA-256 digest (64 characters)
+and the localpart is the lowercase hexadecimal Secure Hash Algorithm 256-bit (SHA-256) digest (64 characters)
 of the object's canonical identity-bearing bytes. Every scheme is a whole
 English word (Principle P7); abbreviations MUST NOT be used. The proper names
 of external standards (ed25519, SHA-256, RFC 8785, RFC 3339, UCUM, UTC, JSON,
