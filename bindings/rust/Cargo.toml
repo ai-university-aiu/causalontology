@@ -15,7 +15,7 @@ crate-type = ["rlib", "cdylib"]
 # vetted primitives (the standard's rule is "passes all 107 vectors", not "no deps";
 # hand-rolled curve math in a systems language is a vulnerability, not a virtue)
 sha2 = "0.10"
-ed25519-dalek = "2"
+ed25519-dalek = "3"
 serde_json = "1"
 regex = "1"
 
