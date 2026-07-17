@@ -38,8 +38,24 @@ from causalontology import InMemoryStore, RejectedWrite, is_partial  # noqa: E40
 from causalontology import __version__ as SDK_VERSION                # noqa: E402
 
 import federation as fed                                             # noqa: E402
+import snapshot as snap                                              # noqa: E402
+import sharding as shd                                               # noqa: E402
 
 SPEC_VERSION = "1.0.0"
+
+# Phase four - CDN-friendly caching of immutable content. A content object and a
+# provenance record are IMMUTABLE and CONTENT-ADDRESSED: their name is their
+# hash, so they can be cached forever with no invalidation problem. Immutable
+# responses carry this header plus an ETag equal to the identifier; a CDN or
+# reverse proxy may keep them indefinitely, and a light client verifies every
+# byte by hash regardless of who served it, so a stale or hostile cache cannot
+# deceive it. One year is the effective "forever" HTTP allows (RFC 9111).
+IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
+
+# Mutable and derived views (the materialized object view, the gap registry,
+# reputation, and every listing that changes as records arrive) are NOT cached
+# as if immutable - they carry no-cache so an edge never serves a stale view.
+MUTABLE_CACHE = "no-cache"
 
 
 # ---------------------------------------------------------------------------
@@ -96,18 +112,36 @@ WEAK_EVIDENCE = {"imported", "human_hint"}
 
 class StoreServer(ThreadingHTTPServer):
     def __init__(self, addr, store, token=None, state_path=None,
-                 demand_threshold=3, peers=None, federation_opts=None):
+                 demand_threshold=3, peers=None, federation_opts=None,
+                 shard=None, shard_map=None):
         super().__init__(addr, Handler)
         self.store = store
         self.token = token
         self.state_path = state_path
         self.demand = {}                      # identifier -> read count
         self.demand_threshold = demand_threshold
-        # Live Tier B federation (Phase three). Constructed inert: with no peers
-        # it adds no behavior and never touches the network. main() (or a test)
-        # supplies peers and calls federation.start() to go live.
-        self.federation = fed.FederationManager(store, peers=peers,
-                                                **(federation_opts or {}))
+        # Phase four - hash-prefix sharding. shard is a sharding.ShardConfig (the
+        # slice of the identifier space this node holds), or None for a FULL node
+        # that holds everything. A full node behaves exactly as it did before
+        # this phase: it covers the whole space and never redirects. shard_map is
+        # a sharding.ShardMap of known peers' coverage, so a request for an
+        # identifier outside this node's slice is answered with a pointer to a
+        # node that holds it, instead of a false "not found".
+        self.partial = shard is not None
+        self.shard = shard or shd.ShardConfig.full()
+        self.shard_map = shard_map or shd.ShardMap()
+        # Whether the public light-client / CDN read path serves the token tier.
+        # Local by default (spec/safety.md): token-tier content is not exposed on
+        # the public path and is not placed in public shards unless the operator
+        # opts in, matching the federation and snapshot boundary exactly.
+        self.serve_tokens = bool((federation_opts or {}).get("include_tokens"))
+        # Live Tier B federation (Phase three), now shard-aware (Phase four).
+        # Constructed inert: with no peers it adds no behavior and never touches
+        # the network. main() (or a test) supplies peers and calls
+        # federation.start() to go live.
+        fed_opts = dict(federation_opts or {})
+        self.federation = fed.FederationManager(store, peers=peers, shard=shard,
+                                                **fed_opts)
 
     def note_demand(self, identifier):
         if identifier:
@@ -310,13 +344,73 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "causalontology-store/" + SDK_VERSION
 
     # ------------------------------------------------------------- plumbing
-    def _send(self, code, payload):
+    def _send(self, code, payload, cache=MUTABLE_CACHE, etag=None,
+              location=None):
         body = json.dumps(payload, indent=1).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
+        # Every JSON response is no-cache by DEFAULT (a mutable/derived view is
+        # never cached as if immutable); an immutable content response opts in to
+        # long-lived caching by passing IMMUTABLE_CACHE and an ETag.
+        if cache:
+            self.send_header("Cache-Control", cache)
+        if etag is not None:
+            self.send_header("ETag", '"%s"' % etag)
+        if location is not None:
+            self.send_header("Location", location)
         self.end_headers()
         self.wfile.write(body)
+
+    def _send_immutable(self, payload, identifier):
+        """Serve an IMMUTABLE content response for the CDN / light-client path:
+        long-lived immutable caching plus an ETag equal to the identifier (its
+        hash). Honors a conditional request: If-None-Match against the same
+        identifier returns 304 Not Modified, so a warm cache revalidates for
+        free. The object never changes, so any cache may keep it forever."""
+        inm = self.headers.get("If-None-Match", "")
+        if identifier and ('"%s"' % identifier) in inm:
+            self.send_response(304)
+            self.send_header("ETag", '"%s"' % identifier)
+            self.send_header("Cache-Control", IMMUTABLE_CACHE)
+            self.end_headers()
+            return None
+        return self._send(200, payload, cache=IMMUTABLE_CACHE, etag=identifier)
+
+    # ---------------------------------------------- Phase four: shard routing
+    def _shard_pointer(self, identifier, path):
+        """If this node is a PARTIAL node and the identifier is outside its shard,
+        answer with a pointer to a node that holds it (never a false 'not
+        found'). Returns True if it handled the response. A FULL node covers the
+        whole space, so this is always a no-op for it - existing behavior is
+        unchanged."""
+        server = self.server
+        if not server.partial or server.shard.covers(identifier):
+            return False
+        holders = server.shard_map.nodes_for(identifier)
+        if holders:
+            location = holders[0] + path
+            # 421 Misdirected Request: "you asked the wrong node." A 4xx is not
+            # transparently auto-followed by a client the way a 3xx redirect is,
+            # so the light client receives the pointer, then fetches from the
+            # holder and verifies the object itself - trust stays local.
+            self._send(421, {"redirect": location, "id": identifier,
+                             "holders": holders,
+                             "reason": "identifier outside this node's shard",
+                             "shard": server.shard.to_spec()},
+                       location=location)
+            return True
+        # No known holder: honest, explicit out-of-shard signal (not a plain 404
+        # that would falsely imply the identifier does not exist anywhere).
+        self._send(404, {"error": "identifier outside this node's shard",
+                         "out_of_shard": True, "id": identifier,
+                         "shard": server.shard.to_spec(), "holders": []})
+        return True
+
+    def _token_blocked(self, is_token):
+        """The public light-client / CDN read path does not serve the token tier
+        unless the operator opted in (local by default, spec/safety.md)."""
+        return is_token and not self.server.serve_tokens
 
     def _body(self):
         length = int(self.headers.get("Content-Length", 0))
@@ -358,27 +452,53 @@ class Handler(BaseHTTPRequestHandler):
                                "POST /sync/announce", "POST /sync/fetch",
                                "GET /sync/peers", "POST /sync/peers"],
                 "peers": self.server.federation.peers(),
+                "shards": "/shards",
+                "shard": self.server.shard.to_spec(),
+                "partial_node": self.server.partial,
                 "endpoints": [
                     "POST /objects", "GET /objects/{id}",
                     "POST /records", "GET /records/{id}",
                     "GET /assertions?about=", "GET /enrichments?about=",
                     "GET /retractions?about=", "GET /successions?key=",
                     "GET /resolve?text=&lang=", "POST /query",
-                    "GET /gaps?kind=&near=", "GET /conflicts"]})
+                    "GET /gaps?kind=&near=", "GET /conflicts",
+                    "GET /shards"]})
 
         if parts[0] == "objects" and len(parts) == 2:
+            identifier = parts[1]
+            if self._shard_pointer(identifier, url.path):
+                return None
             view = qs.get("view", "default")
-            result = store.get(parts[1], view=view)
+            result = store.get(identifier, view=view)
             if result is None:
                 return self._send(404, {"error": "no such object"})
-            self.server.note_demand(parts[1])
+            self.server.note_demand(identifier)
+            # The RAW view is the CDN / light-client path: it serves the exact,
+            # immutable, content-addressed bytes a client verifies by hash. It is
+            # cacheable forever (ETag = the identifier) and does not serve the
+            # token tier on the public path. The DEFAULT view is the mutable
+            # materialized enrichment view - never cached as if immutable.
+            if view == "raw":
+                if self._token_blocked(snap.is_token_content(result["object"])):
+                    return self._send(404, {"error": "not in the shareable "
+                                            "commons (token tier is local)"})
+                return self._send_immutable(result, identifier)
             return self._send(200, result)
 
         if parts[0] == "records" and len(parts) == 2:
-            rec = store.records.get(parts[1])
+            identifier = parts[1]
+            if self._shard_pointer(identifier, url.path):
+                return None
+            rec = store.records.get(identifier)
             if rec is None:
                 return self._send(404, {"error": "no such record"})
-            return self._send(200, rec)
+            # A provenance record is immutable and self-authenticating by its
+            # Ed25519 signature: the CDN / light-client immutable path. The token
+            # tier is not served here on the public path unless opted in.
+            if self._token_blocked(snap.record_touches_token(rec)):
+                return self._send(404, {"error": "not in the shareable commons "
+                                        "(token tier is local)"})
+            return self._send_immutable(rec, identifier)
 
         if parts[0] == "assertions":
             include = qs.get("view") == "history"
@@ -466,16 +586,31 @@ class Handler(BaseHTTPRequestHandler):
                 "objects": list(store.objects.values()),
                 "records": list(store.records.values())})
 
-        # Live Tier B federation (Phase three) - additive read endpoints.
+        # Live Tier B federation (Phase three) - additive read endpoints. On a
+        # PARTIAL node these advertise only the node's own shard (Phase four), so
+        # a peer or light client sees exactly the slice this node holds.
         if parts[0] == "sync" and len(parts) == 2 and parts[1] == "manifest":
-            return self._send(200, fed.shareable_manifest(store))
+            return self._send(200, self.server.federation.local_manifest())
 
         if parts[0] == "sync" and len(parts) == 2 and parts[1] == "ids":
-            ids, root, _ = fed.shareable_index(store)
+            ids, root, _ = self.server.federation.local_index()
             return self._send(200, {"merkle_root": root, "ids": ids})
 
         if parts[0] == "sync" and len(parts) == 2 and parts[1] == "peers":
             return self._send(200, {"peers": self.server.federation.peers()})
+
+        # Phase four - the shard map: this node's own coverage plus the coverage
+        # of every node it knows, so a light client or peer can find which node
+        # holds a given identifier and confirm the coverage invariant (the union
+        # of all shards spans the whole identifier space).
+        if parts[0] == "shards":
+            self_cfg = self.server.shard
+            all_cfgs = [self_cfg] + list(self.server.shard_map.nodes().values())
+            return self._send(200, {
+                "node_shard": self_cfg.as_json(),
+                "partial": self.server.partial,
+                "map": self.server.shard_map.as_json(),
+                "coverage": shd.coverage_report(all_cfgs)})
 
         return self._send(404, {"error": "unknown endpoint"})
 
@@ -716,6 +851,15 @@ def main():
                     help="seconds between batched gossip flushes to peers")
     ap.add_argument("--federate-tokens", action="store_true",
                     help="opt in to federating the token tier (local by default)")
+    ap.add_argument("--shard", default=None,
+                    help="become a PARTIAL node holding only a hash-prefix slice "
+                         "(env CAUSALONTOLOGY_SHARD): e.g. '0-3', '0-7,c-f', '5'. "
+                         "Omit for a FULL node covering the whole space.")
+    ap.add_argument("--shard-map", action="append", default=None,
+                    dest="shard_map",
+                    help="a peer's coverage, 'URL=SPEC' (repeatable; env "
+                         "CAUSALONTOLOGY_SHARD_MAP, space-separated), so an "
+                         "out-of-shard request is pointed at a node that holds it")
     args = ap.parse_args()
 
     peers = fed.peers_from_env() + [p.rstrip("/") for p in (args.peers or [])]
@@ -726,13 +870,26 @@ def main():
         "gossip_interval": args.gossip_interval,
     }
 
+    # Phase four - the shard this node holds, and the map of who holds what.
+    import os
+    shard_spec = args.shard or os.environ.get("CAUSALONTOLOGY_SHARD")
+    shard = shd.ShardConfig.parse(shard_spec) if shard_spec else None
+    shard_map = shd.ShardMap()
+    map_entries = list(args.shard_map or [])
+    map_entries += os.environ.get("CAUSALONTOLOGY_SHARD_MAP", "").split()
+    for entry in map_entries:
+        if "=" in entry:
+            url, _, spec = entry.partition("=")
+            shard_map.add(url, spec)
+
     persistent = None
     if args.in_memory or args.state:
         store = InMemoryStore(enforcing=not args.no_enforce)
         server = StoreServer((args.host, args.port), store,
                              token=args.token, state_path=args.state,
                              demand_threshold=args.demand_threshold,
-                             peers=peers, federation_opts=federation_opts)
+                             peers=peers, federation_opts=federation_opts,
+                             shard=shard, shard_map=shard_map)
         server.restore()
         backend = "state file %s" % args.state if args.state else "in-memory (volatile)"
     else:
@@ -743,16 +900,20 @@ def main():
         server = StoreServer((args.host, args.port), store,
                              token=args.token, state_path=None,
                              demand_threshold=args.demand_threshold,
-                             peers=peers, federation_opts=federation_opts)
+                             peers=peers, federation_opts=federation_opts,
+                             shard=shard, shard_map=shard_map)
         backend = "sqlite %s" % db_path
     if peers:
         server.federation.start()           # go live: gossip + anti-entropy
     fed_note = ("federating with %d peer(s)" % len(peers) if peers
                 else "no peers (stand-alone)")
+    shard_note = ("partial node, shard %s" % shard.to_spec() if shard
+                  else "full node (whole space)")
     print("causalontology Tier A store on http://%s:%d  "
-          "(spec %s, sdk %s, %d objects, %d records) [%s; %s]"
+          "(spec %s, sdk %s, %d objects, %d records) [%s; %s; %s]"
           % (args.host, server.server_address[1], SPEC_VERSION, SDK_VERSION,
-             len(store.objects), len(store.records), backend, fed_note))
+             len(store.objects), len(store.records), backend, fed_note,
+             shard_note))
     try:
         server.serve_forever()
     except KeyboardInterrupt:

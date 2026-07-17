@@ -164,11 +164,20 @@ def verified_merge(store, objects, records, on_new=None):
 # ---------------------------------------------------------------------------
 # the shareable (type-tier) view of a store: what federates
 # ---------------------------------------------------------------------------
-def shareable_index(store, include_tokens=False):
+def shareable_index(store, include_tokens=False, shard=None):
     """The federated set of a store, as an ordered id list, a Merkle root, and a
     by-id map of entries. Reuses the Phase-two snapshot collection so the root
-    is identical to a snapshot's and the token boundary is identical too."""
+    is identical to a snapshot's and the token boundary is identical too.
+
+    When a shard (a sharding.ShardConfig) is given, the set is narrowed to the
+    identifiers this node's slice covers - the Phase-four per-shard boundary. A
+    partial node thus advertises, reconciles, and serves only its own prefixes,
+    so federation scales SIDEWAYS: the Merkle root a partial node compares is the
+    root of its slice, and two nodes holding the same slice converge on that
+    slice without either being forced to hold prefixes outside its coverage."""
     entries, _, _ = snap.collect_entries(store, include_tokens=include_tokens)
+    if shard is not None:
+        entries = [e for e in entries if shard.covers(e["id"])]
     lines = [snap.canonical_line(e) for e in entries]
     root = snap.merkle_root(lines)
     ids = [e["id"] for e in entries]
@@ -176,9 +185,11 @@ def shareable_index(store, include_tokens=False):
     return ids, root, by_id
 
 
-def shareable_manifest(store, include_tokens=False):
-    """The cheap anti-entropy probe: the Merkle root and count only."""
-    ids, root, _ = shareable_index(store, include_tokens=include_tokens)
+def shareable_manifest(store, include_tokens=False, shard=None):
+    """The cheap anti-entropy probe: the Merkle root and count only (over this
+    node's shard when one is given)."""
+    ids, root, _ = shareable_index(store, include_tokens=include_tokens,
+                                   shard=shard)
     return {"merkle_root": root, "count": len(ids),
             "includes_tokens": bool(include_tokens)}
 
@@ -208,9 +219,13 @@ class FederationManager:
     def __init__(self, store, peers=None, include_tokens=False,
                  anti_entropy_interval=DEFAULT_ANTI_ENTROPY_INTERVAL,
                  gossip_interval=DEFAULT_GOSSIP_INTERVAL,
-                 batch=DEFAULT_BATCH, timeout=DEFAULT_TIMEOUT):
+                 batch=DEFAULT_BATCH, timeout=DEFAULT_TIMEOUT, shard=None):
         self.store = store
         self.include_tokens = include_tokens
+        # The Phase-four shard: a sharding.ShardConfig, or None for a full node.
+        # When set, this node gossips, reconciles, and serves only the slice it
+        # covers - per-shard federation, so the network scales sideways.
+        self.shard = shard
         self.anti_entropy_interval = anti_entropy_interval
         self.gossip_interval = gossip_interval
         self.batch = max(1, int(batch))
@@ -231,6 +246,18 @@ class FederationManager:
                       "reconciles": 0, "root_matches": 0,
                       "fetched": 0, "pushed": 0,
                       "peer_errors": 0}
+
+    # ------------------------------------------- this node's shareable slice
+    def local_index(self):
+        """This node's shareable set (ordered ids, Merkle root, by-id map),
+        narrowed to its shard when it is a partial node."""
+        return shareable_index(self.store, include_tokens=self.include_tokens,
+                               shard=self.shard)
+
+    def local_manifest(self):
+        """This node's cheap anti-entropy probe (root + count) over its slice."""
+        return shareable_manifest(self.store, include_tokens=self.include_tokens,
+                                  shard=self.shard)
 
     # ------------------------------------------------------- peer management
     def peers(self):
@@ -282,6 +309,9 @@ class FederationManager:
             if not self._peers:
                 return
         if not self.include_tokens and snap._is_token_id(identifier):
+            return
+        # Per-shard: a partial node never gossips an identifier outside its slice.
+        if self.shard is not None and not self.shard.covers(identifier):
             return
         with self._queue_lock:
             if identifier not in self._queued:
@@ -376,8 +406,7 @@ class FederationManager:
             return result
         self._peer_ok(peer)
 
-        local_ids, local_root, local_by_id = shareable_index(
-            self.store, include_tokens=self.include_tokens)
+        local_ids, local_root, local_by_id = self.local_index()
         if remote_manifest.get("merkle_root") == local_root:
             # Already converged - the common case, one cheap request.
             result["root_matched"] = True
@@ -393,7 +422,12 @@ class FederationManager:
         local_set = set(local_ids)
 
         # PULL: fetch only the ids the peer has and we lack, in bounded batches.
+        # A partial node pulls ONLY ids within its own shard, so reconciling with
+        # a full (or wider) peer never forces it to hold prefixes it does not
+        # cover - per-shard federation.
         missing_here = [i for i in remote.get("ids", []) if i not in local_set]
+        if self.shard is not None:
+            missing_here = [i for i in missing_here if self.shard.covers(i)]
         for start in range(0, len(missing_here), self.batch):
             chunk = missing_here[start:start + self.batch]
             got = self._post(peer, "/sync/fetch", {"ids": chunk})
@@ -448,9 +482,9 @@ class FederationManager:
 
     def handle_fetch(self, body):
         """A peer asked for specific ids. Serve only shareable (type-tier) ids we
-        hold; a token-tier id is silently not served (local by default)."""
-        _, _, by_id = shareable_index(self.store,
-                                      include_tokens=self.include_tokens)
+        hold; a token-tier id is silently not served (local by default), and an
+        id outside this node's shard is likewise not served (per-shard)."""
+        _, _, by_id = self.local_index()
         objects, records = [], []
         for i in body.get("ids", []):
             entry = by_id.get(i)
