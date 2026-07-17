@@ -228,9 +228,11 @@ causalontology/
 > schemes of Principle P7, plus V39–V107 for the nine new object kinds and the
 > five normative algorithms). The **Python reference passes all 107 locally**.
 > The `38/38` milestones below record the completed 1.0.0 effort; under 2.0.0
-> the other bindings carry the whole-word re-mint and their 2.0.0 semantic port
-> (nine new kinds, Algorithms A–E) is the open work. Registry republication is
-> pending (Section 10.8 / OC1).
+> all nineteen bindings carry the whole-word re-mint and the full 2.0.0
+> semantic port (nine new kinds, Algorithms A–E) and **pass all 107 vectors**.
+> Registry republication is done: eleven package registries plus the SwiftPM,
+> Go `/v2`, and Zig git-tag channels are live at 2.0.x (see
+> [PUBLISHING.md](PUBLISHING.md)).
 
 ## Roadmap — built, proven, and shipped
 
