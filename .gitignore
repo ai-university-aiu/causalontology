@@ -12,6 +12,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Local agent instructions (keep local-only, never commit)
+CLAUDE.md
+
 # Secrets (never commit)
 .env
 .envrc
