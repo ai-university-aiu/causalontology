@@ -1,5 +1,38 @@
-# Generated for the causalontology R binding.
-exportPattern("^co_")
+# Public API of the causalontology R binding.
 importFrom(openssl, read_key, read_pubkey, signature_create, signature_verify, write_der)
 importFrom(stats, setNames)
 importFrom(utils, tail)
+
+# Cryptography (Ed25519, RFC 8032)
+export(co_keypair_from_seed)
+export(co_sign_record)
+export(co_verify_record)
+export(co_ed25519_verify)
+
+# Identity and canonicalization
+export(co_identify)
+export(co_canonicalize)
+export(co_infer_kind)
+
+# Validation
+export(co_validate_schema)
+export(co_validate_semantics)
+
+# Byte/hex utilities
+export(co_hex2bin)
+export(co_bin2hex)
+
+# JSON and configuration
+export(co_parse_json)
+export(co_set_root)
+
+# In-memory conformant store
+export(co_store_new)
+export(co_store_put)
+export(co_store_put_record)
+export(co_store_get)
+export(co_store_resolve)
+export(co_store_gaps)
+export(co_store_lineage)
+export(co_store_assertions_about)
+export(co_store_enrichments_about)

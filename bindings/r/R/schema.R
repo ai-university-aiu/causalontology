@@ -38,7 +38,15 @@ co_schema_base <- "https://causalontology.org/schema/"
 co_schema_dir <- function() {
   env <- Sys.getenv("CAUSALONTOLOGY_SPEC", unset = "")
   if (nzchar(env)) return(file.path(env, "schema"))
-  file.path(co_repo_root(), "spec", "schema")
+  # In-repo / sourced: the standard's spec/schema is the source of truth.
+  root <- tryCatch(co_repo_root(), error = function(e) NULL)
+  if (!is.null(root) && dir.exists(file.path(root, "spec", "schema"))) {
+    return(file.path(root, "spec", "schema"))
+  }
+  # Installed package: the schemas bundled under inst/schema.
+  p <- system.file("schema", package = "causalontology")
+  if (nzchar(p) && dir.exists(p)) return(p)
+  stop("cannot locate the specification schemas")
 }
 
 # Load and cache one schema file by its filename.
