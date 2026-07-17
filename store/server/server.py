@@ -37,6 +37,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "bindings" / "pytho
 from causalontology import InMemoryStore, RejectedWrite, is_partial  # noqa: E402
 from causalontology import __version__ as SDK_VERSION                # noqa: E402
 
+import federation as fed                                             # noqa: E402
+
 SPEC_VERSION = "1.0.0"
 
 
@@ -94,13 +96,18 @@ WEAK_EVIDENCE = {"imported", "human_hint"}
 
 class StoreServer(ThreadingHTTPServer):
     def __init__(self, addr, store, token=None, state_path=None,
-                 demand_threshold=3):
+                 demand_threshold=3, peers=None, federation_opts=None):
         super().__init__(addr, Handler)
         self.store = store
         self.token = token
         self.state_path = state_path
         self.demand = {}                      # identifier -> read count
         self.demand_threshold = demand_threshold
+        # Live Tier B federation (Phase three). Constructed inert: with no peers
+        # it adds no behavior and never touches the network. main() (or a test)
+        # supplies peers and calls federation.start() to go live.
+        self.federation = fed.FederationManager(store, peers=peers,
+                                                **(federation_opts or {}))
 
     def note_demand(self, identifier):
         if identifier:
@@ -346,7 +353,11 @@ class Handler(BaseHTTPRequestHandler):
                 "sparql": "/sparql?query=",
                 "triples": "/export/triples",
                 "reputation": "/reputation?source=",
-                "federation": ["GET /sync/export", "POST /sync/pull"],
+                "federation": ["GET /sync/export", "POST /sync/pull",
+                               "GET /sync/manifest", "GET /sync/ids",
+                               "POST /sync/announce", "POST /sync/fetch",
+                               "GET /sync/peers", "POST /sync/peers"],
+                "peers": self.server.federation.peers(),
                 "endpoints": [
                     "POST /objects", "GET /objects/{id}",
                     "POST /records", "GET /records/{id}",
@@ -455,6 +466,17 @@ class Handler(BaseHTTPRequestHandler):
                 "objects": list(store.objects.values()),
                 "records": list(store.records.values())})
 
+        # Live Tier B federation (Phase three) - additive read endpoints.
+        if parts[0] == "sync" and len(parts) == 2 and parts[1] == "manifest":
+            return self._send(200, fed.shareable_manifest(store))
+
+        if parts[0] == "sync" and len(parts) == 2 and parts[1] == "ids":
+            ids, root, _ = fed.shareable_index(store)
+            return self._send(200, {"merkle_root": root, "ids": ids})
+
+        if parts[0] == "sync" and len(parts) == 2 and parts[1] == "peers":
+            return self._send(200, {"peers": self.server.federation.peers()})
+
         return self._send(404, {"error": "unknown endpoint"})
 
     # ---------------------------------------------- a small SPARQL subset
@@ -542,14 +564,30 @@ class Handler(BaseHTTPRequestHandler):
 
     # ----------------------------------------------------------------- POST
     def do_POST(self):
-        if not self._authorized():
-            return self._send(401, {"error": "bearer token required"})
         store = self.server.store
         parts = [p for p in urlparse(self.path).path.split("/") if p]
         try:
             body = self._body()
         except Exception:  # noqa: BLE001
             return self._send(400, {"error": "invalid JSON body"})
+
+        # Live Tier B federation (Phase three). The peer-sync endpoints are
+        # SELF-AUTHENTICATING: every inbound object is verified against its own
+        # hash and every record against its own signature before it is merged
+        # (federation.verified_merge), so no shared bearer token is needed to
+        # sync with a peer - the mathematics, not a secret, keeps a store safe.
+        # These are additive; every pre-existing endpoint keeps its auth gate.
+        if parts and parts[0] == "sync" and len(parts) == 2:
+            if parts[1] == "announce":
+                counts = self.server.federation.handle_announce(body)
+                if counts["objects_added"] or counts["records_added"]:
+                    self.server.persist()
+                return self._send(200, counts)
+            if parts[1] == "fetch":
+                return self._send(200, self.server.federation.handle_fetch(body))
+
+        if not self._authorized():
+            return self._send(401, {"error": "bearer token required"})
 
         if parts and parts[0] == "objects":
             before = len(store.objects)
@@ -559,10 +597,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(422, {"error": str(e)})
             created = len(store.objects) > before
             self.server.persist()
+            if created:
+                self.server.federation.on_local_write(oid)
             return self._send(201 if created else 200,
                               {"id": oid, "created": created})
 
         if parts and parts[0] == "records":
+            before = len(store.records)
             try:
                 rid = store.put_record(body)
             except RejectedWrite as e:
@@ -574,7 +615,21 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError as e:
                 return self._send(422, {"error": str(e)})
             self.server.persist()
+            if len(store.records) > before:
+                self.server.federation.on_local_write(rid)
             return self._send(201, {"id": rid})
+
+        if parts and parts[0] == "sync" and len(parts) == 2 \
+                and parts[1] == "peers":
+            action, url = body.get("action"), (body.get("peer") or "").strip()
+            if action == "add" and url:
+                return self._send(200,
+                                  {"peers": self.server.federation.add_peer(url)})
+            if action == "remove" and url:
+                return self._send(
+                    200, {"peers": self.server.federation.remove_peer(url)})
+            return self._send(400, {"error": "expected {action: add|remove, "
+                                             "peer: URL}"})
 
         if parts and parts[0] == "query":
             return self._send(200, self._query(body))
@@ -650,14 +705,34 @@ def main():
     ap.add_argument("--demand-threshold", type=int, default=3,
                     help="reads before an unsupported claim counts as "
                          "high-demand (the demand_supply gap)")
+    ap.add_argument("--peer", action="append", default=None, dest="peers",
+                    help="a federation peer base URL (repeatable); adds to the "
+                         "CAUSALONTOLOGY_PEERS environment list")
+    ap.add_argument("--anti-entropy-interval", type=float,
+                    default=fed.DEFAULT_ANTI_ENTROPY_INTERVAL,
+                    help="seconds between background anti-entropy reconciliations")
+    ap.add_argument("--gossip-interval", type=float,
+                    default=fed.DEFAULT_GOSSIP_INTERVAL,
+                    help="seconds between batched gossip flushes to peers")
+    ap.add_argument("--federate-tokens", action="store_true",
+                    help="opt in to federating the token tier (local by default)")
     args = ap.parse_args()
+
+    peers = fed.peers_from_env() + [p.rstrip("/") for p in (args.peers or [])]
+    peers = list(dict.fromkeys(peers))     # de-duplicate, order-preserving
+    federation_opts = {
+        "include_tokens": args.federate_tokens,
+        "anti_entropy_interval": args.anti_entropy_interval,
+        "gossip_interval": args.gossip_interval,
+    }
 
     persistent = None
     if args.in_memory or args.state:
         store = InMemoryStore(enforcing=not args.no_enforce)
         server = StoreServer((args.host, args.port), store,
                              token=args.token, state_path=args.state,
-                             demand_threshold=args.demand_threshold)
+                             demand_threshold=args.demand_threshold,
+                             peers=peers, federation_opts=federation_opts)
         server.restore()
         backend = "state file %s" % args.state if args.state else "in-memory (volatile)"
     else:
@@ -667,15 +742,21 @@ def main():
                                              db_path=db_path)
         server = StoreServer((args.host, args.port), store,
                              token=args.token, state_path=None,
-                             demand_threshold=args.demand_threshold)
+                             demand_threshold=args.demand_threshold,
+                             peers=peers, federation_opts=federation_opts)
         backend = "sqlite %s" % db_path
+    if peers:
+        server.federation.start()           # go live: gossip + anti-entropy
+    fed_note = ("federating with %d peer(s)" % len(peers) if peers
+                else "no peers (stand-alone)")
     print("causalontology Tier A store on http://%s:%d  "
-          "(spec %s, sdk %s, %d objects, %d records) [%s]"
+          "(spec %s, sdk %s, %d objects, %d records) [%s; %s]"
           % (args.host, server.server_address[1], SPEC_VERSION, SDK_VERSION,
-             len(store.objects), len(store.records), backend))
+             len(store.objects), len(store.records), backend, fed_note))
     try:
         server.serve_forever()
     except KeyboardInterrupt:
+        server.federation.stop()
         server.persist()
         if persistent is not None:
             persistent.close()
