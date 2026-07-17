@@ -40,7 +40,7 @@ account action.
 |---|---|---|
 | Hackage | haskell | The sdist is built and passes `cabal check`. Needs a Hackage account + upload token, then `cabal upload --publish <sdist>`. |
 | CPAN | perl | The dist tarball is built. The Perl Authors Upload Server (PAUSE) has no API token; upload via the web form at pause.perl.org. |
-| CRAN | r | A human-reviewed submission (cran.r-project.org/submit.html). Recommended first: replace the system `openssl` command-line Ed25519 call in `signing.R` with the `openssl` or `sodium` R package. |
+| CRAN | r | Caveat 6c resolved: `signing.R` now uses the `openssl` R package for Ed25519 (RFC 8032), not the system command-line tool — `openssl (>= 1.4.1)` is in `Imports`, the CLI `SystemRequirements` is dropped, and conformance stays 107/107. `R CMD check --as-cran` is clean apart from the standard "New submission" NOTE and an undocumented-objects WARNING. Remaining for the user: a `man/` documentation pass for the exported functions, then the human web-form submission at cran.r-project.org/submit.html. |
 | Julia General | julia | Registration PR [General #161292](https://github.com/JuliaRegistries/General/pull/161292) is open but under contested human review; a 2.0.0 registration follows once it merges. |
 | vcpkg (C++) | cpp | Port PR [microsoft/vcpkg #52892](https://github.com/microsoft/vcpkg/pull/52892), updated to 2.0.1. Blocked only on the owner's Microsoft Contributor License Agreement (comment `@microsoft-github-policy-service agree` on the PR). |
 | Conan (C++) | cpp | Recipe PR [conan-io/conan-center-index #30612](https://github.com/conan-io/conan-center-index/pull/30612), updated to 2.0.1. Blocked only on signing the Contributor License Agreement at the cla-assistant link on the PR. |
