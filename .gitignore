@@ -32,6 +32,7 @@ __pycache__/
 
 # JavaScript
 node_modules/
+/bindings/javascript/*.tgz
 
 # Rust
 /bindings/rust/target/
