@@ -1,63 +1,83 @@
-# Publishing Causalontology 1.0.0
+# Publishing Causalontology 2.0.0
 
-The vectors are frozen; every artifact below was built from the frozen tree
-and verified by the conformance suite. This page records, honestly, what is
-already live and what awaits the owner's registry credentials (none are
-stored on the build machine, by design).
+The 107 vectors are frozen; every artifact below was built from the frozen tree
+and verified by the conformance suite. This page records, honestly, what is live
+at 2.0.0 and what still awaits an account, a registrar, or a human review. No
+registry credential is stored on the build machine, by design.
 
-## Live now (no credentials needed - done via git tags and GitHub)
+Status here is re-verified against the live registries, not self-reported.
 
-| Channel | Status | Consume with |
+## Live at 2.0.0 — package registries
+
+| Registry | Consume with | 1.0.0 disposition |
 |---|---|---|
-| GitHub Release v1.0.0 | **live** - carries the wheel, sdist, npm tarball, crate, and the WebAssembly core | the repository's Releases page |
-| Swift Package Manager | **live** - SwiftPM resolves git tags directly | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "1.0.0")` |
-| NuGet | **live** (published 2026-07-14) | `dotnet add package causalontology` — https://www.nuget.org/packages/causalontology |
-| RubyGems | **live** (published 2026-07-14, via the publish workflow) | `gem install causalontology` — https://rubygems.org/gems/causalontology |
-| Hex | **live** (published 2026-07-14, via the publish workflow) | `{:causalontology, "~> 1.0"}` — https://hex.pm/packages/causalontology |
-| LuaRocks | **live** (published 2026-07-14, via the publish workflow) | `luarocks install causalontology` — https://luarocks.org/modules/search?q=causalontology |
-| Packagist | **live** (published 2026-07-14) | `composer require causalontology/causalontology` — https://packagist.org/packages/causalontology/causalontology |
-| Maven Central (Kotlin klib) | **live** (published 2026-07-14) | `io.github.ai-university-aiu:causalontology-kotlin:1.0.0` — https://repo1.maven.org/maven2/io/github/ai-university-aiu/causalontology-kotlin/1.0.0/ |
-| pub.dev | **live** (published 2026-07-14) | `dart pub add causalontology` — https://pub.dev/packages/causalontology |
-| npm | **live** (published 2026-07-13) | `npm install causalontology` — https://www.npmjs.com/package/causalontology |
-| PyPI | **live** (published 2026-07-13) | `pip install causalontology` — https://pypi.org/project/causalontology/ |
-| crates.io | **live** (published 2026-07-13) | `cargo add causalontology` — https://crates.io/crates/causalontology |
-| Maven Central | **live** (published 2026-07-13) | `io.github.ai-university-aiu:causalontology:1.0.0` — https://repo1.maven.org/maven2/io/github/ai-university-aiu/causalontology/1.0.0/ |
-| Go modules / pkg.go.dev | **live** - Go resolves module tags directly (`bindings/go/v1.0.0`) | `go get github.com/ai-university-aiu/causalontology/bindings/go@v1.0.0` |
+| PyPI | `pip install causalontology` | 1.0.0 yanked |
+| npm | `npm install causalontology` | 1.0.0 deprecated |
+| crates.io | `cargo add causalontology` | 1.0.0 yanked |
+| Maven Central (Java) | `io.github.ai-university-aiu:causalontology:2.0.0` | immutable; 1.0.0 remains |
+| Maven Central (Kotlin/Native klib) | `io.github.ai-university-aiu:causalontology-kotlin:2.0.0` (linuxX64) | immutable; 1.0.0 remains |
+| NuGet | `dotnet add package causalontology` | 1.0.0 unlisted |
+| RubyGems | `gem install causalontology` | 1.0.0 yanked |
+| Hex | `{:causalontology, "~> 2.0"}` | 1.0.0 retired (deprecated) |
+| LuaRocks | `luarocks install causalontology` | no yank; 1.0.0-1 remains listed |
+| Packagist | `composer require causalontology/causalontology` | mirrors git tags; v1.x remain |
+| pub.dev | `dart pub add causalontology` | 1.0.0 retracted |
 
-## Nothing awaits: every channel is live
+## Live at 2.0.x — git-tag channels (no registry)
 
-All seven distribution channels published on 2026-07-13. The build recipe
-for Maven (JDK tarball, three jars, GPG-signed bundle, the Central
-Publisher API) is recorded in the repository history for the next release.
+| Channel | Consume with | Notes |
+|---|---|---|
+| Swift Package Manager | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "2.0.0")` | resolves to `v2.0.1`; `Package.swift` is valid at the tag. Swift Package Index listing: [PackageList PR #14440](https://github.com/SwiftPackageIndex/PackageList/pull/14440) (merge pending) |
+| Go modules / pkg.go.dev | `go get github.com/ai-university-aiu/causalontology/bindings/go/v2@v2.0.0` | the `/v2` module (Go major-version rule); import `.../bindings/go/v2/causalontology`. The v1 line is deprecated and self-retracted at `bindings/go/v1.0.1`. pkg.go.dev has indexed the `/v2` module |
+| Zig | `zig fetch --save https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v2.0.1.tar.gz`, then `dep.module("causalontology")` | the repository-root `build.zig.zon` at `v2.0.1` enables the clean flow; the pin hash reproduces via `zig fetch` |
 
-Name-collision note, stated plainly: if the bare name `causalontology` is
-already claimed on a registry, publish under the organization scope instead
-(`@ai-university-aiu/causalontology` on npm; `causalontology-standard` or
-similar elsewhere) and record the chosen name in the bindings table.
+## Still pending — accounts, registrars, or human review
+
+None of these is blocked on this repository; each awaits a third party or an
+account action.
+
+| Registry | Binding | What remains |
+|---|---|---|
+| Hackage | haskell | The sdist is built and passes `cabal check`. Needs a Hackage account + upload token, then `cabal upload --publish <sdist>`. |
+| CPAN | perl | The dist tarball is built. The Perl Authors Upload Server (PAUSE) has no API token; upload via the web form at pause.perl.org. |
+| CRAN | r | A human-reviewed submission (cran.r-project.org/submit.html). Recommended first: replace the system `openssl` command-line Ed25519 call in `signing.R` with the `openssl` or `sodium` R package. |
+| Julia General | julia | Registration PR [General #161292](https://github.com/JuliaRegistries/General/pull/161292) is open but under contested human review; a 2.0.0 registration follows once it merges. |
+| vcpkg (C++) | cpp | Port PR [microsoft/vcpkg #52892](https://github.com/microsoft/vcpkg/pull/52892), updated to 2.0.1. Blocked only on the owner's Microsoft Contributor License Agreement (comment `@microsoft-github-policy-service agree` on the PR). |
+| Conan (C++) | cpp | Recipe PR [conan-io/conan-center-index #30612](https://github.com/conan-io/conan-center-index/pull/30612), updated to 2.0.1. Blocked only on signing the Contributor License Agreement at the cla-assistant link on the PR. |
+
+## Reach beyond the direct installs
+
+Kotlin, Scala, Clojure, and Groovy consume the Java artifact from Maven Central
+as-is. Deno and Bun consume the npm package directly. Any WebAssembly host
+(browsers, edge workers, wasmtime embeddings) can use the WASM core attached to
+the GitHub release.
 
 ## Verify any artifact
 
-Every package embeds or reads the same schemas and passes the same 38
-frozen vectors; the conformance workflow re-proves all eight gates on every
-push. To verify locally: `python3 bindings/python/tests/run_conformance.py`.
+Every binding embeds or reads the same schemas and passes the same 107 frozen
+vectors; the conformance workflow re-proves all nineteen binding gates on every
+push. To verify locally, after `source ~/toolchains/env.sh`:
 
-## The nine-language wave (2026-07-13): registries awaiting the owner's accounts
+```
+python3 bindings/python/tests/run_conformance.py
+```
 
-All nine implementations are conformant (38/38) in the repository; each
-carries its registry manifest. As before: no credential lives on the build
-machine; each publish is one account + one command.
+Maven Central artifacts are GPG-signed; see [SECURITY.md](SECURITY.md) for the
+project's OpenPGP fingerprint and how to verify.
 
-| Registry | Binding | The command (after logging in) |
-|---|---|---|
-| Hackage | haskell | `cd bindings/haskell && cabal sdist && cabal upload --publish dist-newstyle/sdist/*.tar.gz` |
-| CPAN | perl | PAUSE account, then upload the dist tarball at pause.perl.org |
-| CRAN | r | a human-review submission process (cran.r-project.org/submit.html) — stated plainly |
+## Release mechanics
 
-## Wave two (2026-07-14): C++, Zig, Julia, Kotlin/Native
+- Git tags drive the tag channels: `vX.Y.Z` for SwiftPM/Zig and the source
+  release; `bindings/go/vX.Y.Z` for the Go module.
+- GitHub Releases carry the built artifacts (wheel, sdist, npm tarball, crate,
+  and the WebAssembly core). See [CHANGELOG.md](CHANGELOG.md) for what each
+  release contains.
+- The Maven build recipe (JDK, GPG-signed bundle, the Central Publisher Portal
+  API) and the Kotlin Multiplatform klib build are recorded in the repository
+  history and the `bindings/kotlin/build.gradle.kts` manifest.
+- A tag push also triggers [`.github/workflows/release.yml`](.github/workflows/release.yml),
+  which builds the artifacts and creates the GitHub Release.
 
-| Channel | Binding | Status / command |
-|---|---|---|
-| Zig packages | zig | **live by git tag** — Zig consumes git URLs + build.zig.zon; the v1.0.0 tag serves it |
-| vcpkg (C++) | cpp | **port PR open: [microsoft/vcpkg#52892](https://github.com/microsoft/vcpkg/pull/52892)** (2026-07-14) — install-tested locally (5.8 s, x64-linux); honest maturity note included (the repo is days old vs their 6-month guideline), so maintainer discretion applies |
-| Conan (C++) | cpp | **recipe PR open: [conan-io/conan-center-index#30612](https://github.com/conan-io/conan-center-index/pull/30612)** (2026-07-14) — conan-create-tested static AND shared; ACTION FOR THE OWNER: sign the Contributor License Agreement when the cla-assistant bot prompts on the PR |
-| Julia General registry | julia | **registration PR open: [JuliaRegistries/General#161292](https://github.com/JuliaRegistries/General/pull/161292)** (2026-07-14). New packages wait a mandatory ~3 days; if the automated AutoMerge checks pass, it merges without human action — then `pkg> add Causalontology` |
+Name-collision note: if the bare name `causalontology` is ever unavailable on a
+new registry, publish under the organization scope and record the chosen name in
+[bindings/README.md](bindings/README.md).
