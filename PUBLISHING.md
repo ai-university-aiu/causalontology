@@ -65,6 +65,33 @@ python3 bindings/python/tests/run_conformance.py
 Maven Central artifacts are GPG-signed; see [SECURITY.md](SECURITY.md) for the
 project's OpenPGP fingerprint and how to verify.
 
+## Fetch and verify a commons snapshot (Phase two of Part 21)
+
+The commons itself — not just the code — is published as signed snapshot dumps:
+a deterministic, content-addressed bag of objects and provenance records,
+committed by a Merkle root and signed with the genesis node's Ed25519 key, plus
+a detached SHA-256 checksum and signature. A dump is four files
+(`*.snapshot.ndjson`, `*.snapshot.manifest.json`, `*.snapshot.sha256`,
+`*.snapshot.sig`); real dumps are distributed off-repo (a GitHub Release
+payload, IPFS, BitTorrent, or plain HTTPS), and a small worked example lives in
+`dumps/example/`. To verify a dump end to end — no store required — and then
+stand up a mirror:
+
+```
+# offline check: manifest signature, Merkle root, every hash and signature
+python3 store/server/snapshot_import.py --dir dumps --verify-only
+
+# the detached checksum is a plain sha256sum file
+cd dumps && sha256sum -c commons.snapshot.sha256
+
+# mirror it into a fresh node by verified, idempotent union-merge
+python3 store/server/snapshot_import.py --dir dumps --db mirror.db
+```
+
+Pin a publisher you trust with `--trust ed25519:<hex>`. The token tier is
+excluded from a default snapshot for privacy. Full format:
+[`spec/snapshot.md`](spec/snapshot.md).
+
 ## Release mechanics
 
 - Git tags drive the tag channels: `vX.Y.Z` for SwiftPM/Zig and the source
