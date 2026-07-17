@@ -4,7 +4,7 @@
 [causalontology-py](../python/), sharing the same conformance suite.
 
 **Zero dependencies — pure Dart crypto.** The `pubspec.yaml` has no
-dependencies at all: SHA-256 and SHA-512 are hand-written from FIPS 180-4
+dependencies at all: Secure Hash Algorithm 256-bit (SHA-256) and SHA-512 are hand-written from FIPS 180-4
 (gated by empty-string known answers), and Ed25519 (RFC 8032) is ported from
 the reference Python over `BigInt` (gated by the RFC 8032 TEST 1 known
 answer). Everything else uses `dart:convert`, `dart:io`, and
@@ -20,7 +20,7 @@ answer). Everything else uses `dart:convert`, `dart:io`, and
 | `lib/schema.dart` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
 | `lib/semantics.dart` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `lib/store.dart` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read — over `LinkedHashMap`s, deliberately mirroring the Python reference's insertion-order iteration |
-| `lib/causalontology.dart` | the public API surface (exports) |
+| `lib/causalontology.dart` | the public application programming interface (API) surface (exports) |
 | `bin/conformance.dart` | the conformance runner: internal known-answer checks (SHA-2 empty-string digests, RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance

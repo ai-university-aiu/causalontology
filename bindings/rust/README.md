@@ -35,7 +35,7 @@ schema validation working inside the sandbox, and Ed25519 verification of a
 record signed by the JS binding (plus rejection of the tampered copy).
 
 Exports (`src/wasm_abi.rs`): `co_alloc` / `co_free`, `co_identify`,
-`co_canonicalize`, `co_validate`, `co_verify_record` — UTF-8 JSON in,
+`co_canonicalize`, `co_validate`, `co_verify_record` — UTF-8 JavaScript Object Notation (JSON) in,
 length-prefixed UTF-8 JSON out. Any language with a WASM runtime (browsers,
 edge workers, wasmtime hosts) gets the audited core without a port.
 

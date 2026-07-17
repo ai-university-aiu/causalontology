@@ -39,7 +39,7 @@ account action.
 | Registry | Binding | What remains |
 |---|---|---|
 | Hackage | haskell | The sdist is built and passes `cabal check`. Needs a Hackage account + upload token, then `cabal upload --publish <sdist>`. |
-| CPAN | perl | The dist tarball is built. The Perl Authors Upload Server (PAUSE) has no API token; upload via the web form at pause.perl.org. |
+| CPAN | perl | The dist tarball is built. The Perl Authors Upload Server (PAUSE) has no application programming interface (API) token; upload via the web form at pause.perl.org. |
 | CRAN | r | **Ready for web-form submission.** Caveat 6c resolved: `signing.R` uses the `openssl` R package for Ed25519 (Imports, not the CLI). The export surface is a documented 22-function public API (`man/*.Rd` with runnable examples), the 17 JSON Schemas are bundled under `inst/schema` so the package works standalone, and `R CMD check --as-cran` passes with only the standard "New submission" NOTE (no WARNINGs, no ERRORs); conformance stays 107/107. Remaining is human-only: submit the built tarball at cran.r-project.org/submit.html. |
 | Julia General | julia | Registration PR [General #161292](https://github.com/JuliaRegistries/General/pull/161292) is open but under contested human review; a 2.0.0 registration follows once it merges. |
 | vcpkg (C++) | cpp | Port PR [microsoft/vcpkg #52892](https://github.com/microsoft/vcpkg/pull/52892), updated to 2.0.1. Blocked only on the owner's Microsoft Contributor License Agreement (comment `@microsoft-github-policy-service agree` on the PR). |
@@ -70,10 +70,10 @@ project's OpenPGP fingerprint and how to verify.
 The commons itself — not just the code — is published as signed snapshot dumps:
 a deterministic, content-addressed bag of objects and provenance records,
 committed by a Merkle root and signed with the genesis node's Ed25519 key, plus
-a detached SHA-256 checksum and signature. A dump is four files
+a detached Secure Hash Algorithm 256-bit (SHA-256) checksum and signature. A dump is four files
 (`*.snapshot.ndjson`, `*.snapshot.manifest.json`, `*.snapshot.sha256`,
 `*.snapshot.sig`); real dumps are distributed off-repo (a GitHub Release
-payload, IPFS, BitTorrent, or plain HTTPS), and a small worked example lives in
+payload, InterPlanetary File System (IPFS), BitTorrent, or plain Hypertext Transfer Protocol Secure (HTTPS)), and a small worked example lives in
 `dumps/example/`. To verify a dump end to end — no store required — and then
 stand up a mirror:
 

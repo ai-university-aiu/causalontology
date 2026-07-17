@@ -1,7 +1,7 @@
 # Quickstart: one claim, four languages, end to end
 
 The full narrative lives in Part 15 of the master document at the repository
-root. The JSON documents below are the artifacts of that story. Identifiers
+root. The JavaScript Object Notation (JSON) documents below are the artifacts of that story. Identifiers
 are symbolic pending the 2.0.0 conformance freeze.
 
 ## Step 1 — Alice (Python) mints vocabulary and imports a bare edge

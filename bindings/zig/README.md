@@ -16,12 +16,12 @@ Pinned toolchain: **Zig 0.13.0**.
 | Source file | Implements |
 |---|---|
 | `src/jcs.zig` | RFC 8785 (JSON Canonicalization Scheme) serialization: sorted keys, minimal string escaping, ECMAScript-style canonical numbers (`1.0` → `1`, `0.7` stays `0.7`), plus the shared JSON value helpers |
-| `src/canonical.zig` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
+| `src/canonical.zig` | identity-bearing field filtering per kind and Secure Hash Algorithm 256-bit (SHA-256) content-addressed `identify()` (spec/identity.md) |
 | `src/signing.zig` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
 | `src/schema.zig` | validation against the seventeen JSON Schemas in `spec/schema/` — a small interpreter for exactly the keywords those schemas use, with dedicated matchers for the three anchored pattern families instead of a regex engine |
 | `src/semantics.zig` | the 21 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s; year = 31,556,952 s), the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `src/store.zig` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read — every map is an insertion-ordered `StringArrayHashMap`, never a `StringHashMap` (whose iteration order is undefined), because where the Python reference iterates dicts, insertion order is normative |
-| `src/causalontology.zig` | the module root re-exporting the public API |
+| `src/causalontology.zig` | the module root re-exporting the public application programming interface (API) |
 | `conformance.zig` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
@@ -53,7 +53,7 @@ harness's old normalization now simply passes frozen values through.
 
 ## Consuming the package
 
-Zig packages are consumed by git URL + hash — the `build.zig.zon`
+Zig packages are consumed by git Uniform Resource Locator (URL) + hash — the `build.zig.zon`
 manifest (name `causalontology`, version `2.0.0`) is the registry story:
 
 ```

@@ -4,13 +4,13 @@
 [causalontology-py](../python/), sharing the same conformance suite.
 
 **Core modules only.** Everything the standard needs ships with Perl
-itself: `Digest::SHA` (SHA-256 and SHA-512), `Math::BigInt` (the Ed25519
+itself: `Digest::SHA` (Secure Hash Algorithm 256-bit (SHA-256) and SHA-512), `Math::BigInt` (the Ed25519
 field arithmetic), `strict`, and `warnings`. There is nothing to install
 from CPAN; any stock Perl 5.16+ runs the suite as-is.
 
 | Source file | Implements |
 |---|---|
-| `lib/Causalontology/JSON.pm` | a lossless JSON layer: a small parser of its own that tags every number with its source literal (so `1` versus `1.0` survives to the canonicalizer) and keeps an explicit key-order array beside every object, since Perl hashes are unordered |
+| `lib/Causalontology/JSON.pm` | a lossless JavaScript Object Notation (JSON) layer: a small parser of its own that tags every number with its source literal (so `1` versus `1.0` survives to the canonicalizer) and keeps an explicit key-order array beside every object, since Perl hashes are unordered |
 | `lib/Causalontology/JCS.pm` | RFC 8785 (JSON Canonicalization Scheme) serialization: keys sorted with `cmp` (byte order equals UTF-16 code-unit order for ASCII keys), minimal string escapes with lowercase `\u%04x` for controls, ECMAScript-style numbers (`1.0` → `1`, `0.7` stays `0.7`, `e-07` → `e-7`) |
 | `lib/Causalontology/Canonical.pm` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
 | `lib/Causalontology/Ed25519.pm` | Ed25519 (RFC 8032), pure Perl over `Math::BigInt`: slow but correct, gated on the RFC 8032 TEST 1 known answer before any vector runs; a fixed-base doubling table for G keeps the whole suite under ten seconds even on the pure-Perl bigint backend |

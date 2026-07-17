@@ -5,13 +5,13 @@
 
 One dependency only:
 [swift-crypto](https://github.com/apple/swift-crypto) (from 3.0.0), Apple's
-Linux-compatible crypto package, used for SHA-256 and Ed25519
+Linux-compatible crypto package, used for Secure Hash Algorithm 256-bit (SHA-256) and Ed25519
 (`Curve25519.Signing`). Everything else is hand-written from the
 specification.
 
 | Source file | Implements |
 |---|---|
-| `Sources/Causalontology/JsonValue.swift` | a lossless JSON value model with its own recursive-descent parser (integer literals stay `Int64`, floating literals stay `Double` — the 1-vs-1.0 distinction survives to the canonicalizer) |
+| `Sources/Causalontology/JsonValue.swift` | a lossless JavaScript Object Notation (JSON) value model with its own recursive-descent parser (integer literals stay `Int64`, floating literals stay `Double` — the 1-vs-1.0 distinction survives to the canonicalizer) |
 | `Sources/Causalontology/Jcs.swift` | RFC 8785 (JSON Canonicalization Scheme) serialization: UTF-16 key order, minimal string escaping, canonical numbers |
 | `Sources/Causalontology/Canonical.swift` | identity-bearing field filtering and SHA-256 content-addressed `identify()` |
 | `Sources/Causalontology/Signing.swift` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (Ed25519, RFC 8032) |

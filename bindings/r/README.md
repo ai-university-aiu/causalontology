@@ -6,7 +6,7 @@
 Two dependencies only, both standard CRAN infrastructure:
 [sodium](https://cran.r-project.org/package=sodium) (libsodium: Ed25519,
 RFC 8032) and [openssl](https://cran.r-project.org/package=openssl)
-(SHA-256). Everything else is base R (4.x) — including the JSON parser,
+(Secure Hash Algorithm 256-bit (SHA-256)). Everything else is base R (4.x) — including the JavaScript Object Notation (JSON) parser,
 because base R has none and the canonicalizer needs a lossless one anyway.
 
 | Source file | Implements |
@@ -20,7 +20,7 @@ because base R has none and the canonicalizer needs a lossless one anyway.
 | `R/store.R` | an in-memory conformant store (an R environment holding insertion-ordered named lists): idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with canonical-entry dedup and contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule (latest `(timestamp, id)` loses, compared code-point-wise, timestamp first then id), and the stigmergy `co_store_gaps()` read |
 | `conformance.R` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
-## The sodium API, pinned down
+## The sodium application programming interface (API), pinned down
 
 In the sodium R package the **Ed25519 signing key is the 32-byte seed
 itself** — sodium derives the key pair internally. The argument orders,

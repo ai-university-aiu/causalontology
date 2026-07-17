@@ -22,7 +22,7 @@ English-Readable Code discipline), and every step narrates its reason.
 
 The microworld stands in for Mentova's live environments; the loop — read
 frontier → act → induce → sign → contribute — is the real thing, and it runs
-against the real store over real HTTP.
+against the real store over real Hypertext Transfer Protocol (HTTP).
 
 ## Run it
 

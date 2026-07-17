@@ -14,7 +14,7 @@ sharing a line of code. Everything below serves it.
 
 ## Contributing a new language binding
 
-1. Implement the standard: content-addressed identity (RFC 8785 + SHA-256),
+1. Implement the standard: content-addressed identity (RFC 8785 + Secure Hash Algorithm 256-bit (SHA-256)),
    record-level Ed25519 signing (RFC 8032), schema and semantic validation, and
    ideally the store protocol. Prefer the standard library; keep dependencies
    vetted and minimal.

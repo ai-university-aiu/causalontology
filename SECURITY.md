@@ -2,7 +2,7 @@
 
 Causalontology is a standard for signed, content-addressed causal knowledge.
 Its integrity model rests on three primitives: content-addressed identity
-(SHA-256 over RFC 8785 canonical bytes), record-level Ed25519 signatures
+(Secure Hash Algorithm 256-bit (SHA-256) over RFC 8785 canonical bytes), record-level Ed25519 signatures
 (RFC 8032), and deterministic, byte-identical behavior across all bindings. A
 defect in any of these — or in a binding's implementation of them — is a
 security concern.

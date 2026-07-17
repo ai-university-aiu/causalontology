@@ -7,7 +7,7 @@ Zero dependencies — Python standard library only:
 
 | Module | Implements |
 |---|---|
-| `causalontology.canonical` | RFC 8785 (JSON Canonicalization Scheme) serialization, identity-bearing field filtering, SHA-256 content-addressed `identify()` |
+| `causalontology.canonical` | RFC 8785 (JSON Canonicalization Scheme) serialization, identity-bearing field filtering, Secure Hash Algorithm 256-bit (SHA-256) content-addressed `identify()` |
 | `causalontology.ed25519` | pure-Python Ed25519 (RFC 8032), verified against the RFC's known-answer test |
 | `causalontology.signing` | record-level `sign_record()` / `verify_record()` over canonical identity-bearing bytes |
 | `causalontology.schema` | validation against the seventeen JSON Schemas in `spec/schema/` |

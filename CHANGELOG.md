@@ -68,7 +68,7 @@ Initial specification freeze.
 - Eight object kinds (type and provenance tiers) and 38 frozen conformance
   vectors (V01 - V38).
 - Content-addressed identity over RFC 8785 (JSON Canonicalization Scheme) and
-  SHA-256; record-level Ed25519 signing (RFC 8032).
+  Secure Hash Algorithm 256-bit (SHA-256); record-level Ed25519 signing (RFC 8032).
 - A Tier A reference store with materialized views, retraction, succession
   lineage, and the stigmergy gap read.
 

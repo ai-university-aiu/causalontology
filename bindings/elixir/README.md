@@ -4,10 +4,10 @@
 [causalontology-py](../python/), sharing the same conformance suite.
 
 **Zero Hex dependencies.** OTP's `:crypto` application carries everything the
-standard needs: SHA-256 and Ed25519 (RFC 8032 signing and verification, with
+standard needs: Secure Hash Algorithm 256-bit (SHA-256) and Ed25519 (RFC 8032 signing and verification, with
 deterministic key derivation from a 32-byte seed via
 `:crypto.generate_key(:eddsa, :ed25519, seed)`). Everything else — including
-the JSON layer — is hand-written from the specification. Requires
+the JavaScript Object Notation (JSON) layer — is hand-written from the specification. Requires
 **Elixir 1.16 / OTP 26** (CI's pinned toolchain; anything newer works too).
 
 | Source file | Implements |

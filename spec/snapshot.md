@@ -14,7 +14,7 @@ A snapshot is a **body** (the data) and a **manifest** (a small signed header).
 
 ### Body
 
-Newline-delimited canonical JSON (`.ndjson`): one content object or provenance
+Newline-delimited canonical JavaScript Object Notation (JSON) (`.ndjson`): one content object or provenance
 record per line, each serialized as its exact canonical bytes
 (`json.dumps(entry, sort_keys=True, separators=(",", ":"))`, UTF-8), with all
 entries sorted by identifier. The encoding is a pure function of content, so the
@@ -32,7 +32,7 @@ A small JSON header, signed:
 |---|---|
 | `snapshot_format` | the format version (`1.0`) |
 | `spec_version` | the specification version (`2.0.0`) |
-| `created_at` | UTC ISO-8601 timestamp — the ONLY non-reproducible field |
+| `created_at` | Coordinated Universal Time (UTC) ISO-8601 timestamp — the ONLY non-reproducible field |
 | `content_objects` | count of content objects in the body |
 | `provenance_records` | count of provenance records in the body |
 | `includes_tokens` | `false` by default (the token tier is excluded) |
@@ -72,7 +72,7 @@ the opt-in is a deliberate operator act.
 
 - **Export** (`store/server/snapshot_export.py`) reads a store — the persistent
   Phase-one node (`--db`) or a `{objects, records}` bundle (`--from-bundle`) —
-  and writes four files: the body, the signed manifest, a detached SHA-256
+  and writes four files: the body, the signed manifest, a detached Secure Hash Algorithm 256-bit (SHA-256)
   checksum file (`sha256sum -c`-compatible), and a detached signature.
   Deterministic; signs with the node's Ed25519 key.
 - **Verify** (`store/server/snapshot_import.py --verify-only`) checks a dump
@@ -104,8 +104,8 @@ python3 store/server/snapshot_export.py \
     --seed-file genesis.seed --out dumps
 ```
 
-The four files in `dumps/` are the published artifact. Distribution over IPFS,
-BitTorrent, or plain HTTPS is an operational choice and is **out of scope for
+The four files in `dumps/` are the published artifact. Distribution over InterPlanetary File System (IPFS),
+BitTorrent, or plain Hypertext Transfer Protocol Secure (HTTPS) is an operational choice and is **out of scope for
 Phase two** — this phase delivers the artifact and its proofs, not a hosting
 pipeline. Real dumps are git-ignored (`dumps/`); a small worked example is
 committed under `dumps/example/` and exercised by the tests.
@@ -119,7 +119,7 @@ python3 store/server/snapshot_import.py --dir dumps --db mirror.db  # mirror it
 
 ## What Phase two is not
 
-No live federation, gossip, or anti-entropy (Phase three); no light clients, CDN
+No live federation, gossip, or anti-entropy (Phase three); no light clients, content-delivery network (CDN)
 caching, or hash-prefix sharding (Phase four). A snapshot is a static,
 verifiable dataset — the floor of durability the live network is later built on
 top of. Tests: `store/server/test_snapshot.py`.
