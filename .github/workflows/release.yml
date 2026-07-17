@@ -1,0 +1,62 @@
+name: Release
+
+# On a version tag (v2.0.1, v2.1.0, ...), build the portable artifacts and
+# create the GitHub Release. Go submodule tags (bindings/go/v*) do not match
+# and are handled by the Go module proxy directly, not by a release object.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Add the WebAssembly target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build the Python wheel and sdist
+        run: |
+          python3 -m pip install --quiet build
+          (cd bindings/python && python3 -m build)
+
+      - name: Build the npm tarball
+        run: (cd bindings/javascript && npm pack)
+
+      - name: Package the crate
+        run: (cd bindings/rust && cargo package --allow-dirty --no-verify)
+
+      - name: Build the WebAssembly core
+        run: (cd bindings/rust && cargo build --lib --release --target wasm32-unknown-unknown)
+
+      - name: Collect release artifacts
+        run: |
+          mkdir -p dist
+          cp bindings/python/dist/*.whl                                           dist/
+          cp bindings/python/dist/*.tar.gz                                         dist/
+          cp bindings/javascript/*.tgz                                            dist/
+          cp bindings/rust/target/package/*.crate                                 dist/
+          cp bindings/rust/target/wasm32-unknown-unknown/release/causalontology.wasm dist/
+          ls -la dist
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --title "Causalontology ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            --latest
