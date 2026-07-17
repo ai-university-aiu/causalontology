@@ -249,14 +249,28 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: causalontology
-      # The reference implementation, pinned to its Order One compliance commit
-      # 7b3aa86 ("declare and pass Causalontology 2.0.0 conformance (107/107
-      # vectors)", WP-425), which is also PrologAI main HEAD.
+      # The reference implementation, tracked at its MOVING main branch, not a
+      # fixed commit. This is deliberate: the job's purpose is DRIFT DETECTION,
+      # and a fixed pin cannot detect drift -- it can only freeze the gate at one
+      # historical revision, which is precisely how the old 7b3aa86 pin fell
+      # behind Wave 1 and stopped testing what ships. The accepted trade-off:
+      # this job is intentionally NOT reproducible across time. The same
+      # causalontology commit may go green today and red tomorrow if PrologAI's
+      # main regresses -- that is the gate working, not a flake. This is safe
+      # because PrologAI self-gates these same 107 vectors on its own push, so
+      # its main is either conformant or already red at the source.
+      #
+      # Considered alternative (recorded so the choice is remembered as a
+      # choice): if reproducibility ever matters more than freshness, replace
+      # `main` with a moving tag (e.g. causalontology-gate) that PrologAI
+      # advances only after it verifies 107/107, and pin this job to that tag.
+      # That trades drift-detection latency for reproducibility. Not adopted:
+      # freshness is the point of this gate.
       - name: check out the reference implementation (PrologAI)
         uses: actions/checkout@v4
         with:
           repository: ai-university-aiu/PrologAI
-          ref: 7b3aa86b00e70967bcd2438879984138e5e64024
+          ref: main
           path: prologai
       - name: install SWI-Prolog
         run: sudo apt-get update && sudo apt-get install -y swi-prolog
