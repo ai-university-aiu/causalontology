@@ -9,8 +9,10 @@ Ed25519 signature verifies, and the gap it chose is gone from the frontier.
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
 import threading
 import urllib.request
 from pathlib import Path
@@ -20,9 +22,10 @@ ROOT = HERE.parents[2]
 sys.path.insert(0, str(ROOT / "bindings" / "python"))
 sys.path.insert(0, str(ROOT / "store" / "server"))
 
-from causalontology import (InMemoryStore, keypair_from_seed,  # noqa: E402
+from causalontology import (keypair_from_seed,                 # noqa: E402
                             verify_record, refinement_valid)
 from server import StoreServer                                 # noqa: E402
+from storage import PersistentStore                            # noqa: E402
 
 checks = []
 
@@ -43,7 +46,10 @@ def req(base, method, path, body=None):
 
 
 def main():
-    store = InMemoryStore()
+    # the gardener now tends a PERSISTENT node (Phase one, Part 21): the same
+    # commons, backed by a durable content-addressed SQLite store.
+    tmp = tempfile.mkdtemp(prefix="causalontology-gardener-")
+    store = PersistentStore(db_path=os.path.join(tmp, "commons.db"))
     server = StoreServer(("127.0.0.1", 0), store, demand_threshold=3)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     base = "http://127.0.0.1:%d" % server.server_address[1]
@@ -111,6 +117,10 @@ def main():
           and rep["evidence_histogram"].get("intervention") == 1)
 
     server.shutdown()
+    store.close()
+    for f in os.listdir(tmp):
+        os.remove(os.path.join(tmp, f))
+    os.rmdir(tmp)
     failed = [n for n, ok in checks if not ok]
     print("-" * 60)
     print("%d/%d gardener checks passed"

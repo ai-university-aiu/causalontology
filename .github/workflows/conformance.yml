@@ -27,6 +27,8 @@ jobs:
         run: python3 store/server/test_beyond.py
       - name: Tier C replication (the CRDT laws)
         run: python3 store/server/test_tierc.py
+      - name: persistent node (Phase one, Part 21)
+        run: python3 store/server/test_persistence.py
 
   javascript:
     runs-on: ubuntu-latest

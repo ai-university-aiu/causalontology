@@ -1,19 +1,62 @@
 # The Tier A reference store (roadmap step 3 — done)
 
 The HTTP binding of [`spec/store.md`](../../spec/store.md) over the conformant
-in-memory store of [`causalontology-py`](../../bindings/python/). Zero
-dependencies — Python standard library only.
+store of [`causalontology-py`](../../bindings/python/). Zero dependencies —
+Python standard library only.
+
+By default it is now a **persistent, content-addressed node** — Phase one of
+Part 21 (Commons Storage and Federation Design). See
+[Persistence](#persistence-phase-one-of-part-21) below.
 
 ## Run it
 
 ```
-python3 store/server/server.py                      # http://127.0.0.1:8785
+python3 store/server/server.py                      # persistent node, http://127.0.0.1:8785
+python3 store/server/server.py --db /path/store.db  # choose the database file
 python3 store/server/server.py --token SECRET       # writes need the bearer token
-python3 store/server/server.py --state store.json   # persist across restarts
+python3 store/server/server.py --in-memory          # volatile store (data lost on exit)
+python3 store/server/server.py --state store.json   # legacy JSON snapshot (in-memory)
 python3 store/server/server.py --no-enforce         # replica mode (no write gates)
 ```
 
 (The default port is 8785 — a nod to RFC 8785, the canonicalization scheme.)
+
+## Persistence (Phase one of Part 21)
+
+The node keeps its data in a durable, content-addressed
+[`storage.py`](storage.py) layer instead of volatile memory — **changing where
+the data lives while changing nothing about what the store does, the endpoints
+it serves, or the bytes it returns.** A client cannot tell the store
+restarted, except that its data survived.
+
+- **Engine: SQLite in write-ahead-logging (WAL) mode.** SQLite ships with
+  Python (zero install, zero operational setup), is ACID and crash-safe, and
+  is a single portable file — the right choice for a reference node. WAL gives
+  durable writes with concurrent reads. RocksDB, LMDB, and S3-compatible
+  object stores are named in Part 21 as later, higher-scale options; phase one
+  does not introduce them.
+- **Table layout mirrors the standard's content-versus-provenance split.**
+  `content` holds the immutable objects (primary key = the `scheme:hash`
+  identifier); `provenance` holds the signed, add-only records (with the
+  Ed25519 signature); `quarantine` holds unsigned/unverifiable records. The
+  derived/index tables — `record_index`, `object_view`, `gap_registry`,
+  `reputation` — are **not** sources of truth: they are reconstructable from
+  content and provenance alone, rebuilt on startup when absent and after
+  writes.
+- **Integrity on write.** A content object is stored only if its identifier
+  equals `scheme:` + SHA-256 of its canonical identity-bearing bytes
+  (`spec/identity.md`); a mismatch is rejected (`422`) and never persisted.
+- **Idempotent by content address.** Writing an identifier that already exists
+  is a no-op, exactly as the CRDT union semantics require.
+- **Configuration.** The database path comes from `--db` or the
+  `CAUSALONTOLOGY_STORE_DB` / `CAUSALONTOLOGY_DATA` environment variable, with
+  a default at `store/server/data/causalontology.db` (git-ignored, so a real
+  database is never committed). A cold start against an existing database
+  serves everything previously stored with no re-ingest step.
+
+Phases two through four remain open roadmap (Part 21): a genesis full node plus
+signed snapshot dumps, then Tier B federation with gossip and anti-entropy,
+then light clients with CDN caching and hash-prefix sharding.
 
 ## What it implements
 
@@ -81,3 +124,8 @@ and auth.
 Tests: `test_beyond.py` (11 checks: SPARQL, triples, reputation, two live
 servers federating) and `test_tierc.py` (8 checks: the Conflict-free Replicated Data Type (CRDT) laws, identical
 cycle-breaking on every replica, forged bytes caught).
+
+Persistence: `test_persistence.py` (15 checks) drives a real `server.py`
+subprocess to prove durability across a process restart, idempotent
+re-writes, integrity rejection, and that the derived views rebuild
+byte-identically from content and provenance alone.

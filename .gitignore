@@ -21,6 +21,12 @@ CLAUDE.md
 *.pem
 *.key
 
+# Persistent Tier A node database (never commit a real store)
+/store/server/data/
+*.db
+*.db-wal
+*.db-shm
+
 # Python
 *.pyc
 *.pyo
