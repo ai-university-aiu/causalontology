@@ -229,7 +229,8 @@ causalontology/
   store/stigmergy/         the contribution dashboard (served at /dashboard)
   examples/                the quickstart + the Mentova gardener (the first
                            synthetic mind contributing to the commons)
-  .github/workflows/       22 CI gates: every implementation, every push
+  .github/workflows/       22 Continuous Integration (CI) gates: every
+                           implementation, every push
   archive/                 superseded editions of versioned documents
   GOVERNANCE.md · PUBLISHING.md · LICENSE · DATA_LICENSE · NOTICE
 ```
