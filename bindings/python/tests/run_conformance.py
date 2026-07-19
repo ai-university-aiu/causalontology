@@ -25,6 +25,7 @@ from causalontology import (                       # noqa: E402
     bridge_closure, classify_cro, endpoints_mixed, skip_gaps, to_seconds,
     delay_within_window, bridge_wellformed, conduit_wellformed, state_gaps,
     covering_law_mismatch, retrocausal, has_cycle,
+    seam_wellformed, seam_home,
     keypair_from_seed, sign_record, verify_record,
     InMemoryStore, RejectedWrite)
 from causalontology import ed25519                 # noqa: E402
@@ -955,13 +956,151 @@ def v107():
 
 
 # ---------------------------------------------------------------------------
+# V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam, realized_by)
+# ---------------------------------------------------------------------------
+def seam(source, target, mechanism_status, chain=None):
+    o = {"type": "cross_stratal_seam", "source": source, "target": target,
+         "mechanism_status": mechanism_status}
+    if chain:
+        o["chain"] = chain
+    return mk(o)
+
+
+def _seam_fixture(src_ord, tgt_ord, mechanism_status, chain_ords=None):
+    s = _neuro()
+    src = occ("source_event", s[src_ord]["id"])
+    tgt = occ("target_event", s[tgt_ord]["id"])
+    omap = {src["id"]: src, tgt["id"]: tgt}
+    smap = {s[src_ord]["id"]: s[src_ord], s[tgt_ord]["id"]: s[tgt_ord]}
+    chain = None
+    if chain_ords is not None:
+        chain = []
+        for i, o in enumerate(chain_ords):
+            c = occ("chain_%d" % i, s[o]["id"])
+            omap[c["id"]] = c
+            smap[s[o]["id"]] = s[o]
+            chain.append(c["id"])
+    return seam(src["id"], tgt["id"], mechanism_status, chain), omap, smap
+
+
+# -- Change One: the ordinal (tick) temporal unit --
+def v108():
+    P = cro([sym("occurrent:a")], [sym("occurrent:b")],
+            temporal={"minimum_delay": 0, "maximum_delay": 5, "unit": "ticks"},
+            modality="sufficient")
+    ok, why = validate_schema(P); assert ok, why
+    ok, why = validate_semantics(P); assert ok, why
+
+def v109():
+    P = cro([sym("occurrent:a")], [sym("occurrent:b")],
+            temporal={"minimum_delay": 2, "maximum_delay": 5, "unit": "ticks"})
+    assert admissible(P, 3) is True                 # 3 ticks inside [2, 5]
+    assert admissible(P, 2) is True and admissible(P, 5) is True
+    assert admissible(P, 6) is False and admissible(P, 1) is False
+
+def v110():
+    tick_window = {"minimum_delay": 0, "maximum_delay": 5, "unit": "ticks"}
+    wall_window = {"minimum_delay": 0, "maximum_delay": 5, "unit": "seconds"}
+    assert delay_within_window({"duration": 3, "unit": "ticks"}, tick_window) is True
+    assert delay_within_window({"duration": 1, "unit": "ticks"}, wall_window) is False
+    assert delay_within_window({"duration": 1, "unit": "seconds"}, tick_window) is False
+    a = {"causes": [sym("occurrent:a")], "effects": [sym("occurrent:b")],
+         "temporal": tick_window, "modality": "sufficient"}
+    b = {"causes": [sym("occurrent:a")], "effects": [sym("occurrent:b")],
+         "temporal": wall_window, "modality": "preventive"}
+    assert conflicts(a, b) is False                 # disjoint dimensions -> no overlap
+    try:
+        to_seconds(1, "ticks"); raise AssertionError("to_seconds accepted ticks")
+    except ValueError:
+        pass
+
+def v111():
+    base = {"type": "causal_relation_object", "causes": [sym("occurrent:a")],
+            "effects": [sym("occurrent:b")], "modality": "sufficient"}
+    tick = dict(base, temporal={"minimum_delay": 0, "maximum_delay": 1, "unit": "ticks"})
+    secs = dict(base, temporal={"minimum_delay": 0, "maximum_delay": 1, "unit": "seconds"})
+    assert identify(tick) != identify(secs)         # the unit is identity-bearing
+    # a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0 value)
+    assert identify(secs) == ("causal_relation_object:"
+        "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c")
+
+
+# -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+def v112():
+    sm, omap, smap = _seam_fixture(14, 4, "unmodeled")
+    ok, why = validate_schema(sm); assert ok, why
+    ok, why = validate_semantics(sm); assert ok, why
+    ok, why = seam_wellformed(sm, omap, smap); assert ok, why
+
+def v113():
+    a, _, _ = _seam_fixture(14, 4, "unmodeled")
+    b, omap, smap = _seam_fixture(14, 4, "absent")
+    ok, why = validate_schema(b); assert ok, why
+    ok, why = seam_wellformed(b, omap, smap); assert ok, why
+    assert a["id"] != b["id"]                       # mechanism_status is identity-bearing
+
+def v114():
+    drawn, omap, smap = _seam_fixture(14, 4, "unmodeled", chain_ords=[9, 7, 6, 5])
+    ok, why = validate_schema(drawn); assert ok, why
+    ok, why = seam_wellformed(drawn, omap, smap); assert ok, why
+    bad, omap2, smap2 = _seam_fixture(14, 4, "absent", chain_ords=[9, 7, 6, 5])
+    ok, why = validate_semantics(bad)
+    assert not ok and any("contradictory_seam" in w for w in why), why
+    ok2, _ = seam_wellformed(bad, omap2, smap2); assert not ok2
+
+def v115():
+    sm, omap, smap = _seam_fixture(14, 4, "unmodeled")
+    s = _neuro()
+    assert seam_home(sm, omap, smap) == s[14]["id"]     # coarsest (max ordinal) stratum
+
+def v116():
+    adj, o1, s1 = _seam_fixture(6, 5, "unmodeled")       # adjacent (gap 1)
+    ok, _ = seam_wellformed(adj, o1, s1); assert not ok
+    co, o2, s2 = _seam_fixture(6, 6, "unmodeled")        # co-stratal (gap 0)
+    ok, _ = seam_wellformed(co, o2, s2); assert not ok
+    sm, _, _ = _seam_fixture(14, 4, "unmodeled")
+    assert sm["id"].startswith("cross_stratal_seam:")   # a new identity scheme
+
+
+# -- Change Three: the realized_by reference --
+def _conduit_realized(realized_by=None):
+    frm = "port:" + "1" * 64
+    to = "port:" + "2" * 64
+    x = "occurrent:" + "3" * 64
+    o = {"type": "conduit", "label": "conn", "from": frm, "to": to, "carries": [x]}
+    if realized_by:
+        o["realized_by"] = realized_by
+    return mk(o)
+
+def v117():
+    c = _conduit_realized("causal_relation_object:" + "a" * 64)
+    ok, why = validate_schema(c); assert ok, why
+    c2 = _conduit_realized("native:region_stratum_predict")
+    ok, why = validate_schema(c2); assert ok, why       # a native scheme reference is legal
+
+def v118():
+    bound = _conduit_realized("native:region_stratum_predict")
+    unbound = _conduit_realized()
+    assert bound["id"] != unbound["id"]                 # realized_by is identity-bearing
+    # an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0 value)
+    assert unbound["id"] == ("conduit:"
+        "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6")
+
+def v119():
+    unbound = _conduit_realized()
+    ok, why = validate_schema(unbound); assert ok, why  # unbound is legal
+    bad = dict(unbound); bad["realized_by"] = "not-a-scheme-qualified-reference"
+    ok, _ = validate_schema(bad, "conduit"); assert not ok
+
+
+# ---------------------------------------------------------------------------
 def main():
-    print("causalontology-py conformance run (specification 2.0.0)")
+    print("causalontology-py conformance run (specification 3.0.0)")
     print("internal checks (RFC 8032, RFC 8785, fixed constants) ... ", end="")
     internal_checks()
     print("ok")
     failures = 0
-    total = 107
+    total = 119
     for n in range(1, total + 1):
         fn = globals()["v%02d" % n]
         name = Path(glob.glob(str(VECDIR / ("v%02d_*.json" % n)))[0]).stem
@@ -976,7 +1115,7 @@ def main():
     if failures:
         sys.exit(1)
     print("causalontology-py is CONFORMANT to the suite "
-          "(vectors frozen at specification 2.0.0).")
+          "(vectors frozen at specification 3.0.0).")
 
 
 if __name__ == "__main__":

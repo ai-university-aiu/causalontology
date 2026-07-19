@@ -1,0 +1,357 @@
+CAUSALONTOLOGY 3.0.0 RELEASE PLAN  (v1)
+
+Step-by-step instructions for releasing Causalontology 3.0.0 - the ordinal tick
+temporal unit, the managed cross-stratal seam (the eighteenth object kind), and
+the conduit realized_by reference - to every target language's package ecosystem.
+
+This is a versioned document (the Archive Rule applies on future bumps: a new
+version is a new file and the superseded version is moved into archive/ with
+git mv). Its line-1 internal header names the document and version and is never
+edited on later bumps.
+
+Author: D. R. Dison / ai-university-aiu.
+
+Acronyms are spelled out in full on first use, with the acronym in parentheses,
+and the bare acronym thereafter. External proper names are kept verbatim
+(SWI-Prolog, Ed25519, Secure Hash Algorithm 256-bit (SHA-256), Git, PyPI, npm,
+crates.io, Maven Central, NuGet, RubyGems, Packagist, Hex, LuaRocks, Swift
+Package Manager, pub.dev, Go, Zig).
+
+
+PART ONE - THE COMMON PRE-RELEASE SECTION (applies to every language)
+
+The single source of truth for 3.0.0 is the frozen schema and conformance suite:
+the eighteen JavaScript Object Notation (JSON) schemas under spec/schema/ and the
+one hundred and nineteen conformance vectors under conformance/vectors/
+(V01-V119). The Python reference binding passes all one hundred and nineteen.
+
+A binding MAY NOT publish 3.0.0 until it passes the 3.0.0 conformance vectors in
+its own language. For every binding, in order:
+
+ 1. FREEZE. Treat spec/schema/ and conformance/vectors/ as read-only. Do not
+    alter a vector to make a binding pass; fix the binding.
+
+ 2. IMPLEMENT THE 3.0.0 DELTA. Add, in the binding's own code, the three additions:
+    - the ordinal tick temporal unit: accept "ticks" as a temporal-window unit;
+      order a tick window by integer comparison of tick counts; treat a tick
+      window and a wall-clock window as DISJOINT dimensions (they never overlap,
+      a delay of one dimension is never within a window of the other) and refuse
+      to convert a tick count to seconds;
+    - the cross_stratal_seam kind: its schema, its identity-bearing fields
+      (source, target, mechanism_status, chain), and Algorithm F (non-adjacency,
+      the drawn-chain rules, the coarsest-stratum home rule, and the
+      contradictory-seam and contradictory absent-with-chain checks);
+    - the conduit realized_by reference: an optional, identity-bearing,
+      scheme-qualified reference field; unbound remains legal.
+    All three are ADDITIVE and IDENTITY-PRESERVING: a record that omits a new
+    field keeps its 2.0.0 identifier byte-for-byte, so the binding's existing
+    identity tests must continue to pass unchanged.
+
+ 3. CONFORM. Run the binding's own port of the conformance suite until it reports
+    119/119. Green is the gate; a binding that is not green is PENDING, not
+    published.
+
+ 4. BUMP THE VERSION to 3.0.0 in the binding's package manifest.
+
+ 5. TAG THE RELEASE in Git (v3.0.0, or the language-specific tag noted below).
+
+ 6. PUBLISH, then run the post-publish verification: install the PUBLISHED 3.0.0
+    package fresh, from the registry, into a clean environment, and run its
+    conformance vectors against it. Only a fresh-install green run confirms the
+    release.
+
+Signing and provenance are unchanged from 2.0.0: Maven Central artifacts are
+GNU Privacy Guard (GPG) signed; see SECURITY.md.
+
+
+PART TWO - THE PER-LANGUAGE SECTIONS
+
+ 1. PYTHON
+    Package and registry: causalontology on the Python Package Index (PyPI).
+    Build and publish tool: build (the PEP 517 front end) and twine.
+    Version bump: set version = "3.0.0" in bindings/python/pyproject.toml (and
+      __version__ in causalontology/__init__.py, already 3.0.0).
+    Tag: v3.0.0.
+    Publish:
+      cd bindings/python
+      python3 -m build
+      python3 -m twine upload dist/causalontology-3.0.0*
+    Post-publish verification:
+      python3 -m venv /tmp/co3 && . /tmp/co3/bin/activate
+      pip install causalontology==3.0.0
+      python3 conformance/run_conformance.py    (or the packaged runner) -> 119/119
+    Note: yank or leave 1.0.0 per the 2.0.0 disposition; 2.0.0 remains available.
+
+ 2. JAVASCRIPT
+    Package and registry: causalontology on the npm registry.
+    Build and publish tool: npm.
+    Version bump: npm version 3.0.0 (updates package.json in bindings/javascript).
+    Tag: v3.0.0 (npm version creates a Git tag when run in the repo).
+    Publish:
+      cd bindings/javascript
+      npm publish
+    Post-publish verification:
+      mkdir /tmp/conjs && cd /tmp/conjs && npm init -y
+      npm install causalontology@3.0.0
+      node run_conformance.js    -> 119/119
+
+ 3. TYPESCRIPT
+    Package and registry: the npm registry (a typed package, or bundled type
+      declarations on the JavaScript package).
+    Build and publish tool: npm (with tsc emitting the declaration files).
+    Version bump: 3.0.0 in the TypeScript package's package.json.
+    Tag: v3.0.0.
+    Publish:
+      cd bindings/typescript
+      npm run build        (emit .d.ts type declarations)
+      npm publish
+    Post-publish verification: install the published 3.0.0 package fresh and run
+      the conformance vectors; and CONFIRM the type declarations reflect the 3.0.0
+      shape - the cross_stratal_seam type with its mechanism_status union
+      ("unmodeled" | "absent"), the temporal unit union widened by "ticks", and the
+      optional realized_by field on the conduit type - so a downstream TypeScript
+      consumer type-checks against the new shape.
+
+ 4. RUST
+    Package and registry: causalontology on crates.io.
+    Build and publish tool: cargo.
+    Version bump: version = "3.0.0" in bindings/rust/Cargo.toml.
+    Tag: v3.0.0.
+    Publish:
+      cd bindings/rust
+      cargo test               (the conformance harness) -> 119/119
+      cargo publish
+    Post-publish verification:
+      cargo new /tmp/conrs && cd /tmp/conrs
+      cargo add causalontology@3.0.0
+      run the conformance vectors against the published crate -> 119/119
+
+ 5. JAVA
+    Package and registry: io.github.ai-university-aiu:causalontology on Maven
+      Central (via the Sonatype Open Source Software Repository Hosting (OSSRH) /
+      Central Portal).
+    Build and publish tool: Gradle (or Maven), signed.
+    Version bump: version = "3.0.0" in the Java binding's build.gradle (or pom.xml).
+    Tag: v3.0.0.
+    Publish (signed, then release the staging repository):
+      cd bindings/java
+      ./gradlew test           -> 119/119
+      ./gradlew publish        (GPG-signed to the Central Portal staging)
+      then close and release the staging repository in the Central Portal.
+    Post-publish verification: in a fresh project declare
+      io.github.ai-university-aiu:causalontology:3.0.0 and run the conformance
+      vectors -> 119/119.
+
+ 6. KOTLIN
+    Package and registry: io.github.ai-university-aiu:causalontology-kotlin on
+      Maven Central (the linuxX64 Kotlin/Native klib). It MAY share the Java
+      artifact where the Java library is consumed directly; it ships its own
+      artifact here (state which for the release: the Kotlin/Native klib is a
+      SEPARATE artifact, causalontology-kotlin).
+    Build and publish tool: Gradle publish, signed.
+    Version bump: 3.0.0 in the Kotlin binding's build.gradle.kts.
+    Tag: v3.0.0.
+    Publish:
+      cd bindings/kotlin
+      ./gradlew allTests       -> 119/119
+      ./gradlew publish        (signed to the Central Portal), then close and release.
+    Post-publish verification: declare causalontology-kotlin:3.0.0 fresh and run
+      the vectors -> 119/119.
+
+ 7. C#
+    Package and registry: causalontology on the NuGet gallery.
+    Build and publish tool: dotnet pack and dotnet nuget push.
+    Version bump: <Version>3.0.0</Version> in
+      bindings/csharp/Causalontology/Causalontology.csproj.
+    Tag: v3.0.0.
+    Publish:
+      cd bindings/csharp/Causalontology
+      dotnet test                                  -> 119/119
+      dotnet pack -c Release
+      dotnet nuget push bin/Release/causalontology.3.0.0.nupkg \
+        --source https://api.nuget.org/v3/index.json --api-key <key>
+    Post-publish verification:
+      dotnet new console -o /tmp/concs && cd /tmp/concs
+      dotnet add package causalontology --version 3.0.0
+      run the conformance vectors -> 119/119.
+
+ 8. .NET
+    Package and registry: the NuGet gallery. The C# package IS the .NET package -
+      a SAME package, not a companion (state which): the causalontology NuGet
+      package targets net8.0 (as the csproj's <TargetFramework>net8.0</TargetFramework>
+      declares), so a .NET 8 consumer references the same causalontology 3.0.0
+      package published in section 7. If a broader target set is wanted, add a
+      multi-target (for example net8.0;net9.0) to the same csproj and republish
+      the same package; do not create a second package.
+    Post-publish verification: from a net8.0 project, dotnet add package
+      causalontology --version 3.0.0 and run the vectors -> 119/119.
+
+ 9. RUBY
+    Package and registry: causalontology on RubyGems.
+    Build and publish tool: gem build and gem push.
+    Version bump: 3.0.0 in the gemspec (VERSION constant).
+    Tag: v3.0.0.
+    Publish:
+      cd bindings/ruby
+      rake test                          -> 119/119
+      gem build causalontology.gemspec
+      gem push causalontology-3.0.0.gem
+    Post-publish verification:
+      gem install causalontology -v 3.0.0 into a clean gemset and run the
+      vectors -> 119/119.
+
+ 10. PHP
+    Package and registry: causalontology/causalontology on Packagist (a tagged Git
+      release consumed by Composer; Packagist mirrors Git tags).
+    Build and publish tool: Git tag plus a one-time Packagist registration/webhook.
+    Version bump: composer.json is version-less by preference (Packagist derives
+      the version from the tag); if a version field is present set it to 3.0.0.
+    Tag and register:
+      git tag v3.0.0 (created in the release step below) is picked up by the
+      Packagist webhook; if not, click "Update" on the Packagist package page.
+    Post-publish verification:
+      composer require causalontology/causalontology:3.0.0 in a clean project and
+      run the vectors -> 119/119.
+
+ 11. DART
+    Package and registry: causalontology on pub.dev.
+    Build and publish tool: dart pub publish.
+    Version bump: version: 3.0.0 in bindings/dart/pubspec.yaml.
+    Tag: v3.0.0.
+    Publish:
+      cd bindings/dart
+      dart test                          -> 119/119
+      dart pub publish
+    Post-publish verification:
+      dart pub add causalontology:3.0.0 in a clean package and run the vectors
+      -> 119/119.
+
+ 12. ELIXIR
+    Package and registry: causalontology on Hex.
+    Build and publish tool: mix hex.publish.
+    Version bump: version: "3.0.0" in bindings/elixir/mix.exs.
+    Tag: v3.0.0.
+    Publish:
+      cd bindings/elixir
+      mix test                           -> 119/119
+      mix hex.publish
+    Post-publish verification: in a fresh mix project declare
+      {:causalontology, "~> 3.0"} and run the vectors -> 119/119.
+
+ 13. ERLANG
+    Package and registry: Hex (the same Hex registry as Elixir), via rebar3.
+    Build and publish tool: rebar3 hex publish.
+    Version bump: {vsn, "3.0.0"} in the .app.src (or version in rebar.config).
+    Tag: v3.0.0.
+    Publish:
+      cd bindings/erlang
+      rebar3 eunit                       -> 119/119
+      rebar3 hex publish
+    Post-publish verification: in a fresh rebar3 project depend on
+      {causalontology, "3.0.0"} and run the vectors -> 119/119.
+
+ 14. LUA
+    Package and registry: causalontology on LuaRocks.
+    Build and publish tool: luarocks upload with a 3.0.0 rockspec.
+    Version bump: write causalontology-3.0.0-1.rockspec (version "3.0.0-1",
+      source pointing at the v3.0.0 tag tarball).
+    Tag: v3.0.0.
+    Publish:
+      cd bindings/lua
+      run the conformance vectors        -> 119/119
+      luarocks upload causalontology-3.0.0-1.rockspec --api-key=<key>
+    Post-publish verification:
+      luarocks install causalontology 3.0.0-1 into a clean tree and run the
+      vectors -> 119/119.
+
+ 15. SWIFT
+    Package and registry: Swift Package Manager (Git-tag based; there is no
+      central registry). Optionally list on the Swift Package Index.
+    Build and publish tool: a Git tag; Package.swift is the manifest.
+    Version bump: none in a file - Swift Package Manager resolves by Git tag; keep
+      Package.swift valid at the tag.
+    Tag: v3.0.0 (this IS the release).
+    Publish: push the v3.0.0 tag; if listed, the Swift Package Index reindexes.
+    Post-publish verification: in a fresh package declare
+      .package(url: "https://github.com/ai-university-aiu/causalontology", from: "3.0.0")
+      and run the vectors -> 119/119.
+
+ 16. GO
+    Package and registry: Go modules (version-control-tag based, via the module
+      proxy and pkg.go.dev).
+    THE MAJOR-VERSION IMPORT-PATH RULE - CALLED OUT EXPLICITLY. Go is the one
+      ecosystem where a major version changes the IMPORT PATH: at major version 3
+      the module path takes a /v3 suffix. The current module is
+      github.com/ai-university-aiu/causalontology/bindings/go/v2; the 3.0.0 release
+      is a NEW module directory bindings/go/v3 whose go.mod declares
+      module github.com/ai-university-aiu/causalontology/bindings/go/v3, with every
+      internal import path updated from .../go/v2/... to .../go/v3/....
+    Build and publish tool: the Git tag plus the module proxy (no manual push).
+    Version bump: the /v3 module path (above); the code version is the tag.
+    Tag: bindings/go/v3/v3.0.0 (the module-path-scoped semantic-version tag Go
+      requires for a subdirectory module), i.e. tag name
+      "bindings/go/v3/v3.0.0".
+    Publish: push the tag; then prime the proxy:
+      GOPROXY=proxy.golang.org go list -m \
+        github.com/ai-university-aiu/causalontology/bindings/go/v3@v3.0.0
+    Post-publish verification:
+      go get github.com/ai-university-aiu/causalontology/bindings/go/v3@v3.0.0
+      import ".../bindings/go/v3/causalontology" and run the vectors -> 119/119.
+
+ 17. ZIG
+    Package and registry: the Zig package manager (build.zig.zon, fetch-by-URL-
+      and-hash; there is no central registry yet).
+    Build and publish tool: publish the tagged source tarball and record its hash.
+    Version bump: .version = "3.0.0" in the repository-root build.zig.zon (and the
+      binding's build.zig.zon).
+    Tag: v3.0.0 (the tarball the tag produces is the artifact).
+    Publish: push v3.0.0; the release tarball is
+      https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v3.0.0.tar.gz
+      Compute and record its hash:
+        zig fetch https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v3.0.0.tar.gz
+      and publish the printed hash so consumers can pin it.
+    Post-publish verification: in a fresh project,
+      zig fetch --save <the v3.0.0 tarball URL>, then dep.module("causalontology"),
+      and run the vectors -> 119/119.
+
+
+PART THREE - THE POST-RELEASE SECTION
+
+A release is COMPLETE for a language only when its 3.0.0 package is published AND
+a fresh install passes 119/119. Track it honestly: a language that is not yet
+green is listed PENDING with its blocker; a false "all shipped" is not permitted.
+
+POST-RELEASE CHECKLIST (tick each language only when both hold):
+  [ ] Python       - published to PyPI; fresh install 119/119
+  [ ] JavaScript   - published to npm; fresh install 119/119
+  [ ] TypeScript   - published to npm; types reflect the 3.0.0 shape; 119/119
+  [ ] Rust         - published to crates.io; fresh install 119/119
+  [ ] Java         - released on Maven Central; fresh consume 119/119
+  [ ] Kotlin       - released on Maven Central (causalontology-kotlin); 119/119
+  [ ] C#           - published to NuGet; fresh install 119/119
+  [ ] .NET         - same NuGet package targets net8.0; fresh consume 119/119
+  [ ] Ruby         - published to RubyGems; fresh install 119/119
+  [ ] PHP          - v3.0.0 tag registered on Packagist; fresh require 119/119
+  [ ] Dart         - published to pub.dev; fresh add 119/119
+  [ ] Elixir       - published to Hex; fresh consume 119/119
+  [ ] Erlang       - published to Hex via rebar3; fresh consume 119/119
+  [ ] Lua          - published to LuaRocks; fresh install 119/119
+  [ ] Swift        - v3.0.0 tag pushed; fresh resolve 119/119
+  [ ] Go           - /v3 module tag pushed and proxied; fresh get 119/119
+  [ ] Zig          - v3.0.0 tarball published and hash recorded; fresh fetch 119/119
+
+WHEN THE PACKAGES ARE OUT:
+  - Update the standard's README.md and the Standalone Design to point at the
+    published 3.0.0 versions (the package table in PUBLISHING.md, bumped to 3.0.0).
+  - Confirm the spec version tag v3.0.0 is pushed so consumers can pin the exact
+    specification (spec/VERSIONS.md lists it).
+
+MATURITY NOTE. The bindings are at different maturity. This plan gives the steps
+and states each language's PREREQUISITE - a binding must first implement the
+3.0.0 delta and pass 119/119. It does not claim a language is released until it
+is. Where a 2.0.0 binding is already awaiting a human step (for example a
+Contributor License Agreement on a vcpkg or Conan port for C++, or a web-form
+submission for the R package on the Comprehensive R Archive Network (CRAN), or a
+PAUSE upload for Perl, or a contested Julia General registration), the 3.0.0
+release for that language inherits the same human gate and is PENDING until it
+clears - recorded here, not hidden.
