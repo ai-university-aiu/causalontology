@@ -22,6 +22,27 @@ UNIT_SECONDS = {
     "years": 31556952,     # NORMATIVE: mean Gregorian year (365.2425 days)
 }
 
+# 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete step
+# with NO wall-clock mapping; a tick window is ordered by integer comparison,
+# and an ordinal window and a wall-clock window are DIFFERENT DIMENSIONS that do
+# not compare (mixing them is never within-window and never overlapping).
+ORDINAL_UNITS = {"ticks"}
+
+
+def _dimension(unit):
+    """'ordinal' for a tick-like unit, else 'wallclock'."""
+    return "ordinal" if unit in ORDINAL_UNITS else "wallclock"
+
+
+def _magnitude(value, unit):
+    """A comparable magnitude within ONE dimension: raw tick count for an
+    ordinal unit, seconds for a wall-clock unit. Never mix dimensions."""
+    if unit in ORDINAL_UNITS:
+        return value                      # a dimensionless tick count
+    if unit == "instant":
+        return 0
+    return value * UNIT_SECONDS[unit]
+
 # Rule 12: enrichment field-to-kind validity and entry shapes. Two occurrent
 # forms added in 2.0.0.
 ENRICHMENT_FIELDS = {
@@ -87,6 +108,17 @@ def validate_semantics(obj, kind=None):
                     errors.append("a %s entry must be a %s: identifier"
                                   % (field, shape))
 
+    # 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain has,
+    # by drawing it, a modelled intervening mechanism - so mechanism_status
+    # 'absent' contradicts a present chain (the honest-ignorance distinction
+    # must stay honest). The stratal well-formedness (non-adjacency, adjacency
+    # of chain steps, scheme, the home rule) needs the strata map and lives in
+    # seam_wellformed, exactly as bridge well-formedness does.
+    if kind == "cross_stratal_seam":
+        if obj.get("chain") is not None and obj.get("mechanism_status") == "absent":
+            errors.append("contradictory_seam: a drawn chain cannot carry "
+                          "mechanism_status 'absent' (a drawn mechanism is not absent)")
+
     return (not errors), errors
 
 
@@ -96,24 +128,28 @@ def is_partial(cro):
     return (len(missing) > 0), missing
 
 
-def admissible(cro, elapsed_seconds):
-    """Rule 4: temporal admissibility with the fixed constants."""
+def admissible(cro, elapsed):
+    """Rule 4: temporal admissibility. For a wall-clock window `elapsed` is in
+    seconds; for an ordinal ('ticks') window `elapsed` is a tick count. Ordering
+    is by magnitude WITHIN the window's own dimension (3.0.0)."""
     t = cro.get("temporal")
     if t is None:
         return True  # no window imposes no constraint
-    unit = UNIT_SECONDS[t["unit"]]
-    lo = t["minimum_delay"] * unit
-    hi = t["maximum_delay"] * unit
-    return lo <= elapsed_seconds <= hi
+    lo = _magnitude(t["minimum_delay"], t["unit"])
+    hi = _magnitude(t["maximum_delay"], t["unit"])
+    return lo <= elapsed <= hi
 
 
 def _window_overlap(a, b):
     ta, tb = a.get("temporal"), b.get("temporal")
     if ta is None or tb is None:
         return True  # either absent counts as overlapping
-    ua, ub = UNIT_SECONDS[ta["unit"]], UNIT_SECONDS[tb["unit"]]
-    lo_a, hi_a = ta["minimum_delay"] * ua, ta["maximum_delay"] * ua
-    lo_b, hi_b = tb["minimum_delay"] * ub, tb["maximum_delay"] * ub
+    if _dimension(ta["unit"]) != _dimension(tb["unit"]):
+        return False  # 3.0.0: an ordinal window and a wall-clock window never overlap
+    lo_a = _magnitude(ta["minimum_delay"], ta["unit"])
+    hi_a = _magnitude(ta["maximum_delay"], ta["unit"])
+    lo_b = _magnitude(tb["minimum_delay"], tb["unit"])
+    hi_b = _magnitude(tb["maximum_delay"], tb["unit"])
     return lo_a <= hi_b and lo_b <= hi_a
 
 
@@ -293,7 +329,12 @@ def skip_gaps(cro, classification):
 
 
 def to_seconds(duration, unit):
-    """ALGORITHM E helper: normalize a delay to seconds by the fixed table."""
+    """ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+    3.0.0: an ordinal ('ticks') unit is dimensionless and has NO wall-clock
+    mapping - converting one to seconds is a category error and is refused."""
+    if unit in ORDINAL_UNITS:
+        raise ValueError("'%s' is an ordinal (dimensionless) unit and has no "
+                         "wall-clock seconds mapping" % unit)
     if unit == "instant":
         return 0
     return duration * UNIT_SECONDS[unit]
@@ -301,12 +342,17 @@ def to_seconds(duration, unit):
 
 def delay_within_window(actual_delay, temporal):
     """ALGORITHM E (Rule 20): does an observed delay fall within a covering
-    law's temporal window? Inclusive at both ends (N12.5.2)."""
+    law's temporal window? Inclusive at both ends (N12.5.2). 3.0.0: an ordinal
+    delay compares to an ordinal window by integer tick count; an ordinal delay
+    and a wall-clock window (or vice versa) are different dimensions and never
+    fall within one another."""
     if not actual_delay or not temporal:
         return True  # nothing to check
-    observed = to_seconds(actual_delay["duration"], actual_delay["unit"])
-    lo = to_seconds(temporal["minimum_delay"], temporal["unit"])
-    hi = to_seconds(temporal["maximum_delay"], temporal["unit"])
+    if _dimension(actual_delay["unit"]) != _dimension(temporal["unit"]):
+        return False  # dimension mismatch: a tick delay is not within a wall-clock window
+    observed = _magnitude(actual_delay["duration"], actual_delay["unit"])
+    lo = _magnitude(temporal["minimum_delay"], temporal["unit"])
+    hi = _magnitude(temporal["maximum_delay"], temporal["unit"])
     return lo <= observed <= hi
 
 
@@ -328,6 +374,58 @@ def bridge_wellformed(bridge, occ_map, stratum_map):
     if not stratum_map[cs]["ordinal"] > stratum_map[fs]["ordinal"]:
         return False, "malformed_bridge: coarse ordinal not > fine ordinal (e)"
     return True, "well-formed bridge"
+
+
+# ---- 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness --------
+def seam_wellformed(seam, occ_map, stratum_map):
+    """(ok, reason) for a Cross Stratal Seam. All of (a)-(g) must hold, else
+    malformed_seam. A seam is a MANAGED jump across NON-ADJACENT strata; when it
+    DRAWS a chain, the chain must be an adjacent-stratum path spanning the two
+    endpoints' strata."""
+    src_s = occ_map.get(seam["source"], {}).get("stratum")
+    tgt_s = occ_map.get(seam["target"], {}).get("stratum")
+    if src_s is None or tgt_s is None:
+        return False, "malformed_seam: an endpoint has no stratum (a)"
+    if stratum_map[src_s]["scheme"] != stratum_map[tgt_s]["scheme"]:
+        return False, "malformed_seam: endpoints differ in scheme (b)"
+    so, to_ = stratum_map[src_s]["ordinal"], stratum_map[tgt_s]["ordinal"]
+    if abs(so - to_) <= 1:
+        return False, ("malformed_seam: endpoints are adjacent or co-stratal; "
+                       "a seam is for NON-adjacent strata (c)")
+    chain = seam.get("chain")
+    if chain is not None:
+        if seam.get("mechanism_status") == "absent":
+            return False, ("malformed_seam: a drawn chain contradicts "
+                           "mechanism_status 'absent' (d)")
+        lo, hi = min(so, to_), max(so, to_)
+        ords = []
+        for oid in chain:
+            st = occ_map.get(oid, {}).get("stratum")
+            if st is None:
+                return False, "malformed_seam: a chain member has no stratum (e)"
+            if stratum_map[st]["scheme"] != stratum_map[src_s]["scheme"]:
+                return False, "malformed_seam: a chain member differs in scheme (e)"
+            ords.append(stratum_map[st]["ordinal"])
+        if not all(lo < o < hi for o in ords):
+            return False, ("malformed_seam: a chain member is not at an "
+                           "INTERVENING stratum, strictly between the endpoints (f)")
+        diffs = [ords[i + 1] - ords[i] for i in range(len(ords) - 1)]
+        if diffs and not (all(d > 0 for d in diffs) or all(d < 0 for d in diffs)):
+            return False, ("malformed_seam: chain is not strictly monotone from "
+                           "one endpoint toward the other (g)")
+    return True, "well-formed cross_stratal_seam"
+
+
+def seam_home(seam, occ_map, stratum_map):
+    """THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST
+    stratum it touches - the endpoint of the greater ordinal. Returns that
+    stratum's identifier (None if an endpoint is unstratified). A layer-to-
+    stratum binding places and checks the seam by this rule."""
+    src_s = occ_map.get(seam["source"], {}).get("stratum")
+    tgt_s = occ_map.get(seam["target"], {}).get("stratum")
+    if src_s is None or tgt_s is None:
+        return None
+    return src_s if stratum_map[src_s]["ordinal"] >= stratum_map[tgt_s]["ordinal"] else tgt_s
 
 
 # ---- Rule 17 / N4.2.1-2: Conduit well-formedness --------------------------

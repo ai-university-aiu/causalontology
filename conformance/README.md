@@ -5,9 +5,10 @@ vector in `vectors/` for the specification version it declares.** That single
 rule is what guarantees that Prolog, Python, Java, and Swift implementations
 agree without sharing a line of code.
 
-There are **107 vectors**. V01–V38 are the original suite, re-frozen unaltered
+There are **119 vectors**. V01–V38 are the original suite, re-frozen unaltered
 in meaning under the whole-word schemes (Principle P7); V39–V107 are the 2.0.0
-additions:
+additions; V108–V119 are the 3.0.0 additions (the ordinal tick unit, the managed
+cross-stratal seam, and the realized_by reference):
 
 | Group | Covers |
 |---|---|
@@ -24,8 +25,11 @@ additions:
 | Q (V103–V105) | provenance widening, `evidenced_by`, `simulation` evidence |
 | R (V106) | whole-word baseline hash equality |
 | S (V107) | abbreviated scheme is rejected |
+| **T (V108–V111)** | **3.0.0 — the ordinal `ticks` temporal unit**: valid tick window, integer-ordered admissibility, tick/wall-clock dimension disjointness, and unit identity-bearing with wall-clock ids unchanged |
+| **U (V112–V116)** | **3.0.0 — the managed `cross_stratal_seam` (eighteenth kind)**: valid seam, `mechanism_status` identity-bearing (the honest-ignorance distinction), a drawn chain (and the contradictory `absent`+chain), the coarsest-stratum HOME rule, and non-adjacency + new identity space |
+| **W (V117–V119)** | **3.0.0 — the `realized_by` reference**: a bound conduit valid, realized_by identity-bearing with unbound ids unchanged, and unbound-is-legal with a malformed reference rejected |
 
-## Status: RE-FROZEN at 2.0.0 (whole-word baseline)
+## Status: RE-FROZEN at 3.0.0 (three additive elements over the whole-word baseline)
 
 The vectors carry **concrete bytes**: every identifier is a real, well-formed
 whole-word 64-hex identifier; every key is a real Ed25519 public key; the
@@ -52,7 +56,12 @@ python3 bindings/python/tests/run_conformance.py
 ```
 
 It interprets every vector against the `causalontology` package and exits
-nonzero on any failure, and is the authoritative 2.0.0 reference: **107/107
+nonzero on any failure, and is the authoritative 3.0.0 reference: **119/119
 pass**. Sibling runners for the other bindings carry the whole-word re-mint;
-their 2.0.0 semantic port (the nine new kinds and Algorithms A–E) is tracked as
-open work, so they do not yet pass the full 2.0.0 suite.
+each binding's 3.0.0 delta (the tick unit, the cross_stratal_seam kind, and the
+realized_by reference) is implemented and re-conformed per the
+[3.0.0 release plan](../docs/Causalontology_3_0_0_Release_Plan.txt), so a binding
+does not publish 3.0.0 until it passes the full 119-vector suite in its own
+language. The three 3.0.0 additions are all ADDITIVE and IDENTITY-PRESERVING: every
+2.0.0 record that remains valid keeps its identifier byte-for-byte under 3.0.0
+(V106, V111, and V118 witness this directly).

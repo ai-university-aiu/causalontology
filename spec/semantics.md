@@ -2,9 +2,10 @@
 
 A document is SCHEMA-VALID if it matches its JSON Schema, and SEMANTICALLY
 VALID if it also satisfies these rules. Rules 1–12 are 1.0.0; those marked
-**AMENDED** carry a 2.0.0 delta. Rules 13–21 are new in 2.0.0. The five
-normative algorithms (A–E) that make rules 7, 15, 16, 19, and 20 executable are
-given in Section 12 of the change order and implemented in every binding.
+**AMENDED** carry a 2.0.0 delta. Rules 13–21 are new in 2.0.0; rules 22–23 are
+new in 3.0.0. The normative algorithms (A–E from 2.0.0, plus Algorithm F for the
+Cross Stratal Seam in 3.0.0) that make rules 7, 15, 16, 19, 20, and 22 executable
+are given in Section 12 and implemented in every binding.
 
 1. **Temporal windows.** `minimum_delay <= maximum_delay` (fields formerly
    `dmin`/`dmax`, spelled out under Principle P7).
@@ -85,6 +86,30 @@ given in Section 12 of the change order and implemented in every binding.
     every cause token's `interval.start` MUST be ≤ every effect token's
     (`retrocausal_claim`, HARD). Backward causation, if asserted at all, must
     be a type-level claim; the token tier will not represent it.
+
+### New rules (3.0.0)
+
+22. **Cross Stratal Seam well-formedness** (Algorithm F). A `cross_stratal_seam`
+    is well-formed iff both endpoints have a stratum; the two strata share a
+    scheme; and their ordinals are NON-ADJACENT (differ by more than 1 — an
+    adjacent or co-stratal jump is `malformed_seam`, use a Causal Relation Object
+    or a Bridge instead). When it DRAWS a `chain`, its `mechanism_status` MUST be
+    `unmodeled` not `absent` (a drawn mechanism is not absent — `contradictory_seam`,
+    HARD, locally decidable), and every chain member MUST sit at an INTERVENING
+    stratum (ordinal strictly between the endpoints, same scheme) and the chain
+    MUST be strictly monotone from one endpoint toward the other. THE HOME RULE: a
+    seam belongs to the COARSEST stratum it touches (the endpoint of greater
+    ordinal), so a layer-to-stratum binding can place and check it. The seam
+    SUBORDINATES the Causal Relation Object's boolean `skips`: a bare skipping
+    relation stays valid and is the coarse, mechanism-status-unspecified form.
+23. **Ordinal temporal units are a separate dimension** (amends Rules 4 and 20 /
+    Algorithm E). The temporal `unit` value `ticks` is a discrete, dimensionless
+    ORDINAL step with NO wall-clock mapping. Two windows compare only WITHIN one
+    dimension: a tick window is ordered by INTEGER comparison of tick counts, a
+    wall-clock window by seconds via Algorithm E, and a tick window and a
+    wall-clock window are DISJOINT dimensions (they never overlap, and a delay of
+    one dimension is never within a window of the other). Converting a tick count
+    to seconds is a category error and MUST be refused.
 
 ### Store rule (materialized acyclicity, deterministic cycle-breaking)
 

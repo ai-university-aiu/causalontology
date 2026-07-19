@@ -131,9 +131,25 @@ Every term above is explained for a newcomer in the master document: [`Causalont
 
 The reference implementation is [**PrologAI**](https://github.com/ai-university-aiu/PrologAI), a glass-box cognitive architecture, driving the synthetic mind [**Mentova**](https://github.com/ai-university-aiu/Mentova).
 
-## The Seventeen Kinds of Thing
+## Now at 3.0.0 - three additions, all additive
 
-Nine **type-tier content kinds** — pure, immutable, content-addressed (SHA-256 over RFC 8785 canonical bytes):
+Causalontology is now at version 3.0.0. It is a major version because it adds a new object kind and extends two settled enumerations, but for anyone adopting it the step is gentle: everything is additive, and no record you already hold changes.
+
+Three things arrive:
+
+- **The ordinal tick temporal unit.** A causal relation's temporal window can now be measured in `ticks` - a discrete, dimensionless, ordinal step with no wall-clock mapping - so a timing-critical process such as a settling-step counter is recorded natively instead of being distorted into seconds.
+- **The managed cross-stratal seam - the new eighteenth kind.** `cross_stratal_seam` is a first-class record of a legitimate jump across non-adjacent levels of description, carrying its two endpoint occurrents, an honest `mechanism_status` (an intervening mechanism is `unmodeled`, versus one that is genuinely `absent`), and an optional chain that draws the pathway between the ends.
+- **The `realized_by` reference.** A conduit can now name, by identity, the native law or signal that realizes its transform - a reference, not an embedded copy, so the native dynamics stay where they live and the standard only records the binding.
+
+With these, the vocabulary grows from seventeen kinds to **eighteen**, and the conformance suite grows from 107 vectors to **119** (all green in the Python reference binding).
+
+**Migration from 2.0.0.** Nothing you already have breaks. All three additions are additive and identity-preserving: because an object's identity is the fingerprint of only the fields it actually carries, any valid 2.0.0 record keeps its identifier byte-for-byte and stays valid under 3.0.0. To adopt, a consumer need only add support for the three new elements - the tick unit, the `cross_stratal_seam` kind, and the `realized_by` field - so that it can accept records that use them; a consumer that never encounters them needs no change at all. The 107 vectors of 2.0.0 are unchanged, and the 3.0.0 gate is simply their superset: the full 119-vector suite.
+
+The normative source for all of this is the Standalone Design, [`Causalontology_Standalone_Design_v22.txt`](Causalontology_Standalone_Design_v22.txt); the per-language rollout plan lives in [`docs/Causalontology_3_0_0_Release_Plan.txt`](docs/Causalontology_3_0_0_Release_Plan.txt).
+
+## The Eighteen Kinds of Thing
+
+Ten **type-tier content kinds** — pure, immutable, content-addressed (SHA-256 over RFC 8785 canonical bytes):
 
 | Kind | Prefix | What it is |
 |---|---|---|
@@ -143,6 +159,7 @@ Nine **type-tier content kinds** — pure, immutable, content-addressed (SHA-256
 | Realizable entity | `realizable:` | a disposition, function, or role — with an identity-bearing `label` |
 | Stratum | `stratum:` | a level of description within a named stratification scheme |
 | Bridge | `bridge:` | a cross-stratal identity map: one coarse occurrent IS a set of finer ones |
+| Cross Stratal Seam | `cross_stratal_seam:` | **3.0.0** — a managed jump across non-adjacent strata: endpoints, an honest `mechanism_status` (`unmodeled` vs `absent`), an optional drawn `chain`, and the coarsest-stratum home rule |
 | Port | `port:` | a typed interface borne by a continuant |
 | Conduit | `conduit:` | a typed connection from port to port — a pipe, or a computer |
 | Quality | `quality:` | a property type a thing can bear |

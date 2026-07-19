@@ -1,9 +1,9 @@
-# Causalontology — Normative Specification (specification 2.0.0 — whole-word baseline, vectors re-frozen)
+# Causalontology — Normative Specification (specification 3.0.0 — eighteen kinds; the ordinal tick unit, the managed cross-stratal seam, and the realized_by reference added additively over the whole-word baseline)
 
 **Causalontology's purest form is a specification, not a program.** This file is
 the normative core; the complete design rationale, glossary, and lay-readable
 explanations live in the master document at the repository root,
-`Causalontology_Standalone_Design_v21.txt`, which is authoritative where this
+`Causalontology_Standalone_Design_v22.txt`, which is authoritative where this
 summary and it could ever be read to differ.
 
 Every identifier scheme and type value in this standard is a whole English word
@@ -11,20 +11,21 @@ Every identifier scheme and type value in this standard is a whole English word
 The only exceptions are the proper names of external standards (ed25519,
 SHA-256, RFC 8785, RFC 3339, UCUM, UTC, JSON, JSON-LD, BFO, RO, PROV).
 
-## The object model: seventeen kinds
+## The object model: eighteen kinds
 
 ### Type-tier content kinds (identity is content; immutable, content-addressed)
 
 | Kind | Prefix | What it is |
 |---|---|---|
 | Occurrent | `occurrent:` | a process or event TYPE (a verb) — now optionally pitched at a `stratum` |
-| Causal Relation Object | `causal_relation_object:` | a reified causal claim: causes, effects, optional mechanism, temporal window, modality, context, refines, `skips` |
+| Causal Relation Object | `causal_relation_object:` | a reified causal claim: causes, effects, optional mechanism, temporal window (whose `unit` may be a wall-clock unit or, in 3.0.0, the ordinal `ticks`), modality, context, refines, `skips` |
 | Continuant | `continuant:` | a thing that endures (a noun) |
 | Realizable entity | `realizable:` | a disposition, function, or role — now with an optional identity-bearing `label` (defect repair) |
 | Stratum | `stratum:` | a level of description within a named stratification scheme |
 | Bridge | `bridge:` | a cross-stratal identity map: one coarse occurrent IS a set of finer ones |
+| Cross Stratal Seam | `cross_stratal_seam:` | **3.0.0.** a managed jump across NON-adjacent strata, recording (via `mechanism_status`) whether an intervening mechanism exists-but-is-unmodeled or is absent, with an optional drawn `chain` of intervening steps and the coarsest-stratum HOME rule |
 | Port | `port:` | a typed interface borne by a continuant |
-| Conduit | `conduit:` | a directed, typed connection from port to port (transmissive or computational) |
+| Conduit | `conduit:` | a directed, typed connection from port to port (transmissive or computational) — now, in 3.0.0, optionally carrying `realized_by`, a reference by identity to the native law or signal that realizes its transform |
 | Quality | `quality:` | a property type a thing can bear |
 
 ### Token-tier content kinds (immutable, content-addressed, LOCAL BY DEFAULT)
@@ -66,14 +67,14 @@ converts the "no mechanism" gap into a finding (Principle P5).
 ## Conformance clause
 
 An implementation is conformant if and only if it passes every vector in
-`../conformance/vectors/` (V01–V107) for specification version 2.0.0. See
+`../conformance/vectors/` (V01–V119) for specification version 3.0.0. See
 `../conformance/README.md`.
 
 ## Normative companions
 
-- `identity.md` — canonicalization (RFC 8785), hashing (Secure Hash Algorithm 256-bit (SHA-256)), identity-bearing fields for all seventeen kinds, merge
+- `identity.md` — canonicalization (RFC 8785), hashing (Secure Hash Algorithm 256-bit (SHA-256)), identity-bearing fields for all eighteen kinds, merge
 - `semantics.md` — the rules beyond the schemas (rules 1–12, four amended; new rules 13–21)
 - `provenance.md` — signatures (Ed25519), evidence grading (with simulation), evidenced_by, retraction, succession, trust
 - `store.md` — abstract operations, Hypertext Transfer Protocol (HTTP) binding, query, resolve, the complete gap taxonomy
 - `safety.md` — abuse resistance, claims of consequence, takedown by tier, TOKEN-TIER SAFETY
-- `schema/` — the seventeen JSON Schemas, the JSON-LD context, the optional Protobuf encoding
+- `schema/` — the eighteen JSON Schemas, the JSON-LD context, the optional Protobuf encoding

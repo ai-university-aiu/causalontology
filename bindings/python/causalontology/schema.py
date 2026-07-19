@@ -1,7 +1,7 @@
 """Schema validation against spec/schema/*.schema.json.
 
 A deliberately small interpreter for exactly the JSON Schema keywords the
-seventeen Causalontology schemas use: type, const, enum, pattern, required,
+eighteen Causalontology schemas use: type, const, enum, pattern, required,
 properties, additionalProperties, items, minItems, minLength, minimum,
 maximum, oneOf, local $ref (#/$defs/...), and cross-file $ref to a sibling
 schema (https://causalontology.org/schema/<file>.schema.json#/...). "format"
@@ -22,6 +22,7 @@ SCHEMA_FILES = {
     "realizable": "realizable.schema.json",
     "stratum": "stratum.schema.json",
     "bridge": "bridge.schema.json",
+    "cross_stratal_seam": "cross_stratal_seam.schema.json",
     "port": "port.schema.json",
     "conduit": "conduit.schema.json",
     "quality": "quality.schema.json",

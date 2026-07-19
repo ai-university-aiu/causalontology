@@ -18,8 +18,11 @@ full ECMAScript exponent formatting for extreme magnitudes is pinned at the
 import hashlib
 import math
 
-# The identity-bearing fields of each of the seventeen kinds. "type" is always
-# injected, so it is not listed here. Order does not matter (JCS sorts keys).
+# The identity-bearing fields of each of the eighteen kinds (3.0.0 adds the
+# cross_stratal_seam; the conduit gains realized_by; both are additive and
+# identity-preserving - a record that omits a new field keeps its 2.0.0
+# identifier byte-for-byte). "type" is always injected, so it is not listed
+# here. Order does not matter (JCS sorts keys).
 IDENTITY_FIELDS = {
     # ---- type tier ----
     "occurrent":  ["label", "category", "stratum"],
@@ -29,8 +32,9 @@ IDENTITY_FIELDS = {
     "realizable": ["kind", "bearer", "label"],
     "stratum":    ["label", "scheme", "ordinal", "unit", "governs"],
     "bridge":     ["coarse", "fine", "relation"],
+    "cross_stratal_seam": ["source", "target", "mechanism_status", "chain"],
     "port":       ["bearer", "label", "direction", "accepts", "realizable"],
-    "conduit":    ["label", "from", "to", "carries", "transform"],
+    "conduit":    ["label", "from", "to", "carries", "transform", "realized_by"],
     "quality":    ["label", "datatype", "unit", "stratum"],
     # ---- token tier ----
     "token_individual":   ["instantiates", "designator", "part_of"],

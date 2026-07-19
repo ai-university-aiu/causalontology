@@ -35,8 +35,9 @@ JSON-LD, BFO, RO, PROV) are kept verbatim.
 | realizable | type, kind, bearer, **label** |
 | stratum | type, label, scheme, ordinal, unit, governs |
 | bridge | type, coarse, fine, relation |
+| cross_stratal_seam | type, source, target, mechanism_status, **chain** _(3.0.0)_ |
 | port | type, bearer, label, direction, accepts, realizable |
-| conduit | type, label, from, to, carries, transform |
+| conduit | type, label, from, to, carries, transform, **realized_by** _(3.0.0)_ |
 | quality | type, label, datatype, unit, stratum |
 | token_individual | type, instantiates, designator, part_of |
 | token_occurrence | type, instantiates, interval, participants, locus, observer |
@@ -47,11 +48,18 @@ JSON-LD, BFO, RO, PROV) are kept verbatim.
 | retraction | type, retracts, source, timestamp |
 | succession | type, predecessor, successor, timestamp |
 
-Fields added or amended in 2.0.0 are shown in **bold**. All added fields are
-OPTIONAL: content addressing hashes only the fields PRESENT, so every
-whole-word 1.0.0 record produces the same hash under 2.0.0 (formal proof:
-vector V106). The temporal window's fields are `minimum_delay` and
-`maximum_delay` (the former `dmin`/`dmax`, spelled out).
+Fields added or amended in 2.0.0 are shown in **bold** in the prose that
+introduced them; the fields marked _(3.0.0)_ above are the 3.0.0 additions. All
+added fields are OPTIONAL, and content addressing hashes only the fields
+PRESENT, so every whole-word 1.0.0 record produces the same hash under 2.0.0
+(formal proof: vector V106) AND every 2.0.0 record that remains valid produces
+the same hash under 3.0.0 (formal proof: vectors V111 for a wall-clock temporal
+window and V118 for an unbound conduit). The temporal window's fields are
+`minimum_delay` and `maximum_delay` (the former `dmin`/`dmax`, spelled out); its
+`unit` gained the ordinal value `ticks` in 3.0.0, which is dimensionless and
+identity-bearing (a tick-unit record differs in identity from an otherwise
+identical wall-clock record). The eighteenth kind `cross_stratal_seam` opens a
+new identity scheme and disturbs no existing record.
 
 Exclusions: `id` always (it IS the hash); `signature` on the four provenance
 kinds (the signature is computed over these same canonical bytes). Nothing

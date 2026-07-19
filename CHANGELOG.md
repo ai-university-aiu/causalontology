@@ -8,6 +8,40 @@ The conformance vectors under [`conformance/vectors/`](conformance/vectors/) are
 the normative gate: an implementation is conformant if and only if it passes
 every vector for the specification version it declares.
 
+## [3.0.0] - 2026-07-19
+
+MAJOR release. Three additive schema elements, one coordinated conformance
+re-baseline. The object model grows from seventeen kinds to EIGHTEEN and the
+conformance suite from 107 vectors to 119 (V01–V119), green in the Python
+reference. Every change is ADDITIVE and IDENTITY-PRESERVING: no existing record's
+content-addressed identifier changes, and every 2.0.0 record that remains valid
+still validates under 3.0.0 (witnessed by vectors V106, V111, V118). This is a
+major version because a new object kind and the extension of closed enumerations
+are, by the standard's own rule, a major version.
+
+### Added
+- The ordinal **`ticks`** temporal unit: a discrete, dimensionless step with no
+  wall-clock mapping, ordered by integer comparison; a tick window and a
+  wall-clock window are disjoint dimensions. Lets discrete-tick time be recorded
+  natively instead of distorted into seconds. Vectors V108–V111.
+- The eighteenth kind **`cross_stratal_seam`**: a managed record of a legitimate
+  jump across non-adjacent strata, carrying a `mechanism_status`
+  (`unmodeled` versus `absent` — the honest-ignorance distinction the boolean
+  `skips` could not make), an optional drawn `chain` of intervening steps, and a
+  coarsest-stratum home rule. Semantics Rule 22 / Algorithm F. Vectors V112–V116.
+- The conduit **`realized_by`** reference: an optional, scheme-qualified reference
+  by identity to the native law or signal that realizes a conduit's transform
+  (the dynamics stay native; the standard records the binding). Unbound is legal.
+  Vectors V117–V119.
+
+### Notes
+- Locked decisions are amended by EXTENSION (as the major-version rule allows):
+  the kind enumeration to eighteen, the temporal-unit enumeration by `ticks`, and
+  the conduit fields by `realized_by`. Nothing is silently overridden.
+- See [`docs/Causalontology_3_0_0_Release_Plan.txt`](docs/Causalontology_3_0_0_Release_Plan.txt)
+  for the multi-language package-release plan; a binding does not publish 3.0.0
+  until it passes the 119-vector suite in its own language.
+
 ## [2.0.1] - 2026-07-16
 
 Patch release. No specification or vector change; the frozen 107-vector suite is
