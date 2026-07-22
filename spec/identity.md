@@ -3,12 +3,12 @@
 ## The rule
 
 Every object's identifier is `scheme:localpart` where the scheme is one of the
-seventeen whole-word schemes
+eighteen whole-word schemes
 
 ```
 occurrent  causal_relation_object  continuant  realizable  stratum  bridge
-port  conduit  quality  token_individual  token_occurrence  state_assertion
-token_causal_claim  assertion  enrichment  retraction  succession
+cross_stratal_seam  port  conduit  quality  token_individual  token_occurrence
+state_assertion  token_causal_claim  assertion  enrichment  retraction  succession
 ```
 
 and the localpart is the lowercase hexadecimal Secure Hash Algorithm 256-bit (SHA-256) digest (64 characters)
@@ -73,7 +73,7 @@ corroboration.
 ## Merge
 
 - Content objects are **immutable**: writing an existing identity is a
-  no-operation (idempotent). All thirteen content kinds (four original + nine
+  no-operation (idempotent). All fourteen content kinds (four original + ten
   new) merge by set union.
 - Provenance records are **add-only**: present or not; rewriting is idempotent
   (Ed25519 is deterministic per RFC 8032, so even signature bytes agree).

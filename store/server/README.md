@@ -98,7 +98,7 @@ standing up genesis and partner nodes and growing the commons.
   `missing`)
 - `GET /gaps?kind=&near=` — **the stigmergy read**: `missing_field`,
   `empty_mechanism`, `dangling_reference`, `inconsistent_hierarchy`,
-  `conflict`
+  `conflict`, `demand_supply`
 - `GET /conflicts` — the surfaced contradictions
 - **Pagination everywhere**: `limit` (default 100, max 1,000) + opaque
   `cursor`; responses carry `items` and `next_cursor`

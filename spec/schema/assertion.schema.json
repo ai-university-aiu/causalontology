@@ -38,7 +38,7 @@
         "human_hint",
         "imported"
       ],
-      "description": "how the source came to the claim; ordering from strongest to weakest is intervention, observation, simulation, testimony (2.0.0 6.2)"
+      "description": "how the source came to the claim; ordering from strongest to weakest is intervention, observation, simulation, derivation, human_hint, imported (2.0.0 6.2)"
     },
     "evidence": {
       "type": "string"

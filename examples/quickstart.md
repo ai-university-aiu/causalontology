@@ -2,7 +2,7 @@
 
 The full narrative lives in Part 15 of the master document at the repository
 root. The JavaScript Object Notation (JSON) documents below are the artifacts of that story. Identifiers
-are symbolic pending the 2.0.0 conformance freeze.
+are shown symbolically here for readability; the conformance suite (V01–V119) is frozen at specification 3.0.0.
 
 ## Step 1 — Alice (Python) mints vocabulary and imports a bare edge
 

@@ -31,7 +31,7 @@ A small JSON header, signed:
 | field | meaning |
 |---|---|
 | `snapshot_format` | the format version (`1.0`) |
-| `spec_version` | the specification version (`2.0.0`) |
+| `spec_version` | the specification version (`3.0.0`) |
 | `created_at` | Coordinated Universal Time (UTC) ISO-8601 timestamp — the ONLY non-reproducible field |
 | `content_objects` | count of content objects in the body |
 | `provenance_records` | count of provenance records in the body |

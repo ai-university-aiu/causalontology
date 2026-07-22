@@ -22,7 +22,7 @@ abbreviated schemes of specification 1.0.0 were retired in the 2.0.0 whole-word
 re-mint. An implementation MUST reject an abbreviated scheme (conformance
 vector V107).
 
-## The seventeen schemes
+## The eighteen schemes
 
 | Tier | Scheme (whole word) | 1.0.0 abbreviation (retired) |
 |---|---|---|
@@ -35,6 +35,7 @@ vector V107).
 | Type | `bridge` | `brg` |
 | Type | `port` | `prt` |
 | Type | `conduit` | `cdt` |
+| Type | `cross_stratal_seam` | (none; new in 3.0.0) |
 | Token | `token_individual` | `tid` |
 | Token | `token_occurrence` | `tok` |
 | Token | `state_assertion` | `stt` |

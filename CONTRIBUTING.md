@@ -19,7 +19,7 @@ sharing a line of code. Everything below serves it.
    ideally the store protocol. Prefer the standard library; keep dependencies
    vetted and minimal.
 2. Ship `conformance/vectors/` as your binding's own test suite and gate on it.
-   All 107 vectors must pass.
+   All 119 vectors must pass.
 3. Cross-check byte-identity: your content-addressed ids must match the Python
    reference for the same inputs. That byte-identity is the whole point.
 4. Follow the naming conventions in [NAMING.md](NAMING.md) — whole-word

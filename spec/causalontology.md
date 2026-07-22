@@ -3,7 +3,7 @@
 **Causalontology's purest form is a specification, not a program.** This file is
 the normative core; the complete design rationale, glossary, and lay-readable
 explanations live in the master document at the repository root,
-`Causalontology_Standalone_Design_v22.txt`, which is authoritative where this
+`Causalontology_Standalone_Design_v24.txt`, which is authoritative where this
 summary and it could ever be read to differ.
 
 Every identifier scheme and type value in this standard is a whole English word
@@ -54,7 +54,7 @@ token-level (particular) history. The token tier is shipped as a cascade
 
 Content is separated from provenance, uniformly. Content objects are pure and
 immutable; every mutable datum — every alias, link, claim, withdrawal, key
-rotation — is a signed record with an author. The nine new content kinds obey
+rotation — is a signed record with an author. The ten new content kinds obey
 this without exception: none carries strength, confidence, probability, source, or
 timestamp-of-assertion (Principle P4).
 
@@ -73,7 +73,7 @@ An implementation is conformant if and only if it passes every vector in
 ## Normative companions
 
 - `identity.md` — canonicalization (RFC 8785), hashing (Secure Hash Algorithm 256-bit (SHA-256)), identity-bearing fields for all eighteen kinds, merge
-- `semantics.md` — the rules beyond the schemas (rules 1–12, four amended; new rules 13–21)
+- `semantics.md` — the rules beyond the schemas (rules 1–12, six amended; new rules 13–23)
 - `provenance.md` — signatures (Ed25519), evidence grading (with simulation), evidenced_by, retraction, succession, trust
 - `store.md` — abstract operations, Hypertext Transfer Protocol (HTTP) binding, query, resolve, the complete gap taxonomy
 - `safety.md` — abuse resistance, claims of consequence, takedown by tier, TOKEN-TIER SAFETY

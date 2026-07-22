@@ -73,7 +73,7 @@ refined parent leaves the gap list — the gap visibly closes.
 ### The 2.0.0 gap taxonomy (twenty-one new entries)
 
 Gaps are stigmergic invitations, EXCEPT those marked HARD, which are schema or
-semantic validation failures and MUST cause rejection. Nine are HARD; twelve
+semantic validation failures and MUST cause rejection. Eleven are HARD; ten
 are invitations.
 
 | Gap | Kind | Meaning |
