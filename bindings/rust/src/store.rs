@@ -11,8 +11,12 @@ use crate::schema::validate_schema;
 use crate::semantics::{is_partial, refinement_valid, validate_semantics};
 use crate::signing::verify_record;
 
-const CONTENT_KINDS: [&str; 4] =
-    ["occurrent", "causal_relation_object", "continuant", "realizable"];
+const CONTENT_KINDS: [&str; 17] = [
+    "occurrent", "causal_relation_object", "continuant", "realizable",
+    "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality",
+    "token_individual", "token_occurrence", "state_assertion",
+    "token_causal_claim", "attitude", "predicted_occurrence",
+    "prediction_error"];
 const RECORD_KINDS: [&str; 4] =
     ["assertion", "enrichment", "retraction", "succession"];
 

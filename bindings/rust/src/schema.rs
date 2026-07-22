@@ -1,4 +1,4 @@
-//! Schema validation against the eight embedded JSON Schemas.
+//! Schema validation against the twenty-one embedded JSON Schemas.
 //! The schema files are compiled into the library (include_str!), which
 //! keeps the crate pure - no filesystem at run time - and therefore
 //! WebAssembly-ready with zero changes.
@@ -22,6 +22,7 @@ fn schema_file(kind: &str) -> Option<&'static str> {
         "realizable" => "realizable.schema.json",
         "stratum" => "stratum.schema.json",
         "bridge" => "bridge.schema.json",
+        "cross_stratal_seam" => "cross_stratal_seam.schema.json",
         "port" => "port.schema.json",
         "conduit" => "conduit.schema.json",
         "quality" => "quality.schema.json",
@@ -29,6 +30,9 @@ fn schema_file(kind: &str) -> Option<&'static str> {
         "token_occurrence" => "token.schema.json",
         "state_assertion" => "state.schema.json",
         "token_causal_claim" => "token_causal_claim.schema.json",
+        "attitude" => "attitude.schema.json",
+        "predicted_occurrence" => "predicted_occurrence.schema.json",
+        "prediction_error" => "prediction_error.schema.json",
         "assertion" => "assertion.schema.json",
         "enrichment" => "enrichment.schema.json",
         "retraction" => "retraction.schema.json",
@@ -37,7 +41,7 @@ fn schema_file(kind: &str) -> Option<&'static str> {
     })
 }
 
-// The seventeen whole-word schemas, embedded at compile time and keyed by
+// The twenty-one whole-word schemas, embedded at compile time and keyed by
 // their file name so cross-file $ref resolution is a simple lookup.
 static SCHEMAS: OnceLock<HashMap<&'static str, Value>> = OnceLock::new();
 
@@ -57,6 +61,7 @@ fn schemas() -> &'static HashMap<&'static str, Value> {
         embed!(m, "realizable.schema.json");
         embed!(m, "stratum.schema.json");
         embed!(m, "bridge.schema.json");
+        embed!(m, "cross_stratal_seam.schema.json");
         embed!(m, "port.schema.json");
         embed!(m, "conduit.schema.json");
         embed!(m, "quality.schema.json");
@@ -64,6 +69,9 @@ fn schemas() -> &'static HashMap<&'static str, Value> {
         embed!(m, "token.schema.json");
         embed!(m, "state.schema.json");
         embed!(m, "token_causal_claim.schema.json");
+        embed!(m, "attitude.schema.json");
+        embed!(m, "predicted_occurrence.schema.json");
+        embed!(m, "prediction_error.schema.json");
         embed!(m, "assertion.schema.json");
         embed!(m, "enrichment.schema.json");
         embed!(m, "retraction.schema.json");

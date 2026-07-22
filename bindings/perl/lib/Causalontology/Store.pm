@@ -27,7 +27,13 @@ use Causalontology::Signing qw(verify_record);
 use Causalontology::JCS qw(jcs);
 
 my %CONTENT_KINDS = map { $_ => 1 } qw(occurrent causal_relation_object
-                                       continuant realizable);
+                                       continuant realizable
+                                       stratum bridge cross_stratal_seam
+                                       port conduit quality
+                                       token_individual token_occurrence
+                                       state_assertion token_causal_claim
+                                       attitude predicted_occurrence
+                                       prediction_error);
 my %RECORD_KINDS  = map { $_ => 1 } qw(assertion enrichment retraction
                                        succession);
 

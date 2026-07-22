@@ -3,7 +3,7 @@
  *
  * These types describe the existing CommonJS implementation exactly as it
  * behaves at runtime; the JavaScript module remains the single source of
- * logic (it passes all 107 conformance vectors). The module is consumed as
+ * logic (it passes all 137 conformance vectors). The module is consumed as
  * `const co = require("./causalontology.js")` (or, from TypeScript,
  * `import co = require("./causalontology")`), so the declarations use the
  * CommonJS `export =` namespace pattern.
@@ -25,7 +25,7 @@ declare namespace causalontology {
   /** Binary data. At runtime always a Node.js Buffer (Buffer extends Uint8Array). */
   type Bytes = Uint8Array;
 
-  /** The seventeen whole-word Causalontology kinds (Principle P7). */
+  /** The twenty-one whole-word Causalontology kinds (Principle P7). */
   type Kind =
     | "occurrent"
     | "causal_relation_object"
@@ -33,6 +33,7 @@ declare namespace causalontology {
     | "realizable"
     | "stratum"
     | "bridge"
+    | "cross_stratal_seam"
     | "port"
     | "conduit"
     | "quality"
@@ -40,12 +41,15 @@ declare namespace causalontology {
     | "token_occurrence"
     | "state_assertion"
     | "token_causal_claim"
+    | "attitude"
+    | "predicted_occurrence"
+    | "prediction_error"
     | "assertion"
     | "enrichment"
     | "retraction"
     | "succession";
 
-  /** The thirteen content-object kinds (accepted by InMemoryStore.put). */
+  /** The seventeen content-object kinds (accepted by InMemoryStore.put). */
   type ContentKind =
     | "occurrent"
     | "causal_relation_object"
@@ -53,13 +57,17 @@ declare namespace causalontology {
     | "realizable"
     | "stratum"
     | "bridge"
+    | "cross_stratal_seam"
     | "port"
     | "conduit"
     | "quality"
     | "token_individual"
     | "token_occurrence"
     | "state_assertion"
-    | "token_causal_claim";
+    | "token_causal_claim"
+    | "attitude"
+    | "predicted_occurrence"
+    | "prediction_error";
 
   /** The four provenance-record kinds (accepted by InMemoryStore.putRecord). */
   type RecordKind = "assertion" | "enrichment" | "retraction" | "succession";
@@ -77,7 +85,11 @@ declare namespace causalontology {
     | "enabling"
     | "preventive";
 
-  /** Temporal window units with fixed conversion constants (rule 4). */
+  /** Temporal window units with fixed conversion constants (rule 4), plus
+   * the 3.0.0 ordinal `ticks` unit: a discrete, dimensionless step counter
+   * with NO wall-clock mapping — a tick window is ordered by integer
+   * comparison, and a tick window and a wall-clock window are different
+   * dimensions that never compare. */
   type TemporalUnit =
     | "instant"
     | "seconds"
@@ -86,7 +98,8 @@ declare namespace causalontology {
     | "days"
     | "weeks"
     | "months"
-    | "years";
+    | "years"
+    | "ticks";
 
   /** How an assertion's source came to the claim; intervention is strongest.
    * Ordering strongest to weakest: intervention, observation, simulation,
@@ -114,6 +127,21 @@ declare namespace causalontology {
   /** The realizable-entity kind enumeration (realizable.schema.json). */
   type RealizableKind = "disposition" | "function" | "role";
 
+  /** The honest-ignorance distinction of a Cross Stratal Seam (3.0.0):
+   * `unmodeled` — a mechanism EXISTS but is deliberately not drawn here;
+   * `absent` — there is genuinely NO intervening mechanism. */
+  type MechanismStatus = "unmodeled" | "absent";
+
+  /** The CLOSED attitude_type enumeration (attitude.schema.json, 4.0.0);
+   * extending it is a MAJOR change (Locked Decision 24). */
+  type AttitudeType =
+    | "believes"
+    | "desires"
+    | "intends"
+    | "knows"
+    | "expects"
+    | "fears";
+
   /** The seven enrichment fields (enrichment.schema.json; rule 12, with the
    * two occurrent-mereology forms added in 2.0.0). */
   type EnrichmentField =
@@ -126,7 +154,7 @@ declare namespace causalontology {
     | "occurrent_part_of";
 
   /* ------------------------------------------------------------------ *
-   * Domain shapes (the eight kinds)                                     *
+   * Domain shapes                                                       *
    * ------------------------------------------------------------------ */
 
   /** A bounded delay window between causes and effects (causal_relation_object.schema.json). */
@@ -198,6 +226,116 @@ declare namespace causalontology {
     kind: RealizableKind;
     /** The bearing continuant's identifier ("continuant:..."). */
     bearer: string;
+  }
+
+  /** A Cross Stratal Seam (3.0.0): a first-class MANAGED record of a
+   * legitimate jump across NON-ADJACENT strata. */
+  interface CrossStratalSeam {
+    /** Content-addressed identifier "cross_stratal_seam:<sha256 hex>". */
+    id?: string;
+    /** Kind tag. */
+    type?: "cross_stratal_seam";
+    /** One endpoint occurrent's identifier ("occurrent:..."). */
+    source: string;
+    /** The other endpoint occurrent's identifier ("occurrent:..."). */
+    target: string;
+    /** The honest-ignorance distinction: unmodeled versus absent. */
+    mechanism_status: MechanismStatus;
+    /** OPTIONAL: the intervening pathway DRAWN as an ordered occurrent list
+     * (each at an INTERVENING stratum, same scheme, strictly monotone); a
+     * drawn chain contradicts mechanism_status "absent". */
+    chain?: string[];
+  }
+
+  /** A Conduit: a typed connection from one Port to another. */
+  interface Conduit {
+    /** Content-addressed identifier "conduit:<sha256 hex>". */
+    id?: string;
+    /** Kind tag. */
+    type?: "conduit";
+    /** The name of the connection (for example: corticospinal_tract). */
+    label?: string;
+    /** The emitting port's identifier ("port:..."). */
+    from: string;
+    /** The receiving port's identifier ("port:..."). */
+    to: string;
+    /** The kinds of occurrent this conduit conducts ("occurrent:..."). */
+    carries: string[];
+    /** ABSENT asserts the conduit is TRANSMISSIVE; PRESENT names the CRO the
+     * conduit performs upon what it carries (COMPUTATIONAL). */
+    transform?: string;
+    /** 3.0.0 OPTIONAL: a scheme-qualified reference, by identity, to the
+     * native law or signal that REALIZES this conduit's transform. It is a
+     * reference, not an embedded law; unbound (absent) is legal and
+     * identity-preserving. */
+    realized_by?: string;
+  }
+
+  /** An Attitude (4.0.0): what a holder's mind CONTAINS, never what is true. */
+  interface Attitude {
+    /** Content-addressed identifier "attitude:<sha256 hex>". */
+    id?: string;
+    /** Kind tag. */
+    type?: "attitude";
+    /** The MODELED agent whose mind contains the content ("continuant:" or
+     * "token_individual:..."), never a cryptographic key (Rule 25). */
+    holder: string;
+    /** From the CLOSED enumeration. */
+    attitude_type: AttitudeType;
+    /** A reference by identity to ANY content object, INCLUDING another
+     * attitude (nesting); it may be FALSE, and a content that contradicts
+     * the actual record raises NO conflict (Rule 25). */
+    content: string;
+  }
+
+  /** The predicted window (predicted_occurrence.schema.json): Rule 24
+   * enforces exactly ONE temporal dimension — `start` (wall-clock, optional
+   * `end`) or `start_tick` (ordinal, optional `end_tick`), never both and
+   * never neither. */
+  interface PredictedInterval {
+    /** RFC 3339, UTC, mandatory Z suffix — the wall-clock dimension. */
+    start?: string;
+    /** RFC 3339, UTC. */
+    end?: string;
+    /** The ordinal dimension: a discrete tick with NO wall-clock mapping. */
+    start_tick?: number;
+    /** The ordinal window's end tick. */
+    end_tick?: number;
+  }
+
+  /** A Predicted Occurrence (4.0.0): an EXPECTATION — the sibling of the
+   * token_occurrence that has not (yet) happened (Rule 24). */
+  interface PredictedOccurrence {
+    /** Content-addressed identifier "predicted_occurrence:<sha256 hex>". */
+    id?: string;
+    /** Kind tag. */
+    type?: "predicted_occurrence";
+    /** The occurrent TYPE predicted to occur ("occurrent:..."). */
+    instantiates: string;
+    /** The predicted window (exactly one temporal dimension). */
+    interval: PredictedInterval;
+    /** The predicting source — a MODELED agent or construct ("continuant:"
+     * or "token_individual:..."), never a cryptographic key. */
+    predictor: string;
+    /** OPTIONAL, identity-bearing when present: the predicted probability,
+     * part of the predicted content itself, NOT a provenance evaluation. */
+    strength?: number;
+  }
+
+  /** A Prediction Error (4.0.0): how a prediction met the world. */
+  interface PredictionError {
+    /** Content-addressed identifier "prediction_error:<sha256 hex>". */
+    id?: string;
+    /** Kind tag. */
+    type?: "prediction_error";
+    /** The prediction this error grades ("predicted_occurrence:..."). */
+    predicted: string;
+    /** OPTIONAL: the token occurrence that answered the prediction
+     * ("token_occurrence:..."); ABSENT means nothing arrived. */
+    observed?: string;
+    /** Signed, graded; actual minus expected — positive = exceeded
+     * expectation, negative = fell short, zero = fulfilled. */
+    discrepancy: number;
   }
 
   /** A signed assertion: a source vouching for a content object. */
@@ -292,8 +430,18 @@ declare namespace causalontology {
     signature?: string;
   }
 
-  /** Any of the four content-object kinds. */
-  type ContentObject = Occurrent | CausalRelationObject | Continuant | Realizable;
+  /** The content-object shapes with dedicated declarations. */
+  type ContentObject =
+    | Occurrent
+    | CausalRelationObject
+    | Continuant
+    | Realizable
+    | Bridge
+    | CrossStratalSeam
+    | Conduit
+    | Attitude
+    | PredictedOccurrence
+    | PredictionError;
 
   /** Any of the four provenance-record kinds. */
   type ProvenanceRecord = Assertion | Enrichment | Retraction | Succession;
@@ -355,8 +503,13 @@ declare namespace causalontology {
    * Semantics (the locally checkable rules of spec/semantics.md)        *
    * ------------------------------------------------------------------ */
 
-  /** Rule 4: the fixed unit-to-seconds conversion constants (average Gregorian). */
-  const UNIT_SECONDS: { readonly [U in TemporalUnit]: number };
+  /** Rule 4: the fixed unit-to-seconds conversion constants (average
+   * Gregorian). The ordinal `ticks` unit deliberately has NO entry here. */
+  const UNIT_SECONDS: { readonly [U in Exclude<TemporalUnit, "ticks">]: number };
+
+  /** The ordinal (dimensionless) temporal units (3.0.0): dimension-disjoint
+   * from wall-clock; converting one to seconds is refused. */
+  const ORDINAL_UNITS: ReadonlySet<string>;
 
   /** The locally checkable semantic rules, as the tuple [ok, reasons]. */
   function validateSemantics(obj: AnyObject, kind?: Kind): [ok: boolean, reasons: string[]];
@@ -364,8 +517,10 @@ declare namespace causalontology {
   /** Which optional CRO fields (mechanism/temporal/modality/context) are unspecified. */
   function isPartial(cro: CausalRelationObject): [partial: boolean, missing: string[]];
 
-  /** Rule 4: is the elapsed time (seconds) inside the CRO's temporal window? */
-  function admissible(cro: CausalRelationObject, elapsedSeconds: number): boolean;
+  /** Rule 4: is the elapsed time inside the CRO's temporal window? For a
+   * wall-clock window `elapsed` is in seconds; for an ordinal (`ticks`)
+   * window it is a tick count (3.0.0). */
+  function admissible(cro: CausalRelationObject, elapsed: number): boolean;
 
   /** Rule 6: the formal conflict test between two CROs. */
   function conflicts(a: CausalRelationObject, b: CausalRelationObject): boolean;
@@ -464,14 +619,25 @@ declare namespace causalontology {
     stratumMap: Readonly<Record<string, { scheme: string; ordinal: number }>>,
   ): [ok: boolean, reason: string];
 
+  /** 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness
+   * (non-adjacency, the drawn-chain rules). Returns [ok, reason]. */
+  function seamWellformed(
+    seam: CrossStratalSeam,
+    occMap: Readonly<Record<string, { stratum?: string }>>,
+    stratumMap: Readonly<Record<string, { scheme: string; ordinal: number }>>,
+  ): [ok: boolean, reason: string];
+
+  /** THE HOME RULE (3.0.0): the coarsest stratum a seam touches (the
+   * endpoint of the greater ordinal); null if an endpoint is unstratified. */
+  function seamHome(
+    seam: CrossStratalSeam,
+    occMap: Readonly<Record<string, { stratum?: string }>>,
+    stratumMap: Readonly<Record<string, { scheme: string; ordinal: number }>>,
+  ): string | null;
+
   /** Rule 17: Conduit well-formedness. Returns [ok, reason]. */
   function conduitWellformed(
-    conduit: {
-      from: string;
-      to: string;
-      carries: string[];
-      transform?: string;
-    },
+    conduit: Conduit,
     portMap: Readonly<Record<string, {
       direction: string;
       accepts: string[];
@@ -490,6 +656,15 @@ declare namespace causalontology {
     tcc: { causes: string[]; effects: string[] },
     tokenMap: Readonly<Record<string, { instantiates: string }>>,
     law: { causes: string[]; effects: string[] } | null | undefined,
+  ): boolean;
+
+  /** 4.0.0 Rule 24: does the prediction error's observed token fail to
+   * instantiate the occurrent its predicted_occurrence instantiates? An
+   * ABSENT observed is never a mismatch. */
+  function predictionPairingMismatch(
+    error: PredictionError,
+    predicted: { instantiates: string },
+    observed: { instantiates: string } | null | undefined,
   ): boolean;
 
   /** Rule 21: does any cause token start after any effect token? */

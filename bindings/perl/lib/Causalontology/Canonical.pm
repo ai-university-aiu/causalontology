@@ -8,6 +8,12 @@
 #   3. serialize with the JSON Canonicalization Scheme (RFC 8785),
 #   4. hash with SHA-256,
 #   5. identifier = scheme + ":" + lowercase hex digest.
+#
+# 3.0.0 adds the cross_stratal_seam and gives the conduit an optional
+# realized_by; 4.0.0 adds the attitude, the predicted_occurrence, and the
+# prediction_error - all additive and identity-preserving, so a record that
+# omits a new field keeps its earlier identifier byte-for-byte, and the new
+# kinds open new identity schemes that disturb no existing record.
 
 package Causalontology::Canonical;
 
@@ -32,8 +38,10 @@ our %IDENTITY_FIELDS = (
     realizable => ['kind', 'bearer', 'label'],
     stratum    => ['label', 'scheme', 'ordinal', 'unit', 'governs'],
     bridge     => ['coarse', 'fine', 'relation'],
+    cross_stratal_seam => ['source', 'target', 'mechanism_status', 'chain'],
     port       => ['bearer', 'label', 'direction', 'accepts', 'realizable'],
-    conduit    => ['label', 'from', 'to', 'carries', 'transform'],
+    conduit    => ['label', 'from', 'to', 'carries', 'transform',
+                   'realized_by'],
     quality    => ['label', 'datatype', 'unit', 'stratum'],
     # ---- token tier ----
     token_individual   => ['instantiates', 'designator', 'part_of'],
@@ -42,6 +50,10 @@ our %IDENTITY_FIELDS = (
     state_assertion    => ['subject', 'quality', 'value', 'interval'],
     token_causal_claim => ['causes', 'effects', 'covering_law',
                            'actual_delay', 'counterfactual'],
+    attitude             => ['holder', 'attitude_type', 'content'],
+    predicted_occurrence => ['instantiates', 'interval', 'predictor',
+                             'strength'],
+    prediction_error     => ['predicted', 'observed', 'discrepancy'],
     # ---- provenance tier ----
     assertion  => ['about', 'source', 'evidence_type', 'evidence', 'strength',
                    'confidence', 'timestamp', 'evidenced_by'],

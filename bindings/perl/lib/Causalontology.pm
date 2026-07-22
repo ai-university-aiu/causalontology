@@ -13,8 +13,8 @@ package Causalontology;
 use strict;
 use warnings;
 
-# specification 2.0.0 (vectors frozen 2026-07-13)
-our $VERSION = '2.0.0';
+# specification 4.0.0 (attitude, predicted_occurrence, prediction_error)
+our $VERSION = '4.0.0';
 
 use Causalontology::JSON ();
 use Causalontology::JCS ();
@@ -54,8 +54,8 @@ Causalontology - the Perl binding of the Causalontology standard
 
 =head1 DESCRIPTION
 
-Identity (RFC 8785 canonicalization + SHA-256), the eight JSON Schemas,
-the 13 semantic rules, Ed25519 record signing (RFC 8032), and the
+Identity (RFC 8785 canonicalization + SHA-256), the twenty-one JSON
+Schemas, the semantic rules, Ed25519 record signing (RFC 8032), and the
 in-memory conformant store with materialized views, retraction,
 succession lineage, resolve, and the stigmergy gap read.
 

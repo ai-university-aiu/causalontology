@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-/* The Causalontology conformance runner for causalontology-js (spec 2.0.0).
+/* The Causalontology conformance runner for causalontology-js (spec 4.0.0).
  *
  * Runs every vector in conformance/vectors/ against the JavaScript binding.
  * An implementation is conformant if and only if it passes every vector;
- * this runner exits nonzero on any failure. Vectors are the whole-word 2.0.0
- * baseline (Principle P7): V01-V38 re-frozen unaltered in meaning, V39-V107
- * new. It reproduces every assertion of the Python reference runner with the
+ * this runner exits nonzero on any failure. Vectors V01-V107 are the
+ * whole-word 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in
+ * meaning, V39-V107 new. V108-V119 are the 3.0.0 additions; V120-V137 are
+ * the 4.0.0 additions (attitude, predicted_occurrence, prediction_error).
+ * It reproduces every assertion of the Python reference runner with the
  * same fixtures and the same expected results.
  *
  * Pre-freeze note (see conformance/README.md): the vectors carry symbolic
@@ -27,6 +29,7 @@ const {
   conflicts, refinementValid, hierarchyConsistent, bridgeClosure, classifyCro,
   endpointsMixed, skipGaps, toSeconds, delayWithinWindow, bridgeWellformed,
   conduitWellformed, stateGaps, coveringLawMismatch, retrocausal, hasCycle,
+  seamWellformed, seamHome, predictionPairingMismatch,
   keypairFromSeed, signRecord, verifyRecord, InMemoryStore, RejectedWrite,
   ed25519, ENRICHMENT_FIELDS, _jcs,
 } = co;
@@ -55,9 +58,10 @@ function sha256hex(s) {
 const SCHEMES = [
   "occurrent", "causal_relation_object", "continuant", "realizable",
   "assertion", "enrichment", "retraction", "succession",
-  "stratum", "bridge", "port", "conduit", "quality",
+  "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality",
   "token_individual", "token_occurrence", "state_assertion",
   "token_causal_claim",
+  "attitude", "predicted_occurrence", "prediction_error",
 ];
 const WHOLE_WORD = new Set([...SCHEMES, "ed25519"]);
 const SYM_RE = new RegExp("^(" + SCHEMES.join("|") + "|ed25519):");
@@ -245,7 +249,7 @@ function internalChecks() {
 }
 
 // ---------------------------------------------------------------------------
-// the 107 vectors
+// the 137 vectors
 // ---------------------------------------------------------------------------
 const vectors = {};
 
@@ -1182,15 +1186,457 @@ vectors.v107 = () => {
   assert(ok, why.join("; "));
 };
 
+// V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam,
+// realized_by) --------------------------------------------------------------
+
+function seam(source, target, mechanismStatus, chain) {
+  const o = { type: "cross_stratal_seam", source, target,
+              mechanism_status: mechanismStatus };
+  if (chain) o.chain = chain;
+  return mk(o);
+}
+
+function seamFixture(srcOrd, tgtOrd, mechanismStatus, chainOrds) {
+  const s = neuro();
+  const src = occ("source_event", s[srcOrd].id);
+  const tgt = occ("target_event", s[tgtOrd].id);
+  const omap = { [src.id]: src, [tgt.id]: tgt };
+  const smap = { [s[srcOrd].id]: s[srcOrd], [s[tgtOrd].id]: s[tgtOrd] };
+  let chain = null;
+  if (chainOrds != null) {
+    chain = [];
+    chainOrds.forEach((ord, i) => {
+      const c = occ("chain_" + i, s[ord].id);
+      omap[c.id] = c;
+      smap[s[ord].id] = s[ord];
+      chain.push(c.id);
+    });
+  }
+  return [seam(src.id, tgt.id, mechanismStatus, chain), omap, smap];
+}
+
+// -- Change One: the ordinal (tick) temporal unit --
+vectors.v108 = () => {
+  const P = cro([sym("occurrent:a")], [sym("occurrent:b")],
+    { temporal: { minimum_delay: 0, maximum_delay: 5, unit: "ticks" },
+      modality: "sufficient" });
+  let [ok, why] = validateSchema(P);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(P);
+  assert(ok, why.join("; "));
+};
+
+vectors.v109 = () => {
+  const P = cro([sym("occurrent:a")], [sym("occurrent:b")],
+    { temporal: { minimum_delay: 2, maximum_delay: 5, unit: "ticks" } });
+  assert(admissible(P, 3) === true, "3 ticks inside [2, 5]");
+  assert(admissible(P, 2) === true && admissible(P, 5) === true,
+    "inclusive at both ends");
+  assert(admissible(P, 6) === false && admissible(P, 1) === false,
+    "outside the tick window");
+};
+
+vectors.v110 = () => {
+  const tickWindow = { minimum_delay: 0, maximum_delay: 5, unit: "ticks" };
+  const wallWindow = { minimum_delay: 0, maximum_delay: 5, unit: "seconds" };
+  assert(delayWithinWindow({ duration: 3, unit: "ticks" }, tickWindow)
+    === true, "tick delay within tick window");
+  assert(delayWithinWindow({ duration: 1, unit: "ticks" }, wallWindow)
+    === false, "tick delay never within a wall-clock window");
+  assert(delayWithinWindow({ duration: 1, unit: "seconds" }, tickWindow)
+    === false, "wall-clock delay never within a tick window");
+  const a = { causes: [sym("occurrent:a")], effects: [sym("occurrent:b")],
+              temporal: tickWindow, modality: "sufficient" };
+  const b = { causes: [sym("occurrent:a")], effects: [sym("occurrent:b")],
+              temporal: wallWindow, modality: "preventive" };
+  assert(conflicts(a, b) === false, "disjoint dimensions -> no overlap");
+  let threw = false;
+  try {
+    toSeconds(1, "ticks");
+  } catch (e) {
+    threw = true;
+  }
+  assert(threw, "toSeconds accepted ticks");
+};
+
+vectors.v111 = () => {
+  const base = { type: "causal_relation_object", causes: [sym("occurrent:a")],
+                 effects: [sym("occurrent:b")], modality: "sufficient" };
+  const tick = { ...base, temporal: { minimum_delay: 0, maximum_delay: 1,
+                                      unit: "ticks" } };
+  const secs = { ...base, temporal: { minimum_delay: 0, maximum_delay: 1,
+                                      unit: "seconds" } };
+  assert(identify(tick) !== identify(secs), "the unit is identity-bearing");
+  // a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0 value)
+  assert(identify(secs) === "causal_relation_object:" +
+    "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+    "wall-clock identity drifted");
+};
+
+// -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+vectors.v112 = () => {
+  const [sm, omap, smap] = seamFixture(14, 4, "unmodeled");
+  let [ok, why] = validateSchema(sm);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(sm);
+  assert(ok, why.join("; "));
+  [ok, why] = seamWellformed(sm, omap, smap);
+  assert(ok, why);
+};
+
+vectors.v113 = () => {
+  const [a] = seamFixture(14, 4, "unmodeled");
+  const [b, omap, smap] = seamFixture(14, 4, "absent");
+  let [ok, why] = validateSchema(b);
+  assert(ok, why.join("; "));
+  [ok, why] = seamWellformed(b, omap, smap);
+  assert(ok, why);
+  assert(a.id !== b.id, "mechanism_status is identity-bearing");
+};
+
+vectors.v114 = () => {
+  const [drawn, omap, smap] = seamFixture(14, 4, "unmodeled", [9, 7, 6, 5]);
+  let [ok, why] = validateSchema(drawn);
+  assert(ok, why.join("; "));
+  [ok, why] = seamWellformed(drawn, omap, smap);
+  assert(ok, why);
+  const [bad, omap2, smap2] = seamFixture(14, 4, "absent", [9, 7, 6, 5]);
+  [ok, why] = validateSemantics(bad);
+  assert(!ok && why.some((w) => w.includes("contradictory_seam")),
+    why.join("; "));
+  assert(!seamWellformed(bad, omap2, smap2)[0],
+    "a drawn chain with mechanism_status absent must be malformed");
+};
+
+vectors.v115 = () => {
+  const [sm, omap, smap] = seamFixture(14, 4, "unmodeled");
+  const s = neuro();
+  assert(seamHome(sm, omap, smap) === s[14].id,
+    "the home is the coarsest (max ordinal) stratum");
+};
+
+vectors.v116 = () => {
+  const [adj, o1, s1] = seamFixture(6, 5, "unmodeled");  // adjacent (gap 1)
+  assert(!seamWellformed(adj, o1, s1)[0], "adjacent seam must be malformed");
+  const [cos, o2, s2] = seamFixture(6, 6, "unmodeled");  // co-stratal (gap 0)
+  assert(!seamWellformed(cos, o2, s2)[0], "co-stratal seam must be malformed");
+  const [sm] = seamFixture(14, 4, "unmodeled");
+  assert(sm.id.startsWith("cross_stratal_seam:"), "a new identity scheme");
+};
+
+// -- Change Three: the realized_by reference --
+function conduitRealized(realizedBy) {
+  const frm = "port:" + "1".repeat(64);
+  const to = "port:" + "2".repeat(64);
+  const x = "occurrent:" + "3".repeat(64);
+  const o = { type: "conduit", label: "conn", from: frm, to, carries: [x] };
+  if (realizedBy) o.realized_by = realizedBy;
+  return mk(o);
+}
+
+vectors.v117 = () => {
+  const c = conduitRealized("causal_relation_object:" + "a".repeat(64));
+  let [ok, why] = validateSchema(c);
+  assert(ok, why.join("; "));
+  const c2 = conduitRealized("native:region_stratum_predict");
+  [ok, why] = validateSchema(c2);
+  assert(ok, why.join("; ")); // a native scheme reference is legal
+};
+
+vectors.v118 = () => {
+  const bound = conduitRealized("native:region_stratum_predict");
+  const unbound = conduitRealized();
+  assert(bound.id !== unbound.id, "realized_by is identity-bearing");
+  // an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0 value)
+  assert(unbound.id === "conduit:" +
+    "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+    "unbound conduit identity drifted");
+};
+
+vectors.v119 = () => {
+  const unbound = conduitRealized();
+  const [ok, why] = validateSchema(unbound);
+  assert(ok, why.join("; ")); // unbound is legal
+  const bad = { ...unbound, realized_by: "not-a-scheme-qualified-reference" };
+  assert(!validateSchema(bad, "conduit")[0],
+    "a malformed realized_by reference must be rejected");
+};
+
+// V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+// prediction_error) ----------------------------------------------------------
+
+function attitude(holder, attitudeType, content) {
+  return mk({ type: "attitude", holder, attitude_type: attitudeType,
+              content });
+}
+
+function predicted(instantiates, interval, predictorId, strength) {
+  const o = { type: "predicted_occurrence", instantiates, interval,
+              predictor: predictorId };
+  if (strength != null) o.strength = strength;
+  return mk(o);
+}
+
+function predictionError(predictedId, discrepancy, observed) {
+  const o = { type: "prediction_error", predicted: predictedId, discrepancy };
+  if (observed) o.observed = observed;
+  return mk(o);
+}
+
+function predictor() {
+  const c = cnt("forecasting_mind");
+  return individual(c.id, "predictor_p").id;
+}
+
+// -- Group X: prediction and prediction error (Section A) --
+vectors.v120 = () => {
+  const o = occ("rainfall_begins");
+  const p = predicted(o.id, { start_tick: 3, end_tick: 8 }, predictor());
+  let [ok, why] = validateSchema(p);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(p);
+  assert(ok, why.join("; "));
+  assert(p.id.startsWith("predicted_occurrence:"), "a new identity scheme");
+  const report = identify({ type: "token_occurrence", instantiates: o.id,
+                            interval: { start_tick: 3, end_tick: 8 } },
+                          "token_occurrence");
+  assert(p.id !== report, "a forecast is not a report");
+  assert(report.startsWith("token_occurrence:"), "report keeps its scheme");
+};
+
+vectors.v121 = () => {
+  const o = occ("rainfall_begins");
+  const wall = { start: "2026-07-23T00:00:00Z", end: "2026-07-24T00:00:00Z" };
+  const who = predictor();
+  const withStrength = predicted(o.id, wall, who, 0.8);
+  const without = predicted(o.id, wall, who);
+  for (const p of [withStrength, without]) {
+    let [ok, why] = validateSchema(p);
+    assert(ok, why.join("; "));
+    [ok, why] = validateSemantics(p);
+    assert(ok, why.join("; "));
+  }
+  assert(withStrength.id !== without.id, "strength is identity-bearing");
+};
+
+vectors.v122 = () => {
+  const o = occ("rainfall_begins");
+  const bad = mk({ type: "predicted_occurrence", instantiates: o.id,
+                   interval: { start_tick: 3 } });
+  const [ok, why] = validateSchema(bad, "predicted_occurrence");
+  assert(!ok && why.some((w) => w.includes("predictor")), why.join("; "));
+};
+
+vectors.v123 = () => {
+  const o = occ("rainfall_begins");
+  const both = predicted(o.id, { start: "2026-07-23T00:00:00Z",
+                                 start_tick: 3 }, predictor());
+  let [ok, why] = validateSchema(both);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(both);
+  assert(!ok && why.some((w) => w.includes("dimension_conflict")),
+    why.join("; "));
+};
+
+vectors.v124 = () => {
+  const o = occ("rainfall_begins");
+  const p = predicted(o.id, { start: "2026-07-23T00:00:00Z" }, predictor());
+  const t = token(o.id, { start: "2026-07-23T06:00:00Z" });
+  const err = predictionError(p.id, 0.0, t.id);
+  let [ok, why] = validateSchema(err);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(err);
+  assert(ok, why.join("; "));
+  assert(predictionPairingMismatch(err, p, t) === false,
+    "a fulfilled prediction is no mismatch");
+};
+
+vectors.v125 = () => {
+  const o = occ("rainfall_begins");
+  const p = predicted(o.id, { start: "2026-07-23T00:00:00Z" }, predictor());
+  const err = predictionError(p.id, -1.0);
+  let [ok, why] = validateSchema(err);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(err);
+  assert(ok, why.join("; "));
+  assert(!("observed" in err), "observed is optional");
+  assert(predictionPairingMismatch(err, p, null) === false,
+    "an absent observed is never a mismatch");
+};
+
+vectors.v126 = () => {
+  const o = occ("rainfall_begins");
+  const p = predicted(o.id, { start_tick: 0 }, predictor());
+  const bad = mk({ type: "prediction_error", predicted: p.id });
+  const [ok, why] = validateSchema(bad, "prediction_error");
+  assert(!ok && why.some((w) => w.includes("discrepancy")), why.join("; "));
+};
+
+vectors.v127 = () => {
+  const o = occ("rainfall_begins"), other = occ("snowfall_begins");
+  const p = predicted(o.id, { start: "2026-07-23T00:00:00Z" }, predictor());
+  const t = token(other.id, { start: "2026-07-23T06:00:00Z" });
+  const err = predictionError(p.id, 1.0, t.id);
+  const [ok, why] = validateSchema(err);
+  assert(ok, why.join("; "));
+  assert(predictionPairingMismatch(err, p, t) === true, "pairing mismatch");
+};
+
+// -- Group Y: attitude and theory of mind (Section B) --
+function believer(designator = "holder_h") {
+  const c = cnt("believing_mind");
+  return individual(c.id, designator).id;
+}
+
+vectors.v128 = () => {
+  const [st] = stateFixture("quantity", { quantity: 15.0, unit: "ug/dL" },
+    "ug/dL");
+  const att = attitude(believer(), "believes", st.id);
+  let [ok, why] = validateSchema(att);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(att);
+  assert(ok, why.join("; "));
+};
+
+vectors.v129 = () => {
+  const a = occ("switch_pressed"), b = occ("light_on");
+  const actual = cro([a.id], [b.id], { modality: "sufficient" });
+  const believed = cro([a.id], [b.id], { modality: "preventive" });
+  assert(conflicts(believed, actual) === true, "the CLAIMS contradict");
+  const att = attitude(believer(), "believes", believed.id);
+  let [ok, why] = validateSchema(att);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(att);
+  assert(ok, why.join("; ")); // validity unaffected
+  const s = new InMemoryStore();
+  s.put(a); s.put(b); s.put(actual); s.put(att);
+  assert(deq(s.gaps("conflict"), []), "Rule 25: NO conflict raised");
+};
+
+vectors.v130 = () => {
+  const o = occ("rainfall_begins");
+  const att = attitude(believer(), "desires", o.id);
+  let [ok, why] = validateSchema(att);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(att);
+  assert(ok, why.join("; "));
+};
+
+vectors.v131 = () => {
+  const o = occ("press_button");
+  const att = attitude(believer(), "intends", o.id);
+  let [ok, why] = validateSchema(att);
+  assert(ok, why.join("; "));
+  [ok, why] = validateSemantics(att);
+  assert(ok, why.join("; "));
+};
+
+vectors.v132 = () => {
+  const [st] = stateFixture("boolean", { boolean: true });
+  const inner = attitude(believer("holder_b"), "believes", st.id);
+  const outer = attitude(believer("holder_a"), "believes", inner.id);
+  for (const att of [inner, outer]) {
+    let [ok, why] = validateSchema(att);
+    assert(ok, why.join("; "));
+    [ok, why] = validateSemantics(att);
+    assert(ok, why.join("; "));
+  }
+  assert(outer.id !== inner.id, "nesting mints a distinct identity");
+  assert(outer.content === inner.id, "the outer content is the inner id");
+};
+
+vectors.v133 = () => {
+  const o = occ("rainfall_begins");
+  const bad = mk({ type: "attitude", holder: believer(),
+                   attitude_type: "suspects", content: o.id });
+  const [ok, why] = validateSchema(bad, "attitude");
+  assert(!ok && why.some((w) => w.includes("attitude_type")), why.join("; "));
+};
+
+vectors.v134 = () => {
+  const o = occ("rainfall_begins");
+  const bad = mk({ type: "attitude", holder: believer(),
+                   attitude_type: "believes", content: o.id,
+                   strength: 0.9 });
+  const [ok, why] = validateSchema(bad, "attitude");
+  assert(!ok && why.some((w) => w.includes("strength")), why.join("; "));
+};
+
+vectors.v135 = () => {
+  const o = occ("rainfall_begins");
+  const att = attitude(believer(), "expects", o.id);
+  const a = signed("assertion",
+    { about: att.id, evidence_type: "observation", confidence: 0.9 },
+    "signer");
+  const [ok, why] = validateSchema(a);
+  assert(ok, why.join("; "));
+  assert(verifyRecord(a) === true, "assertion about an attitude verifies");
+  // the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+  assert(att.holder.split(":", 1)[0] === "token_individual", "holder scheme");
+  assert(a.source.split(":", 1)[0] === "ed25519", "source scheme");
+  assert(att.holder !== a.source, "holder and source differ");
+};
+
+vectors.v136 = () => {
+  // the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+  const secs = { type: "causal_relation_object", causes: [sym("occurrent:a")],
+                 effects: [sym("occurrent:b")], modality: "sufficient",
+                 temporal: { minimum_delay: 0, maximum_delay: 1,
+                             unit: "seconds" } };
+  assert(identify(secs) === "causal_relation_object:" +
+    "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+    "V111 identity drifted under 4.0.0");
+  // the V118 unbound conduit, re-pinned under 4.0.0
+  const unbound = conduitRealized();
+  assert(unbound.id === "conduit:" +
+    "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+    "V118 identity drifted under 4.0.0");
+};
+
+vectors.v137 = () => {
+  const hexid = "0".repeat(64);
+  // NOTE: the abbreviated prefixes below are intentional (the negative test);
+  // they must NOT be re-minted. Each is assembled to survive re-mint tools.
+  const attAbbr = "a" + "t" + "t";
+  const prdAbbr = "p" + "r" + "d";
+  const errAbbr = "e" + "r" + "r";
+  const badAtt = { type: "attitude", id: attAbbr + ":" + hexid,
+                   holder: "token_individual:" + hexid,
+                   attitude_type: "believes",
+                   content: "state_assertion:" + hexid };
+  assert(!validateSchema(badAtt, "attitude")[0],
+    "abbreviated attitude scheme must be rejected");
+  const badPrd = { type: "predicted_occurrence", id: prdAbbr + ":" + hexid,
+                   instantiates: "occurrent:" + hexid,
+                   interval: { start_tick: 0 },
+                   predictor: "token_individual:" + hexid };
+  assert(!validateSchema(badPrd, "predicted_occurrence")[0],
+    "abbreviated predicted_occurrence scheme must be rejected");
+  const badErr = { type: "prediction_error", id: errAbbr + ":" + hexid,
+                   predicted: "predicted_occurrence:" + hexid,
+                   discrepancy: 0.0 };
+  assert(!validateSchema(badErr, "prediction_error")[0],
+    "abbreviated prediction_error scheme must be rejected");
+  const wholeAtt = { ...badAtt, id: "attitude:" + hexid };
+  let [ok, why] = validateSchema(wholeAtt, "attitude");
+  assert(ok, why.join("; "));
+  const wholePrd = { ...badPrd, id: "predicted_occurrence:" + hexid };
+  [ok, why] = validateSchema(wholePrd, "predicted_occurrence");
+  assert(ok, why.join("; "));
+  const wholeErr = { ...badErr, id: "prediction_error:" + hexid };
+  [ok, why] = validateSchema(wholeErr, "prediction_error");
+  assert(ok, why.join("; "));
+};
+
 // ---------------------------------------------------------------------------
 function main() {
-  console.log("causalontology-js conformance run (specification 2.0.0)");
+  console.log("causalontology-js conformance run (specification 4.0.0)");
   process.stdout.write(
     "internal checks (RFC 8032, RFC 8785, fixed constants) ... ");
   internalChecks();
   console.log("ok");
   let failures = 0;
-  const total = 107;
+  const total = 137;
   for (let n = 1; n <= total; n++) {
     const fn = vectors["v" + String(n).padStart(2, "0")];
     const name = vecName(n);
@@ -1206,7 +1652,7 @@ function main() {
   console.log((total - failures) + "/" + total + " vectors passed");
   if (failures) process.exit(1);
   console.log("causalontology-js is CONFORMANT to the suite " +
-    "(vectors frozen at specification 2.0.0).");
+    "(vectors frozen at specification 4.0.0).");
 }
 
 main();

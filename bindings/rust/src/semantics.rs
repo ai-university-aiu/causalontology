@@ -1,6 +1,9 @@
 //! The semantic rules beyond the schemas (spec/semantics.md) - the same
-//! 13-rule module as the Python reference, including the fixed temporal
+//! rule module as the Python reference, including the fixed temporal
 //! constants that make admissibility identical in every implementation.
+//! 3.0.0 adds the ordinal tick dimension and the Cross Stratal Seam
+//! (Algorithm F); 4.0.0 adds Rule 24 (a prediction is not a report) and
+//! the prediction-to-observation pairing check.
 
 use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
@@ -20,6 +23,32 @@ pub fn unit_seconds(unit: &str) -> Option<f64> {
         "years" => Some(31_556_952.0),
         _ => None,
     }
+}
+
+/// 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete
+/// step with NO wall-clock mapping; a tick window is ordered by integer
+/// comparison, and an ordinal window and a wall-clock window are DIFFERENT
+/// DIMENSIONS that do not compare (mixing them is never within-window and
+/// never overlapping).
+pub fn is_ordinal_unit(unit: &str) -> bool {
+    unit == "ticks"
+}
+
+/// "ordinal" for a tick-like unit, else "wallclock".
+fn dimension(unit: &str) -> &'static str {
+    if is_ordinal_unit(unit) { "ordinal" } else { "wallclock" }
+}
+
+/// A comparable magnitude within ONE dimension: raw tick count for an
+/// ordinal unit, seconds for a wall-clock unit. Never mix dimensions.
+fn magnitude(value: f64, unit: &str) -> f64 {
+    if is_ordinal_unit(unit) {
+        return value; // a dimensionless tick count
+    }
+    if unit == "instant" {
+        return 0.0;
+    }
+    value * unit_seconds(unit).unwrap_or(1.0)
 }
 
 pub const CRO_OPTIONAL_FIELDS: [&str; 4] =
@@ -117,6 +146,49 @@ pub fn validate_semantics(obj: &Map<String, Value>, kind: Option<&str>)
         }
     }
 
+    // 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain
+    // has, by drawing it, a modelled intervening mechanism - so
+    // mechanism_status "absent" contradicts a present chain (the
+    // honest-ignorance distinction must stay honest). The stratal
+    // well-formedness (non-adjacency, adjacency of chain steps, scheme, the
+    // home rule) needs the strata map and lives in seam_wellformed, exactly
+    // as bridge well-formedness does.
+    if kind == "cross_stratal_seam"
+        && obj.get("chain").is_some()
+        && obj.get("mechanism_status").and_then(Value::as_str)
+            == Some("absent") {
+        errors.push("contradictory_seam: a drawn chain cannot carry \
+            mechanism_status 'absent' (a drawn mechanism is not absent)"
+            .to_string());
+    }
+
+    // 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+    // exactly ONE temporal dimension - a wall-clock start (optional end) or
+    // an ordinal start_tick (optional end_tick), never both and never
+    // neither. Per Rule 23 the two dimensions never compare. The pairing
+    // check of a prediction_error against its predicted_occurrence and its
+    // observed token_occurrence needs those objects and lives in
+    // prediction_pairing_mismatch, exactly as covering_law_mismatch does.
+    if kind == "predicted_occurrence" {
+        let empty = Map::new();
+        let iv = match obj.get("interval") {
+            Some(Value::Object(iv)) => iv,
+            _ => &empty,
+        };
+        let wall = iv.contains_key("start");
+        let tick = iv.contains_key("start_tick");
+        if wall && tick {
+            errors.push("dimension_conflict: a predicted interval must \
+                carry exactly one temporal dimension, not a wall-clock \
+                start AND an ordinal start_tick".to_string());
+        }
+        if !wall && !tick {
+            errors.push("missing_dimension: a predicted interval must \
+                carry a wall-clock start or an ordinal start_tick"
+                .to_string());
+        }
+    }
+
     (errors.is_empty(), errors)
 }
 
@@ -129,17 +201,21 @@ pub fn is_partial(cro: &Map<String, Value>) -> (bool, Vec<String>) {
     (!missing.is_empty(), missing)
 }
 
-/// Rule 4: temporal admissibility with the fixed constants.
-pub fn admissible(cro: &Map<String, Value>, elapsed_seconds: f64) -> bool {
+/// Rule 4: temporal admissibility with the fixed constants. For a wall-clock
+/// window `elapsed` is in seconds; for an ordinal ("ticks") window `elapsed`
+/// is a tick count. Ordering is by magnitude WITHIN the window's own
+/// dimension (3.0.0).
+pub fn admissible(cro: &Map<String, Value>, elapsed: f64) -> bool {
     let t = match cro.get("temporal") {
         Some(Value::Object(t)) => t,
         _ => return true, // no window imposes no constraint
     };
-    let unit = t.get("unit").and_then(Value::as_str)
-        .and_then(unit_seconds).unwrap_or(1.0);
-    let lo = t.get("minimum_delay").and_then(f64_of).unwrap_or(0.0) * unit;
-    let hi = t.get("maximum_delay").and_then(f64_of).unwrap_or(f64::MAX) * unit;
-    lo <= elapsed_seconds && elapsed_seconds <= hi
+    let unit = t.get("unit").and_then(Value::as_str).unwrap_or("seconds");
+    let lo = magnitude(t.get("minimum_delay").and_then(f64_of)
+                       .unwrap_or(0.0), unit);
+    let hi = magnitude(t.get("maximum_delay").and_then(f64_of)
+                       .unwrap_or(f64::MAX), unit);
+    lo <= elapsed && elapsed <= hi
 }
 
 fn id_set(v: Option<&Value>) -> HashSet<String> {
@@ -156,14 +232,19 @@ fn window_overlap(a: &Map<String, Value>, b: &Map<String, Value>) -> bool {
         (Some(Value::Object(x)), Some(Value::Object(y))) => (x, y),
         _ => return true, // either absent counts as overlapping
     };
-    let ua = ta.get("unit").and_then(Value::as_str)
-        .and_then(unit_seconds).unwrap_or(1.0);
-    let ub = tb.get("unit").and_then(Value::as_str)
-        .and_then(unit_seconds).unwrap_or(1.0);
-    let lo_a = ta.get("minimum_delay").and_then(f64_of).unwrap_or(0.0) * ua;
-    let hi_a = ta.get("maximum_delay").and_then(f64_of).unwrap_or(0.0) * ua;
-    let lo_b = tb.get("minimum_delay").and_then(f64_of).unwrap_or(0.0) * ub;
-    let hi_b = tb.get("maximum_delay").and_then(f64_of).unwrap_or(0.0) * ub;
+    let ua = ta.get("unit").and_then(Value::as_str).unwrap_or("seconds");
+    let ub = tb.get("unit").and_then(Value::as_str).unwrap_or("seconds");
+    if dimension(ua) != dimension(ub) {
+        return false; // 3.0.0: an ordinal window and a wall-clock window never overlap
+    }
+    let lo_a = magnitude(ta.get("minimum_delay").and_then(f64_of)
+                         .unwrap_or(0.0), ua);
+    let hi_a = magnitude(ta.get("maximum_delay").and_then(f64_of)
+                         .unwrap_or(0.0), ua);
+    let lo_b = magnitude(tb.get("minimum_delay").and_then(f64_of)
+                         .unwrap_or(0.0), ub);
+    let hi_b = magnitude(tb.get("maximum_delay").and_then(f64_of)
+                         .unwrap_or(0.0), ub);
     lo_a <= hi_b && lo_b <= hi_a
 }
 
@@ -438,28 +519,40 @@ pub fn skip_gaps(cro: &Map<String, Value>, classification: &str)
 }
 
 /// ALGORITHM E helper: normalize a delay to seconds by the fixed table.
-pub fn to_seconds(duration: f64, unit: &str) -> f64 {
-    if unit == "instant" {
-        return 0.0;
+/// 3.0.0: an ordinal ("ticks") unit is dimensionless and has NO wall-clock
+/// mapping - converting one to seconds is a category error and is refused.
+pub fn to_seconds(duration: f64, unit: &str) -> Result<f64, String> {
+    if is_ordinal_unit(unit) {
+        return Err(format!("'{}' is an ordinal (dimensionless) unit and has \
+            no wall-clock seconds mapping", unit));
     }
-    duration * unit_seconds(unit).unwrap_or(0.0)
+    if unit == "instant" {
+        return Ok(0.0);
+    }
+    Ok(duration * unit_seconds(unit).unwrap_or(0.0))
 }
 
 /// ALGORITHM E (Rule 20): does an observed delay fall within a covering law's
-/// temporal window? Inclusive at both ends (N12.5.2).
+/// temporal window? Inclusive at both ends (N12.5.2). 3.0.0: an ordinal delay
+/// compares to an ordinal window by integer tick count; an ordinal delay and
+/// a wall-clock window (or vice versa) are different dimensions and never
+/// fall within one another.
 pub fn delay_within_window(actual_delay: Option<&Map<String, Value>>,
                            temporal: Option<&Map<String, Value>>) -> bool {
     let (ad, t) = match (actual_delay, temporal) {
         (Some(a), Some(t)) => (a, t),
         _ => return true, // nothing to check
     };
-    let observed = to_seconds(
-        ad.get("duration").and_then(f64_of).unwrap_or(0.0),
-        ad.get("unit").and_then(Value::as_str).unwrap_or("instant"));
+    let ad_unit = ad.get("unit").and_then(Value::as_str).unwrap_or("instant");
     let unit = t.get("unit").and_then(Value::as_str).unwrap_or("instant");
-    let lo = to_seconds(
+    if dimension(ad_unit) != dimension(unit) {
+        return false; // dimension mismatch: a tick delay is not within a wall-clock window
+    }
+    let observed = magnitude(
+        ad.get("duration").and_then(f64_of).unwrap_or(0.0), ad_unit);
+    let lo = magnitude(
         t.get("minimum_delay").and_then(f64_of).unwrap_or(0.0), unit);
-    let hi = to_seconds(
+    let hi = magnitude(
         t.get("maximum_delay").and_then(f64_of).unwrap_or(0.0), unit);
     lo <= observed && observed <= hi
 }
@@ -502,6 +595,88 @@ pub fn bridge_wellformed(bridge: &Map<String, Value>,
             "malformed_bridge: coarse ordinal not > fine ordinal (e)".into());
     }
     (true, "well-formed bridge".into())
+}
+
+/// 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness.
+/// (ok, reason). All of (a)-(g) must hold, else malformed_seam. A seam is a
+/// MANAGED jump across NON-ADJACENT strata; when it DRAWS a chain, the chain
+/// must be an adjacent-stratum path spanning the two endpoints' strata.
+pub fn seam_wellformed(seam: &Map<String, Value>,
+                       occ_map: &HashMap<String, Map<String, Value>>,
+                       stratum_map: &HashMap<String, Map<String, Value>>)
+                       -> (bool, String) {
+    let src_id = seam.get("source").and_then(Value::as_str).unwrap_or("");
+    let tgt_id = seam.get("target").and_then(Value::as_str).unwrap_or("");
+    let (src_s, tgt_s) = match (stratum_of(src_id, occ_map),
+                                stratum_of(tgt_id, occ_map)) {
+        (Some(s), Some(t)) => (s.to_string(), t.to_string()),
+        _ => return (false,
+            "malformed_seam: an endpoint has no stratum (a)".into()),
+    };
+    let scheme = |s: &str| stratum_map.get(s).and_then(|x| x.get("scheme"))
+        .and_then(Value::as_str).unwrap_or("");
+    if scheme(&src_s) != scheme(&tgt_s) {
+        return (false,
+            "malformed_seam: endpoints differ in scheme (b)".into());
+    }
+    let ord = |s: &str| stratum_map.get(s).and_then(|x| x.get("ordinal"))
+        .and_then(Value::as_i64).unwrap_or(0);
+    let (so, to) = (ord(&src_s), ord(&tgt_s));
+    if (so - to).abs() <= 1 {
+        return (false, "malformed_seam: endpoints are adjacent or \
+            co-stratal; a seam is for NON-adjacent strata (c)".into());
+    }
+    if let Some(Value::Array(chain)) = seam.get("chain") {
+        if seam.get("mechanism_status").and_then(Value::as_str)
+            == Some("absent") {
+            return (false, "malformed_seam: a drawn chain contradicts \
+                mechanism_status 'absent' (d)".into());
+        }
+        let (lo, hi) = (so.min(to), so.max(to));
+        let mut ords = Vec::new();
+        for oid in chain {
+            let oid = oid.as_str().unwrap_or("");
+            let st = match stratum_of(oid, occ_map) {
+                Some(s) => s.to_string(),
+                None => return (false,
+                    "malformed_seam: a chain member has no stratum (e)".into()),
+            };
+            if scheme(&st) != scheme(&src_s) {
+                return (false, "malformed_seam: a chain member differs in \
+                    scheme (e)".into());
+            }
+            ords.push(ord(&st));
+        }
+        if !ords.iter().all(|o| lo < *o && *o < hi) {
+            return (false, "malformed_seam: a chain member is not at an \
+                INTERVENING stratum, strictly between the endpoints (f)"
+                .into());
+        }
+        let diffs: Vec<i64> = ords.windows(2).map(|w| w[1] - w[0]).collect();
+        if !diffs.is_empty() && !(diffs.iter().all(|d| *d > 0)
+                                  || diffs.iter().all(|d| *d < 0)) {
+            return (false, "malformed_seam: chain is not strictly monotone \
+                from one endpoint toward the other (g)".into());
+        }
+    }
+    (true, "well-formed cross_stratal_seam".into())
+}
+
+/// THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST
+/// stratum it touches - the endpoint of the greater ordinal. Returns that
+/// stratum's identifier (None if an endpoint is unstratified). A layer-to-
+/// stratum binding places and checks the seam by this rule.
+pub fn seam_home(seam: &Map<String, Value>,
+                 occ_map: &HashMap<String, Map<String, Value>>,
+                 stratum_map: &HashMap<String, Map<String, Value>>)
+                 -> Option<String> {
+    let src_id = seam.get("source").and_then(Value::as_str).unwrap_or("");
+    let tgt_id = seam.get("target").and_then(Value::as_str).unwrap_or("");
+    let src_s = stratum_of(src_id, occ_map)?.to_string();
+    let tgt_s = stratum_of(tgt_id, occ_map)?.to_string();
+    let ord = |s: &str| stratum_map.get(s).and_then(|x| x.get("ordinal"))
+        .and_then(Value::as_i64).unwrap_or(0);
+    if ord(&src_s) >= ord(&tgt_s) { Some(src_s) } else { Some(tgt_s) }
 }
 
 /// Rule 17 / N4.2.1-2: Conduit well-formedness. (ok, reason).
@@ -613,6 +788,25 @@ pub fn covering_law_mismatch(tcc: &Map<String, Value>,
         }
     }
     false
+}
+
+/// 4.0.0 Rule 24: True iff the prediction error's observed token does not
+/// instantiate the occurrent its predicted_occurrence instantiates (surfaces
+/// pairing_mismatch). An ABSENT observed is never a mismatch - it means the
+/// predicted occurrence was not fulfilled by any recorded occurrence.
+pub fn prediction_pairing_mismatch(error: &Map<String, Value>,
+                                   predicted: &Map<String, Value>,
+                                   observed: Option<&Map<String, Value>>)
+                                   -> bool {
+    let observed = match observed {
+        Some(o) => o,
+        None => return false,
+    };
+    if error.get("observed").is_none() {
+        return false;
+    }
+    observed.get("instantiates").and_then(Value::as_str)
+        != predicted.get("instantiates").and_then(Value::as_str)
 }
 
 /// Rule 21: True iff any cause token starts after any effect token (HARD;
