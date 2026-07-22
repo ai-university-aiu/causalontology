@@ -3123,40 +3123,4 @@ Two occurrents, one bare causal claim refined into a signed law, and a signed as
 
 Its meaning: pressing the button is a sufficient cause of the light coming on within a second, asserted on intervention-grade evidence by a signed source - a complete claim, its identity computable from its content, its truth carried by a signature nobody else can forge.
 
-SEE ALSO: THE EXTERNAL P-SERIES, WHICH IS NOT THESE PRINCIPLES
-
-The labels P1 through P7 in this appendix are Causalontology's seven governing design principles, and nothing else in the standard carries that meaning.
-
-One neighboring project also uses P-labels for an unrelated purpose, and it is enumerated here so that no reader confuses the two, and so the owner has one place to scrutinize the pair side by side.
-
-That other use is a gap-finding ledger for the proto-connectome, kept in connectome-proto-agi/LEDGER.md, whose entries are numbered P1 through P10, where the letter P stands for proto-connectome, not for principle.
-
-It is a list of engineering findings about one prototype's build, not a list of design principles, and the ledger's own note says the series was chosen deliberately so that it cannot collide with the neighboring L-series and N-series ledgers.
-
-The same ten findings are tracked from two sibling repositories: PrologAI/docs/PrologAI_Requirements_Ledger_v11.txt records them as connectome-proto-agi, the Wave 2 vertical slice, ten entries, P1 to P10; and connectome-arbiter/LEDGER.md refers to the slice's P1 through P10 alongside its own N1 through N7 series.
-
-The ten entries, by their ledger titles, are these.
-
-• P1 - a hormone has no home for the seam between its structural skip and its dynamical effect.
-
-• P2 - "absence of a mechanism is a finding" is legible to the structure but invisible to the runtime.
-
-• P3 - the three-factor plasticity rule is ungrounded, and its structural proxy cannot carry it.
-
-• P4 - a neurotransmitter is a typed signal with provenance and kinetics, with no construct to hold it.
-
-• P5 - the layer construct's continuous integration (CI) entry point cannot be pointed at an external packs directory.
-
-• P6 - the layer rule stops at the repository boundary.
-
-• P7 - layer numbers are a per-repository namespace with no global coordinate.
-
-• P8 - the lattice_await/5 primitive cannot await a relation with a bound argument pattern.
-
-• P9 - the cyclic_actor construct still has no completion or until condition.
-
-• P10 - no construct binds "the static graph is acyclic" to "this runtime edge is the sanctioned closure".
-
-The two are different in kind: the seven principles are permanent design commitments that govern the standard, while these ten are transient findings about one prototype's build, expected to close as the work proceeds.
-
-They are set down here only to make that difference explicit, and to leave the owner a single place to check it.
+END OF MANIFESTO.
