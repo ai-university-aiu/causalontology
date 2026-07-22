@@ -2774,69 +2774,72 @@ Put us on the stand.
 
 OBJECTION
 
+
 APPENDIX: THE SPECIFICATION IN BRIEF
 
-This appendix states, completely but minimally, what Causalontology actually is.
+This appendix states the standard completely but minimally.
 
-It is a summary; the normative source is the specification under spec/ in the repository, and the full design rationale is the master document Causalontology_Standalone_Design_v22.txt, which is authoritative wherever this brief and it could be read to differ.
+It is a summary; the normative sources are the files under spec/ in the repository, and the full rationale is the master document Causalontology_Standalone_Design_v22.txt, authoritative wherever this brief and it could be read to differ.
 
 WHAT IT IS
 
 Causalontology is a programming-language-neutral standard - a data structure and its rules, not a program - for recording causation as first-class, content-addressed, signed objects that any implementation in any language can mint and merge without coordination.
 
-It is verb-first, because occurrents (the processes) are primary, and noun-hosting, because continuants (the things) are their participants.
+It is verb-first, because occurrents (processes) are primary, and noun-hosting, because continuants (things) are their participants.
 
-Its current specification is 3.0.0.
+The current specification is 3.0.0.
+
+IDENTIFIERS AND IDENTITY
+
+Every object is named scheme:localpart.
+
+The scheme is the whole-word kind name; the localpart is the lowercase hexadecimal Secure Hash Algorithm 256-bit (SHA-256) digest, sixty-four characters, of the object's identity-bearing fields written in the canonical form of RFC 8785 (the JSON Canonicalization Scheme).
+
+The digest is taken over the fields that are PRESENT and over nothing else, so an absent field cannot change a name, and two authors anywhere who state the same content mint the same identifier and merge with no coordinator.
 
 THE EIGHTEEN KINDS
 
-Every object is exactly one of eighteen kinds.
+Every object is exactly one of eighteen kinds: ten type-tier content, four token-tier content, and four provenance.
 
-Ten are type-tier content - general kinds, laws, and structure.
+The ten type-tier content kinds (immutable, content-addressed):
 
-Four are token-tier content - the particular history, local by default.
+• occurrent - a process or event TYPE, a verb; optional stratum.
 
-Four are provenance - the signed, add-only records that say who claims what.
-
-The ten type-tier content kinds (identity is content; immutable, content-addressed):
-
-• occurrent - a process or event TYPE, a verb, optionally pitched at a stratum.
-
-• causal_relation_object - a reified causal claim, carrying causes, effects, an optional mechanism, an optional temporal window whose unit may be a wall-clock unit or the ordinal ticks, a modality, a context, a refines link, and an optional skips flag.
+• causal_relation_object - a reified causal claim; required causes and effects; optional mechanism, temporal window (minimum_delay, maximum_delay, unit), modality, context, refines, and skips.
 
 • continuant - a thing that endures, a noun.
 
-• realizable - a disposition, function, or role, with an optional identity-bearing label.
+• realizable - a disposition, function, or role borne by a continuant; optional identity-bearing label.
 
-• stratum - a single level of description within a named stratification scheme.
+• stratum - a level of description within a named scheme, carrying an ordinal.
 
-• bridge - a cross-stratal identity map declaring that one coarse occurrent IS a particular set of finer ones.
+• bridge - a cross-stratal identity map declaring one coarse occurrent IS a set of finer ones (coarse, fine).
 
-• cross_stratal_seam - a managed jump across non-adjacent strata, recording through its mechanism_status whether an intervening mechanism is unmodeled or absent, with an optional drawn chain of intervening steps and a coarsest-stratum HOME rule.
+• cross_stratal_seam - a managed jump across non-adjacent strata (source, target, mechanism_status of unmodeled or absent, optional chain).
 
-• port - a typed interface borne by a continuant.
+• port - a typed interface borne by a continuant (bearer, accepts, optional realizable).
 
-• conduit - a directed, typed connection from port to port, transmissive or computational, optionally carrying realized_by, a reference by identity to the native law or signal that realizes its transform.
+• conduit - a directed, typed connection from port to port (from, to, carries, optional transform, optional realized_by).
 
-• quality - a property TYPE a thing can bear.
+• quality - a property TYPE a thing can bear, with a datatype and optional unit.
 
 The four token-tier content kinds (immutable, content-addressed, LOCAL BY DEFAULT):
 
-• token_individual - a particular thing, one instance of a continuant type.
+• token_individual - a particular thing, naming a continuant.
 
-• token_occurrence - a particular happening at an absolute time, with participants.
+• token_occurrence - a particular happening at an absolute time, with participants, naming an occurrent.
 
 • state_assertion - a particular individual bearing a particular value over an interval.
 
-• token_causal_claim - a particular happening causing a particular happening, under a covering law, carrying a but-for counterfactual.
+• token_causal_claim - a particular happening causing another, under a covering_law, with a but-for counterfactual.
 
 The four provenance kinds (signed, add-only):
 
-• assertion - source S asserts claim C, with an evidence type, a strength, a confidence, and a time, optionally citing token-tier evidence through evidenced_by.
+• assertion - source S asserts content object C, with evidence_type, strength, confidence, and time; optional evidenced_by citing token evidence.
 
-• enrichment - the signed addition of one entry to one field of one object.
+• enrichment - the signed addition of one entry to one field of one object (aliases, participants, subsumes, part_of, realized_in, occurrent_subsumes, occurrent_part_of).
 
-• retraction - a source's honest withdrawal of its OWN earlier assertion or enrichment.
+• retraction - a source's withdrawal of its own earlier assertion or enrichment.
 
 • succession - a signed declaration that one key succeeds another, signed by the old key.
 
@@ -2844,68 +2847,142 @@ THE LOAD-BEARING DECISION
 
 Content is separated from provenance, uniformly.
 
-Content objects are pure and immutable; every mutable datum - every alias, link, claim, withdrawal, or key rotation - is a signed record with an author.
+Content objects are pure and immutable; every mutable datum - alias, link, claim, withdrawal, or key rotation - is a signed, add-only record with an author.
 
-No content kind carries strength, confidence, source, or timestamp-of-assertion.
+THE PRINCIPLES
 
-IDENTITY
+P1, no free-floating tokens: every token instantiates a type, and a token naming no type is a schema failure.
 
-An object's identity IS the fingerprint of its content.
+P4, content bears no provenance: no content kind carries strength, confidence, source, or timestamp-of-assertion.
 
-Its fields are written in one canonical form under RFC 8785 and hashed with the Secure Hash Algorithm, 256-bit (SHA-256).
+P5, absence made positive: setting skips to true converts a "no mechanism" gap into a positive, signed finding rather than a defect.
 
-The fingerprint is taken over the fields that are PRESENT and over nothing else, so two authors anywhere who state the same content mint the same identifier and merge with no coordinator.
+P7, whole words, never abbreviations: every identifier scheme and type value is one whole English word; only the proper names of external standards are kept verbatim (ed25519, SHA-256, RFC 8785, RFC 3339, UCUM, UTC, JSON, JSON-LD, BFO, RO, PROV).
 
-REQUIREDNESS
+MODALITY
 
-Minimalism is enforced.
-
-In a causal_relation_object only id, causes, and effects are required; partial and degenerate objects are first-class.
-
-Setting skips to true converts a "no mechanism" gap into a positive, signed finding.
-
-PROVENANCE AND EVIDENCE
-
-Every provenance record is signed with Ed25519.
-
-Evidence is graded on a three-runged ladder: intervention outranks observation, and observation outranks simulation, the grade for an imagined or internally simulated intervention.
-
-A retraction withdraws only one's own records; a succession rotates a key while carrying its identity and responsibilities forward.
+A causal_relation_object's modality is one of five: necessary, sufficient, contributory, enabling (the cause makes the effect possible without bringing it about), and preventive (which opposes the other four).
 
 TIME
 
-Every temporal window carries a unit.
+A temporal window carries a unit: either a wall-clock unit (seconds and their UCUM multiples) or the ordinal ticks.
 
-It may be a wall-clock unit, seconds and their multiples, or the ordinal ticks, a dimensionless step ordered by plain integer comparison.
+Ticks are a dimensionless step ordered by integer comparison, held as a dimension disjoint from wall-clock time; converting ticks to seconds is refused as a category error.
 
-Ticks and seconds are disjoint dimensions, and converting ticks into seconds is refused as a category error.
+PROVENANCE, SIGNATURES, AND EVIDENCE
 
-LAYERS AND SEAMS
+A source identity is an Ed25519 public key (RFC 8032), written as ed25519 followed by sixty-four hexadecimal characters.
 
-Strata name the rungs of description.
+Every provenance record is signed over its canonical identity-bearing bytes, so verification needs only the record itself and re-submission is idempotent.
 
-A bridge declares two grains of one happening identical.
+Evidence is graded on a ladder: intervention outranks observation, observation outranks simulation, then derivation, then human_hint, then imported - acting beats watching, and watching beats simulating.
 
-A cross_stratal_seam records an honest jump across non-adjacent strata and says, through mechanism_status, whether the missing middle is merely unmodeled or genuinely absent.
+Trust is not forced: the store keeps every signed claim and lets each consumer choose a policy; contradictions coexist and are surfaced.
 
-Rule 7, bridged reachability, lets a chain of causes be checked for consistency across scales, a coarse link vouched for by the finer links it bridges to.
+THE TWENTY-THREE SEMANTIC RULES
 
-NAMING
+A document is schema-valid if it matches its JSON Schema, and semantically valid if it also satisfies these rules.
 
-Principle P7 governs every name: each identifier scheme, type value, and id prefix is one whole English word.
+1. Temporal windows: minimum_delay is at most maximum_delay.
 
-The only exceptions are the proper names of external standards - ed25519, SHA-256, RFC 8785, RFC 3339, UCUM, UTC, JSON, JSON-LD, BFO, RO, PROV.
+2. Dangling reference: any identifier referenced but absent from the store surfaces dangling_reference.
+
+3. Refinement: R refines P only if their causes and effects are equal, R repeats every field P specifies with the same value, and R adds at least one field P left unspecified.
+
+4. Acyclicity: the mechanism, refines, subsumes, part_of, bridge, occurrent_subsumes, occurrent_part_of, and token part_of graphs are each acyclic.
+
+5. Strength: strength is the source's estimate of the probability that the effects become possible given a do-intervention on the causes, in context.
+
+6. Conflict: necessary, sufficient, contributory, and enabling are mutually compatible, and preventive opposes all four; two relations conflict when they share causes, effects, and overlapping windows but oppose in modality.
+
+7. Hierarchy consistency, bridged reachability: after bridge-closing each cause and effect, every cause must reach some effect through the mechanism graph, and absent members make the check indeterminate rather than failed.
+
+8. Open world: absence is not denial, and negative causal knowledge uses the preventive modality, never absence.
+
+9. Merge: immutable objects, add-only records, set-union.
+
+10. Retraction: valid only from the retracted record's own source or lineage.
+
+11. Succession: chains define a lineage, one successor per key.
+
+12. Enrichment validity: each enrichment field accepts only entries of its declared kind.
+
+13. Stratal comparability: two strata are comparable only if they share a scheme, and comparing ordinals across schemes surfaces scheme_mismatch.
+
+14. Bridge well-formedness: coarse and every fine member are stratified, all fine share one stratum, the strata share a scheme, and coarse's ordinal is strictly greater than fine's.
+
+15. Stratal classification: every fully stratified relation is exactly one of intra-stratal, adjacent-stratal, skipping, or mixed, recomputed on ingest.
+
+16. Skip coherence: skips true requires an empty mechanism, skips true on a non-skipping relation is vacuous, and a skipping relation with an empty mechanism and skips absent is incomplete.
+
+17. Conduit well-formedness: a transmissive conduit's carries must be accepted by both ports, and a computational conduit's target must accept its transform's effects.
+
+18. Token instantiation: every token_individual names a continuant and every token_occurrence names an occurrent, so there are no free-floating tokens.
+
+19. State type and unit coherence: a state value's shape must match its quality's datatype, and a quantity value's unit must equal the quality's unit.
+
+20. Covering-law coherence: a token claim's tokens should instantiate its covering law's occurrents, and any actual delay must fall within the law's window.
+
+21. Temporal coherence: every cause token's interval begins no later than every effect token's, and token-tier backward causation is not represented.
+
+22. Cross-stratal seam well-formedness: both endpoints are stratified in one scheme with non-adjacent ordinals; a drawn chain forbids mechanism_status absent and must climb strictly through intervening strata; and the seam belongs to the coarsest stratum it touches.
+
+23. Ordinal units are a separate dimension: a tick window and a wall-clock window never compare, never overlap, and never convert.
+
+THE NORMATIVE ALGORITHMS
+
+Six algorithms make the executable rules decidable, and every binding implements them identically.
+
+Algorithm A, bridge closure: the set of occurrents identical to a given one across strata.
+
+Algorithm B, hierarchy consistency: the bridged reachability that Rule 7 requires.
+
+Algorithm C, stratal classification: intra, adjacent, skipping, or mixed, for Rule 15.
+
+Algorithm D, skip coherence: the skip asymmetry of Rule 16.
+
+Algorithm E, unit normalization: comparing wall-clock delays against a window, for Rule 20.
+
+Algorithm F, cross-stratal seam well-formedness: the checks of Rule 22.
+
+THE GAP TAXONOMY
+
+The store answers a gaps query with diagnostics of two kinds.
+
+The HARD gaps are schema or semantic failures that MUST be rejected: scheme_mismatch, malformed_bridge, bridge_cycle, malformed_conduit, contradictory_skip, individual_cycle, value_type_mismatch, unit_mismatch, occurrent_hierarchy_cycle, occurrent_mereology_cycle, retrocausal_claim, malformed_seam, and contradictory_seam.
+
+The rest are stigmergic invitations, standing requests for the next contribution: missing_field, dangling_reference, empty_mechanism, inconsistent_hierarchy, conflict, demand_supply, unstratified_occurrent, collided_realizable, vacuous_skip, stratum_mismatch, uncovered_causation (the most valuable), delay_outside_window, subsumption_crosses_strata, covering_law_mismatch, mixed_stratal_endpoints, and incomplete_mechanism.
+
+THE STORE
+
+Every conformant implementation provides the abstract operations - among them canonicalize, identify, validate_schema, validate_semantics, sign, verify, put, get, resolve, query, and gaps.
+
+The reference protocol is a Hypertext Transfer Protocol (HTTP) binding: a write to /objects stores a content object with its identifier recomputed; a write to /records stores a signed assertion, enrichment, retraction, or succession; and reads return objects, records, assertions, resolutions, gaps, and conflicts.
+
+The data model runs unchanged across three tiers: A, one central hosted store; B, federated nodes that push and pull; and C, decentralized content-addressed replication, which is a conflict-free replicated data type by construction.
 
 CONFORMANCE
 
 An implementation is Causalontology-conformant if and only if it passes every published conformance vector, V01 through V119, for the specification version it declares.
 
-The vectors are frozen, numbered, and public.
+Beneath the vectors, thirty design decisions stand LOCKED - numbered, written down, and changeable only by a public, versioned process.
 
 VERSIONING
 
-Specification versions follow Semantic Versioning.
-
-A new object kind, or any break to identity, is a MAJOR version, and the vectors are re-frozen once per release.
+Specification versions follow Semantic Versioning: a new object kind, or any break to identity, is a MAJOR version, and the vectors are re-frozen once per release.
 
 The current specification is 3.0.0.
+
+A WORKED EXAMPLE
+
+Two occurrents, one bare causal claim refined into a signed law, and a signed assertion - the whole loop, in JSON:
+
+{ "type": "occurrent", "label": "press_button", "category": "action" }
+
+{ "type": "occurrent", "label": "light_on", "category": "state_change" }
+
+{ "type": "causal_relation_object", "causes": ["occurrent:press_button"], "effects": ["occurrent:light_on"], "temporal": { "minimum_delay": 0, "maximum_delay": 1, "unit": "seconds" }, "modality": "sufficient" }
+
+{ "type": "assertion", "about": "causal_relation_object:...", "evidence_type": "intervention", "strength": 0.98, "confidence": 0.95, "source": "ed25519:...", "timestamp": "2026-07-13T00:00:00Z" }
+
+Its meaning: pressing the button is a sufficient cause of the light coming on within a second, asserted on intervention-grade evidence by a signed source - a complete claim, its identity computable from its content, its truth carried by a signature nobody else can forge.
