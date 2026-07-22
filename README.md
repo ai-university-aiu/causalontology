@@ -85,7 +85,7 @@ Each badge above is a claim, and every claim deserves a plain explanation. Here 
 
 - **`FLAGSHIP APPLICATION | MENTOVA PROLOGAI`** — **PrologAI** is the glass-box cognitive architecture that serves as Causalontology's reference implementation, and **Mentova** is the synthetic mind built on it — the first full application of this ontology, and one day the first machine mind to read the commons' gaps and contribute causal knowledge back. The badge links to Mentova.
 
-- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v24.txt`](Causalontology_Standalone_Design_v24.txt).
+- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v25.txt`](Causalontology_Standalone_Design_v25.txt).
 
 - **`LICENSE | ATTRIBUTION ALWAYS; NO PROFIT, NO PROBLEM`** — the project's license, in its own words: credit the source always, and using it without profit is never a problem. It is the friendly name for the Apache License 2.0 text (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)), one license covering everything here — the code, the data, the specification, and the architecture.
 
@@ -116,7 +116,7 @@ Causalontology's identity, stated from five angles — each the same claim, that
 
 And this repository adds a further first of its own: to our knowledge, the first specification to deliver reified, provenance-signed causation as a **programming-language-neutral standard** with a **shared, stigmergic commons** — offered, glass-box style, with its evidence: the specification, the conformance vectors, and the running implementations, all inspectable.
 
-Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v24.txt`](Causalontology_Standalone_Design_v24.txt) — the complete, self-contained canon of this repository.
+Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v25.txt`](Causalontology_Standalone_Design_v25.txt) — the complete, self-contained canon of this repository.
 
 ---
 
@@ -145,7 +145,7 @@ With these, the vocabulary grows from seventeen kinds to **eighteen**, and the c
 
 **Migration from 2.0.0.** Nothing you already have breaks. All three additions are additive and identity-preserving: because an object's identity is the fingerprint of only the fields it actually carries, any valid 2.0.0 record keeps its identifier byte-for-byte and stays valid under 3.0.0. To adopt, a consumer need only add support for the three new elements - the tick unit, the `cross_stratal_seam` kind, and the `realized_by` field - so that it can accept records that use them; a consumer that never encounters them needs no change at all. The 107 vectors of 2.0.0 are unchanged, and the 3.0.0 gate is simply their superset: the full 119-vector suite.
 
-The normative source for all of this is the Standalone Design, [`Causalontology_Standalone_Design_v24.txt`](Causalontology_Standalone_Design_v24.txt); the per-language rollout plan lives in [`docs/Causalontology_3_0_0_Release_Plan.txt`](docs/Causalontology_3_0_0_Release_Plan.txt).
+The normative source for all of this is the Standalone Design, [`Causalontology_Standalone_Design_v25.txt`](Causalontology_Standalone_Design_v25.txt); the per-language rollout plan lives in [`docs/Causalontology_3_0_0_Release_Plan.txt`](docs/Causalontology_3_0_0_Release_Plan.txt).
 
 ## The Eighteen Kinds of Thing
 
@@ -194,7 +194,7 @@ No single machine holds the commons, and by design none has to. Because every ob
 - **Durability before adoption.** Signed snapshot dumps (like Wikidata's), shipped over IPFS, BitTorrent, or Hypertext Transfer Protocol Secure (HTTPS) and verifiable byte-by-byte, give global redundancy before a single live peer is recruited. **Now available**: a genesis node exports a deterministic, content-addressed snapshot committed by a Merkle root and signed with its Ed25519 key, with a detached checksum and signature — anyone can verify every byte and stand up a mirror by union-merge (token tier excluded by default). See [`spec/snapshot.md`](spec/snapshot.md).
 - **The phased build.** (1) a persistent content-addressed node — **done**: the reference Tier A store is now durable (SQLite in write-ahead logging (WAL) mode), idempotent by content address, and integrity-checked on write, with every endpoint and byte unchanged; (2) a genesis full node plus signed snapshot dumps — **done**: deterministic, Merkle-committed, Ed25519-signed dumps, verifiable offline and mirror-able by union-merge, token tier excluded by default; (3) live Tier B federation with gossip and anti-entropy — **done**: nodes gossip new records to configured peers (batched, idempotent, loop-free) and a background pass reconciles by Merkle-root comparison and delta-only exchange, every inbound item verified by hash and signature before merge; (4) light clients, content-delivery network (CDN) caching, and hash-prefix sharding — **done**: a light client holds almost nothing and verifies every object by hash and every record by signature; immutable content carries immutable cache headers and an entity tag (ETag) equal to its identifier, cacheable forever behind any CDN, while mutable views are not; and a partial node holds only a hash-prefix slice, advertised on `GET /shards` and resolvable across nodes, with phase-three federation running per shard. **All four phases are delivered — the build is complete.**
 
-Full design: Part 21, "Commons Storage and Federation Design," in the canon ([`Causalontology_Standalone_Design_v24.txt`](Causalontology_Standalone_Design_v24.txt)).
+Full design: Part 21, "Commons Storage and Federation Design," in the canon ([`Causalontology_Standalone_Design_v25.txt`](Causalontology_Standalone_Design_v25.txt)).
 
 ## Quickstart (30 seconds)
 
@@ -231,7 +231,7 @@ Published at **specification 1.0.0** (vectors frozen 2026-07-13), **except PyPI,
 
 ```
 causalontology/
-  Causalontology_Standalone_Design_v24.txt   the canon (complete, lay-readable)
+  Causalontology_Standalone_Design_v25.txt   the canon (complete, lay-readable)
   spec/                    normative core, identity, semantics, provenance,
                            store, safety; schema/ = 18 JSON Schemas + JSON-LD
                            context + Protobuf + the OWL mapping (BFO/RO/PROV)

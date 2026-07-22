@@ -3014,7 +3014,7 @@ APPENDIX: THE SPECIFICATION IN BRIEF
 
 This appendix states the standard completely but minimally.
 
-It is a summary; the normative sources are the files under spec/ in the repository, and the full rationale is the master document Causalontology_Standalone_Design_v24.txt, authoritative wherever this brief and it could be read to differ.
+It is a summary; the normative sources are the files under spec/ in the repository, and the full rationale is the master document Causalontology_Standalone_Design_v25.txt, authoritative wherever this brief and it could be read to differ.
 
 WHAT IT IS
 
