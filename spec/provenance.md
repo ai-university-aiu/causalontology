@@ -19,7 +19,11 @@
   (`token_occurrence:`, `token_causal_claim:`, `state_assertion:`) that are its
   evidence. A store can then distinguish a law induced from ten INTERVENTIONAL
   tokens from one induced from a thousand OBSERVED tokens and weight them. The
-  `about` field is widened to accept all nine new content prefixes.
+  `about` field is widened to accept all nine new content prefixes; widened
+  again in 4.0.0, an assertion may be about ANY content object, including the
+  three 4.0.0 kinds (`attitude:`, `predicted_occurrence:`,
+  `prediction_error:`) and the `cross_stratal_seam:` (whose omission was a
+  3.0.0 drift, repaired in this major version).
 - **Materialized views**: an object's enrichment sets are DERIVED from
   unretracted enrichment records; each entry carries its contributors; the
   same entry from two sources is one displayed entry with two contributors

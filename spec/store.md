@@ -99,3 +99,16 @@ are invitations.
 | `retrocausal_claim` | HARD | a token cause whose interval starts after its effect's |
 | `mixed_stratal_endpoints` | invitation | a relation whose causes or effects span multiple strata |
 | `incomplete_mechanism` | invitation | a SKIPPING relation with empty mechanism and `skips` absent (contrast `contradictory_skip`) |
+
+### The 3.0.0 and 4.0.0 additions to the taxonomy (five entries)
+
+The seam rules of 3.0.0 (Rule 22 / Algorithm F) and the prediction rules of
+4.0.0 (Rule 24) add five gap names, all HARD:
+
+| Gap | Kind | Meaning |
+|---|---|---|
+| `malformed_seam` | HARD | a `cross_stratal_seam` violating Rule 22: an endpoint without a stratum, endpoints across schemes, adjacent or co-stratal endpoints, or a chain member off the intervening, strictly monotone path |
+| `contradictory_seam` | HARD | a DRAWN seam (chain present) whose `mechanism_status` is `absent` — a drawn mechanism is not absent |
+| `dimension_conflict` | HARD | a `predicted_occurrence` interval carrying BOTH a wall-clock `start` and an ordinal `start_tick` (Rule 24; per Rule 23 the dimensions never compare) |
+| `missing_dimension` | HARD | a `predicted_occurrence` interval carrying NEITHER `start` nor `start_tick` |
+| `pairing_mismatch` | HARD | a `prediction_error` whose `observed` token does not instantiate the same occurrent its `predicted` expectation instantiates |

@@ -11,8 +11,8 @@
 
 <!-- ROW 2: THE STANDARD -->
 <p align="center">
-  <img src="https://img.shields.io/badge/CONFORMANCE_VECTORS-119-FA842F?style=for-the-badge" alt="Conformance Vectors 119">
-  <img src="https://img.shields.io/badge/OBJECT_KINDS-18-F47223?style=for-the-badge" alt="Object Kinds 18">
+  <img src="https://img.shields.io/badge/CONFORMANCE_VECTORS-137-FA842F?style=for-the-badge" alt="Conformance Vectors 137">
+  <img src="https://img.shields.io/badge/OBJECT_KINDS-21-F47223?style=for-the-badge" alt="Object Kinds 21">
   <img src="https://img.shields.io/badge/LOCKED_DECISIONS-30-EC5F1C?style=for-the-badge" alt="Locked Decisions 30">
 </p>
 
@@ -57,11 +57,11 @@ Each badge above is a claim, and every claim deserves a plain explanation. Here 
 
 **Row 2 — The Standard**
 
-- **`CONFORMANCE VECTORS | 119`** — a *conformance vector* is a published test case: an input and the exact result a correct implementation must produce. There are 119 of them in this repository (V01–V38 the re-frozen original suite, V39–V119 the 2.0.0 and 3.0.0 additions), and the rule is simple: an implementation is Causalontology-conformant **if and only if it passes every one**. This is how a Python version, a Java version, and a Prolog version can all be guaranteed to agree without sharing a single line of code.
+- **`CONFORMANCE VECTORS | 137`** — a *conformance vector* is a published test case: an input and the exact result a correct implementation must produce. There are 137 of them in this repository (V01–V38 the re-frozen original suite, V39–V119 the 2.0.0 and 3.0.0 additions, V120–V137 the 4.0.0 additions), and the rule is simple: an implementation is Causalontology-conformant **if and only if it passes every one**. This is how a Python version, a Java version, and a Prolog version can all be guaranteed to agree without sharing a single line of code.
 
-- **`OBJECT KINDS | 18`** — everything in Causalontology is one of exactly eighteen kinds of object: ten *type-tier content* kinds (occurrent, causal_relation_object, continuant, realizable, stratum, bridge, cross_stratal_seam, port, conduit, quality), four *token-tier content* kinds (token_individual, token_occurrence, state_assertion, token_causal_claim — a particular history, local by default), and four *provenance* kinds (assertion, enrichment, retraction, succession — the signed records saying who claims, adds, withdraws, or rotates what). Eighteen kinds, no exceptions — a learnable vocabulary for all causal knowledge, at every level of description and for both laws and histories.
+- **`OBJECT KINDS | 21`** — everything in Causalontology is one of exactly twenty-one kinds of object: ten *type-tier content* kinds (occurrent, causal_relation_object, continuant, realizable, stratum, bridge, cross_stratal_seam, port, conduit, quality), seven *token-tier content* kinds (token_individual, token_occurrence, state_assertion, token_causal_claim, and the three 4.0.0 arrivals attitude, predicted_occurrence, prediction_error — a particular history, local by default), and four *provenance* kinds (assertion, enrichment, retraction, succession — the signed records saying who claims, adds, withdraws, or rotates what). Twenty-one kinds, no exceptions — a learnable vocabulary for all causal knowledge, at every level of description and for both laws and histories.
 
-- **`LOCKED DECISIONS | 30`** — the specification records 30 design decisions as *locked*: settled on purpose, in writing, so builders can proceed without the ground shifting under them (the original twenty-seven of the 1.0.0 lineage, plus three locked in the 2.0.0 re-mint — the new kinds and token tier, the bridged-reachability and skips changes, and Principle P7's whole-word naming). Changing one requires a formal, versioned process — not a quiet edit.
+- **`LOCKED DECISIONS | 30`** — the specification records 30 design decisions as *locked*: settled on purpose, in writing, so builders can proceed without the ground shifting under them (the original twenty-seven of the 1.0.0 lineage, plus three locked in the 2.0.0 re-mint — the new kinds and token tier, the bridged-reachability and skips changes, and Principle P7's whole-word naming). The register has since been amended twice, each time by EXTENSION rather than override: the 3.0.0 amendment added three extension decisions, and the 4.0.0 amendment added five more. Changing one requires a formal, versioned process — not a quiet edit.
 
 **Row 3 — The Foundations**
 
@@ -85,7 +85,7 @@ Each badge above is a claim, and every claim deserves a plain explanation. Here 
 
 - **`FLAGSHIP APPLICATION | MENTOVA PROLOGAI`** — **PrologAI** is the glass-box cognitive architecture that serves as Causalontology's reference implementation, and **Mentova** is the synthetic mind built on it — the first full application of this ontology, and one day the first machine mind to read the commons' gaps and contribute causal knowledge back. The badge links to Mentova.
 
-- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v25.txt`](Causalontology_Standalone_Design_v25.txt).
+- **`BOOK | AGI'S MISSING LINK`** — this repository is the data-structure layer of the book *Causalontology: AGI's Missing Link*, whose thesis is that the component most conspicuously missing from today's AI is an explicit, learnable, inspectable model of cause and effect, acquired by acting on the world. The complete, lay-readable canon is right here: [`Causalontology_Standalone_Design_v26.txt`](Causalontology_Standalone_Design_v26.txt).
 
 - **`LICENSE | ATTRIBUTION ALWAYS; NO PROFIT, NO PROBLEM`** — the project's license, in its own words: credit the source always, and using it without profit is never a problem. It is the friendly name for the Apache License 2.0 text (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)), one license covering everything here — the code, the data, the specification, and the architecture.
 
@@ -116,7 +116,7 @@ Causalontology's identity, stated from five angles — each the same claim, that
 
 And this repository adds a further first of its own: to our knowledge, the first specification to deliver reified, provenance-signed causation as a **programming-language-neutral standard** with a **shared, stigmergic commons** — offered, glass-box style, with its evidence: the specification, the conformance vectors, and the running implementations, all inspectable.
 
-Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v25.txt`](Causalontology_Standalone_Design_v25.txt) — the complete, self-contained canon of this repository.
+Every term above is explained for a newcomer in the master document: [`Causalontology_Standalone_Design_v26.txt`](Causalontology_Standalone_Design_v26.txt) — the complete, self-contained canon of this repository.
 
 ---
 
@@ -131,23 +131,25 @@ Every term above is explained for a newcomer in the master document: [`Causalont
 
 The reference implementation is [**PrologAI**](https://github.com/ai-university-aiu/PrologAI), a glass-box cognitive architecture, driving the synthetic mind [**Mentova**](https://github.com/ai-university-aiu/Mentova).
 
-## Now at 3.0.0 - three additions, all additive
+## Now at 4.0.0 - three additions, all additive
 
-Causalontology is now at version 3.0.0. It is a major version because it adds a new object kind and extends two settled enumerations, but for anyone adopting it the step is gentle: everything is additive, and no record you already hold changes.
+Causalontology is now at version 4.0.0. It is a major version because it adds three new object kinds - by the standard's own rule, that is always major - but for anyone adopting it the step is gentle: everything is additive, and no record you already hold changes.
 
-Three things arrive:
+This release was earned, not guessed. The standard's discipline forbids adding capabilities from the armchair: the 4.0.0 change order sat gated until konnectome - the glass-box regional-brain build on this substrate - hit two real walls in a real build (2026-07-22): it could hold another agent's false, nested belief privately but could not **share** it as a signed, evidence-graded, content-addressed record, and its prediction loop could compute a prediction error each tick but could not **record** an expected occurrence as distinct from an observed one. Those two findings, with the owner's written authorization, opened the gate; the change order's remaining candidates stay held, each awaiting its own finding.
 
-- **The ordinal tick temporal unit.** A causal relation's temporal window can now be measured in `ticks` - a discrete, dimensionless, ordinal step with no wall-clock mapping - so a timing-critical process such as a settling-step counter is recorded natively instead of being distorted into seconds.
-- **The managed cross-stratal seam - the new eighteenth kind.** `cross_stratal_seam` is a first-class record of a legitimate jump across non-adjacent levels of description, carrying its two endpoint occurrents, an honest `mechanism_status` (an intervening mechanism is `unmodeled`, versus one that is genuinely `absent`), and an optional chain that draws the pathway between the ends.
-- **The `realized_by` reference.** A conduit can now name, by identity, the native law or signal that realizes its transform - a reference, not an embedded copy, so the native dynamics stay where they live and the standard only records the binding.
+Three things arrive, all token-tier:
 
-With these, the vocabulary grows from seventeen kinds to **eighteen**, and the conformance suite grows from 107 vectors to **119** (all green in the Python reference binding).
+- **The attitude - the doxastic kind.** `attitude` records that a HOLDER - a modeled agent inside the ontology, never a cryptographic key - `believes`, `desires`, `intends`, `knows`, `expects`, or `fears` some content, referenced by identity. The content may be FALSE (an attitude records what a mind contains, not what is true, and a false belief raises no conflict - that mismatch IS the false belief, first-class and shareable), and it may be another attitude, so "A believes that B believes X" is a two-level structure. This is the substrate of theory of mind.
+- **The predicted occurrence - the expectation.** `predicted_occurrence` is the sibling of `token_occurrence` that has not (yet) happened: the occurrent type a predictor expects, at a stated wall-clock or ordinal-tick window (exactly one dimension, never both), with an optional identity-bearing strength - the predicted probability, part of the predicted content itself. A prediction is NOT a claim of fact: a forecast and a report of the same content carry different identifiers.
+- **The prediction error - the comparator's signal, reified.** `prediction_error` pairs a prediction with the occurrence that did - or did not - fulfil it (an absent `observed` means nothing arrived), carrying the signed, graded discrepancy, read actual-minus-expected. The predictive loop becomes first-class and inspectable rather than a transient number.
 
-**Migration from 2.0.0.** Nothing you already have breaks. All three additions are additive and identity-preserving: because an object's identity is the fingerprint of only the fields it actually carries, any valid 2.0.0 record keeps its identifier byte-for-byte and stays valid under 3.0.0. To adopt, a consumer need only add support for the three new elements - the tick unit, the `cross_stratal_seam` kind, and the `realized_by` field - so that it can accept records that use them; a consumer that never encounters them needs no change at all. The 107 vectors of 2.0.0 are unchanged, and the 3.0.0 gate is simply their superset: the full 119-vector suite.
+With these, the vocabulary grows from eighteen kinds to **twenty-one** (the token tier from four to seven), and the conformance suite grows from 119 vectors to **137** (all green in the Python reference binding).
 
-The normative source for all of this is the Standalone Design, [`Causalontology_Standalone_Design_v25.txt`](Causalontology_Standalone_Design_v25.txt); the per-language rollout plan lives in [`docs/Causalontology_3_0_0_Release_Plan.txt`](docs/Causalontology_3_0_0_Release_Plan.txt).
+**Migration from 3.0.0.** Nothing you already have breaks. All three additions are additive and identity-preserving: because an object's identity is the fingerprint of only the fields it actually carries, every valid 3.0.0 record keeps its identifier byte-for-byte and stays valid under 4.0.0 - witnessed directly by vector V136, which re-pins the exact frozen 3.0.0 bytes under the 4.0.0 implementation. To adopt, a consumer need only add support for the three new kinds so that it can accept records that use them; a consumer that never encounters them needs no change at all. The 119 vectors of 3.0.0 are unchanged, and the 4.0.0 gate is simply their superset: the full 137-vector suite.
 
-## The Eighteen Kinds of Thing
+The normative source for all of this is the Standalone Design, [`Causalontology_Standalone_Design_v26.txt`](Causalontology_Standalone_Design_v26.txt); the per-language rollout plan lives in [`docs/Causalontology_4_0_0_Release_Plan.txt`](docs/Causalontology_4_0_0_Release_Plan.txt).
+
+## The Twenty-One Kinds of Thing
 
 Ten **type-tier content kinds** — pure, immutable, content-addressed (SHA-256 over RFC 8785 canonical bytes):
 
@@ -164,7 +166,7 @@ Ten **type-tier content kinds** — pure, immutable, content-addressed (SHA-256 
 | Conduit | `conduit:` | a typed connection from port to port — a pipe, or a computer |
 | Quality | `quality:` | a property type a thing can bear |
 
-Four **token-tier content kinds** — immutable, content-addressed, **local by default** (see `spec/safety.md`):
+Seven **token-tier content kinds** — immutable, content-addressed, **local by default** (see `spec/safety.md`):
 
 | Kind | Prefix | What it is |
 |---|---|---|
@@ -172,6 +174,9 @@ Four **token-tier content kinds** — immutable, content-addressed, **local by d
 | Token Occurrence | `token_occurrence:` | a particular happening, at absolute time |
 | State Assertion | `state_assertion:` | a particular value over a particular interval |
 | Token Causal Claim | `token_causal_claim:` | a particular causing, optionally under a covering law |
+| Attitude | `attitude:` | **4.0.0** — what a HOLDER's mind contains: a modeled agent `believes` / `desires` / `intends` / `knows` / `expects` / `fears` a content object — the content may be false, may be another attitude (nesting), and the holder is never the signing key |
+| Predicted Occurrence | `predicted_occurrence:` | **4.0.0** — an occurrence a predictor EXPECTS at a stated wall-clock or tick window — an expectation, never a report; optional identity-bearing strength (the predicted probability) |
+| Prediction Error | `prediction_error:` | **4.0.0** — the comparator's signal, reified: a prediction paired with the occurrence that did (or did not) fulfil it, carrying the signed discrepancy, actual minus expected |
 
 Four **provenance kinds** — signed (Ed25519), add-only records:
 
@@ -194,7 +199,7 @@ No single machine holds the commons, and by design none has to. Because every ob
 - **Durability before adoption.** Signed snapshot dumps (like Wikidata's), shipped over IPFS, BitTorrent, or Hypertext Transfer Protocol Secure (HTTPS) and verifiable byte-by-byte, give global redundancy before a single live peer is recruited. **Now available**: a genesis node exports a deterministic, content-addressed snapshot committed by a Merkle root and signed with its Ed25519 key, with a detached checksum and signature — anyone can verify every byte and stand up a mirror by union-merge (token tier excluded by default). See [`spec/snapshot.md`](spec/snapshot.md).
 - **The phased build.** (1) a persistent content-addressed node — **done**: the reference Tier A store is now durable (SQLite in write-ahead logging (WAL) mode), idempotent by content address, and integrity-checked on write, with every endpoint and byte unchanged; (2) a genesis full node plus signed snapshot dumps — **done**: deterministic, Merkle-committed, Ed25519-signed dumps, verifiable offline and mirror-able by union-merge, token tier excluded by default; (3) live Tier B federation with gossip and anti-entropy — **done**: nodes gossip new records to configured peers (batched, idempotent, loop-free) and a background pass reconciles by Merkle-root comparison and delta-only exchange, every inbound item verified by hash and signature before merge; (4) light clients, content-delivery network (CDN) caching, and hash-prefix sharding — **done**: a light client holds almost nothing and verifies every object by hash and every record by signature; immutable content carries immutable cache headers and an entity tag (ETag) equal to its identifier, cacheable forever behind any CDN, while mutable views are not; and a partial node holds only a hash-prefix slice, advertised on `GET /shards` and resolvable across nodes, with phase-three federation running per shard. **All four phases are delivered — the build is complete.**
 
-Full design: Part 21, "Commons Storage and Federation Design," in the canon ([`Causalontology_Standalone_Design_v25.txt`](Causalontology_Standalone_Design_v25.txt)).
+Full design: Part 21, "Commons Storage and Federation Design," in the canon ([`Causalontology_Standalone_Design_v26.txt`](Causalontology_Standalone_Design_v26.txt)).
 
 ## Quickstart (30 seconds)
 
@@ -207,6 +212,8 @@ Full design: Part 21, "Commons Storage and Federation Design," in the canon ([`C
 That third document — a *degenerate* causal_relation_object, just cause and effect — is already valid, and the store lists it as a **gap** inviting enrichment (`GET /gaps?kind=missing_field`). Someone (or some mind) later `refines` it with a temporal window and modality, and the gap visibly closes. That is **stigmergy**: the structure's own partiality guides the next contribution. Full walkthrough: [`examples/quickstart.md`](examples/quickstart.md).
 
 ## Install (one line, your language)
+
+> **Honest install note at 4.0.0.** The registries below still carry the **2.0.0-era packages** — no 3.0.0 or 4.0.0 package has been published yet. The specification in this repository is 4.0.0 (twenty-one kinds, 137 vectors); each binding publishes 4.0.0 only after it passes the full 137-vector suite in its own language, per [`docs/Causalontology_4_0_0_Release_Plan.txt`](docs/Causalontology_4_0_0_Release_Plan.txt), and today only the Python reference in this repository is at that gate. The table records what is actually installable today.
 
 | Language | Command |
 |---|---|
@@ -225,17 +232,17 @@ That third document — a *degenerate* causal_relation_object, just cause and ef
 | Go | `go get github.com/ai-university-aiu/causalontology/bindings/go/v2@v2.0.0` — 2.0.0 uses the `/v2` module-path suffix (Go's major-version rule); import `.../bindings/go/v2/causalontology` (the v1 module line is deprecated and retracted via `bindings/go/v1.0.1`) |
 | Zig | `zig fetch --save https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v2.0.1.tar.gz`, then `dep.module("causalontology")` and `@import("causalontology")` (the repo-root manifest lands at `v2.0.1`; Zig pins this patch tag) |
 
-Published at **specification 1.0.0** (vectors frozen 2026-07-13), **except PyPI, npm, crates.io, NuGet, RubyGems, Hex, LuaRocks, Packagist, pub.dev, and both the Java artifact and the Kotlin/Native klib on Maven Central, now republished at 2.0.0** (the whole-word re-mint; the superseded 1.0.0 releases yanked on PyPI, crates.io, and RubyGems, deprecated on npm and Hex, unlisted on NuGet, retracted on pub.dev; LuaRocks has no yank, Packagist mirrors git tags, and Maven Central is immutable, so the older releases remain listed on those three) — and SwiftPM, Go (the `/v2` module; the v1 line deprecated and retracted), and Zig (root-manifest clean flow at `v2.0.1`) serve 2.0.x directly from their git tags (see PUBLISHING.md). Reach, stated precisely: **Kotlin, Scala, Clojure, and Groovy** consume the Java artifact from Maven Central as-is; **Deno and Bun** consume the npm package directly; and **any WebAssembly host** (browsers, edge workers, wasmtime embeddings) can use the [WASM core attached to the latest release](https://github.com/ai-university-aiu/causalontology/releases/latest) — so six direct installs serve ten-plus languages in practice. Of the nine follow-on implementations, **C#, Ruby, PHP, Dart, Elixir, and Lua** are now published at 2.0.0 (NuGet, RubyGems, Packagist, pub.dev, Hex, LuaRocks); **Haskell, Perl, and R** are conformant in the repository with their registrars still pending (Hackage, CPAN, CRAN; see PUBLISHING.md). In review or ripening: **Julia** ([General#161292](https://github.com/JuliaRegistries/General/pull/161292), auto-merges in ~3 days if checks pass), **vcpkg** ([#52892](https://github.com/microsoft/vcpkg/pull/52892)) and **Conan** ([#30612](https://github.com/conan-io/conan-center-index/pull/30612)) for C++, plus Hackage (Haskell) and CPAN (Perl) awaiting their registrars, and CRAN (R) deferred to a quiet week — full status in [PUBLISHING.md](PUBLISHING.md). Anything still missing (OCaml, Scala Native, Fortran, COBOL if you dare, ...) remains the open invitation: **the 119 frozen vectors are the gate**. Details and status: [PUBLISHING.md](PUBLISHING.md).
+Published at **specification 1.0.0** (vectors frozen 2026-07-13), **except PyPI, npm, crates.io, NuGet, RubyGems, Hex, LuaRocks, Packagist, pub.dev, and both the Java artifact and the Kotlin/Native klib on Maven Central, now republished at 2.0.0** (the whole-word re-mint; the superseded 1.0.0 releases yanked on PyPI, crates.io, and RubyGems, deprecated on npm and Hex, unlisted on NuGet, retracted on pub.dev; LuaRocks has no yank, Packagist mirrors git tags, and Maven Central is immutable, so the older releases remain listed on those three) — and SwiftPM, Go (the `/v2` module; the v1 line deprecated and retracted), and Zig (root-manifest clean flow at `v2.0.1`) serve 2.0.x directly from their git tags (see PUBLISHING.md). Reach, stated precisely: **Kotlin, Scala, Clojure, and Groovy** consume the Java artifact from Maven Central as-is; **Deno and Bun** consume the npm package directly; and **any WebAssembly host** (browsers, edge workers, wasmtime embeddings) can use the [WASM core attached to the latest release](https://github.com/ai-university-aiu/causalontology/releases/latest) — so six direct installs serve ten-plus languages in practice. Of the nine follow-on implementations, **C#, Ruby, PHP, Dart, Elixir, and Lua** are now published at 2.0.0 (NuGet, RubyGems, Packagist, pub.dev, Hex, LuaRocks); **Haskell, Perl, and R** are conformant in the repository with their registrars still pending (Hackage, CPAN, CRAN; see PUBLISHING.md). In review or ripening: **Julia** ([General#161292](https://github.com/JuliaRegistries/General/pull/161292), auto-merges in ~3 days if checks pass), **vcpkg** ([#52892](https://github.com/microsoft/vcpkg/pull/52892)) and **Conan** ([#30612](https://github.com/conan-io/conan-center-index/pull/30612)) for C++, plus Hackage (Haskell) and CPAN (Perl) awaiting their registrars, and CRAN (R) deferred to a quiet week — full status in [PUBLISHING.md](PUBLISHING.md). Anything still missing (OCaml, Scala Native, Fortran, COBOL if you dare, ...) remains the open invitation: **the 137 frozen vectors are the gate**. Details and status: [PUBLISHING.md](PUBLISHING.md).
 
 ## Repository layout
 
 ```
 causalontology/
-  Causalontology_Standalone_Design_v25.txt   the canon (complete, lay-readable)
+  Causalontology_Standalone_Design_v26.txt   the canon (complete, lay-readable)
   spec/                    normative core, identity, semantics, provenance,
-                           store, safety; schema/ = 18 JSON Schemas + JSON-LD
+                           store, safety; schema/ = 21 JSON Schemas + JSON-LD
                            context + Protobuf + the OWL mapping (BFO/RO/PROV)
-  conformance/             the 119 vectors (specification 3.0.0, whole-word
+  conformance/             the 137 vectors (specification 4.0.0, whole-word
                            baseline) + the re-freeze tool; the meaning of "correct"
   bindings/                python · javascript (+ TypeScript typings) · rust
                            (+ the WebAssembly core) · java · swift · go —
@@ -256,18 +263,21 @@ causalontology/
 
 **An implementation is Causalontology-conformant if and only if it passes every vector in [`conformance/vectors/`](conformance/vectors/) for the specification version it declares.** That single rule is how twenty implementations in twenty languages — Prolog, Python, JavaScript, Rust, Java, Swift, Go, C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua, C++, Zig, Julia, and Kotlin/Native — agree without sharing a line of code — down to the length of a month (2,629,746 seconds) and the ranking of a `resolve()`.
 
-> **Specification 2.0.0 status (whole-word re-mint).** The suite is now **107
-> vectors** (V01–V38 re-frozen unaltered in meaning under the whole-word
-> schemes of Principle P7, plus V39–V107 for the nine new object kinds and the
-> five normative algorithms). The **Python reference passes all 107 locally**.
-> The `38/38` milestones below record the completed 1.0.0 effort; under 2.0.0
-> all nineteen bindings carry the whole-word re-mint and the full 2.0.0
-> semantic port (nine new kinds, Algorithms A–E) and **pass all 107 vectors**.
-> Registry republication is done: eleven package registries plus the SwiftPM,
-> Go `/v2`, and Zig git-tag channels are live at 2.0.x (see
-> [PUBLISHING.md](PUBLISHING.md)).
+> **Specification 4.0.0 status (the doxastic and predictive additions).** The
+> suite is now **137 vectors** (V01–V38 re-frozen unaltered in meaning under
+> the whole-word schemes of Principle P7, V39–V107 the 2.0.0 additions,
+> V108–V119 the 3.0.0 additions, V120–V137 the 4.0.0 additions). The **Python
+> reference passes all 137 locally** — and, honestly stated, is today the ONLY
+> binding at that gate. The `38/38` milestones below record the completed
+> 1.0.0 effort; all nineteen bindings carry the whole-word re-mint and the
+> full 2.0.0 semantic port (nine new kinds, Algorithms A–E) and **pass all 107
+> vectors of that baseline**, and each takes up its folded 3.0.0-plus-4.0.0
+> delta per [`docs/Causalontology_4_0_0_Release_Plan.txt`](docs/Causalontology_4_0_0_Release_Plan.txt).
+> Registry state: eleven package registries plus the SwiftPM, Go `/v2`, and
+> Zig git-tag channels are live at 2.0.x, and stay there until the 4.0.0
+> release plan executes (see [PUBLISHING.md](PUBLISHING.md)).
 
-**The reference implementation is now gated, not merely asserted.** PrologAI is listed first among the bindings and named the reference implementation, so it is now held to the same standard as the rest: it is checked in Continuous Integration (CI — the practice of automatically building and testing every change) by its own `prolog` job in [`conformance.yml`](.github/workflows/conformance.yml). That job checks out PrologAI beside this standard, installs SWI-Prolog, and runs PrologAI's own 119-vector harness against **this repository's canonical** [`conformance/vectors/`](conformance/vectors/), passing only when all 119 (V01–V119) pass. Because the harness runs against the standard's own vectors, the reference implementation can no longer silently drift from the specification: it earns the label by passing the same 119 vectors as every other binding, under its own CI gate — one of the 22 — rather than by prose alone.
+**The reference implementation is now gated, not merely asserted.** PrologAI is listed first among the bindings and named the reference implementation, so it is now held to the same standard as the rest: it is checked in Continuous Integration (CI — the practice of automatically building and testing every change) by its own `prolog` job in [`conformance.yml`](.github/workflows/conformance.yml). That job checks out PrologAI beside this standard, installs SWI-Prolog, and runs PrologAI's own 119-vector harness against **this repository's canonical** [`conformance/vectors/`](conformance/vectors/), passing only when all 119 (V01–V119) pass. Because the harness runs against the standard's own vectors, the reference implementation can no longer silently drift from the specification: it earns the label by passing the same vectors as every other binding, under its own CI gate — one of the 22 — rather than by prose alone. (Honest note: that gate covers V01–V119 today; the 4.0.0 vectors V120–V137 join it when PrologAI ships its own 4.0.0 port, per the release plan.)
 
 ## Roadmap — built, proven, and shipped
 
@@ -290,7 +300,7 @@ causalontology/
   - [x] [WebAssembly core](bindings/rust/) — the Rust crate compiles unchanged to `wasm32` (schemas embedded, no filesystem); **6/6 cross-checks in Node prove it byte-identical with the JS binding** — one audited core for every host
   - [x] [TypeScript](bindings/javascript/) — hand-written strict typings over the verified JS binding (no logic duplication, no drift); **tsc-verified locally**
   - [x] [Go SDK](bindings/go/) — zero dependencies (Go's standard library carries Ed25519 natively); **verified by the conformance CI** (no local Go toolchain)
-  - Contributed implementations welcome — the 119 vectors are the gate (C#, Ruby, PHP, Kotlin, ...)
+  - Contributed implementations welcome — the 137 vectors are the gate (C#, Ruby, PHP, Kotlin, ...)
 - [x] Wave two — **C++, Zig, Julia, Kotlin/Native**: four more conformant implementations, ALL verified on the authoring machine (C++ with a hand-built bignum, 361/361 cross-checks; Zig on its standard-library crypto; Julia in pure stdlib; Kotlin/Native hand-building JSON + SHA-2 + bignum + Ed25519 with no stdlib crypto at all, 38/38 on the binary's first run) — **twenty implementations in twenty languages, twenty-one CI gates at that wave**
 - [x] The nine-language wave — **C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua**: nine more conformant implementations in one wave (four verified on the authoring machine — including pure-Lua Ed25519 over a hand-built bignum layer — five gated in CI), taking the standard to **sixteen implementations in sixteen languages**, all passing the same 38 frozen vectors under seventeen CI gates as of that wave
 - [x] The ceremony — **specification 1.0.0**: the [vector freeze](conformance/freeze_1_0_0.py) pinned concrete bytes into all 38 vectors (real identifiers, real keys, a real verifying signature); every manifest bumped to 1.0.0; tagged `v1.0.0` with a GitHub Release carrying the built artifacts; SwiftPM and Go modules live via tags; and the distribution campaign that followed: **thirteen channels live** — PyPI, npm, crates.io, Maven Central (jar + Kotlin klib), NuGet, RubyGems, Hex, LuaRocks, Packagist, pub.dev, SwiftPM, Go, Zig — with Julia, vcpkg, and Conan in community review ([PUBLISHING.md](PUBLISHING.md))
@@ -316,7 +326,7 @@ Before the public launch, contributions land through the change process in `GOVE
 
 ## Citation
 
-> D. R. Dison. *Causalontology: AGI's Missing Link* — the Standalone Standard and the Shared Commons, Version 24 (the 3.0.0 Edition), specification 3.0.0. AI University (AIU), 2026. github.com/ai-university-aiu/causalontology
+> D. R. Dison. *Causalontology: AGI's Missing Link* — the Standalone Standard and the Shared Commons, Version 26 (the 4.0.0 Edition), specification 4.0.0. AI University (AIU), 2026. github.com/ai-university-aiu/causalontology
 
 ## Author
 

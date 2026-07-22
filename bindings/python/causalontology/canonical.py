@@ -18,10 +18,12 @@ full ECMAScript exponent formatting for extreme magnitudes is pinned at the
 import hashlib
 import math
 
-# The identity-bearing fields of each of the eighteen kinds (3.0.0 adds the
-# cross_stratal_seam; the conduit gains realized_by; both are additive and
-# identity-preserving - a record that omits a new field keeps its 2.0.0
-# identifier byte-for-byte). "type" is always injected, so it is not listed
+# The identity-bearing fields of each of the twenty-one kinds (3.0.0 adds the
+# cross_stratal_seam; the conduit gains realized_by; 4.0.0 adds the attitude,
+# the predicted_occurrence, and the prediction_error - all additive and
+# identity-preserving - a record that omits a new field keeps its earlier
+# identifier byte-for-byte, and the new kinds open new identity schemes that
+# disturb no existing record). "type" is always injected, so it is not listed
 # here. Order does not matter (JCS sorts keys).
 IDENTITY_FIELDS = {
     # ---- type tier ----
@@ -43,6 +45,10 @@ IDENTITY_FIELDS = {
     "state_assertion":    ["subject", "quality", "value", "interval"],
     "token_causal_claim": ["causes", "effects", "covering_law",
                            "actual_delay", "counterfactual"],
+    "attitude":             ["holder", "attitude_type", "content"],
+    "predicted_occurrence": ["instantiates", "interval", "predictor",
+                             "strength"],
+    "prediction_error":     ["predicted", "observed", "discrepancy"],
     # ---- provenance tier ----
     "assertion":  ["about", "source", "evidence_type", "evidence", "strength",
                    "confidence", "timestamp", "evidenced_by"],

@@ -10,8 +10,8 @@ Zero dependencies — Python standard library only:
 | `causalontology.canonical` | RFC 8785 (JSON Canonicalization Scheme) serialization, identity-bearing field filtering, Secure Hash Algorithm 256-bit (SHA-256) content-addressed `identify()` |
 | `causalontology.ed25519` | pure-Python Ed25519 (RFC 8032), verified against the RFC's known-answer test |
 | `causalontology.signing` | record-level `sign_record()` / `verify_record()` over canonical identity-bearing bytes |
-| `causalontology.schema` | validation against the seventeen JSON Schemas in `spec/schema/` |
-| `causalontology.semantics` | the 21 semantic rules: temporal admissibility (fixed constants), formal conflict, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
+| `causalontology.schema` | validation against the twenty-one JSON Schemas in `spec/schema/` |
+| `causalontology.semantics` | the 25 semantic rules: temporal admissibility (fixed constants), formal conflict, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `causalontology.store` | an in-memory conformant store: idempotent immutable puts, signed add-only records, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
 
 ## Conformance
@@ -19,11 +19,11 @@ Zero dependencies — Python standard library only:
 ```
 $ python3 tests/run_conformance.py
 ...
-107/107 vectors passed
-causalontology-py is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
+137/137 vectors passed
+causalontology-py is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors, V01–V137): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 ## Thirty-second taste
 

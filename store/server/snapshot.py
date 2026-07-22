@@ -31,7 +31,8 @@ REPRODUCIBLE.
 PRIVACY - the token tier is excluded by default. A default snapshot is the
 SHAREABLE COMMONS: type-tier content plus the provenance about it. Token-tier
 records (token_individual, token_occurrence, state_assertion,
-token_causal_claim) and any provenance that references them are left out unless
+token_causal_claim, and - 4.0.0 - attitude, predicted_occurrence,
+prediction_error) and any provenance that references them are left out unless
 the operator explicitly opts in. This is the standard's local-by-default rule
 (spec/safety.md) made concrete: a snapshot is exactly the "laws, not diaries"
 boundary.
@@ -62,15 +63,17 @@ SNAPSHOT_FORMAT = "1.0"
 TOKEN_SCHEMES = frozenset({
     "token_individual", "token_occurrence",
     "state_assertion", "token_causal_claim",
+    "attitude", "predicted_occurrence", "prediction_error",
 })
 
 # The two record classes, discriminated by the "type" field on import so the
 # body is self-describing (no separate section headers to keep in step).
 CONTENT_KINDS = frozenset({
     "occurrent", "causal_relation_object", "continuant", "realizable",
-    "stratum", "bridge", "port", "conduit", "quality",
+    "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality",
     "token_individual", "token_occurrence", "state_assertion",
     "token_causal_claim",
+    "attitude", "predicted_occurrence", "prediction_error",
 })
 RECORD_KINDS = frozenset({"assertion", "enrichment", "retraction", "succession"})
 

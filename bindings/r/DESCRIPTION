@@ -19,9 +19,11 @@ Description: The R binding of the Causalontology standard (specification
     add-only provenance records with quarantine, materialized enrichment
     views with contributors, retraction and succession lineage, the resolve
     minimum, the deterministic cycle-breaking view rule, and the stigmergy
-    gap read. Conformance is defined by the 107 vectors frozen at
-    specification 2.0.0 in the standard's repository; run conformance.R
-    against them. Crypto uses a pure-R SHA-256 plus the 'openssl' package
+    gap read. Conformance is defined by the vectors for the specification version this
+    binding declares (currently the 2.0.0 code level: the 107 vectors,
+    V01-V107; the standard itself is re-frozen at 4.0.0 with 137 vectors,
+    and this binding re-conforms per the 4.0.0 release plan); run
+    conformance.R against them. Crypto uses a pure-R SHA-256 plus the 'openssl' package
     for Ed25519 (RFC 8032).
 License: Apache License 2.0 | file LICENSE
 Encoding: UTF-8
