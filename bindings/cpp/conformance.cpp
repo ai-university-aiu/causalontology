@@ -6,10 +6,13 @@
 // runner exits nonzero on any failure. It mirrors
 // bindings/python/tests/run_conformance.py exactly.
 //
-// The vectors are frozen at specification 2.0.0: they carry concrete
-// 64-hex identifiers and real Ed25519 keys, which pass through the
-// normalizer unchanged. Behavioral vectors derive deterministic keypairs
-// from the seed sha256("key:" + name).
+// The vectors are frozen at specification 4.0.0: V01-V107 are the
+// whole-word 2.0.0 baseline (Principle P7), V108-V119 the 3.0.0 additions
+// (tick unit, cross_stratal_seam, realized_by), V120-V137 the 4.0.0
+// additions (attitude, predicted_occurrence, prediction_error). They carry
+// concrete 64-hex identifiers and real Ed25519 keys, which pass through
+// the normalizer unchanged. Behavioral vectors derive deterministic
+// keypairs from the seed sha256("key:" + name).
 
 #include <algorithm>
 #include <cstdio>
@@ -77,7 +80,7 @@ std::string findRoot() {
 
 // The vector file (path, stem) for vector n.
 std::pair<std::string, std::string> vectorFile(int n) {
-    char prefix[8];
+    char prefix[16];
     std::snprintf(prefix, sizeof prefix, "v%02d_", n);
     for (const auto& entry : fs::directory_iterator(g_vecdir)) {
         std::string name = entry.path().filename().string();
@@ -113,9 +116,11 @@ bool isScheme(const std::string& s) {
     static const std::vector<std::string> schemes = {
         "occurrent", "causal_relation_object", "continuant", "realizable",
         "assertion", "enrichment", "retraction", "succession",
-        "stratum", "bridge", "port", "conduit", "quality",
+        "stratum", "bridge", "cross_stratal_seam", "port", "conduit",
+        "quality",
         "token_individual", "token_occurrence", "state_assertion",
-        "token_causal_claim", "ed25519"};
+        "token_causal_claim",
+        "attitude", "predicted_occurrence", "prediction_error", "ed25519"};
     for (const auto& scheme : schemes)
         if (s == scheme) return true;
     return false;
@@ -1586,8 +1591,10 @@ void v106() {
     static const std::set<std::string> wholeWord = {
         "occurrent", "causal_relation_object", "continuant", "realizable",
         "assertion", "enrichment", "retraction", "succession", "stratum",
-        "bridge", "port", "conduit", "quality", "token_individual",
-        "token_occurrence", "state_assertion", "token_causal_claim", "ed25519"};
+        "bridge", "cross_stratal_seam", "port", "conduit", "quality",
+        "token_individual", "token_occurrence", "state_assertion",
+        "token_causal_claim", "attitude", "predicted_occurrence",
+        "prediction_error", "ed25519"};
     std::regex idPattern("^([a-z0-9_]+):[0-9a-f]{64}$");
     std::function<void(const JValue&, std::vector<std::string>&)> scan =
         [&](const JValue& node, std::vector<std::string>& ids) {
@@ -1644,6 +1651,556 @@ void v107() {
     check(ok, join(why));
 }
 
+// ---------- V108-V119: 3.0.0 additions (tick unit, seam, realized_by)
+
+JValue buildSeam(const std::string& source, const std::string& target,
+                 const std::string& mechanismStatus,
+                 const std::vector<std::string>& chain = {}) {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("cross_stratal_seam"));
+    o.set("source", JValue::of(source));
+    o.set("target", JValue::of(target));
+    o.set("mechanism_status", JValue::of(mechanismStatus));
+    if (!chain.empty()) o.set("chain", strv(chain));
+    return mk(std::move(o));
+}
+
+struct SeamFixture {
+    JValue seam;
+    std::map<std::string, JValue> omap;
+    std::map<std::string, JValue> smap;
+};
+
+SeamFixture seamFixture(int srcOrd, int tgtOrd,
+                        const std::string& mechanismStatus,
+                        const std::vector<int>& chainOrds = {}) {
+    auto s = neuro();
+    JValue src = buildOcc("source_event", s[srcOrd].getString("id"));
+    JValue tgt = buildOcc("target_event", s[tgtOrd].getString("id"));
+    std::map<std::string, JValue> omap = mapOf({src, tgt});
+    std::map<std::string, JValue> smap = mapOf({s[srcOrd], s[tgtOrd]});
+    std::vector<std::string> chain;
+    for (size_t i = 0; i < chainOrds.size(); ++i) {
+        int ord = chainOrds[i];
+        JValue c = buildOcc("chain_" + std::to_string(i),
+                            s[ord].getString("id"));
+        omap[c.getString("id")] = c;
+        smap[s[ord].getString("id")] = s[ord];
+        chain.push_back(c.getString("id"));
+    }
+    return {buildSeam(src.getString("id"), tgt.getString("id"),
+                      mechanismStatus, chain),
+            omap, smap};
+}
+
+JValue conduitRealized(const std::string& realizedBy = "") {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("conduit"));
+    o.set("label", JValue::of("conn"));
+    o.set("from", JValue::of("port:" + std::string(64, '1')));
+    o.set("to", JValue::of("port:" + std::string(64, '2')));
+    o.set("carries", strv({"occurrent:" + std::string(64, '3')}));
+    if (!realizedBy.empty()) o.set("realized_by", JValue::of(realizedBy));
+    return mk(std::move(o));
+}
+
+// -- Change One: the ordinal (tick) temporal unit --
+void v108() {
+    JValue P = buildCro({sym("occurrent:a")}, {sym("occurrent:b")},
+                        [](JValue& o) {
+                            o.set("temporal", temporalObj(0, 5, "ticks"));
+                            o.set("modality", JValue::of("sufficient"));
+                        });
+    schemaOk(P);
+    auto [ok, why] = validate_semantics(P);
+    check(ok, join(why));
+}
+
+void v109() {
+    JValue P = buildCro({sym("occurrent:a")}, {sym("occurrent:b")},
+                        [](JValue& o) {
+                            o.set("temporal", temporalObj(2, 5, "ticks"));
+                        });
+    check(admissible(P, 3) == true, "3 ticks must be inside [2, 5]");
+    check(admissible(P, 2) == true && admissible(P, 5) == true,
+          "the tick window is inclusive at both ends");
+    check(admissible(P, 6) == false && admissible(P, 1) == false,
+          "ticks outside [2, 5] must not be admissible");
+}
+
+void v110() {
+    JValue tickWindow = temporalObj(0, 5, "ticks");
+    JValue wallWindow = temporalObj(0, 5, "seconds");
+    check(delay_within_window(delayObj(3, "ticks"), tickWindow) == true,
+          "a tick delay must fall within a tick window");
+    check(delay_within_window(delayObj(1, "ticks"), wallWindow) == false,
+          "a tick delay is never within a wall-clock window");
+    check(delay_within_window(delayObj(1, "seconds"), tickWindow) == false,
+          "a wall-clock delay is never within a tick window");
+    JValue a = modalityPair("sufficient");
+    a.set("temporal", tickWindow);
+    JValue b = modalityPair("preventive");
+    b.set("temporal", wallWindow);
+    check(conflicts(a, b) == false, "disjoint dimensions -> no overlap");
+    bool refused = false;
+    try {
+        to_seconds(1, "ticks");
+    } catch (const std::exception&) {
+        refused = true;
+    }
+    check(refused, "to_seconds accepted ticks");
+}
+
+void v111() {
+    auto croWith = [](JValue temporal) {
+        JValue o = JValue::makeObject();
+        o.set("type", JValue::of("causal_relation_object"));
+        o.set("causes", strv({sym("occurrent:a")}));
+        o.set("effects", strv({sym("occurrent:b")}));
+        o.set("modality", JValue::of("sufficient"));
+        o.set("temporal", std::move(temporal));
+        return o;
+    };
+    JValue tick = croWith(temporalObj(0, 1, "ticks"));
+    JValue secs = croWith(temporalObj(0, 1, "seconds"));
+    check(identify(tick) != identify(secs), "the unit is identity-bearing");
+    // a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0
+    // value)
+    check(identify(secs) ==
+              "causal_relation_object:"
+              "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+          "the pinned 2.0.0 identifier must hold: got " + identify(secs));
+}
+
+// -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+void v112() {
+    SeamFixture f = seamFixture(14, 4, "unmodeled");
+    schemaOk(f.seam);
+    auto [semOk, semWhy] = validate_semantics(f.seam);
+    check(semOk, join(semWhy));
+    auto [ok, why] = seam_wellformed(f.seam, f.omap, f.smap);
+    check(ok, why);
+}
+
+void v113() {
+    SeamFixture a = seamFixture(14, 4, "unmodeled");
+    SeamFixture b = seamFixture(14, 4, "absent");
+    schemaOk(b.seam);
+    auto [ok, why] = seam_wellformed(b.seam, b.omap, b.smap);
+    check(ok, why);
+    check(a.seam.getString("id") != b.seam.getString("id"),
+          "mechanism_status must be identity-bearing");
+}
+
+void v114() {
+    SeamFixture drawn = seamFixture(14, 4, "unmodeled", {9, 7, 6, 5});
+    schemaOk(drawn.seam);
+    auto [ok, why] = seam_wellformed(drawn.seam, drawn.omap, drawn.smap);
+    check(ok, why);
+    SeamFixture bad = seamFixture(14, 4, "absent", {9, 7, 6, 5});
+    auto [semOk, semWhy] = validate_semantics(bad.seam);
+    check(!semOk && contains(semWhy, "contradictory_seam"),
+          "semantics must reject the drawn 'absent' seam: " + join(semWhy));
+    check(!seam_wellformed(bad.seam, bad.omap, bad.smap).first,
+          "the drawn 'absent' seam must be malformed");
+}
+
+void v115() {
+    SeamFixture f = seamFixture(14, 4, "unmodeled");
+    auto s = neuro();
+    check(seam_home(f.seam, f.omap, f.smap) == s[14].getString("id"),
+          "home must be the coarsest (max ordinal) stratum");
+}
+
+void v116() {
+    SeamFixture adj = seamFixture(6, 5, "unmodeled");  // adjacent (gap 1)
+    check(!seam_wellformed(adj.seam, adj.omap, adj.smap).first,
+          "adjacent endpoints must be malformed");
+    SeamFixture co = seamFixture(6, 6, "unmodeled");  // co-stratal (gap 0)
+    check(!seam_wellformed(co.seam, co.omap, co.smap).first,
+          "co-stratal endpoints must be malformed");
+    SeamFixture f = seamFixture(14, 4, "unmodeled");
+    check(f.seam.getString("id").rfind("cross_stratal_seam:", 0) == 0,
+          "a seam must mint in the new identity scheme");
+}
+
+// -- Change Three: the realized_by reference --
+void v117() {
+    JValue c = conduitRealized("causal_relation_object:" + std::string(64, 'a'));
+    schemaOk(c);
+    JValue c2 = conduitRealized("native:region_stratum_predict");
+    schemaOk(c2);  // a native scheme reference is legal
+}
+
+void v118() {
+    JValue bound = conduitRealized("native:region_stratum_predict");
+    JValue unbound = conduitRealized();
+    check(bound.getString("id") != unbound.getString("id"),
+          "realized_by must be identity-bearing");
+    // an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0
+    // value)
+    check(unbound.getString("id") ==
+              "conduit:"
+              "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+          "the pinned 2.0.0 identifier must hold: got " +
+              unbound.getString("id"));
+}
+
+void v119() {
+    JValue unbound = conduitRealized();
+    schemaOk(unbound);  // unbound is legal
+    JValue bad = unbound;
+    bad.set("realized_by", JValue::of("not-a-scheme-qualified-reference"));
+    check(!validate_schema(bad, "conduit").first,
+          "a malformed realized_by reference must be rejected");
+}
+
+// ------ V120-V137: 4.0.0 additions (attitude, predicted_occurrence,
+// prediction_error)
+
+JValue buildAttitude(const std::string& holder,
+                     const std::string& attitudeType,
+                     const std::string& content) {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("attitude"));
+    o.set("holder", JValue::of(holder));
+    o.set("attitude_type", JValue::of(attitudeType));
+    o.set("content", JValue::of(content));
+    return mk(std::move(o));
+}
+
+JValue buildPredicted(const std::string& instantiates, JValue iv,
+                      const std::string& predictor, double strength = -1) {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("predicted_occurrence"));
+    o.set("instantiates", JValue::of(instantiates));
+    o.set("interval", std::move(iv));
+    o.set("predictor", JValue::of(predictor));
+    if (strength >= 0) o.set("strength", JValue::of(strength));
+    return mk(std::move(o));
+}
+
+JValue buildPredictionError(const std::string& predictedId, double discrepancy,
+                            const std::string& observed = "") {
+    JValue o = JValue::makeObject();
+    o.set("type", JValue::of("prediction_error"));
+    o.set("predicted", JValue::of(predictedId));
+    o.set("discrepancy", JValue::of(discrepancy));
+    if (!observed.empty()) o.set("observed", JValue::of(observed));
+    return mk(std::move(o));
+}
+
+JValue tickWindow(int startTick, int endTick = -1) {
+    JValue iv = JValue::makeObject();
+    iv.set("start_tick", JValue::of(startTick));
+    if (endTick >= 0) iv.set("end_tick", JValue::of(endTick));
+    return iv;
+}
+
+std::string predictorId() {
+    JValue c = buildCnt("forecasting_mind");
+    return buildIndividual(c.getString("id"), "predictor_p").getString("id");
+}
+
+std::string believerId(const std::string& designator = "holder_h") {
+    JValue c = buildCnt("believing_mind");
+    return buildIndividual(c.getString("id"), designator).getString("id");
+}
+
+// -- Group X: prediction and prediction error (Section A) --
+void v120() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue p = buildPredicted(o.getString("id"), tickWindow(3, 8),
+                              predictorId());
+    schemaOk(p);
+    auto [ok, why] = validate_semantics(p);
+    check(ok, join(why));
+    check(p.getString("id").rfind("predicted_occurrence:", 0) == 0,
+          "a forecast must mint in the new identity scheme");
+    JValue reportObj = JValue::makeObject();
+    reportObj.set("type", JValue::of("token_occurrence"));
+    reportObj.set("instantiates", o.at("id"));
+    reportObj.set("interval", tickWindow(3, 8));
+    std::string report = identify(reportObj, "token_occurrence");
+    check(p.getString("id") != report, "a forecast is not a report");
+    check(report.rfind("token_occurrence:", 0) == 0,
+          "the report keeps its own scheme");
+}
+
+void v121() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue wall = interval("2026-07-23T00:00:00Z", "2026-07-24T00:00:00Z");
+    std::string who = predictorId();
+    JValue withStrength = buildPredicted(o.getString("id"), wall, who, 0.8);
+    JValue without = buildPredicted(o.getString("id"), wall, who);
+    for (const JValue* p : {&withStrength, &without}) {
+        schemaOk(*p);
+        auto [ok, why] = validate_semantics(*p);
+        check(ok, join(why));
+    }
+    check(withStrength.getString("id") != without.getString("id"),
+          "strength must be identity-bearing");
+}
+
+void v122() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue bad = JValue::makeObject();
+    bad.set("type", JValue::of("predicted_occurrence"));
+    bad.set("instantiates", o.at("id"));
+    bad.set("interval", tickWindow(3));
+    bad = mk(std::move(bad));
+    auto [ok, why] = validate_schema(bad, "predicted_occurrence");
+    check(!ok && contains(why, "predictor"),
+          "expected predictor error: " + join(why));
+}
+
+void v123() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue iv = JValue::makeObject();
+    iv.set("start", JValue::of("2026-07-23T00:00:00Z"));
+    iv.set("start_tick", JValue::of(3));
+    JValue both = buildPredicted(o.getString("id"), std::move(iv),
+                                 predictorId());
+    schemaOk(both);
+    auto [ok, why] = validate_semantics(both);
+    check(!ok && contains(why, "dimension_conflict"),
+          "semantics must reject both dimensions: " + join(why));
+}
+
+void v124() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue p = buildPredicted(o.getString("id"),
+                              interval("2026-07-23T00:00:00Z"), predictorId());
+    JValue t = buildToken(o.getString("id"), interval("2026-07-23T06:00:00Z"));
+    JValue err = buildPredictionError(p.getString("id"), 0.0,
+                                      t.getString("id"));
+    schemaOk(err);
+    auto [ok, why] = validate_semantics(err);
+    check(ok, join(why));
+    check(prediction_pairing_mismatch(err, p, t) == false,
+          "a matching observation is not a mismatch");
+}
+
+void v125() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue p = buildPredicted(o.getString("id"),
+                              interval("2026-07-23T00:00:00Z"), predictorId());
+    JValue err = buildPredictionError(p.getString("id"), -1.0);
+    schemaOk(err);
+    auto [ok, why] = validate_semantics(err);
+    check(ok, join(why));
+    check(!err.has("observed"), "observed must be absent");
+    check(prediction_pairing_mismatch(err, p, JValue()) == false,
+          "an unfulfilled prediction is not a mismatch");
+}
+
+void v126() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue p = buildPredicted(o.getString("id"), tickWindow(0), predictorId());
+    JValue bad = JValue::makeObject();
+    bad.set("type", JValue::of("prediction_error"));
+    bad.set("predicted", p.at("id"));
+    bad = mk(std::move(bad));
+    auto [ok, why] = validate_schema(bad, "prediction_error");
+    check(!ok && contains(why, "discrepancy"),
+          "expected discrepancy error: " + join(why));
+}
+
+void v127() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue other = buildOcc("snowfall_begins");
+    JValue p = buildPredicted(o.getString("id"),
+                              interval("2026-07-23T00:00:00Z"), predictorId());
+    JValue t = buildToken(other.getString("id"),
+                          interval("2026-07-23T06:00:00Z"));
+    JValue err = buildPredictionError(p.getString("id"), 1.0,
+                                      t.getString("id"));
+    schemaOk(err);
+    check(prediction_pairing_mismatch(err, p, t) == true,
+          "must surface a pairing mismatch");
+}
+
+// -- Group Y: attitude and theory of mind (Section B) --
+void v128() {
+    StateFixture f = stateFixture("quantity", quantityValue(15.0, "ug/dL"),
+                                  "ug/dL");
+    JValue att = buildAttitude(believerId(), "believes",
+                               f.state.getString("id"));
+    schemaOk(att);
+    auto [ok, why] = validate_semantics(att);
+    check(ok, join(why));
+}
+
+void v129() {
+    JValue a = buildOcc("switch_pressed");
+    JValue b = buildOcc("light_on");
+    JValue actual = buildCro({a.getString("id")}, {b.getString("id")},
+                             [](JValue& o) {
+                                 o.set("modality", JValue::of("sufficient"));
+                             });
+    JValue believed = buildCro({a.getString("id")}, {b.getString("id")},
+                               [](JValue& o) {
+                                   o.set("modality", JValue::of("preventive"));
+                               });
+    check(conflicts(believed, actual) == true, "the CLAIMS contradict");
+    JValue att = buildAttitude(believerId(), "believes",
+                               believed.getString("id"));
+    schemaOk(att);
+    auto [ok, why] = validate_semantics(att);
+    check(ok, join(why));  // validity unaffected
+    InMemoryStore s;
+    s.put(a);
+    s.put(b);
+    s.put(actual);
+    s.put(att);
+    check(s.gaps("conflict").empty(), "Rule 25: NO conflict raised");
+}
+
+void v130() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue att = buildAttitude(believerId(), "desires", o.getString("id"));
+    schemaOk(att);
+    auto [ok, why] = validate_semantics(att);
+    check(ok, join(why));
+}
+
+void v131() {
+    JValue o = buildOcc("press_button");
+    JValue att = buildAttitude(believerId(), "intends", o.getString("id"));
+    schemaOk(att);
+    auto [ok, why] = validate_semantics(att);
+    check(ok, join(why));
+}
+
+void v132() {
+    JValue boolValue = JValue::makeObject();
+    boolValue.set("boolean", JValue::of(true));
+    StateFixture f = stateFixture("boolean", std::move(boolValue));
+    JValue inner = buildAttitude(believerId("holder_b"), "believes",
+                                 f.state.getString("id"));
+    JValue outer = buildAttitude(believerId("holder_a"), "believes",
+                                 inner.getString("id"));
+    for (const JValue* att : {&inner, &outer}) {
+        schemaOk(*att);
+        auto [ok, why] = validate_semantics(*att);
+        check(ok, join(why));
+    }
+    check(outer.getString("id") != inner.getString("id"), "ids must differ");
+    check(outer.getString("content") == inner.getString("id"),
+          "the outer content must be the inner attitude");
+}
+
+void v133() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue bad = JValue::makeObject();
+    bad.set("type", JValue::of("attitude"));
+    bad.set("holder", JValue::of(believerId()));
+    bad.set("attitude_type", JValue::of("suspects"));
+    bad.set("content", o.at("id"));
+    bad = mk(std::move(bad));
+    auto [ok, why] = validate_schema(bad, "attitude");
+    check(!ok && contains(why, "attitude_type"),
+          "expected attitude_type error: " + join(why));
+}
+
+void v134() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue bad = JValue::makeObject();
+    bad.set("type", JValue::of("attitude"));
+    bad.set("holder", JValue::of(believerId()));
+    bad.set("attitude_type", JValue::of("believes"));
+    bad.set("content", o.at("id"));
+    bad.set("strength", JValue::of(0.9));
+    bad = mk(std::move(bad));
+    auto [ok, why] = validate_schema(bad, "attitude");
+    check(!ok && contains(why, "strength"),
+          "expected strength error: " + join(why));
+}
+
+void v135() {
+    JValue o = buildOcc("rainfall_begins");
+    JValue att = buildAttitude(believerId(), "expects", o.getString("id"));
+    JValue body = JValue::makeObject();
+    body.set("about", att.at("id"));
+    body.set("evidence_type", JValue::of("observation"));
+    body.set("confidence", JValue::of(0.9));
+    JValue a = makeSigned("assertion", body, "signer");
+    schemaOk(a);
+    check(verify_record(a) == true, "the assertion must verify");
+    // the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+    std::string holder = att.getString("holder");
+    check(holder.substr(0, holder.find(':')) == "token_individual",
+          "the holder must be a modeled agent");
+    std::string source = a.getString("source");
+    check(source.substr(0, source.find(':')) == "ed25519",
+          "the source must be a signing key");
+    check(holder != source, "holder and source are different things");
+}
+
+void v136() {
+    // the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+    JValue secs = JValue::makeObject();
+    secs.set("type", JValue::of("causal_relation_object"));
+    secs.set("causes", strv({sym("occurrent:a")}));
+    secs.set("effects", strv({sym("occurrent:b")}));
+    secs.set("modality", JValue::of("sufficient"));
+    secs.set("temporal", temporalObj(0, 1, "seconds"));
+    check(identify(secs) ==
+              "causal_relation_object:"
+              "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+          "the 3.0.0 wall-clock identifier must hold under 4.0.0");
+    // the V118 unbound conduit, re-pinned under 4.0.0
+    JValue unbound = conduitRealized();
+    check(unbound.getString("id") ==
+              "conduit:"
+              "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+          "the 3.0.0 unbound-conduit identifier must hold under 4.0.0");
+}
+
+void v137() {
+    std::string hexid(64, '0');
+    // The abbreviated prefixes here are the deliberate negative tests;
+    // each is assembled so it survives any whole-word re-mint pass.
+    std::string attAbbr = std::string("a") + "t" + "t";
+    std::string prdAbbr = std::string("p") + "r" + "d";
+    std::string errAbbr = std::string("e") + "r" + "r";
+    JValue badAtt = JValue::makeObject();
+    badAtt.set("type", JValue::of("attitude"));
+    badAtt.set("id", JValue::of(attAbbr + ":" + hexid));
+    badAtt.set("holder", JValue::of("token_individual:" + hexid));
+    badAtt.set("attitude_type", JValue::of("believes"));
+    badAtt.set("content", JValue::of("state_assertion:" + hexid));
+    check(!validate_schema(badAtt, "attitude").first,
+          "abbreviated attitude scheme must be rejected");
+    JValue badPrd = JValue::makeObject();
+    badPrd.set("type", JValue::of("predicted_occurrence"));
+    badPrd.set("id", JValue::of(prdAbbr + ":" + hexid));
+    badPrd.set("instantiates", JValue::of("occurrent:" + hexid));
+    badPrd.set("interval", tickWindow(0));
+    badPrd.set("predictor", JValue::of("token_individual:" + hexid));
+    check(!validate_schema(badPrd, "predicted_occurrence").first,
+          "abbreviated predicted_occurrence scheme must be rejected");
+    JValue badErr = JValue::makeObject();
+    badErr.set("type", JValue::of("prediction_error"));
+    badErr.set("id", JValue::of(errAbbr + ":" + hexid));
+    badErr.set("predicted", JValue::of("predicted_occurrence:" + hexid));
+    badErr.set("discrepancy", JValue::of(0.0));
+    check(!validate_schema(badErr, "prediction_error").first,
+          "abbreviated prediction_error scheme must be rejected");
+    JValue wholeAtt = badAtt;
+    wholeAtt.set("id", JValue::of("attitude:" + hexid));
+    auto [attOk, attWhy] = validate_schema(wholeAtt, "attitude");
+    check(attOk, join(attWhy));
+    JValue wholePrd = badPrd;
+    wholePrd.set("id", JValue::of("predicted_occurrence:" + hexid));
+    auto [prdOk, prdWhy] = validate_schema(wholePrd, "predicted_occurrence");
+    check(prdOk, join(prdWhy));
+    JValue wholeErr = badErr;
+    wholeErr.set("id", JValue::of("prediction_error:" + hexid));
+    auto [errOk, errWhy] = validate_schema(wholeErr, "prediction_error");
+    check(errOk, join(errWhy));
+}
+
 }  // namespace
 
 int main() {
@@ -1673,7 +2230,10 @@ int main() {
         v66, v67, v68, v69, v70, v71, v72, v73, v74, v75, v76, v77, v78,
         v79, v80, v81, v82, v83, v84, v85, v86, v87, v88, v89, v90, v91,
         v92, v93, v94, v95, v96, v97, v98, v99, v100, v101, v102, v103,
-        v104, v105, v106, v107};
+        v104, v105, v106, v107, v108, v109, v110, v111, v112, v113, v114,
+        v115, v116, v117, v118, v119, v120, v121, v122, v123, v124, v125,
+        v126, v127, v128, v129, v130, v131, v132, v133, v134, v135, v136,
+        v137};
     const int total = static_cast<int>(tests.size());
     for (int n = 1; n <= total; ++n) {
         std::string stem = vectorFile(n).second;
@@ -1690,6 +2250,6 @@ int main() {
     if (failures) return 1;
     std::printf(
         "causalontology-cpp is CONFORMANT to the suite "
-        "(vectors frozen at specification 2.0.0).\n");
+        "(vectors frozen at specification 4.0.0).\n");
     return 0;
 }

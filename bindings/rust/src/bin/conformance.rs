@@ -1,15 +1,20 @@
-//! The Causalontology conformance runner for the Rust binding (spec 2.0.0).
+//! The Causalontology conformance runner for the Rust binding (spec 4.0.0).
 //! Mirrors bindings/python/tests/run_conformance.py exactly, including the
 //! pre-freeze symbolic-identifier normalization and the whole-word re-mint.
-//! An implementation is conformant iff it passes every one of the 107 vectors.
+//! An implementation is conformant iff it passes every one of the 137 vectors:
+//! V01-V107 are the whole-word 2.0.0 baseline, V108-V119 the 3.0.0 additions,
+//! V120-V137 the 4.0.0 additions (attitude, predicted_occurrence,
+//! prediction_error).
 
 use causalontology::canonical::jcs;
 use causalontology::{admissible, bridge_wellformed, classify_cro, conduit_wellformed,
                      conflicts, covering_law_mismatch, delay_within_window,
                      endpoints_mixed, has_cycle, hierarchy_consistent, identify,
-                     is_partial, keypair_from_seed, refinement_valid, retrocausal,
-                     sign_record, skip_gaps, state_gaps, validate_schema,
-                     validate_semantics, verify_record, InMemoryStore};
+                     is_partial, keypair_from_seed, prediction_pairing_mismatch,
+                     refinement_valid, retrocausal, seam_home, seam_wellformed,
+                     sign_record, skip_gaps, state_gaps, to_seconds,
+                     validate_schema, validate_semantics, verify_record,
+                     InMemoryStore};
 use ed25519_dalek::SigningKey;
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
@@ -47,13 +52,14 @@ fn key(name: &str) -> (SigningKey, String) {
     keypair_from_seed(&seed)
 }
 
-// The seventeen whole-word schemes plus the external ed25519 proper name.
-const SCHEMES: [&str; 18] = [
+// The twenty-one whole-word schemes plus the external ed25519 proper name.
+const SCHEMES: [&str; 22] = [
     "occurrent", "causal_relation_object", "continuant", "realizable",
     "assertion", "enrichment", "retraction", "succession",
-    "stratum", "bridge", "port", "conduit", "quality",
+    "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality",
     "token_individual", "token_occurrence", "state_assertion",
-    "token_causal_claim", "ed25519",
+    "token_causal_claim", "attitude", "predicted_occurrence",
+    "prediction_error", "ed25519",
 ];
 
 fn is_hex64(s: &str) -> bool {
@@ -227,6 +233,39 @@ fn rlz(bearer: &str, kind: &str, label: Option<&str>) -> Map<String, Value> {
     mk(o)
 }
 
+fn seam(source: &str, target: &str, mechanism_status: &str,
+        chain: Option<Vec<Value>>) -> Map<String, Value> {
+    let mut o = obj(&json!({"type": "cross_stratal_seam", "source": source,
+                            "target": target,
+                            "mechanism_status": mechanism_status}));
+    if let Some(c) = chain { o.insert("chain".into(), Value::Array(c)); }
+    mk(o)
+}
+
+fn attitude(holder: &str, attitude_type: &str, content: &str)
+            -> Map<String, Value> {
+    mk(obj(&json!({"type": "attitude", "holder": holder,
+                   "attitude_type": attitude_type, "content": content})))
+}
+
+fn predicted(instantiates: &str, interval: Value, predictor: &str,
+             strength: Option<f64>) -> Map<String, Value> {
+    let mut o = obj(&json!({"type": "predicted_occurrence",
+                            "instantiates": instantiates,
+                            "interval": interval, "predictor": predictor}));
+    if let Some(s) = strength { o.insert("strength".into(), json!(s)); }
+    mk(o)
+}
+
+fn prediction_error(predicted_id: &str, discrepancy: f64,
+                    observed: Option<&str>) -> Map<String, Value> {
+    let mut o = obj(&json!({"type": "prediction_error",
+                            "predicted": predicted_id,
+                            "discrepancy": discrepancy}));
+    if let Some(t) = observed { o.insert("observed".into(), json!(t)); }
+    mk(o)
+}
+
 // ---- shared fixtures ------------------------------------------------------
 fn neuro() -> HashMap<i64, Map<String, Value>> {
     [(4, "macromolecular"), (5, "subcellular"), (6, "cellular"),
@@ -368,6 +407,51 @@ fn state_fixture(datatype: &str, value: Value, unit: Option<&str>)
                    json!({"start": "2026-01-01T00:00:00Z",
                           "end": "2026-01-01T01:00:00Z"}));
     (st, q)
+}
+
+fn seam_fixture(src_ord: i64, tgt_ord: i64, mechanism_status: &str,
+                chain_ords: Option<Vec<i64>>)
+    -> (Map<String, Value>, HashMap<String, Map<String, Value>>,
+        HashMap<String, Map<String, Value>>) {
+    let n = neuro();
+    let src_st = n[&src_ord].clone();
+    let tgt_st = n[&tgt_ord].clone();
+    let src = occ("source_event", Some(&id_of(&src_st)), "event");
+    let tgt = occ("target_event", Some(&id_of(&tgt_st)), "event");
+    let mut omap = map_by_id(&[&src, &tgt]);
+    let mut smap = map_by_id(&[&src_st, &tgt_st]);
+    let chain = chain_ords.map(|ords| {
+        ords.iter().enumerate().map(|(i, o)| {
+            let st = n[o].clone();
+            let member = occ(&format!("chain_{}", i), Some(&id_of(&st)),
+                             "event");
+            let mid = id_of(&member);
+            omap.insert(mid.clone(), member);
+            smap.insert(id_of(&st), st);
+            Value::String(mid)
+        }).collect()
+    });
+    (seam(&id_of(&src), &id_of(&tgt), mechanism_status, chain), omap, smap)
+}
+
+fn conduit_realized(realized_by: Option<&str>) -> Map<String, Value> {
+    let frm = format!("port:{}", "1".repeat(64));
+    let to = format!("port:{}", "2".repeat(64));
+    let x = format!("occurrent:{}", "3".repeat(64));
+    let mut o = obj(&json!({"type": "conduit", "label": "conn", "from": frm,
+                            "to": to, "carries": [x]}));
+    if let Some(r) = realized_by { o.insert("realized_by".into(), json!(r)); }
+    mk(o)
+}
+
+fn predictor() -> String {
+    let c = cnt("forecasting_mind", "object");
+    id_of(&individual(&id_of(&c), Some("predictor_p"), None))
+}
+
+fn believer(designator: &str) -> String {
+    let c = cnt("believing_mind", "object");
+    id_of(&individual(&id_of(&c), Some(designator), None))
 }
 
 fn signed(kind: &str, body: Value, who: &str, ts_i: u32)
@@ -1434,19 +1518,497 @@ fn run_vector(n: u32) -> R {
             ensure!(ok, "{:?}", why);
             Ok(())
         }
+
+        // ------------------ V108 - V119: the 3.0.0 additions ----------------
+        // -- Change One: the ordinal (tick) temporal unit --
+        108 => {
+            let p = cro(vec![json!(sym("occurrent:a"))],
+                        vec![json!(sym("occurrent:b"))],
+                        vec![("temporal", json!({"minimum_delay": 0,
+                                                 "maximum_delay": 5,
+                                                 "unit": "ticks"})),
+                             ("modality", json!("sufficient"))]);
+            let (ok, why) = validate_schema(&p, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = validate_semantics(&p, None);
+            ensure!(ok, "{:?}", why);
+            Ok(())
+        }
+        109 => {
+            let p = cro(vec![json!(sym("occurrent:a"))],
+                        vec![json!(sym("occurrent:b"))],
+                        vec![("temporal", json!({"minimum_delay": 2,
+                                                 "maximum_delay": 5,
+                                                 "unit": "ticks"}))]);
+            ensure!(admissible(&p, 3.0), "3 ticks inside [2, 5]");
+            ensure!(admissible(&p, 2.0) && admissible(&p, 5.0),
+                    "the bounds are inclusive");
+            ensure!(!admissible(&p, 6.0) && !admissible(&p, 1.0),
+                    "outside the tick window");
+            Ok(())
+        }
+        110 => {
+            let tick_window = obj(&json!({"minimum_delay": 0,
+                                          "maximum_delay": 5,
+                                          "unit": "ticks"}));
+            let wall_window = obj(&json!({"minimum_delay": 0,
+                                          "maximum_delay": 5,
+                                          "unit": "seconds"}));
+            let tick_delay = obj(&json!({"duration": 3, "unit": "ticks"}));
+            ensure!(delay_within_window(Some(&tick_delay), Some(&tick_window)),
+                    "a tick delay falls within a tick window");
+            let one_tick = obj(&json!({"duration": 1, "unit": "ticks"}));
+            ensure!(!delay_within_window(Some(&one_tick), Some(&wall_window)),
+                    "a tick delay is not within a wall-clock window");
+            let one_second = obj(&json!({"duration": 1, "unit": "seconds"}));
+            ensure!(!delay_within_window(Some(&one_second), Some(&tick_window)),
+                    "a wall-clock delay is not within a tick window");
+            let a = obj(&json!({"causes": [sym("occurrent:a")],
+                "effects": [sym("occurrent:b")],
+                "temporal": {"minimum_delay": 0, "maximum_delay": 5,
+                             "unit": "ticks"},
+                "modality": "sufficient"}));
+            let b = obj(&json!({"causes": [sym("occurrent:a")],
+                "effects": [sym("occurrent:b")],
+                "temporal": {"minimum_delay": 0, "maximum_delay": 5,
+                             "unit": "seconds"},
+                "modality": "preventive"}));
+            ensure!(!conflicts(&a, &b),
+                    "disjoint dimensions must not overlap");
+            ensure!(to_seconds(1.0, "ticks").is_err(),
+                    "to_seconds accepted ticks");
+            Ok(())
+        }
+        111 => {
+            let base = obj(&json!({"type": "causal_relation_object",
+                "causes": [sym("occurrent:a")],
+                "effects": [sym("occurrent:b")],
+                "modality": "sufficient"}));
+            let mut tick = base.clone();
+            tick.insert("temporal".into(), json!({"minimum_delay": 0,
+                "maximum_delay": 1, "unit": "ticks"}));
+            let mut secs = base.clone();
+            secs.insert("temporal".into(), json!({"minimum_delay": 0,
+                "maximum_delay": 1, "unit": "seconds"}));
+            ensure!(identify(&tick, None)? != identify(&secs, None)?,
+                    "the unit must be identity-bearing");
+            // a wall-clock record's identity is UNCHANGED under 3.0.0
+            // (pinned 2.0.0 value)
+            ensure!(identify(&secs, None)? == "causal_relation_object:\
+                d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+                    "wall-clock identity drifted: {}", identify(&secs, None)?);
+            Ok(())
+        }
+
+        // -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+        112 => {
+            let (sm, om, smap) = seam_fixture(14, 4, "unmodeled", None);
+            let (ok, why) = validate_schema(&sm, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = validate_semantics(&sm, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = seam_wellformed(&sm, &om, &smap);
+            ensure!(ok, "{}", why);
+            Ok(())
+        }
+        113 => {
+            let (a, _, _) = seam_fixture(14, 4, "unmodeled", None);
+            let (b, om, smap) = seam_fixture(14, 4, "absent", None);
+            let (ok, why) = validate_schema(&b, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = seam_wellformed(&b, &om, &smap);
+            ensure!(ok, "{}", why);
+            ensure!(id_of(&a) != id_of(&b),
+                    "mechanism_status must be identity-bearing");
+            Ok(())
+        }
+        114 => {
+            let (drawn, om, smap) =
+                seam_fixture(14, 4, "unmodeled", Some(vec![9, 7, 6, 5]));
+            let (ok, why) = validate_schema(&drawn, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = seam_wellformed(&drawn, &om, &smap);
+            ensure!(ok, "{}", why);
+            let (bad, om2, smap2) =
+                seam_fixture(14, 4, "absent", Some(vec![9, 7, 6, 5]));
+            let (ok, why) = validate_semantics(&bad, None);
+            ensure!(!ok && why.iter().any(|w| w.contains("contradictory_seam")),
+                    "{:?}", why);
+            let (ok2, _) = seam_wellformed(&bad, &om2, &smap2);
+            ensure!(!ok2, "expected malformed");
+            Ok(())
+        }
+        115 => {
+            let (sm, om, smap) = seam_fixture(14, 4, "unmodeled", None);
+            let n = neuro();
+            ensure!(seam_home(&sm, &om, &smap) == Some(id_of(&n[&14])),
+                    "the home is the coarsest (max ordinal) stratum");
+            Ok(())
+        }
+        116 => {
+            let (adj, o1, s1) = seam_fixture(6, 5, "unmodeled", None);
+            let (ok, _) = seam_wellformed(&adj, &o1, &s1); // adjacent (gap 1)
+            ensure!(!ok, "expected malformed");
+            let (co, o2, s2) = seam_fixture(6, 6, "unmodeled", None);
+            let (ok, _) = seam_wellformed(&co, &o2, &s2); // co-stratal (gap 0)
+            ensure!(!ok, "expected malformed");
+            let (sm, _, _) = seam_fixture(14, 4, "unmodeled", None);
+            ensure!(id_of(&sm).starts_with("cross_stratal_seam:"),
+                    "a new identity scheme");
+            Ok(())
+        }
+
+        // -- Change Three: the realized_by reference --
+        117 => {
+            let c = conduit_realized(Some(&format!(
+                "causal_relation_object:{}", "a".repeat(64))));
+            let (ok, why) = validate_schema(&c, None);
+            ensure!(ok, "{:?}", why);
+            let c2 = conduit_realized(Some("native:region_stratum_predict"));
+            let (ok, why) = validate_schema(&c2, None);
+            ensure!(ok, "{:?}", why); // a native scheme reference is legal
+            Ok(())
+        }
+        118 => {
+            let bound = conduit_realized(Some("native:region_stratum_predict"));
+            let unbound = conduit_realized(None);
+            ensure!(id_of(&bound) != id_of(&unbound),
+                    "realized_by must be identity-bearing");
+            // an unbound conduit's identity is UNCHANGED under 3.0.0
+            // (pinned 2.0.0 value)
+            ensure!(id_of(&unbound) == "conduit:\
+                dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+                    "unbound conduit identity drifted: {}", id_of(&unbound));
+            Ok(())
+        }
+        119 => {
+            let unbound = conduit_realized(None);
+            let (ok, why) = validate_schema(&unbound, None);
+            ensure!(ok, "{:?}", why); // unbound is legal
+            let mut bad = unbound.clone();
+            bad.insert("realized_by".into(),
+                       json!("not-a-scheme-qualified-reference"));
+            let (ok, _) = validate_schema(&bad, Some("conduit"));
+            ensure!(!ok, "malformed reference must be rejected");
+            Ok(())
+        }
+
+        // ------------------ V120 - V137: the 4.0.0 additions ----------------
+        // -- Group X: prediction and prediction error (Section A) --
+        120 => {
+            let o = occ("rainfall_begins", None, "event");
+            let p = predicted(&id_of(&o),
+                              json!({"start_tick": 3, "end_tick": 8}),
+                              &predictor(), None);
+            let (ok, why) = validate_schema(&p, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = validate_semantics(&p, None);
+            ensure!(ok, "{:?}", why);
+            ensure!(id_of(&p).starts_with("predicted_occurrence:"),
+                    "wrong scheme");
+            let report_obj = obj(&json!({"type": "token_occurrence",
+                "instantiates": id_of(&o),
+                "interval": {"start_tick": 3, "end_tick": 8}}));
+            let report = identify(&report_obj, Some("token_occurrence"))?;
+            ensure!(id_of(&p) != report, "a forecast is not a report");
+            ensure!(report.starts_with("token_occurrence:"), "wrong scheme");
+            Ok(())
+        }
+        121 => {
+            let o = occ("rainfall_begins", None, "event");
+            let wall = json!({"start": "2026-07-23T00:00:00Z",
+                              "end": "2026-07-24T00:00:00Z"});
+            let who = predictor();
+            let with_strength = predicted(&id_of(&o), wall.clone(), &who,
+                                          Some(0.8));
+            let without = predicted(&id_of(&o), wall, &who, None);
+            for p in [&with_strength, &without] {
+                let (ok, why) = validate_schema(p, None);
+                ensure!(ok, "{:?}", why);
+                let (ok, why) = validate_semantics(p, None);
+                ensure!(ok, "{:?}", why);
+            }
+            ensure!(id_of(&with_strength) != id_of(&without),
+                    "strength must be identity-bearing");
+            Ok(())
+        }
+        122 => {
+            let o = occ("rainfall_begins", None, "event");
+            let bad = mk(obj(&json!({"type": "predicted_occurrence",
+                "instantiates": id_of(&o),
+                "interval": {"start_tick": 3}})));
+            let (ok, why) = validate_schema(&bad, Some("predicted_occurrence"));
+            ensure!(!ok && why.iter().any(|w| w.contains("predictor")),
+                    "{:?}", why);
+            Ok(())
+        }
+        123 => {
+            let o = occ("rainfall_begins", None, "event");
+            let both = predicted(&id_of(&o),
+                                 json!({"start": "2026-07-23T00:00:00Z",
+                                        "start_tick": 3}),
+                                 &predictor(), None);
+            let (ok, why) = validate_schema(&both, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = validate_semantics(&both, None);
+            ensure!(!ok && why.iter().any(|w| w.contains("dimension_conflict")),
+                    "{:?}", why);
+            Ok(())
+        }
+        124 => {
+            let o = occ("rainfall_begins", None, "event");
+            let p = predicted(&id_of(&o),
+                              json!({"start": "2026-07-23T00:00:00Z"}),
+                              &predictor(), None);
+            let t = token(&id_of(&o), json!({"start": "2026-07-23T06:00:00Z"}),
+                          None, None);
+            let err = prediction_error(&id_of(&p), 0.0, Some(&id_of(&t)));
+            let (ok, why) = validate_schema(&err, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = validate_semantics(&err, None);
+            ensure!(ok, "{:?}", why);
+            ensure!(!prediction_pairing_mismatch(&err, &p, Some(&t)),
+                    "expected no mismatch");
+            Ok(())
+        }
+        125 => {
+            let o = occ("rainfall_begins", None, "event");
+            let p = predicted(&id_of(&o),
+                              json!({"start": "2026-07-23T00:00:00Z"}),
+                              &predictor(), None);
+            let err = prediction_error(&id_of(&p), -1.0, None);
+            let (ok, why) = validate_schema(&err, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = validate_semantics(&err, None);
+            ensure!(ok, "{:?}", why);
+            ensure!(!err.contains_key("observed"), "observed must be absent");
+            ensure!(!prediction_pairing_mismatch(&err, &p, None),
+                    "absence is never a mismatch");
+            Ok(())
+        }
+        126 => {
+            let o = occ("rainfall_begins", None, "event");
+            let p = predicted(&id_of(&o), json!({"start_tick": 0}),
+                              &predictor(), None);
+            let bad = mk(obj(&json!({"type": "prediction_error",
+                                     "predicted": id_of(&p)})));
+            let (ok, why) = validate_schema(&bad, Some("prediction_error"));
+            ensure!(!ok && why.iter().any(|w| w.contains("discrepancy")),
+                    "{:?}", why);
+            Ok(())
+        }
+        127 => {
+            let o = occ("rainfall_begins", None, "event");
+            let other = occ("snowfall_begins", None, "event");
+            let p = predicted(&id_of(&o),
+                              json!({"start": "2026-07-23T00:00:00Z"}),
+                              &predictor(), None);
+            let t = token(&id_of(&other),
+                          json!({"start": "2026-07-23T06:00:00Z"}),
+                          None, None);
+            let err = prediction_error(&id_of(&p), 1.0, Some(&id_of(&t)));
+            let (ok, why) = validate_schema(&err, None);
+            ensure!(ok, "{:?}", why);
+            ensure!(prediction_pairing_mismatch(&err, &p, Some(&t)),
+                    "expected mismatch");
+            Ok(())
+        }
+
+        // -- Group Y: attitude and theory of mind (Section B) --
+        128 => {
+            let (st, _q) = state_fixture("quantity",
+                json!({"quantity": 15.0, "unit": "ug/dL"}), Some("ug/dL"));
+            let att = attitude(&believer("holder_h"), "believes", &id_of(&st));
+            let (ok, why) = validate_schema(&att, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = validate_semantics(&att, None);
+            ensure!(ok, "{:?}", why);
+            Ok(())
+        }
+        129 => {
+            let a = occ("switch_pressed", None, "event");
+            let b = occ("light_on", None, "event");
+            let actual = cro(vec![json!(id_of(&a))], vec![json!(id_of(&b))],
+                             vec![("modality", json!("sufficient"))]);
+            let believed = cro(vec![json!(id_of(&a))], vec![json!(id_of(&b))],
+                               vec![("modality", json!("preventive"))]);
+            ensure!(conflicts(&believed, &actual), "the CLAIMS contradict");
+            let att = attitude(&believer("holder_h"), "believes",
+                               &id_of(&believed));
+            let (ok, why) = validate_schema(&att, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = validate_semantics(&att, None);
+            ensure!(ok, "{:?}", why); // validity unaffected
+            let mut store = InMemoryStore::new(true);
+            store.put(&a, None).map_err(|e| e.0)?;
+            store.put(&b, None).map_err(|e| e.0)?;
+            store.put(&actual, None).map_err(|e| e.0)?;
+            store.put(&att, None).map_err(|e| e.0)?;
+            ensure!(store.gaps(Some("conflict")).is_empty(),
+                    "Rule 25: NO conflict may be raised");
+            Ok(())
+        }
+        130 => {
+            let o = occ("rainfall_begins", None, "event");
+            let att = attitude(&believer("holder_h"), "desires", &id_of(&o));
+            let (ok, why) = validate_schema(&att, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = validate_semantics(&att, None);
+            ensure!(ok, "{:?}", why);
+            Ok(())
+        }
+        131 => {
+            let o = occ("press_button", None, "event");
+            let att = attitude(&believer("holder_h"), "intends", &id_of(&o));
+            let (ok, why) = validate_schema(&att, None);
+            ensure!(ok, "{:?}", why);
+            let (ok, why) = validate_semantics(&att, None);
+            ensure!(ok, "{:?}", why);
+            Ok(())
+        }
+        132 => {
+            let (st, _q) = state_fixture("boolean", json!({"boolean": true}),
+                                         None);
+            let inner = attitude(&believer("holder_b"), "believes",
+                                 &id_of(&st));
+            let outer = attitude(&believer("holder_a"), "believes",
+                                 &id_of(&inner));
+            for att in [&inner, &outer] {
+                let (ok, why) = validate_schema(att, None);
+                ensure!(ok, "{:?}", why);
+                let (ok, why) = validate_semantics(att, None);
+                ensure!(ok, "{:?}", why);
+            }
+            ensure!(id_of(&outer) != id_of(&inner), "ids equal");
+            ensure!(outer.get("content").and_then(Value::as_str)
+                    == Some(id_of(&inner).as_str()), "nesting broken");
+            Ok(())
+        }
+        133 => {
+            let o = occ("rainfall_begins", None, "event");
+            let bad = mk(obj(&json!({"type": "attitude",
+                "holder": believer("holder_h"),
+                "attitude_type": "suspects", "content": id_of(&o)})));
+            let (ok, why) = validate_schema(&bad, Some("attitude"));
+            ensure!(!ok && why.iter().any(|w| w.contains("attitude_type")),
+                    "{:?}", why);
+            Ok(())
+        }
+        134 => {
+            let o = occ("rainfall_begins", None, "event");
+            let bad = mk(obj(&json!({"type": "attitude",
+                "holder": believer("holder_h"),
+                "attitude_type": "believes", "content": id_of(&o),
+                "strength": 0.9})));
+            let (ok, why) = validate_schema(&bad, Some("attitude"));
+            ensure!(!ok && why.iter().any(|w| w.contains("strength")),
+                    "{:?}", why);
+            Ok(())
+        }
+        135 => {
+            let o = occ("rainfall_begins", None, "event");
+            let att = attitude(&believer("holder_h"), "expects", &id_of(&o));
+            let a = signed("assertion", json!({"about": id_of(&att),
+                "evidence_type": "observation", "confidence": 0.9}),
+                "signer", 0);
+            let (ok, why) = validate_schema(&a, None);
+            ensure!(ok, "{:?}", why);
+            ensure!(verify_record(&a, None), "must verify");
+            // the HOLDER (a modeled agent) and the SOURCE (a signing key)
+            // differ
+            let holder = att.get("holder").and_then(Value::as_str)
+                .unwrap_or("");
+            let source = a.get("source").and_then(Value::as_str).unwrap_or("");
+            ensure!(holder.split(':').next() == Some("token_individual"),
+                    "holder scheme");
+            ensure!(source.split(':').next() == Some("ed25519"),
+                    "source scheme");
+            ensure!(holder != source, "holder equals source");
+            Ok(())
+        }
+
+        // -- Group Z: the 4.0.0 identity witnesses --
+        136 => {
+            // the V111 wall-clock Causal Relation Object, re-pinned under
+            // 4.0.0
+            let secs = obj(&json!({"type": "causal_relation_object",
+                "causes": [sym("occurrent:a")],
+                "effects": [sym("occurrent:b")],
+                "modality": "sufficient",
+                "temporal": {"minimum_delay": 0, "maximum_delay": 1,
+                             "unit": "seconds"}}));
+            ensure!(identify(&secs, None)? == "causal_relation_object:\
+                d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+                    "3.0.0 identifier drifted: {}", identify(&secs, None)?);
+            // the V118 unbound conduit, re-pinned under 4.0.0
+            let unbound = conduit_realized(None);
+            ensure!(id_of(&unbound) == "conduit:\
+                dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+                    "3.0.0 identifier drifted: {}", id_of(&unbound));
+            Ok(())
+        }
+        137 => {
+            let hexid = "0".repeat(64);
+            // The abbreviated prefixes are the negative test; each assembled
+            // so a re-mint pass would not rewrite it.
+            let att_abbr = format!("{}{}{}", "a", "t", "t");
+            let prd_abbr = format!("{}{}{}", "p", "r", "d");
+            let err_abbr = format!("{}{}{}", "e", "r", "r");
+            let bad_att = obj(&json!({"type": "attitude",
+                "id": format!("{}:{}", att_abbr, hexid),
+                "holder": format!("token_individual:{}", hexid),
+                "attitude_type": "believes",
+                "content": format!("state_assertion:{}", hexid)}));
+            let (ok, _) = validate_schema(&bad_att, Some("attitude"));
+            ensure!(!ok, "abbreviated attitude scheme must be rejected");
+            let bad_prd = obj(&json!({"type": "predicted_occurrence",
+                "id": format!("{}:{}", prd_abbr, hexid),
+                "instantiates": format!("occurrent:{}", hexid),
+                "interval": {"start_tick": 0},
+                "predictor": format!("token_individual:{}", hexid)}));
+            let (ok, _) = validate_schema(&bad_prd,
+                                          Some("predicted_occurrence"));
+            ensure!(!ok,
+                    "abbreviated predicted_occurrence scheme must be rejected");
+            let bad_err = obj(&json!({"type": "prediction_error",
+                "id": format!("{}:{}", err_abbr, hexid),
+                "predicted": format!("predicted_occurrence:{}", hexid),
+                "discrepancy": 0.0}));
+            let (ok, _) = validate_schema(&bad_err, Some("prediction_error"));
+            ensure!(!ok,
+                    "abbreviated prediction_error scheme must be rejected");
+            let mut whole_att = bad_att.clone();
+            whole_att.insert("id".into(),
+                             Value::String(format!("attitude:{}", hexid)));
+            let (ok, why) = validate_schema(&whole_att, Some("attitude"));
+            ensure!(ok, "{:?}", why);
+            let mut whole_prd = bad_prd.clone();
+            whole_prd.insert("id".into(), Value::String(
+                format!("predicted_occurrence:{}", hexid)));
+            let (ok, why) = validate_schema(&whole_prd,
+                                            Some("predicted_occurrence"));
+            ensure!(ok, "{:?}", why);
+            let mut whole_err = bad_err.clone();
+            whole_err.insert("id".into(), Value::String(
+                format!("prediction_error:{}", hexid)));
+            let (ok, why) = validate_schema(&whole_err,
+                                            Some("prediction_error"));
+            ensure!(ok, "{:?}", why);
+            Ok(())
+        }
         _ => Err(format!("no vector {}", n)),
     }
 }
 
 fn main() {
-    println!("causalontology-rust conformance run (specification 2.0.0)");
+    println!("causalontology-rust conformance run (specification 4.0.0)");
     print!("internal checks (RFC 8032 known-answer, RFC 8785 basics) ... ");
     if let Err(e) = internal_checks() {
         println!("FAILED: {}", e);
         std::process::exit(1);
     }
     println!("ok");
-    let total = 107u32;
+    let total = 137u32;
     let mut failures = 0;
     for n in 1..=total {
         let (name, _) = vec_json(n);
@@ -1464,5 +2026,5 @@ fn main() {
         std::process::exit(1);
     }
     println!("causalontology-rust is CONFORMANT to the suite \
-              (vectors frozen at specification 2.0.0).");
+              (vectors frozen at specification 4.0.0).");
 }

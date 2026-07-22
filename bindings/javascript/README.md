@@ -13,8 +13,8 @@ Zero dependencies — Node.js builtins only (`node:crypto`, `node:fs`,
 | canonical | RFC 8785 (JSON Canonicalization Scheme) serialization, identity-bearing field filtering, Secure Hash Algorithm 256-bit (SHA-256) content-addressed `identify()`. JavaScript gets RFC 8785 primitives natively: `JSON.stringify`'s number and string serialization IS the ES6 rule the RFC is based on. |
 | ed25519 | Ed25519 (RFC 8032) via `node:crypto` KeyObjects (raw 32-byte seeds and public keys wrapped in PKCS8/SPKI DER), verified against the RFC's known-answer test |
 | signing | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes |
-| schema | validation against the seventeen JSON Schemas in `spec/schema/` |
-| semantics | the 21 semantic rules: temporal admissibility (fixed constants), formal conflict, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
+| schema | validation against the twenty-one JSON Schemas in `spec/schema/` |
+| semantics | the 25 semantic rules: temporal admissibility (fixed constants, with the ordinal `ticks` dimension kept disjoint from wall-clock), formal conflict, refinement validity, bridged reachability, stratal classification, the skip decision, seam well-formedness (Algorithm F) and the coarsest-stratum home rule, enrichment field/shape rules, the token-tier coherence checks, the prediction pairing check, and the attitude quarantine |
 | store | an in-memory conformant store: idempotent immutable puts, signed add-only records, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
 
 ## application programming interface (API) surface
@@ -38,7 +38,9 @@ the same key yields the same id and the same signature in all three.
 
 The binding is typed out of the box: hand-written declarations in
 `causalontology.d.ts` (wired up via `"types"` in `package.json`) cover the
-whole exported surface — the eight domain shapes, every function, the
+whole exported surface — the domain shapes (including the 3.0.0
+`cross_stratal_seam` and the 4.0.0 `attitude`, `predicted_occurrence`, and
+`prediction_error`), every function, the
 `InMemoryStore` class (including the materialized-view and `gaps()` return
 shapes), and `RejectedWrite`. The JavaScript module remains the single
 source of logic; the declarations only describe it.
@@ -66,11 +68,11 @@ declared as `Uint8Array` (`co.Bytes`), which every Node `Buffer` is.
 ```
 $ node tests/run_conformance.js
 ...
-107/107 vectors passed
-causalontology-js is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
+137/137 vectors passed
+causalontology-js is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors, V01–V137): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 ## License
 

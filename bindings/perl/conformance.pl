@@ -1,15 +1,17 @@
 #!/usr/bin/env perl
-# The Causalontology conformance runner for causalontology-perl.
+# The Causalontology conformance runner for causalontology-perl (spec 4.0.0).
 #
 # Runs every vector in conformance/vectors/ against the Perl binding. An
 # implementation is conformant if and only if it passes every vector; this
 # runner exits nonzero on any failure. Mirrors
-# bindings/python/tests/run_conformance.py exactly.
+# bindings/python/tests/run_conformance.py exactly. Vectors V01-V107 are the
+# whole-word 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in
+# meaning, V39-V107 new. V108-V119 are the 3.0.0 additions; V120-V137 are the
+# 4.0.0 additions (attitude, predicted_occurrence, prediction_error).
 #
-# The vectors are frozen at specification 2.0.0: they carry concrete 64-hex
-# identifiers and real keys, which pass through the (retained) normalization
-# unchanged; behavioral vectors derive deterministic keypairs from the seed
-# sha256("key:" + name).
+# The V01-V107 vectors carry concrete 64-hex identifiers and real keys, which
+# pass through the (retained) normalization unchanged; behavioral vectors
+# derive deterministic keypairs from the seed sha256("key:" + name).
 
 use strict;
 use warnings;
@@ -33,7 +35,8 @@ use Causalontology::Semantics qw(
     validate_semantics is_partial admissible conflicts refinement_valid
     hierarchy_consistent bridge_closure classify_cro endpoints_mixed
     skip_gaps to_seconds delay_within_window bridge_wellformed
-    conduit_wellformed state_gaps covering_law_mismatch retrocausal has_cycle
+    seam_wellformed seam_home conduit_wellformed state_gaps
+    covering_law_mismatch prediction_pairing_mismatch retrocausal has_cycle
     %ENRICHMENT_FIELDS
 );
 use Causalontology::Ed25519 ();
@@ -52,9 +55,10 @@ my $VECDIR = "$ROOT/conformance/vectors";
 # ---------------------------------------------------------------------------
 my @SCHEMES = qw(occurrent causal_relation_object continuant realizable
                  assertion enrichment retraction succession
-                 stratum bridge port conduit quality
+                 stratum bridge cross_stratal_seam port conduit quality
                  token_individual token_occurrence state_assertion
-                 token_causal_claim);
+                 token_causal_claim
+                 attitude predicted_occurrence prediction_error);
 my $SCHEME_RE = join '|', @SCHEMES;
 my %KEYS;
 
@@ -1402,6 +1406,514 @@ sub v107 {
 }
 
 # ---------------------------------------------------------------------------
+# V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam, realized_by)
+# ---------------------------------------------------------------------------
+# a cross_stratal_seam content object, completed with its content-addressed id
+sub b_seam {
+    my ($source, $target, $mechanism_status, $chain) = @_;
+    my $o = jobj(type => jstr('cross_stratal_seam'),
+                 source => jstr($source), target => jstr($target),
+                 mechanism_status => jstr($mechanism_status));
+    oset($o, 'chain', jarr(map { jstr($_) } @$chain))
+        if defined $chain && @$chain;
+    return mk($o);
+}
+
+# build a seam over the neuro fixture: (seam, occ_map, stratum_map).
+sub seam_fixture {
+    my ($src_ord, $tgt_ord, $mechanism_status, $chain_ords) = @_;
+    my $s = neuro();
+    my $src = b_occ('source_event', oid($s->{$src_ord}));
+    my $tgt = b_occ('target_event', oid($s->{$tgt_ord}));
+    my %omap = (oid($src) => $src, oid($tgt) => $tgt);
+    my %smap = (oid($s->{$src_ord}) => $s->{$src_ord},
+                oid($s->{$tgt_ord}) => $s->{$tgt_ord});
+    my $chain;
+    if (defined $chain_ords) {
+        $chain = [];
+        my $i = 0;
+        for my $o (@$chain_ords) {
+            my $c = b_occ("chain_$i", oid($s->{$o}));
+            $omap{oid($c)} = $c;
+            $smap{oid($s->{$o})} = $s->{$o};
+            push @$chain, oid($c);
+            $i++;
+        }
+    }
+    return (b_seam(oid($src), oid($tgt), $mechanism_status, $chain),
+            \%omap, \%smap);
+}
+
+# a conduit with an optional realized_by reference, completed with its id
+sub conduit_realized {
+    my ($realized_by) = @_;
+    my $o = jobj(type => jstr('conduit'), label => jstr('conn'),
+                 from => jstr('port:' . ('1' x 64)),
+                 to => jstr('port:' . ('2' x 64)),
+                 carries => jarr(jstr('occurrent:' . ('3' x 64))));
+    oset($o, 'realized_by', jstr($realized_by)) if defined $realized_by;
+    return mk($o);
+}
+
+# -- Change One: the ordinal (tick) temporal unit --
+sub v108 {
+    my $P = b_cro([sym('occurrent:a')], [sym('occurrent:b')],
+                  temporal => temporal(0, 5, 'ticks'),
+                  modality => 'sufficient');
+    my ($ok, $why) = validate_schema($P);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($P);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v109 {
+    my $P = b_cro([sym('occurrent:a')], [sym('occurrent:b')],
+                  temporal => temporal(2, 5, 'ticks'));
+    ok_or(admissible($P, 3) == 1, '3 ticks inside [2, 5]');
+    ok_or(admissible($P, 2) == 1 && admissible($P, 5) == 1,
+          'endpoints are admissible');
+    ok_or(admissible($P, 6) == 0 && admissible($P, 1) == 0,
+          'outside the tick window is not admissible');
+}
+
+sub v110 {
+    my $tick_window = temporal(0, 5, 'ticks');
+    my $wall_window = temporal(0, 5, 'seconds');
+    ok_or(delay_within_window(duration(3, 'ticks'), $tick_window) == 1,
+          '3 ticks within the tick window');
+    ok_or(delay_within_window(duration(1, 'ticks'), $wall_window) == 0,
+          'a tick delay is not within a wall-clock window');
+    ok_or(delay_within_window(duration(1, 'seconds'), $tick_window) == 0,
+          'a seconds delay is not within a tick window');
+    my $a = jobj(causes => jarr(jstr(sym('occurrent:a'))),
+                 effects => jarr(jstr(sym('occurrent:b'))),
+                 temporal => $tick_window, modality => jstr('sufficient'));
+    my $b = jobj(causes => jarr(jstr(sym('occurrent:a'))),
+                 effects => jarr(jstr(sym('occurrent:b'))),
+                 temporal => $wall_window, modality => jstr('preventive'));
+    ok_or(conflicts($a, $b) == 0, 'disjoint dimensions do not overlap');
+    my $accepted = eval { to_seconds(1, 'ticks'); 1 };
+    ok_or(!$accepted, 'to_seconds must refuse an ordinal unit');
+}
+
+sub v111 {
+    my $base = sub {
+        return (type => jstr('causal_relation_object'),
+                causes => jarr(jstr(sym('occurrent:a'))),
+                effects => jarr(jstr(sym('occurrent:b'))),
+                modality => jstr('sufficient'));
+    };
+    my $tick = jobj($base->(), temporal => temporal(0, 1, 'ticks'));
+    my $secs = jobj($base->(), temporal => temporal(0, 1, 'seconds'));
+    ok_or(identify($tick) ne identify($secs), 'the unit is identity-bearing');
+    # a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+    ok_or(identify($secs) eq 'causal_relation_object:'
+          . 'd8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c',
+          'the wall-clock CRO identity is pinned');
+}
+
+# -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+sub v112 {
+    my ($sm, $omap, $smap) = seam_fixture(14, 4, 'unmodeled');
+    my ($ok, $why) = validate_schema($sm);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($sm);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = seam_wellformed($sm, $omap, $smap);
+    ok_or($ok, $why);
+}
+
+sub v113 {
+    my ($a) = seam_fixture(14, 4, 'unmodeled');
+    my ($b, $omap, $smap) = seam_fixture(14, 4, 'absent');
+    my ($ok, $why) = validate_schema($b);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = seam_wellformed($b, $omap, $smap);
+    ok_or($ok, $why);
+    ok_or(oid($a) ne oid($b), 'mechanism_status is identity-bearing');
+}
+
+sub v114 {
+    my ($drawn, $omap, $smap) = seam_fixture(14, 4, 'unmodeled', [9, 7, 6, 5]);
+    my ($ok, $why) = validate_schema($drawn);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = seam_wellformed($drawn, $omap, $smap);
+    ok_or($ok, $why);
+    my ($bad, $omap2, $smap2) = seam_fixture(14, 4, 'absent', [9, 7, 6, 5]);
+    ($ok, $why) = validate_semantics($bad);
+    ok_or(!$ok && (grep { index($_, 'contradictory_seam') >= 0 } @$why),
+          'contradictory_seam: ' . join('; ', @$why));
+    my ($ok2) = seam_wellformed($bad, $omap2, $smap2);
+    ok_or(!$ok2, 'a drawn chain with absent status is malformed');
+}
+
+sub v115 {
+    my ($sm, $omap, $smap) = seam_fixture(14, 4, 'unmodeled');
+    my $s = neuro();
+    ok_or(seam_home($sm, $omap, $smap) eq oid($s->{14}),
+          'the home is the coarsest (max ordinal) stratum');
+}
+
+sub v116 {
+    my ($adj, $o1, $s1) = seam_fixture(6, 5, 'unmodeled');   # adjacent (gap 1)
+    my ($ok) = seam_wellformed($adj, $o1, $s1);
+    ok_or(!$ok, 'an adjacent seam is malformed');
+    my ($co, $o2, $s2) = seam_fixture(6, 6, 'unmodeled');    # co-stratal (gap 0)
+    ($ok) = seam_wellformed($co, $o2, $s2);
+    ok_or(!$ok, 'a co-stratal seam is malformed');
+    my ($sm) = seam_fixture(14, 4, 'unmodeled');
+    ok_or(index(oid($sm), 'cross_stratal_seam:') == 0, 'a new identity scheme');
+}
+
+# -- Change Three: the realized_by reference --
+sub v117 {
+    my $c = conduit_realized('causal_relation_object:' . ('a' x 64));
+    my ($ok, $why) = validate_schema($c);
+    ok_or($ok, join('; ', @$why));
+    my $c2 = conduit_realized('native:region_stratum_predict');
+    ($ok, $why) = validate_schema($c2);
+    ok_or($ok, join('; ', @$why));  # a native scheme reference is legal
+}
+
+sub v118 {
+    my $bound = conduit_realized('native:region_stratum_predict');
+    my $unbound = conduit_realized();
+    ok_or(oid($bound) ne oid($unbound), 'realized_by is identity-bearing');
+    # an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+    ok_or(oid($unbound) eq 'conduit:'
+          . 'dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6',
+          'the unbound conduit identity is pinned');
+}
+
+sub v119 {
+    my $unbound = conduit_realized();
+    my ($ok, $why) = validate_schema($unbound);
+    ok_or($ok, join('; ', @$why));  # unbound is legal
+    my $bad = oclone($unbound);
+    oset($bad, 'realized_by', jstr('not-a-scheme-qualified-reference'));
+    ($ok) = validate_schema($bad, 'conduit');
+    ok_or(!$ok, 'a malformed realized_by reference is rejected');
+}
+
+# ---------------------------------------------------------------------------
+# V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+# prediction_error)
+# ---------------------------------------------------------------------------
+sub b_attitude {
+    my ($holder, $attitude_type, $content) = @_;
+    return mk(jobj(type => jstr('attitude'), holder => jstr($holder),
+                   attitude_type => jstr($attitude_type),
+                   content => jstr($content)));
+}
+
+sub b_predicted {
+    my ($instantiates, $iv, $predictor, $strength) = @_;
+    my $o = jobj(type => jstr('predicted_occurrence'),
+                 instantiates => jstr($instantiates), interval => $iv,
+                 predictor => jstr($predictor));
+    oset($o, 'strength', jnum($strength)) if defined $strength;
+    return mk($o);
+}
+
+sub b_prediction_error {
+    my ($predicted_id, $discrepancy, $observed) = @_;
+    my $o = jobj(type => jstr('prediction_error'),
+                 predicted => jstr($predicted_id),
+                 discrepancy => jnum($discrepancy));
+    oset($o, 'observed', jstr($observed)) if defined $observed;
+    return mk($o);
+}
+
+# an interval carrying the ordinal (tick) dimension
+sub tick_interval {
+    my (%h) = @_;
+    my $o = jobj(start_tick => jnum($h{start_tick}));
+    oset($o, 'end_tick', jnum($h{end_tick})) if exists $h{end_tick};
+    return $o;
+}
+
+# a modeled predicting agent (a token individual), by identity
+sub predictor_id {
+    my $c = b_cnt('forecasting_mind');
+    return oid(b_individual(oid($c), 'predictor_p'));
+}
+
+# a modeled believing agent (a token individual), by identity
+sub believer_id {
+    my ($designator) = @_;
+    $designator = 'holder_h' unless defined $designator;
+    my $c = b_cnt('believing_mind');
+    return oid(b_individual(oid($c), $designator));
+}
+
+# -- Group X: prediction and prediction error (Section A) --
+sub v120 {
+    my $o = b_occ('rainfall_begins');
+    my $p = b_predicted(oid($o), tick_interval(start_tick => 3, end_tick => 8),
+                        predictor_id());
+    my ($ok, $why) = validate_schema($p);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($p);
+    ok_or($ok, join('; ', @$why));
+    ok_or(index(oid($p), 'predicted_occurrence:') == 0, 'a new identity scheme');
+    my $report = identify(jobj(type => jstr('token_occurrence'),
+                               instantiates => jstr(oid($o)),
+                               interval => tick_interval(start_tick => 3,
+                                                         end_tick => 8)),
+                          'token_occurrence');
+    ok_or(oid($p) ne $report, 'a forecast is not a report');
+    ok_or(index($report, 'token_occurrence:') == 0,
+          'the report is a token_occurrence');
+}
+
+sub v121 {
+    my $o = b_occ('rainfall_begins');
+    my $wall = interval(start => '2026-07-23T00:00:00Z',
+                        end => '2026-07-24T00:00:00Z');
+    my $who = predictor_id();
+    my $with_strength = b_predicted(oid($o), $wall, $who, '0.8');
+    my $without = b_predicted(oid($o), $wall, $who);
+    for my $p ($with_strength, $without) {
+        my ($ok, $why) = validate_schema($p);
+        ok_or($ok, join('; ', @$why));
+        ($ok, $why) = validate_semantics($p);
+        ok_or($ok, join('; ', @$why));
+    }
+    ok_or(oid($with_strength) ne oid($without), 'strength is identity-bearing');
+}
+
+sub v122 {
+    my $o = b_occ('rainfall_begins');
+    my $bad = mk(jobj(type => jstr('predicted_occurrence'),
+                      instantiates => jstr(oid($o)),
+                      interval => tick_interval(start_tick => 3)));
+    my ($ok, $why) = validate_schema($bad, 'predicted_occurrence');
+    ok_or(!$ok && (grep { index($_, 'predictor') >= 0 } @$why),
+          'predictor is required: ' . join('; ', @$why));
+}
+
+sub v123 {
+    my $o = b_occ('rainfall_begins');
+    my $iv = jobj(start => jstr('2026-07-23T00:00:00Z'), start_tick => jnum(3));
+    my $both = b_predicted(oid($o), $iv, predictor_id());
+    my ($ok, $why) = validate_schema($both);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($both);
+    ok_or(!$ok && (grep { index($_, 'dimension_conflict') >= 0 } @$why),
+          'dimension_conflict: ' . join('; ', @$why));
+}
+
+sub v124 {
+    my $o = b_occ('rainfall_begins');
+    my $p = b_predicted(oid($o), interval(start => '2026-07-23T00:00:00Z'),
+                        predictor_id());
+    my $t = b_token(oid($o), interval(start => '2026-07-23T06:00:00Z'));
+    my $err = b_prediction_error(oid($p), '0.0', oid($t));
+    my ($ok, $why) = validate_schema($err);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($err);
+    ok_or($ok, join('; ', @$why));
+    ok_or(prediction_pairing_mismatch($err, $p, $t) == 0, 'no pairing mismatch');
+}
+
+sub v125 {
+    my $o = b_occ('rainfall_begins');
+    my $p = b_predicted(oid($o), interval(start => '2026-07-23T00:00:00Z'),
+                        predictor_id());
+    my $err = b_prediction_error(oid($p), '-1.0');
+    my ($ok, $why) = validate_schema($err);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($err);
+    ok_or($ok, join('; ', @$why));
+    ok_or(!ohas($err, 'observed'), 'observed is absent');
+    ok_or(prediction_pairing_mismatch($err, $p, undef) == 0,
+          'an absent observed is never a mismatch');
+}
+
+sub v126 {
+    my $o = b_occ('rainfall_begins');
+    my $p = b_predicted(oid($o), tick_interval(start_tick => 0), predictor_id());
+    my $bad = mk(jobj(type => jstr('prediction_error'),
+                      predicted => jstr(oid($p))));
+    my ($ok, $why) = validate_schema($bad, 'prediction_error');
+    ok_or(!$ok && (grep { index($_, 'discrepancy') >= 0 } @$why),
+          'discrepancy is required: ' . join('; ', @$why));
+}
+
+sub v127 {
+    my $o = b_occ('rainfall_begins');
+    my $other = b_occ('snowfall_begins');
+    my $p = b_predicted(oid($o), interval(start => '2026-07-23T00:00:00Z'),
+                        predictor_id());
+    my $t = b_token(oid($other), interval(start => '2026-07-23T06:00:00Z'));
+    my $err = b_prediction_error(oid($p), '1.0', oid($t));
+    my ($ok, $why) = validate_schema($err);
+    ok_or($ok, join('; ', @$why));
+    ok_or(prediction_pairing_mismatch($err, $p, $t) == 1, 'pairing mismatch');
+}
+
+# -- Group Y: attitude and theory of mind (Section B) --
+sub v128 {
+    my ($st) = state_fixture('quantity',
+        jobj(quantity => jnum('15.0'), unit => jstr('ug/dL')), 'ug/dL');
+    my $att = b_attitude(believer_id(), 'believes', oid($st));
+    my ($ok, $why) = validate_schema($att);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($att);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v129 {
+    my $a = b_occ('switch_pressed');
+    my $b = b_occ('light_on');
+    my $actual = b_cro([oid($a)], [oid($b)], modality => 'sufficient');
+    my $believed = b_cro([oid($a)], [oid($b)], modality => 'preventive');
+    ok_or(conflicts($believed, $actual) == 1, 'the claims contradict');
+    my $att = b_attitude(believer_id(), 'believes', oid($believed));
+    my ($ok, $why) = validate_schema($att);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($att);
+    ok_or($ok, join('; ', @$why));  # validity unaffected
+    my $s = Causalontology::Store->new;
+    $s->put($a);
+    $s->put($b);
+    $s->put($actual);
+    $s->put($att);
+    ok_or(scalar($s->gaps('conflict')) == 0,
+          'Rule 25: no conflict raised for a quarantined belief');
+}
+
+sub v130 {
+    my $o = b_occ('rainfall_begins');
+    my $att = b_attitude(believer_id(), 'desires', oid($o));
+    my ($ok, $why) = validate_schema($att);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($att);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v131 {
+    my $o = b_occ('press_button');
+    my $att = b_attitude(believer_id(), 'intends', oid($o));
+    my ($ok, $why) = validate_schema($att);
+    ok_or($ok, join('; ', @$why));
+    ($ok, $why) = validate_semantics($att);
+    ok_or($ok, join('; ', @$why));
+}
+
+sub v132 {
+    my ($st) = state_fixture('boolean', jobj(boolean => jbool(1)));
+    my $inner = b_attitude(believer_id('holder_b'), 'believes', oid($st));
+    my $outer = b_attitude(believer_id('holder_a'), 'believes', oid($inner));
+    for my $att ($inner, $outer) {
+        my ($ok, $why) = validate_schema($att);
+        ok_or($ok, join('; ', @$why));
+        ($ok, $why) = validate_semantics($att);
+        ok_or($ok, join('; ', @$why));
+    }
+    ok_or(oid($outer) ne oid($inner), 'distinct ids');
+    ok_or(sval(oget($outer, 'content')) eq oid($inner), 'nested content');
+}
+
+sub v133 {
+    my $o = b_occ('rainfall_begins');
+    my $bad = mk(jobj(type => jstr('attitude'), holder => jstr(believer_id()),
+                      attitude_type => jstr('suspects'),
+                      content => jstr(oid($o))));
+    my ($ok, $why) = validate_schema($bad, 'attitude');
+    ok_or(!$ok && (grep { index($_, 'attitude_type') >= 0 } @$why),
+          'attitude_type is a closed enumeration: ' . join('; ', @$why));
+}
+
+sub v134 {
+    my $o = b_occ('rainfall_begins');
+    my $bad = mk(jobj(type => jstr('attitude'), holder => jstr(believer_id()),
+                      attitude_type => jstr('believes'),
+                      content => jstr(oid($o)), strength => jnum('0.9')));
+    my ($ok, $why) = validate_schema($bad, 'attitude');
+    ok_or(!$ok && (grep { index($_, 'strength') >= 0 } @$why),
+          'an attitude carries no strength: ' . join('; ', @$why));
+}
+
+sub v135 {
+    my $o = b_occ('rainfall_begins');
+    my $att = b_attitude(believer_id(), 'expects', oid($o));
+    my $a = signed('assertion', jobj(about => jstr(oid($att)),
+                                     evidence_type => jstr('observation'),
+                                     confidence => jnum('0.9')), 'signer');
+    my ($ok, $why) = validate_schema($a);
+    ok_or($ok, join('; ', @$why));
+    ok_or(verify_record($a) == 1, 'the assertion verifies');
+    # the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+    ok_or((split /:/, sval(oget($att, 'holder')), 2)[0] eq 'token_individual',
+          'the holder is a modeled agent');
+    ok_or((split /:/, sval(oget($a, 'source')), 2)[0] eq 'ed25519',
+          'the source is a signing key');
+    ok_or(sval(oget($att, 'holder')) ne sval(oget($a, 'source')),
+          'the holder and the source differ');
+}
+
+sub v136 {
+    # the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+    my $secs = jobj(type => jstr('causal_relation_object'),
+                    causes => jarr(jstr(sym('occurrent:a'))),
+                    effects => jarr(jstr(sym('occurrent:b'))),
+                    modality => jstr('sufficient'),
+                    temporal => temporal(0, 1, 'seconds'));
+    ok_or(identify($secs) eq 'causal_relation_object:'
+          . 'd8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c',
+          'the wall-clock CRO identity holds under 4.0.0');
+    # the V118 unbound conduit, re-pinned under 4.0.0
+    my $unbound = conduit_realized();
+    ok_or(oid($unbound) eq 'conduit:'
+          . 'dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6',
+          'the unbound conduit identity holds under 4.0.0');
+}
+
+sub v137 {
+    my $hexid = '0' x 64;
+    # NOTE: the abbreviated prefixes are intentional (the negative test); they
+    # must NOT be re-minted. Each is assembled to survive re-mint tools.
+    my $att_abbr = 'a' . 't' . 't';
+    my $prd_abbr = 'p' . 'r' . 'd';
+    my $err_abbr = 'e' . 'r' . 'r';
+    my $bad_att = jobj(type => jstr('attitude'),
+                       id => jstr($att_abbr . ':' . $hexid),
+                       holder => jstr('token_individual:' . $hexid),
+                       attitude_type => jstr('believes'),
+                       content => jstr('state_assertion:' . $hexid));
+    my ($ok) = validate_schema($bad_att, 'attitude');
+    ok_or(!$ok, 'the abbreviated attitude scheme must be rejected');
+    my $bad_prd = jobj(type => jstr('predicted_occurrence'),
+                       id => jstr($prd_abbr . ':' . $hexid),
+                       instantiates => jstr('occurrent:' . $hexid),
+                       interval => tick_interval(start_tick => 0),
+                       predictor => jstr('token_individual:' . $hexid));
+    ($ok) = validate_schema($bad_prd, 'predicted_occurrence');
+    ok_or(!$ok, 'the abbreviated predicted_occurrence scheme must be rejected');
+    my $bad_err = jobj(type => jstr('prediction_error'),
+                       id => jstr($err_abbr . ':' . $hexid),
+                       predicted => jstr('predicted_occurrence:' . $hexid),
+                       discrepancy => jnum('0.0'));
+    ($ok) = validate_schema($bad_err, 'prediction_error');
+    ok_or(!$ok, 'the abbreviated prediction_error scheme must be rejected');
+    my $whole_att = oclone($bad_att);
+    oset($whole_att, 'id', jstr('attitude:' . $hexid));
+    my ($ok2, $why) = validate_schema($whole_att, 'attitude');
+    ok_or($ok2, 'the whole-word attitude validates: ' . join('; ', @$why));
+    my $whole_prd = oclone($bad_prd);
+    oset($whole_prd, 'id', jstr('predicted_occurrence:' . $hexid));
+    ($ok2, $why) = validate_schema($whole_prd, 'predicted_occurrence');
+    ok_or($ok2, 'the whole-word predicted_occurrence validates: '
+              . join('; ', @$why));
+    my $whole_err = oclone($bad_err);
+    oset($whole_err, 'id', jstr('prediction_error:' . $hexid));
+    ($ok2, $why) = validate_schema($whole_err, 'prediction_error');
+    ok_or($ok2, 'the whole-word prediction_error validates: '
+              . join('; ', @$why));
+}
+
+# ---------------------------------------------------------------------------
 my %VECTORS = (
     1 => \&v01,  2 => \&v02,  3 => \&v03,  4 => \&v04,  5 => \&v05,
     6 => \&v06,  7 => \&v07,  8 => \&v08,  9 => \&v09,  10 => \&v10,
@@ -1426,16 +1938,25 @@ my %VECTORS = (
     95 => \&v95, 96 => \&v96, 97 => \&v97, 98 => \&v98, 99 => \&v99,
     100 => \&v100, 101 => \&v101, 102 => \&v102, 103 => \&v103,
     104 => \&v104, 105 => \&v105, 106 => \&v106, 107 => \&v107,
+    108 => \&v108, 109 => \&v109, 110 => \&v110, 111 => \&v111,
+    112 => \&v112, 113 => \&v113, 114 => \&v114, 115 => \&v115,
+    116 => \&v116, 117 => \&v117, 118 => \&v118, 119 => \&v119,
+    120 => \&v120, 121 => \&v121, 122 => \&v122, 123 => \&v123,
+    124 => \&v124, 125 => \&v125, 126 => \&v126, 127 => \&v127,
+    128 => \&v128, 129 => \&v129, 130 => \&v130, 131 => \&v131,
+    132 => \&v132, 133 => \&v133, 134 => \&v134, 135 => \&v135,
+    136 => \&v136, 137 => \&v137,
 );
 
 sub main {
     my $t0 = time;
-    print "causalontology-perl conformance run\n";
+    print "causalontology-perl conformance run (specification 4.0.0)\n";
     print 'internal checks (RFC 8032 known-answer, RFC 8785 basics) ... ';
     internal_checks();
     print "ok\n";
     my $failures = 0;
-    for my $n (1 .. 107) {
+    my $total = 137;
+    for my $n (1 .. $total) {
         my $name = vec_name($n);
         my $result = eval { $VECTORS{$n}->(); 1 };
         if ($result) {
@@ -1450,13 +1971,12 @@ sub main {
             printf "FAIL  %s :: %s\n", $name, $e;
         }
     }
-    my $total = 107;
     print '-' x 60, "\n";
     printf "%d/%d vectors passed\n", $total - $failures, $total;
     printf "total runtime: %.1f s\n", time - $t0;
     exit 1 if $failures;
     print "causalontology-perl is CONFORMANT to the suite "
-        . "(vectors frozen at specification 2.0.0).\n";
+        . "(vectors frozen at specification 4.0.0).\n";
 }
 
 main();

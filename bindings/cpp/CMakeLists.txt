@@ -6,7 +6,7 @@
 # The conformance runner is opt-in (-DCAUSALONTOLOGY_BUILD_CONFORMANCE=ON)
 # and needs the repository's conformance/vectors alongside this tree.
 cmake_minimum_required(VERSION 3.16)
-project(causalontology VERSION 1.0.2 LANGUAGES CXX)
+project(causalontology VERSION 4.0.0 LANGUAGES CXX)
 
 option(CAUSALONTOLOGY_BUILD_CONFORMANCE "Build the conformance runner" OFF)
 

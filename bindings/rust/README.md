@@ -6,18 +6,18 @@ and the WebAssembly core.**
 ```
 cargo run --bin conformance
 ...
-107/107 vectors passed
-causalontology-rust is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
+137/137 vectors passed
+causalontology-rust is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
 Dependencies are the ecosystem-vetted primitives only (`sha2`,
 `ed25519-dalek`, `serde_json`, `regex`) — the standard's rule is *passes all
-107 vectors*, and hand-rolled curve math in a systems language is a
+137 vectors*, and hand-rolled curve math in a systems language is a
 vulnerability, not a virtue.
 
 ## The WebAssembly core — one audited binary, every host
 
-The seventeen JSON Schemas are embedded at compile time (`include_str!`), so the
+The twenty-one JSON Schemas are embedded at compile time (`include_str!`), so the
 library does no filesystem access at run time and compiles unchanged to
 `wasm32-unknown-unknown`:
 

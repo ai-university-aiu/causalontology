@@ -68,12 +68,66 @@ const succession: co.Succession = {
   timestamp: "2026-07-13T00:00:00Z",
 };
 
+const seam: co.CrossStratalSeam = {
+  source: "occurrent:" + hex64,
+  target: "occurrent:" + hex64,
+  mechanism_status: "unmodeled",
+  chain: ["occurrent:" + hex64],
+};
+
+const conduit: co.Conduit = {
+  label: "corticospinal_tract",
+  from: "port:" + hex64,
+  to: "port:" + hex64,
+  carries: ["occurrent:" + hex64],
+  realized_by: "native:region_stratum_predict",
+};
+
+const attitude: co.Attitude = {
+  holder: "token_individual:" + hex64,
+  attitude_type: "believes",
+  content: "state_assertion:" + hex64,
+};
+
+const tickPrediction: co.PredictedOccurrence = {
+  instantiates: "occurrent:" + hex64,
+  interval: { start_tick: 3, end_tick: 8 },
+  predictor: "token_individual:" + hex64,
+  strength: 0.8,
+};
+
+const wallPrediction: co.PredictedOccurrence = {
+  instantiates: "occurrent:" + hex64,
+  interval: { start: "2026-07-23T00:00:00Z", end: "2026-07-24T00:00:00Z" },
+  predictor: "continuant:" + hex64,
+};
+
+const predictionError: co.PredictionError = {
+  predicted: "predicted_occurrence:" + hex64,
+  observed: "token_occurrence:" + hex64,
+  discrepancy: 0,
+};
+
+const tickWindow: co.TemporalWindow = {
+  minimum_delay: 0,
+  maximum_delay: 5,
+  unit: "ticks",
+};
+
 /* One wrong shape must be rejected: a Modality typo. */
 const badCro: co.CausalRelationObject = {
   causes: ["occurrent:" + hex64],
   effects: ["occurrent:" + hex64],
   // @ts-expect-error "sufficent" is not a Modality
   modality: "sufficent",
+};
+
+/* And an AttitudeType outside the CLOSED enumeration must be rejected. */
+const badAttitude: co.Attitude = {
+  holder: "token_individual:" + hex64,
+  // @ts-expect-error "suspects" is not an AttitudeType
+  attitude_type: "suspects",
+  content: "occurrent:" + hex64,
 };
 
 /* ---------------------------------------------------------------- *
@@ -130,6 +184,30 @@ const verdictFromRecord: co.HierarchyVerdict = co.hierarchyConsistent(cro, {
 
 const monthSeconds: number = co.UNIT_SECONDS.months;
 const instantSeconds: number = co.UNIT_SECONDS.instant;
+const ordinalUnits: ReadonlySet<string> = co.ORDINAL_UNITS;
+
+/* The 3.0.0 and 4.0.0 helpers over the new shapes. */
+const stratumMaps: Record<string, { scheme: string; ordinal: number }> = {};
+const occMaps: Record<string, { stratum?: string }> = {};
+
+const [seamOk, seamReason] = co.seamWellformed(seam, occMaps, stratumMaps);
+const seamOkTyped: boolean = seamOk;
+const seamReasonTyped: string = seamReason;
+
+const home: string | null = co.seamHome(seam, occMaps, stratumMaps);
+
+const [conduitOk, conduitReason] = co.conduitWellformed(conduit, {});
+const conduitOkTyped: boolean = conduitOk;
+const conduitReasonTyped: string = conduitReason;
+
+const tickAdmissible: boolean = co.admissible(
+  { ...cro, temporal: tickWindow }, 3);
+
+const withinTicks: boolean = co.delayWithinWindow(
+  { duration: 3, unit: "ticks" }, tickWindow);
+
+const paired: boolean = co.predictionPairingMismatch(
+  predictionError, tickPrediction, null);
 
 /* ---------------------------------------------------------------- *
  * Signing                                                           *

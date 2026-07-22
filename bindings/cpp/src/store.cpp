@@ -17,7 +17,13 @@ namespace {
 
 bool isContentKind(const std::string& kind) {
     return kind == "occurrent" || kind == "causal_relation_object" || kind == "continuant" ||
-           kind == "realizable";
+           kind == "realizable" || kind == "stratum" || kind == "bridge" ||
+           kind == "cross_stratal_seam" || kind == "port" ||
+           kind == "conduit" || kind == "quality" ||
+           kind == "token_individual" || kind == "token_occurrence" ||
+           kind == "state_assertion" || kind == "token_causal_claim" ||
+           kind == "attitude" || kind == "predicted_occurrence" ||
+           kind == "prediction_error";
 }
 
 bool isRecordKind(const std::string& kind) {

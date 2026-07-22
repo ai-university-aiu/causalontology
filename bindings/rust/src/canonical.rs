@@ -5,8 +5,13 @@
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 
-/// The identity-bearing fields of each of the seventeen kinds (2.0.0, P7).
-/// "type" is always injected, so it is not listed here.
+/// The identity-bearing fields of each of the twenty-one kinds (3.0.0 adds
+/// the cross_stratal_seam; the conduit gains realized_by; 4.0.0 adds the
+/// attitude, the predicted_occurrence, and the prediction_error - all
+/// additive and identity-preserving - a record that omits a new field keeps
+/// its earlier identifier byte-for-byte, and the new kinds open new identity
+/// schemes that disturb no existing record). "type" is always injected, so it
+/// is not listed here.
 pub fn identity_fields(kind: &str) -> Option<&'static [&'static str]> {
     match kind {
         // ---- type tier ----
@@ -17,9 +22,12 @@ pub fn identity_fields(kind: &str) -> Option<&'static [&'static str]> {
         "realizable" => Some(&["kind", "bearer", "label"]),
         "stratum" => Some(&["label", "scheme", "ordinal", "unit", "governs"]),
         "bridge" => Some(&["coarse", "fine", "relation"]),
+        "cross_stratal_seam" => Some(&["source", "target", "mechanism_status",
+                                       "chain"]),
         "port" => Some(&["bearer", "label", "direction", "accepts",
                          "realizable"]),
-        "conduit" => Some(&["label", "from", "to", "carries", "transform"]),
+        "conduit" => Some(&["label", "from", "to", "carries", "transform",
+                            "realized_by"]),
         "quality" => Some(&["label", "datatype", "unit", "stratum"]),
         // ---- token tier ----
         "token_individual" => Some(&["instantiates", "designator", "part_of"]),
@@ -28,6 +36,10 @@ pub fn identity_fields(kind: &str) -> Option<&'static [&'static str]> {
         "state_assertion" => Some(&["subject", "quality", "value", "interval"]),
         "token_causal_claim" => Some(&["causes", "effects", "covering_law",
                                        "actual_delay", "counterfactual"]),
+        "attitude" => Some(&["holder", "attitude_type", "content"]),
+        "predicted_occurrence" => Some(&["instantiates", "interval",
+                                         "predictor", "strength"]),
+        "prediction_error" => Some(&["predicted", "observed", "discrepancy"]),
         // ---- provenance tier ----
         "assertion" => Some(&["about", "source", "evidence_type", "evidence",
                               "strength", "confidence", "timestamp",
@@ -40,12 +52,13 @@ pub fn identity_fields(kind: &str) -> Option<&'static [&'static str]> {
     }
 }
 
-/// The seventeen whole-word schemes. scheme == type value == id prefix.
-pub const SCHEMES: [&str; 17] = [
+/// The twenty-one whole-word schemes. scheme == type value == id prefix.
+pub const SCHEMES: [&str; 21] = [
     "occurrent", "causal_relation_object", "continuant", "realizable",
-    "stratum", "bridge", "port", "conduit", "quality",
+    "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality",
     "token_individual", "token_occurrence", "state_assertion",
-    "token_causal_claim", "assertion", "enrichment", "retraction",
+    "token_causal_claim", "attitude", "predicted_occurrence",
+    "prediction_error", "assertion", "enrichment", "retraction",
     "succession",
 ];
 

@@ -506,9 +506,10 @@ hold; the status is the truthful state as of 2026-07-22, the day the 4.0.0
 specification froze):
 
   [ ] C++        - v4.0.0 tag tarball out; ports at 4.0.0; fresh build 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level. The C++ toolchain
-                   (g++, CMake) IS present on the build machine; the vcpkg and
-                   Conan ports besides await their CLA gates.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
+                   passes 137/137 (warning-free build, zero dependencies kept)
+                   and reads 4.0.0; the v4.0.0 tag tarball is not yet out, and
+                   the vcpkg and Conan ports besides await their CLA gates.
   [ ] C#         - published to NuGet; fresh install 137/137.
                    STATUS: PENDING - code at the 2.0.0 level; toolchain not
                    present on the build machine.
@@ -530,8 +531,9 @@ specification froze):
                    STATUS: PENDING - code at the 2.0.0 level; toolchain not
                    present on the build machine.
   [ ] JavaScript - published to npm; types reflect the 4.0.0 shape; 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level. The toolchain
-                   (node, npm) IS present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
+                   passes 137/137 and reads 4.0.0; npm still carries 2.0.0;
+                   only publication and the fresh-install check remain.
   [ ] Julia      - registered in General at 4.0.0; fresh add 137/137.
                    STATUS: PENDING - code at the 2.0.0 level; toolchain not
                    present on the build machine; the contested General-registry
@@ -543,9 +545,10 @@ specification froze):
                    STATUS: PENDING - code at the 2.0.0 level; toolchain not
                    present on the build machine.
   [ ] Perl       - uploaded to CPAN via PAUSE; fresh install 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level. The toolchain
-                   (perl) IS present on the build machine; the PAUSE web-form
-                   upload stands besides.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
+                   passes 137/137 and reads 4.0.0; nothing is on CPAN yet;
+                   the PAUSE web-form upload stands besides, then the
+                   fresh-install check.
   [ ] PHP        - v4.0.0 tag registered on Packagist; fresh require 137/137.
                    STATUS: PENDING - code at the 2.0.0 level; toolchain not
                    present on the build machine.
@@ -562,8 +565,9 @@ specification froze):
                    STATUS: PENDING - code at the 2.0.0 level; toolchain not
                    present on the build machine.
   [ ] Rust       - published to crates.io; fresh install 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level. The toolchain
-                   (cargo, rustc) IS present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
+                   passes 137/137 and reads 4.0.0; crates.io still carries
+                   2.0.0; only publication and the fresh-install check remain.
   [ ] Swift      - v4.0.0 tag pushed; fresh resolve 137/137.
                    STATUS: PENDING - code at the 2.0.0 level (Swift Package
                    Manager currently resolves to v2.0.1); toolchain not

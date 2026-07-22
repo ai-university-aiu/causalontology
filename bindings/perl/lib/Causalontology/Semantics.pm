@@ -19,8 +19,9 @@ our @EXPORT_OK = qw(
     validate_semantics is_partial admissible conflicts refinement_valid
     hierarchy_consistent bridge_closure classify_cro endpoints_mixed
     skip_gaps to_seconds delay_within_window bridge_wellformed
-    conduit_wellformed state_gaps covering_law_mismatch retrocausal has_cycle
-    %UNIT_SECONDS %ENRICHMENT_FIELDS @CRO_OPTIONAL_FIELDS
+    seam_wellformed seam_home conduit_wellformed state_gaps
+    covering_law_mismatch prediction_pairing_mismatch retrocausal has_cycle
+    %UNIT_SECONDS %ORDINAL_UNITS %ENRICHMENT_FIELDS @CRO_OPTIONAL_FIELDS
 );
 
 # Rule 4: the fixed unit-conversion constants (average Gregorian values).
@@ -34,6 +35,27 @@ our %UNIT_SECONDS = (
     months  => 2629746,
     years   => 31556952,
 );
+
+# 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete step
+# with NO wall-clock mapping; a tick window is ordered by integer comparison,
+# and an ordinal window and a wall-clock window are DIFFERENT DIMENSIONS that do
+# not compare (mixing them is never within-window and never overlapping).
+our %ORDINAL_UNITS = (ticks => 1);
+
+# 'ordinal' for a tick-like unit, else 'wallclock'.
+sub _dimension {
+    my ($unit) = @_;
+    return $ORDINAL_UNITS{$unit} ? 'ordinal' : 'wallclock';
+}
+
+# A comparable magnitude within ONE dimension: raw tick count for an ordinal
+# unit, seconds for a wall-clock unit. Never mix dimensions.
+sub _magnitude {
+    my ($value, $unit) = @_;
+    return $value if $ORDINAL_UNITS{$unit};   # a dimensionless tick count
+    return 0 if $unit eq 'instant';
+    return $value * $UNIT_SECONDS{$unit};
+}
 
 # Rule 12: enrichment field-to-kind validity and entry shapes. Two occurrent
 # forms added in 2.0.0.
@@ -125,6 +147,43 @@ sub validate_semantics {
         }
     }
 
+    # 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain has,
+    # by drawing it, a modelled intervening mechanism - so mechanism_status
+    # 'absent' contradicts a present chain (the honest-ignorance distinction
+    # must stay honest). The stratal well-formedness (non-adjacency, adjacency
+    # of chain steps, scheme, the home rule) needs the strata map and lives in
+    # seam_wellformed, exactly as bridge well-formedness does.
+    if ($kind eq 'cross_stratal_seam') {
+        if (ohas($obj, 'chain')
+                && ohas($obj, 'mechanism_status')
+                && sval(oget($obj, 'mechanism_status')) eq 'absent') {
+            push @errors, 'contradictory_seam: a drawn chain cannot carry '
+                . "mechanism_status 'absent' (a drawn mechanism is not absent)";
+        }
+    }
+
+    # 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+    # exactly ONE temporal dimension - a wall-clock start (optional end) or an
+    # ordinal start_tick (optional end_tick), never both and never neither.
+    # Per Rule 23 the two dimensions never compare. The pairing check of a
+    # prediction_error against its predicted_occurrence and its observed
+    # token_occurrence needs those objects and lives in
+    # prediction_pairing_mismatch, exactly as covering_law_mismatch does.
+    if ($kind eq 'predicted_occurrence') {
+        my $iv = ohas($obj, 'interval') ? oget($obj, 'interval') : undef;
+        my $wall = (defined $iv && is_obj($iv) && ohas($iv, 'start')) ? 1 : 0;
+        my $tick = (defined $iv && is_obj($iv) && ohas($iv, 'start_tick')) ? 1 : 0;
+        if ($wall && $tick) {
+            push @errors, 'dimension_conflict: a predicted interval must '
+                . 'carry exactly one temporal dimension, not a '
+                . 'wall-clock start AND an ordinal start_tick';
+        }
+        if (!$wall && !$tick) {
+            push @errors, 'missing_dimension: a predicted interval must '
+                . 'carry a wall-clock start or an ordinal start_tick';
+        }
+    }
+
     return ((@errors ? 0 : 1), \@errors);
 }
 
@@ -135,15 +194,17 @@ sub is_partial {
     return ((@missing ? 1 : 0), \@missing);
 }
 
-# Rule 4: temporal admissibility with the fixed constants.
+# Rule 4: temporal admissibility. For a wall-clock window $elapsed is in
+# seconds; for an ordinal ('ticks') window $elapsed is a tick count. Ordering is
+# by magnitude WITHIN the window's own dimension (3.0.0).
 sub admissible {
-    my ($cro, $elapsed_seconds) = @_;
+    my ($cro, $elapsed) = @_;
     return 1 unless ohas($cro, 'temporal');  # no window, no constraint
     my $t = oget($cro, 'temporal');
-    my $unit = $UNIT_SECONDS{ sval(oget($t, 'unit')) };
-    my $lo = nval(oget($t, 'minimum_delay')) * $unit;
-    my $hi = nval(oget($t, 'maximum_delay')) * $unit;
-    return ($lo <= $elapsed_seconds && $elapsed_seconds <= $hi) ? 1 : 0;
+    my $unit = sval(oget($t, 'unit'));
+    my $lo = _magnitude(nval(oget($t, 'minimum_delay')), $unit);
+    my $hi = _magnitude(nval(oget($t, 'maximum_delay')), $unit);
+    return ($lo <= $elapsed && $elapsed <= $hi) ? 1 : 0;
 }
 
 # do two temporal windows overlap? (either absent counts as overlapping)
@@ -151,12 +212,13 @@ sub _window_overlap {
     my ($a, $b) = @_;
     return 1 unless ohas($a, 'temporal') && ohas($b, 'temporal');
     my ($ta, $tb) = (oget($a, 'temporal'), oget($b, 'temporal'));
-    my $ua = $UNIT_SECONDS{ sval(oget($ta, 'unit')) };
-    my $ub = $UNIT_SECONDS{ sval(oget($tb, 'unit')) };
-    my ($lo_a, $hi_a) = (nval(oget($ta, 'minimum_delay')) * $ua,
-                         nval(oget($ta, 'maximum_delay')) * $ua);
-    my ($lo_b, $hi_b) = (nval(oget($tb, 'minimum_delay')) * $ub,
-                         nval(oget($tb, 'maximum_delay')) * $ub);
+    my ($ua, $ub) = (sval(oget($ta, 'unit')), sval(oget($tb, 'unit')));
+    # 3.0.0: an ordinal window and a wall-clock window never overlap
+    return 0 if _dimension($ua) ne _dimension($ub);
+    my ($lo_a, $hi_a) = (_magnitude(nval(oget($ta, 'minimum_delay')), $ua),
+                         _magnitude(nval(oget($ta, 'maximum_delay')), $ua));
+    my ($lo_b, $hi_b) = (_magnitude(nval(oget($tb, 'minimum_delay')), $ub),
+                         _magnitude(nval(oget($tb, 'maximum_delay')), $ub));
     return ($lo_a <= $hi_b && $lo_b <= $hi_a) ? 1 : 0;
 }
 
@@ -419,23 +481,31 @@ sub skip_gaps {
 }
 
 # ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+# 3.0.0: an ordinal ('ticks') unit is dimensionless and has NO wall-clock
+# mapping - converting one to seconds is a category error and is refused.
 sub to_seconds {
     my ($duration, $unit) = @_;
+    die "'$unit' is an ordinal (dimensionless) unit and has no "
+      . "wall-clock seconds mapping\n" if $ORDINAL_UNITS{$unit};
     return 0 if $unit eq 'instant';
     return $duration * $UNIT_SECONDS{$unit};
 }
 
 # ALGORITHM E (Rule 20): does an observed delay fall within a covering law's
-# temporal window? Inclusive at both ends (N12.5.2).
+# temporal window? Inclusive at both ends (N12.5.2). 3.0.0: an ordinal delay
+# compares to an ordinal window by integer tick count; an ordinal delay and a
+# wall-clock window (or vice versa) are different dimensions and never fall
+# within one another.
 sub delay_within_window {
     my ($actual_delay, $temporal) = @_;
     return 1 unless $actual_delay && $temporal;  # nothing to check
-    my $observed = to_seconds(nval(oget($actual_delay, 'duration')),
-                              sval(oget($actual_delay, 'unit')));
-    my $lo = to_seconds(nval(oget($temporal, 'minimum_delay')),
-                        sval(oget($temporal, 'unit')));
-    my $hi = to_seconds(nval(oget($temporal, 'maximum_delay')),
-                        sval(oget($temporal, 'unit')));
+    my $du = sval(oget($actual_delay, 'unit'));
+    my $tu = sval(oget($temporal, 'unit'));
+    # dimension mismatch: a tick delay is not within a wall-clock window
+    return 0 if _dimension($du) ne _dimension($tu);
+    my $observed = _magnitude(nval(oget($actual_delay, 'duration')), $du);
+    my $lo = _magnitude(nval(oget($temporal, 'minimum_delay')), $tu);
+    my $hi = _magnitude(nval(oget($temporal, 'maximum_delay')), $tu);
     return ($lo <= $observed && $observed <= $hi) ? 1 : 0;
 }
 
@@ -464,6 +534,76 @@ sub bridge_wellformed {
         return (0, 'malformed_bridge: coarse ordinal not > fine ordinal (e)');
     }
     return (1, 'well-formed bridge');
+}
+
+# 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness. (ok, reason).
+# All of (a)-(g) must hold, else malformed_seam. A seam is a MANAGED jump across
+# NON-ADJACENT strata; when it DRAWS a chain, the chain must be an
+# adjacent-stratum path spanning the two endpoints' strata.
+sub seam_wellformed {
+    my ($seam, $occ_map, $stratum_map) = @_;
+    my $src_s = _stratum_of($occ_map, sval(oget($seam, 'source')));
+    my $tgt_s = _stratum_of($occ_map, sval(oget($seam, 'target')));
+    return (0, 'malformed_seam: an endpoint has no stratum (a)')
+        unless defined $src_s && defined $tgt_s;
+    if (sval(oget($stratum_map->{$src_s}, 'scheme'))
+            ne sval(oget($stratum_map->{$tgt_s}, 'scheme'))) {
+        return (0, 'malformed_seam: endpoints differ in scheme (b)');
+    }
+    my $so = nval(oget($stratum_map->{$src_s}, 'ordinal'));
+    my $to_ = nval(oget($stratum_map->{$tgt_s}, 'ordinal'));
+    if (abs($so - $to_) <= 1) {
+        return (0, 'malformed_seam: endpoints are adjacent or co-stratal; '
+                 . 'a seam is for NON-adjacent strata (c)');
+    }
+    if (ohas($seam, 'chain')) {
+        if (ohas($seam, 'mechanism_status')
+                && sval(oget($seam, 'mechanism_status')) eq 'absent') {
+            return (0, 'malformed_seam: a drawn chain contradicts '
+                     . "mechanism_status 'absent' (d)");
+        }
+        my ($lo, $hi) = (min($so, $to_), max($so, $to_));
+        my @ords;
+        for my $oid (map { sval($_) } aitems(oget($seam, 'chain'))) {
+            my $st = _stratum_of($occ_map, $oid);
+            return (0, 'malformed_seam: a chain member has no stratum (e)')
+                unless defined $st;
+            if (sval(oget($stratum_map->{$st}, 'scheme'))
+                    ne sval(oget($stratum_map->{$src_s}, 'scheme'))) {
+                return (0, 'malformed_seam: a chain member differs in scheme (e)');
+            }
+            push @ords, nval(oget($stratum_map->{$st}, 'ordinal'));
+        }
+        for my $o (@ords) {
+            unless ($lo < $o && $o < $hi) {
+                return (0, 'malformed_seam: a chain member is not at an '
+                     . 'INTERVENING stratum, strictly between the endpoints (f)');
+            }
+        }
+        my @diffs = map { $ords[$_ + 1] - $ords[$_] } 0 .. ($#ords - 1);
+        if (@diffs) {
+            my $all_pos = !grep { $_ <= 0 } @diffs;
+            my $all_neg = !grep { $_ >= 0 } @diffs;
+            unless ($all_pos || $all_neg) {
+                return (0, 'malformed_seam: chain is not strictly monotone from '
+                         . 'one endpoint toward the other (g)');
+            }
+        }
+    }
+    return (1, 'well-formed cross_stratal_seam');
+}
+
+# THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST stratum it
+# touches - the endpoint of the greater ordinal. Returns that stratum's
+# identifier (undef if an endpoint is unstratified).
+sub seam_home {
+    my ($seam, $occ_map, $stratum_map) = @_;
+    my $src_s = _stratum_of($occ_map, sval(oget($seam, 'source')));
+    my $tgt_s = _stratum_of($occ_map, sval(oget($seam, 'target')));
+    return undef unless defined $src_s && defined $tgt_s;
+    return (nval(oget($stratum_map->{$src_s}, 'ordinal'))
+            >= nval(oget($stratum_map->{$tgt_s}, 'ordinal')))
+        ? $src_s : $tgt_s;
 }
 
 # Rule 17 / N4.2.1-2: Conduit well-formedness. (ok, reason).
@@ -552,6 +692,17 @@ sub covering_law_mismatch {
         return 1 unless $law_effects{$inst};
     }
     return 0;
+}
+
+# 4.0.0 Rule 24: prediction-to-observation pairing. True iff the prediction
+# error's observed token does not instantiate the occurrent its
+# predicted_occurrence instantiates. An ABSENT observed is never a mismatch - it
+# means the predicted occurrence was not fulfilled by any recorded occurrence.
+sub prediction_pairing_mismatch {
+    my ($error, $predicted, $observed) = @_;
+    return 0 unless ohas($error, 'observed') && defined $observed;
+    return (sval(oget($observed, 'instantiates'))
+            ne sval(oget($predicted, 'instantiates'))) ? 1 : 0;
 }
 
 # Rule 21: temporal coherence of token causation. True iff any cause token

@@ -21,19 +21,19 @@ C++17 compiler**; compiles clean with `-Wall -Wextra`.
 | `src/bignum.hpp/.cpp` | the arbitrary-precision magnitude layer: `std::vector<uint64_t>` limbs, `unsigned __int128` products, add/sub/cmp/mul, shift-subtract modular reduction, square-and-multiply modpow, Fermat inversion via modpow - cross-checked against Python big integers on hundreds of random operands during development |
 | `src/ed25519.hpp/.cpp` | Ed25519 (RFC 8032) ported from the Python reference over the bignum: the twisted Edwards group in extended coordinates, a fast fold reduction mod 2^255-19, deterministic signing and verification; Python's floored `%` is handled by keeping every field expression non-negative (`a - b mod p` is computed as `a + p - b`); gated on the RFC 8032 TEST 1 known answer before any vector runs |
 | `src/canonical.hpp/.cpp` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
-| `src/schema.hpp/.cpp` | validation against the seventeen JSON Schemas in `spec/schema/` - a small interpreter for exactly the keywords those schemas use (type, const, enum, pattern, required, properties, additionalProperties, items, minItems, minLength, minimum, maximum, oneOf, local `$ref`), with `std::regex` for the schemas' simple, ECMAScript-compatible patterns |
-| `src/semantics.hpp/.cpp` | the 21 semantic rules: temporal admissibility with the fixed unit constants (months = 2,629,746 s, years = 31,556,952 s), the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
+| `src/schema.hpp/.cpp` | validation against the twenty-one JSON Schemas in `spec/schema/` - a small interpreter for exactly the keywords those schemas use (type, const, enum, pattern, required, properties, additionalProperties, items, minItems, minLength, minimum, maximum, oneOf, local `$ref`), with `std::regex` for the schemas' simple, ECMAScript-compatible patterns |
+| `src/semantics.hpp/.cpp` | the 25 semantic rules: temporal admissibility with the fixed unit constants (months = 2,629,746 s, years = 31,556,952 s) and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `src/signing.hpp/.cpp` | record-level `sign_record()` / `verify_record()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
 | `src/store.hpp/.cpp` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors (canonical-entry dedup), retraction and succession lineage, the resolve minimum (label before alias), the deterministic cycle-breaking view rule (index-based removal, max-(timestamp, id) exclusion), and the stigmergy `gaps()` read with its five gap kinds - with explicit insertion-order association vectors everywhere the Python iterates dicts |
-| `conformance.cpp` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.cpp` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ bash bindings/cpp/run_conformance.sh
 ...
-107/107 vectors passed
-causalontology-cpp is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
+137/137 vectors passed
+causalontology-cpp is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
 The script compiles `src/*.cpp` and `conformance.cpp` with
@@ -44,11 +44,11 @@ otherwise by walking up from the working directory until it finds
 `conformance/vectors`; the schemas are read from `spec/schema` under the
 same root (overridable with `CAUSALONTOLOGY_SPEC`).
 
-The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
-concrete identifiers, real keys, and a real verifying signature. The
-harness's old normalization now simply passes frozen values through;
-behavioral vectors derive deterministic keypairs from the seed
-`sha256("key:" + name)`.
+The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
+V01-V137): they carry concrete identifiers, real keys, and a real
+verifying signature. The harness's old normalization now simply passes
+frozen values through; behavioral vectors derive deterministic keypairs
+from the seed `sha256("key:" + name)`.
 
 A `CMakeLists.txt` is provided for downstream consumers
 (`add_subdirectory`, link `causalontology`); `run_conformance.sh` does
@@ -86,7 +86,7 @@ size_t open_gaps = store.gaps("missing_field").size();
 ## Status
 
 Source complete, ported line-for-line from the Python binding, and
-**verified locally**: g++ 13.3 runs the suite at 107/107, the bignum layer
+**verified locally**: g++ 13.3 runs the suite at 137/137, the bignum layer
 is cross-checked against Python big-integer arithmetic (361
 random-operand cases across add/sub/mul/mod/modpow/modinv and the shift
 family, zero mismatches), record signing is cross-checked

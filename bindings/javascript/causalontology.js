@@ -15,7 +15,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const VERSION = "2.0.0"; // tracks specification version 2.0.0 (whole-word)
+const VERSION = "4.0.0"; // specification 4.0.0 (attitude, predicted_occurrence, prediction_error)
 
 /* ===========================================================================
  * Canonicalization and content-addressed identity (spec/identity.md)
@@ -31,6 +31,12 @@ const VERSION = "2.0.0"; // tracks specification version 2.0.0 (whole-word)
  * JSON.stringify for primitives, so JavaScript gets it natively.
  */
 
+// The identity-bearing fields of each of the twenty-one kinds (3.0.0 adds the
+// cross_stratal_seam; the conduit gains realized_by; 4.0.0 adds the attitude,
+// the predicted_occurrence, and the prediction_error - all additive and
+// identity-preserving - a record that omits a new field keeps its earlier
+// identifier byte-for-byte, and the new kinds open new identity schemes that
+// disturb no existing record).
 const IDENTITY_FIELDS = {
   // ---- type tier ----
   occurrent: ["label", "category", "stratum"],
@@ -40,8 +46,9 @@ const IDENTITY_FIELDS = {
   realizable: ["kind", "bearer", "label"],
   stratum: ["label", "scheme", "ordinal", "unit", "governs"],
   bridge: ["coarse", "fine", "relation"],
+  cross_stratal_seam: ["source", "target", "mechanism_status", "chain"],
   port: ["bearer", "label", "direction", "accepts", "realizable"],
-  conduit: ["label", "from", "to", "carries", "transform"],
+  conduit: ["label", "from", "to", "carries", "transform", "realized_by"],
   quality: ["label", "datatype", "unit", "stratum"],
   // ---- token tier ----
   token_individual: ["instantiates", "designator", "part_of"],
@@ -50,6 +57,10 @@ const IDENTITY_FIELDS = {
   state_assertion: ["subject", "quality", "value", "interval"],
   token_causal_claim: ["causes", "effects", "covering_law",
                        "actual_delay", "counterfactual"],
+  attitude: ["holder", "attitude_type", "content"],
+  predicted_occurrence: ["instantiates", "interval", "predictor",
+                         "strength"],
+  prediction_error: ["predicted", "observed", "discrepancy"],
   // ---- provenance tier ----
   assertion: ["about", "source", "evidence_type", "evidence", "strength",
               "confidence", "timestamp", "evidenced_by"],
@@ -272,7 +283,7 @@ function verifyRecord(record, kind) {
  * Schema validation against spec/schema/*.schema.json
  * ===========================================================================
  * A deliberately small interpreter for exactly the JSON Schema keywords the
- * eight Causalontology schemas use: type, const, enum, pattern, required,
+ * twenty-one Causalontology schemas use: type, const, enum, pattern, required,
  * properties, additionalProperties, items, minItems, minLength, minimum,
  * maximum, oneOf, and local $ref (#/$defs/...). "format" is treated as an
  * annotation, as the 2020-12 draft does by default.
@@ -287,6 +298,7 @@ const SCHEMA_FILES = {
   realizable: "realizable.schema.json",
   stratum: "stratum.schema.json",
   bridge: "bridge.schema.json",
+  cross_stratal_seam: "cross_stratal_seam.schema.json",
   port: "port.schema.json",
   conduit: "conduit.schema.json",
   quality: "quality.schema.json",
@@ -294,6 +306,9 @@ const SCHEMA_FILES = {
   token_occurrence: "token.schema.json",
   state_assertion: "state.schema.json",
   token_causal_claim: "token_causal_claim.schema.json",
+  attitude: "attitude.schema.json",
+  predicted_occurrence: "predicted_occurrence.schema.json",
+  prediction_error: "prediction_error.schema.json",
   assertion: "assertion.schema.json",
   enrichment: "enrichment.schema.json",
   retraction: "retraction.schema.json",
@@ -497,6 +512,26 @@ const UNIT_SECONDS = {
   years: 31556952,
 };
 
+// 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete
+// step with NO wall-clock mapping; a tick window is ordered by integer
+// comparison, and an ordinal window and a wall-clock window are DIFFERENT
+// DIMENSIONS that do not compare (mixing them is never within-window and
+// never overlapping).
+const ORDINAL_UNITS = new Set(["ticks"]);
+
+/** 'ordinal' for a tick-like unit, else 'wallclock'. */
+function dimension(unit) {
+  return ORDINAL_UNITS.has(unit) ? "ordinal" : "wallclock";
+}
+
+/** A comparable magnitude within ONE dimension: raw tick count for an
+ * ordinal unit, seconds for a wall-clock unit. Never mix dimensions. */
+function magnitude(value, unit) {
+  if (ORDINAL_UNITS.has(unit)) return value; // a dimensionless tick count
+  if (unit === "instant") return 0;
+  return value * UNIT_SECONDS[unit];
+}
+
 // Rule 12: enrichment field-to-kind validity and entry shapes.
 const ENRICHMENT_FIELDS = {
   aliases: [["occurrent", "continuant"], "alias"],
@@ -567,6 +602,41 @@ function validateSemantics(obj, kind) {
     }
   }
 
+  // 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain has,
+  // by drawing it, a modelled intervening mechanism - so mechanism_status
+  // 'absent' contradicts a present chain (the honest-ignorance distinction
+  // must stay honest). The stratal well-formedness (non-adjacency, adjacency
+  // of chain steps, scheme, the home rule) needs the strata map and lives in
+  // seamWellformed, exactly as bridge well-formedness does.
+  if (kind === "cross_stratal_seam") {
+    if (obj.chain != null && obj.mechanism_status === "absent") {
+      errors.push("contradictory_seam: a drawn chain cannot carry " +
+        "mechanism_status 'absent' (a drawn mechanism is not absent)");
+    }
+  }
+
+  // 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+  // exactly ONE temporal dimension - a wall-clock start (optional end) or an
+  // ordinal start_tick (optional end_tick), never both and never neither.
+  // Per Rule 23 the two dimensions never compare. The pairing check of a
+  // prediction_error against its predicted_occurrence and its observed
+  // token_occurrence needs those objects and lives in
+  // predictionPairingMismatch, exactly as coveringLawMismatch does.
+  if (kind === "predicted_occurrence") {
+    const iv = obj.interval || {};
+    const wall = "start" in iv;
+    const tick = "start_tick" in iv;
+    if (wall && tick) {
+      errors.push("dimension_conflict: a predicted interval must " +
+        "carry exactly one temporal dimension, not a " +
+        "wall-clock start AND an ordinal start_tick");
+    }
+    if (!wall && !tick) {
+      errors.push("missing_dimension: a predicted interval must " +
+        "carry a wall-clock start or an ordinal start_tick");
+    }
+  }
+
   return [errors.length === 0, errors];
 }
 
@@ -576,22 +646,27 @@ function isPartial(cro) {
   return [missing.length > 0, missing];
 }
 
-/** Rule 4: temporal admissibility with the fixed constants. */
-function admissible(cro, elapsedSeconds) {
+/** Rule 4: temporal admissibility. For a wall-clock window `elapsed` is in
+ * seconds; for an ordinal ('ticks') window `elapsed` is a tick count.
+ * Ordering is by magnitude WITHIN the window's own dimension (3.0.0). */
+function admissible(cro, elapsed) {
   const t = cro.temporal;
   if (t == null) return true; // no window imposes no constraint
-  const unit = UNIT_SECONDS[t.unit];
-  const lo = t.minimum_delay * unit;
-  const hi = t.maximum_delay * unit;
-  return lo <= elapsedSeconds && elapsedSeconds <= hi;
+  const lo = magnitude(t.minimum_delay, t.unit);
+  const hi = magnitude(t.maximum_delay, t.unit);
+  return lo <= elapsed && elapsed <= hi;
 }
 
 function windowOverlap(a, b) {
   const ta = a.temporal, tb = b.temporal;
   if (ta == null || tb == null) return true; // either absent = overlapping
-  const ua = UNIT_SECONDS[ta.unit], ub = UNIT_SECONDS[tb.unit];
-  const loA = ta.minimum_delay * ua, hiA = ta.maximum_delay * ua;
-  const loB = tb.minimum_delay * ub, hiB = tb.maximum_delay * ub;
+  if (dimension(ta.unit) !== dimension(tb.unit)) {
+    return false; // 3.0.0: an ordinal window and a wall-clock window never overlap
+  }
+  const loA = magnitude(ta.minimum_delay, ta.unit);
+  const hiA = magnitude(ta.maximum_delay, ta.unit);
+  const loB = magnitude(tb.minimum_delay, tb.unit);
+  const hiB = magnitude(tb.maximum_delay, tb.unit);
   return loA <= hiB && loB <= hiA;
 }
 
@@ -807,19 +882,31 @@ function skipGaps(cro, classification) {
   return gaps;
 }
 
-/** ALGORITHM E helper: normalize a delay to seconds by the fixed table. */
+/** ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+ * 3.0.0: an ordinal ('ticks') unit is dimensionless and has NO wall-clock
+ * mapping - converting one to seconds is a category error and is refused. */
 function toSeconds(duration, unit) {
+  if (ORDINAL_UNITS.has(unit)) {
+    throw new Error("'" + unit + "' is an ordinal (dimensionless) unit " +
+      "and has no wall-clock seconds mapping");
+  }
   if (unit === "instant") return 0;
   return duration * UNIT_SECONDS[unit];
 }
 
 /** ALGORITHM E (Rule 20): does an observed delay fall within a covering
- * law's temporal window? Inclusive at both ends (N12.5.2). */
+ * law's temporal window? Inclusive at both ends (N12.5.2). 3.0.0: an
+ * ordinal delay compares to an ordinal window by integer tick count; an
+ * ordinal delay and a wall-clock window (or vice versa) are different
+ * dimensions and never fall within one another. */
 function delayWithinWindow(actualDelay, temporal) {
   if (!actualDelay || !temporal) return true; // nothing to check
-  const observed = toSeconds(actualDelay.duration, actualDelay.unit);
-  const lo = toSeconds(temporal.minimum_delay, temporal.unit);
-  const hi = toSeconds(temporal.maximum_delay, temporal.unit);
+  if (dimension(actualDelay.unit) !== dimension(temporal.unit)) {
+    return false; // dimension mismatch: a tick delay is not within a wall-clock window
+  }
+  const observed = magnitude(actualDelay.duration, actualDelay.unit);
+  const lo = magnitude(temporal.minimum_delay, temporal.unit);
+  const hi = magnitude(temporal.maximum_delay, temporal.unit);
   return lo <= observed && observed <= hi;
 }
 
@@ -844,6 +931,70 @@ function bridgeWellformed(bridge, occMap, stratumMap) {
     return [false, "malformed_bridge: coarse ordinal not > fine ordinal (e)"];
   }
   return [true, "well-formed bridge"];
+}
+
+/** 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness. [ok,
+ * reason]; all of (a)-(g) must hold, else malformed_seam. A seam is a
+ * MANAGED jump across NON-ADJACENT strata; when it DRAWS a chain, the chain
+ * must be an adjacent-stratum path spanning the two endpoints' strata. */
+function seamWellformed(seam, occMap, stratumMap) {
+  const srcS = (occMap[seam.source] || {}).stratum;
+  const tgtS = (occMap[seam.target] || {}).stratum;
+  if (srcS == null || tgtS == null) {
+    return [false, "malformed_seam: an endpoint has no stratum (a)"];
+  }
+  if (stratumMap[srcS].scheme !== stratumMap[tgtS].scheme) {
+    return [false, "malformed_seam: endpoints differ in scheme (b)"];
+  }
+  const so = stratumMap[srcS].ordinal, to = stratumMap[tgtS].ordinal;
+  if (Math.abs(so - to) <= 1) {
+    return [false, "malformed_seam: endpoints are adjacent or co-stratal; " +
+      "a seam is for NON-adjacent strata (c)"];
+  }
+  const chain = seam.chain;
+  if (chain != null) {
+    if (seam.mechanism_status === "absent") {
+      return [false, "malformed_seam: a drawn chain contradicts " +
+        "mechanism_status 'absent' (d)"];
+    }
+    const lo = Math.min(so, to), hi = Math.max(so, to);
+    const ords = [];
+    for (const oid of chain) {
+      const st = (occMap[oid] || {}).stratum;
+      if (st == null) {
+        return [false, "malformed_seam: a chain member has no stratum (e)"];
+      }
+      if (stratumMap[st].scheme !== stratumMap[srcS].scheme) {
+        return [false, "malformed_seam: a chain member differs in scheme (e)"];
+      }
+      ords.push(stratumMap[st].ordinal);
+    }
+    if (!ords.every((o) => lo < o && o < hi)) {
+      return [false, "malformed_seam: a chain member is not at an " +
+        "INTERVENING stratum, strictly between the endpoints (f)"];
+    }
+    const diffs = [];
+    for (let i = 0; i < ords.length - 1; i++) {
+      diffs.push(ords[i + 1] - ords[i]);
+    }
+    if (diffs.length > 0 &&
+        !(diffs.every((d) => d > 0) || diffs.every((d) => d < 0))) {
+      return [false, "malformed_seam: chain is not strictly monotone from " +
+        "one endpoint toward the other (g)"];
+    }
+  }
+  return [true, "well-formed cross_stratal_seam"];
+}
+
+/** THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST
+ * stratum it touches - the endpoint of the greater ordinal. Returns that
+ * stratum's identifier (null if an endpoint is unstratified). A layer-to-
+ * stratum binding places and checks the seam by this rule. */
+function seamHome(seam, occMap, stratumMap) {
+  const srcS = (occMap[seam.source] || {}).stratum;
+  const tgtS = (occMap[seam.target] || {}).stratum;
+  if (srcS == null || tgtS == null) return null;
+  return stratumMap[srcS].ordinal >= stratumMap[tgtS].ordinal ? srcS : tgtS;
 }
 
 /** Rule 17 / N4.2.1-2: Conduit well-formedness. [ok, reason] with the
@@ -914,6 +1065,15 @@ function coveringLawMismatch(tcc, tokenMap, law) {
   return false;
 }
 
+/** 4.0.0 Rule 24: true iff the prediction error's observed token does not
+ * instantiate the occurrent its predicted_occurrence instantiates (surfaces
+ * pairing_mismatch). An ABSENT observed is never a mismatch - it means the
+ * predicted occurrence was not fulfilled by any recorded occurrence. */
+function predictionPairingMismatch(error, predicted, observed) {
+  if (error.observed == null || observed == null) return false;
+  return observed.instantiates !== predicted.instantiates;
+}
+
 /** Rule 21: true iff any cause token starts after any effect token (HARD;
  * retrocausal_claim). RFC 3339 UTC 'Z' strings compare lexicographically. */
 function retrocausal(tcc, tokenMap) {
@@ -963,9 +1123,10 @@ function hasCycle(edges) {
 
 const CONTENT_KINDS = new Set([
   "occurrent", "causal_relation_object", "continuant", "realizable",
-  "stratum", "bridge", "port", "conduit", "quality",
+  "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality",
   "token_individual", "token_occurrence", "state_assertion",
-  "token_causal_claim"]);
+  "token_causal_claim",
+  "attitude", "predicted_occurrence", "prediction_error"]);
 const RECORD_KINDS = new Set(["assertion", "enrichment", "retraction",
                               "succession"]);
 
@@ -1331,11 +1492,16 @@ module.exports = {
   validateSchema,
   // semantics
   validateSemantics, isPartial, admissible, conflicts,
-  refinementValid, hierarchyConsistent, UNIT_SECONDS, ENRICHMENT_FIELDS,
+  refinementValid, hierarchyConsistent, UNIT_SECONDS, ORDINAL_UNITS,
+  ENRICHMENT_FIELDS,
   // 2.0.0 normative algorithms
   bridgeClosure, classifyCro, endpointsMixed, skipGaps, toSeconds,
   delayWithinWindow, bridgeWellformed, conduitWellformed, stateGaps,
   coveringLawMismatch, retrocausal, hasCycle,
+  // 3.0.0 additions
+  seamWellformed, seamHome,
+  // 4.0.0 additions
+  predictionPairingMismatch,
   // signing
   keypairFromSeed, signRecord, verifyRecord, ed25519,
   // store

@@ -20,6 +20,11 @@ struct KindFields {
 
 // The identity-bearing fields per kind (spec/identity.md), in spec order.
 // 2.0.0 whole-word re-mint (Principle P7): the scheme IS the type value.
+// 3.0.0 adds the cross_stratal_seam and the conduit's realized_by; 4.0.0 adds
+// the attitude, the predicted_occurrence, and the prediction_error - all
+// additive and identity-preserving: a record that omits a new field keeps its
+// earlier identifier byte-for-byte, and the new kinds open new identity
+// schemes that disturb no existing record.
 const std::vector<KindFields>& table() {
     static const std::vector<KindFields> t = {
         // ---- type tier ----
@@ -31,9 +36,12 @@ const std::vector<KindFields>& table() {
         {"realizable", "realizable", {"kind", "bearer", "label"}},
         {"stratum", "stratum", {"label", "scheme", "ordinal", "unit", "governs"}},
         {"bridge", "bridge", {"coarse", "fine", "relation"}},
+        {"cross_stratal_seam", "cross_stratal_seam",
+         {"source", "target", "mechanism_status", "chain"}},
         {"port", "port", {"bearer", "label", "direction", "accepts",
                           "realizable"}},
-        {"conduit", "conduit", {"label", "from", "to", "carries", "transform"}},
+        {"conduit", "conduit", {"label", "from", "to", "carries", "transform",
+                                "realized_by"}},
         {"quality", "quality", {"label", "datatype", "unit", "stratum"}},
         // ---- token tier ----
         {"token_individual", "token_individual",
@@ -45,6 +53,11 @@ const std::vector<KindFields>& table() {
         {"token_causal_claim", "token_causal_claim",
          {"causes", "effects", "covering_law", "actual_delay",
           "counterfactual"}},
+        {"attitude", "attitude", {"holder", "attitude_type", "content"}},
+        {"predicted_occurrence", "predicted_occurrence",
+         {"instantiates", "interval", "predictor", "strength"}},
+        {"prediction_error", "prediction_error",
+         {"predicted", "observed", "discrepancy"}},
         // ---- provenance tier ----
         {"assertion", "assertion",
          {"about", "source", "evidence_type", "evidence", "strength",
