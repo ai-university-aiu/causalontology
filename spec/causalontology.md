@@ -55,7 +55,7 @@ token-level (particular) history. The token tier is shipped as a cascade
 Content is separated from provenance, uniformly. Content objects are pure and
 immutable; every mutable datum — every alias, link, claim, withdrawal, key
 rotation — is a signed record with an author. The nine new content kinds obey
-this without exception: none carries strength, confidence, source, or
+this without exception: none carries strength, confidence, probability, source, or
 timestamp-of-assertion (Principle P4).
 
 ## Requiredness
