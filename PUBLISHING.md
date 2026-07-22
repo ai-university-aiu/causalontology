@@ -1,11 +1,23 @@
 # Publishing Causalontology 2.0.0
 
-The 107 vectors are frozen; every artifact below was built from the frozen tree
-and verified by the conformance suite. This page records, honestly, what is live
-at 2.0.0 and what still awaits an account, a registrar, or a human review. No
-registry credential is stored on the build machine, by design.
+The 107 vectors of that release are frozen; every artifact below was built from
+the frozen tree and verified by the conformance suite. This page records,
+honestly, what is live at 2.0.0 and what still awaits an account, a registrar,
+or a human review. No registry credential is stored on the build machine, by
+design.
 
 Status here is re-verified against the live registries, not self-reported.
+
+> **Specification 4.0.0 note (2026-07-22).** The specification in this
+> repository is now **4.0.0** — twenty-one object kinds, 137 conformance
+> vectors — but **no 4.0.0 (or 3.0.0) package has been published**: every
+> registry and git-tag channel below still carries the 2.0.0-era artifacts,
+> exactly as the tables record. 4.0.0 publication proceeds per
+> [`docs/Causalontology_4_0_0_Release_Plan.txt`](docs/Causalontology_4_0_0_Release_Plan.txt)
+> (which folds each binding's never-published 3.0.0 delta into its 4.0.0 work):
+> a binding publishes 4.0.0 only after it passes the full 137-vector suite in
+> its own language, and today only the Python reference in this repository
+> does. Until then, the tables below keep describing the live 2.0.0 state.
 
 ## Live at 2.0.0 — package registries
 
@@ -54,13 +66,17 @@ the GitHub release.
 
 ## Verify any artifact
 
-Every binding embeds or reads the same schemas and passes the same 107 frozen
-vectors; the conformance workflow re-proves all nineteen binding gates on every
-push. To verify locally, after `source ~/toolchains/env.sh`:
+Every published binding embeds or reads the same schemas and passed the same
+107 frozen vectors of its 2.0.0 release; the conformance workflow re-proves the
+binding gates on every push. To verify the current tree locally (specification
+4.0.0 — the reference gate is now the full 137-vector suite), after
+`source ~/toolchains/env.sh`:
 
 ```
 python3 bindings/python/tests/run_conformance.py
 ```
+
+The runner exits zero only on 137/137.
 
 Maven Central artifacts are GPG-signed; see [SECURITY.md](SECURITY.md) for the
 project's OpenPGP fingerprint and how to verify.

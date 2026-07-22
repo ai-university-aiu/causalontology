@@ -47,7 +47,8 @@ PRIVACY - the token tier does not federate by default. Gossip and anti-entropy
 operate over the SHAREABLE COMMONS only: type-tier content plus the provenance
 about it, exactly the set a default snapshot carries (snapshot.collect_entries).
 Token-tier records (token_individual, token_occurrence, state_assertion,
-token_causal_claim) and any provenance that references them stay home unless the
+token_causal_claim, and - 4.0.0 - attitude, predicted_occurrence,
+prediction_error) and any provenance that references them stay home unless the
 operator explicitly opts in - the standard's local-by-default rule
 (spec/safety.md) carried unchanged into the live network.
 

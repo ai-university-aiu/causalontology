@@ -119,6 +119,25 @@ def validate_semantics(obj, kind=None):
             errors.append("contradictory_seam: a drawn chain cannot carry "
                           "mechanism_status 'absent' (a drawn mechanism is not absent)")
 
+    # 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+    # exactly ONE temporal dimension - a wall-clock start (optional end) or an
+    # ordinal start_tick (optional end_tick), never both and never neither.
+    # Per Rule 23 the two dimensions never compare. The pairing check of a
+    # prediction_error against its predicted_occurrence and its observed
+    # token_occurrence needs those objects and lives in
+    # prediction_pairing_mismatch, exactly as covering_law_mismatch does.
+    if kind == "predicted_occurrence":
+        iv = obj.get("interval") or {}
+        wall = "start" in iv
+        tick = "start_tick" in iv
+        if wall and tick:
+            errors.append("dimension_conflict: a predicted interval must "
+                          "carry exactly one temporal dimension, not a "
+                          "wall-clock start AND an ordinal start_tick")
+        if not wall and not tick:
+            errors.append("missing_dimension: a predicted interval must "
+                          "carry a wall-clock start or an ordinal start_tick")
+
     return (not errors), errors
 
 
@@ -486,6 +505,17 @@ def covering_law_mismatch(tcc, token_map, law):
         if token_map[e]["instantiates"] not in law_effects:
             return True
     return False
+
+
+# ---- 4.0.0 Rule 24: prediction-to-observation pairing ---------------------
+def prediction_pairing_mismatch(error, predicted, observed):
+    """True iff the prediction error's observed token does not instantiate the
+    occurrent its predicted_occurrence instantiates (surfaces
+    pairing_mismatch). An ABSENT observed is never a mismatch - it means the
+    predicted occurrence was not fulfilled by any recorded occurrence."""
+    if error.get("observed") is None or observed is None:
+        return False
+    return observed["instantiates"] != predicted["instantiates"]
 
 
 # ---- Rule 21: temporal coherence of token causation -----------------------

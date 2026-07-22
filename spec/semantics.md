@@ -3,9 +3,10 @@
 A document is SCHEMA-VALID if it matches its JSON Schema, and SEMANTICALLY
 VALID if it also satisfies these rules. Rules 1–12 are 1.0.0; those marked
 **AMENDED** carry a 2.0.0 delta. Rules 13–21 are new in 2.0.0; rules 22–23 are
-new in 3.0.0. The normative algorithms (A–E from 2.0.0, plus Algorithm F for the
-Cross Stratal Seam in 3.0.0) that make rules 7, 15, 16, 19, 20, and 22 executable
-are given in Section 12 and implemented in every binding.
+new in 3.0.0; rules 24–25 are new in 4.0.0. The normative algorithms (A–E from
+2.0.0, plus Algorithm F for the Cross Stratal Seam in 3.0.0) that make rules 7,
+15, 16, 19, 20, and 22 executable are given in Section 12 and implemented in
+every binding.
 
 1. **Temporal windows.** `minimum_delay <= maximum_delay` (fields formerly
    `dmin`/`dmax`, spelled out under Principle P7).
@@ -110,6 +111,32 @@ are given in Section 12 and implemented in every binding.
     wall-clock window are DISJOINT dimensions (they never overlap, and a delay of
     one dimension is never within a window of the other). Converting a tick count
     to seconds is a category error and MUST be refused.
+
+### New rules (4.0.0)
+
+24. **A prediction is not a report.** A `predicted_occurrence` records an
+    EXPECTATION, never a happening: it satisfies no rule that requires a
+    `token_occurrence`. Its `interval` MUST carry exactly ONE temporal
+    dimension — a wall-clock `start` (with optional `end`) or an ordinal
+    `start_tick` (with optional `end_tick`), never both (`dimension_conflict`,
+    HARD) and never neither (`missing_dimension`, HARD); per Rule 23 the two
+    dimensions never compare. A `prediction_error` MUST reference a
+    `predicted_occurrence`; when its `observed` is present it MUST instantiate
+    the same occurrent the prediction instantiates (`pairing_mismatch`, HARD);
+    its `discrepancy` reads actual minus expected — positive means the world
+    exceeded the expectation, negative means it fell short, zero means the
+    prediction was fulfilled.
+25. **An attitude's content is quarantined** (the doxastic rule). An `attitude`
+    records the content of a holder's MIND, not a fact about the world: no
+    reasoning, conflict, reachability, or classification rule may treat an
+    attitude's content as asserted, and content that contradicts the actual
+    record raises NO conflict — that mismatch IS a false belief, first-class
+    and shareable. The holder is a modeled agent (a `continuant:` or a
+    `token_individual:`), never a signing key: the SOURCE that signs an
+    assertion ABOUT an attitude and the HOLDER of the attitude are different
+    things. Content may reference any content object, including another
+    attitude (nesting). The `attitude_type` enumeration is CLOSED; extending
+    it is a MAJOR change.
 
 ### Store rule (materialized acyclicity, deterministic cycle-breaking)
 

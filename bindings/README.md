@@ -4,10 +4,21 @@ Per-language implementations of the Causalontology specification. Each binding
 is thin: types can be generated from `../spec/schema/`; only identity
 (RFC 8785 + SHA-256), the semantic rules, and Ed25519 signing are hand-written.
 
+> **Honest status at specification 4.0.0 (2026-07-22).** The specification is
+> now 4.0.0 (twenty-one kinds, 137 vectors), and today **only the Python
+> reference binding passes the full 137-vector suite**. The other eighteen
+> bindings remain at the 2.0.0 code level — each genuinely passes the 107
+> vectors its row states, and none has yet implemented the 3.0.0 or 4.0.0
+> delta; their folded 3.0.0-plus-4.0.0 upgrade proceeds per
+> [`../docs/Causalontology_4_0_0_Release_Plan.txt`](../docs/Causalontology_4_0_0_Release_Plan.txt).
+> The registries likewise still carry the 2.0.0-era packages (see
+> [`../PUBLISHING.md`](../PUBLISHING.md)); a binding publishes 4.0.0 only after
+> it passes all 137 vectors in its own language.
+
 | Binding | Registry | Status |
 |---|---|---|
-| PrologAI (`co_*` packs) | github.com/ai-university-aiu/PrologAI | reference implementation |
-| [causalontology-py](python/) | **[PyPI — LIVE](https://pypi.org/project/causalontology/)** (`pip install causalontology==2.0.0`) | **published 2.0.0 — 107/107 conformance vectors; zero dependencies** (1.0.0 yanked) |
+| PrologAI (`co_*` packs) | github.com/ai-university-aiu/PrologAI | reference implementation; its CI harness is gated on V01–V119 today — its 4.0.0 port (V120–V137) is pending per the release plan |
+| [causalontology-py](python/) | **[PyPI — LIVE](https://pypi.org/project/causalontology/)** (`pip install causalontology==2.0.0`) | **at 4.0.0 in this repository — 137/137 conformance vectors; zero dependencies**; the published package is still 2.0.0 (1.0.0 yanked) until the 4.0.0 release plan executes |
 | [causalontology-js](javascript/) | **[npm — LIVE](https://www.npmjs.com/package/causalontology)** (`npm install causalontology`) | **published 2.0.0 — 107/107 conformance vectors; zero dependencies; TypeScript typings included** (1.0.0 deprecated) |
 | [causalontology-rust](rust/) | **[crates.io — LIVE](https://crates.io/crates/causalontology)** (`cargo add causalontology`) | **published 2.0.0 — 107/107 conformance vectors; vetted primitives only** (1.0.0 yanked) |
 | [WebAssembly core](rust/) | built from the Rust crate | **available — `wasm32-unknown-unknown` build; 6/6 cross-checks against the JS binding pass locally (byte-identical ids, canonical bytes, and Ed25519 verification)** |

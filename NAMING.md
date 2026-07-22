@@ -20,9 +20,9 @@ causal_relation_object:1a7b…   type = "causal_relation_object"
 No abbreviations. There is no `occ:` / `cro:` / `rlz:` shorthand — the
 abbreviated schemes of specification 1.0.0 were retired in the 2.0.0 whole-word
 re-mint. An implementation MUST reject an abbreviated scheme (conformance
-vector V107).
+vectors V107 and, for the kinds added in 4.0.0, V137).
 
-## The eighteen schemes
+## The twenty-one schemes
 
 | Tier | Scheme (whole word) | 1.0.0 abbreviation (retired) |
 |---|---|---|
@@ -40,6 +40,9 @@ vector V107).
 | Token | `token_occurrence` | `tok` |
 | Token | `state_assertion` | `stt` |
 | Token | `token_causal_claim` | `tcr` |
+| Token | `attitude` | (none; new in 4.0.0) |
+| Token | `predicted_occurrence` | (none; new in 4.0.0) |
+| Token | `prediction_error` | (none; new in 4.0.0) |
 | Provenance | `assertion` | `ast` |
 | Provenance | `enrichment` | `enr` |
 | Provenance | `retraction` | `ret` |

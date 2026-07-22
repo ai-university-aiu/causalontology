@@ -50,6 +50,13 @@ Causalontology 2.0.0 introduces the token tier: records of particular things
 (`token_individual:`), particular happenings (`token_occurrence:`), particular
 states (`state_assertion:`), and particular causings (`token_causal_claim:`).
 
+Causalontology 4.0.0 adds three more token-tier kinds — minds (`attitude:`),
+expectations (`predicted_occurrence:`), and their reckonings
+(`prediction_error:`) — local by default like the other four. An attitude
+deserves a sentence of its own: it is an attribution of a mental state to an
+agent, and that makes it among the most sensitive records this standard can
+carry. Share deliberately, grade honestly, retract cleanly.
+
 This tier is what permits a mind to have a history. It is also the point at
 which this specification becomes capable of harm, and implementers must
 understand precisely why.
@@ -81,7 +88,8 @@ addressing, and no future version of this specification can repair it.
 
 - **R1. Tokens are local by default (Principle P2).** A conformant store MUST NOT publish
   token-tier records (`token_individual:`, `token_occurrence:`,
-  `state_assertion:`, `token_causal_claim:`) to any federated peer or public
+  `state_assertion:`, `token_causal_claim:`, and — 4.0.0 — `attitude:`,
+  `predicted_occurrence:`, `prediction_error:`) to any federated peer or public
   endpoint unless explicitly instructed by its operator, per record or by
   explicit policy. The default configuration of every implementation MUST be
   non-publishing.

@@ -60,7 +60,8 @@ root.
 A default snapshot is the **shareable commons** — type-tier content plus the
 provenance about it. It MUST NOT include token-tier records
 (`token_individual`, `token_occurrence`, `state_assertion`,
-`token_causal_claim`), nor any provenance record that references one, unless the
+`token_causal_claim`, and — 4.0.0 — `attitude`, `predicted_occurrence`,
+`prediction_error`), nor any provenance record that references one, unless the
 operator explicitly opts in (`--include-tokens`, recorded as
 `includes_tokens: true`). This makes the standard's local-by-default rule
 concrete (see [safety.md](safety.md)): a snapshot is exactly the "laws, not

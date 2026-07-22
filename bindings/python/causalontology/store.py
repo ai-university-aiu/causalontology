@@ -14,9 +14,11 @@ from .semantics import (validate_semantics, refinement_valid, is_partial,
 from .signing import verify_record
 
 CONTENT_KINDS = {"occurrent", "causal_relation_object", "continuant",
-                 "realizable", "stratum", "bridge", "port", "conduit",
+                 "realizable", "stratum", "bridge", "cross_stratal_seam",
+                 "port", "conduit",
                  "quality", "token_individual", "token_occurrence",
-                 "state_assertion", "token_causal_claim"}
+                 "state_assertion", "token_causal_claim",
+                 "attitude", "predicted_occurrence", "prediction_error"}
 RECORD_KINDS = {"assertion", "enrichment", "retraction", "succession"}
 
 

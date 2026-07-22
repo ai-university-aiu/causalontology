@@ -3,12 +3,13 @@
 ## The rule
 
 Every object's identifier is `scheme:localpart` where the scheme is one of the
-eighteen whole-word schemes
+twenty-one whole-word schemes
 
 ```
 occurrent  causal_relation_object  continuant  realizable  stratum  bridge
 cross_stratal_seam  port  conduit  quality  token_individual  token_occurrence
-state_assertion  token_causal_claim  assertion  enrichment  retraction  succession
+state_assertion  token_causal_claim  attitude  predicted_occurrence
+prediction_error  assertion  enrichment  retraction  succession
 ```
 
 and the localpart is the lowercase hexadecimal Secure Hash Algorithm 256-bit (SHA-256) digest (64 characters)
@@ -43,6 +44,9 @@ JSON-LD, BFO, RO, PROV) are kept verbatim.
 | token_occurrence | type, instantiates, interval, participants, locus, observer |
 | state_assertion | type, subject, quality, value, interval |
 | token_causal_claim | type, causes, effects, covering_law, actual_delay, counterfactual |
+| attitude | type, holder, attitude_type, content _(4.0.0)_ |
+| predicted_occurrence | type, instantiates, interval, predictor, strength _(4.0.0)_ |
+| prediction_error | type, predicted, observed, discrepancy _(4.0.0)_ |
 | assertion | type, about, source, evidence_type, evidence, strength, confidence, timestamp, **evidenced_by** |
 | enrichment | type, about, field, entry, source, timestamp |
 | retraction | type, retracts, source, timestamp |
@@ -61,6 +65,13 @@ identity-bearing (a tick-unit record differs in identity from an otherwise
 identical wall-clock record). The eighteenth kind `cross_stratal_seam` opens a
 new identity scheme and disturbs no existing record.
 
+The rows marked _(4.0.0)_ above are the 4.0.0 additions. Every 3.0.0 record
+keeps its identifier byte-for-byte under 4.0.0 (formal proof: vector V136
+re-pins the exact V111 wall-clock and V118 unbound-conduit identifiers under
+the 4.0.0 implementation). The three new kinds `attitude`,
+`predicted_occurrence`, and `prediction_error` open new identity schemes and
+disturb no existing record.
+
 Exclusions: `id` always (it IS the hash); `signature` on the four provenance
 kinds (the signature is computed over these same canonical bytes). Nothing
 else is excluded — content objects consist of exactly their identity-bearing
@@ -73,8 +84,8 @@ corroboration.
 ## Merge
 
 - Content objects are **immutable**: writing an existing identity is a
-  no-operation (idempotent). All fourteen content kinds (four original + ten
-  new) merge by set union.
+  no-operation (idempotent). All seventeen content kinds (ten type-tier +
+  seven token-tier) merge by set union.
 - Provenance records are **add-only**: present or not; rewriting is idempotent
   (Ed25519 is deterministic per RFC 8032, so even signature bytes agree).
 - Replicas merge by **set union**, in any order, with no coordinator — the

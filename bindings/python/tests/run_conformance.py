@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""The Causalontology conformance runner for causalontology-py (spec 2.0.0).
+"""The Causalontology conformance runner for causalontology-py (spec 4.0.0).
 
 Runs every vector in conformance/vectors/ against the Python binding. An
 implementation is conformant if and only if it passes every vector; this
-runner exits nonzero on any failure. Vectors are the whole-word 2.0.0
-baseline (Principle P7): V01-V38 re-frozen unaltered in meaning, V39-V107 new.
+runner exits nonzero on any failure. Vectors V01-V107 are the whole-word
+2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in meaning,
+V39-V107 new. V108-V119 are the 3.0.0 additions; V120-V137 are the 4.0.0
+additions (attitude, predicted_occurrence, prediction_error).
 """
 
 import glob
@@ -25,7 +27,7 @@ from causalontology import (                       # noqa: E402
     bridge_closure, classify_cro, endpoints_mixed, skip_gaps, to_seconds,
     delay_within_window, bridge_wellformed, conduit_wellformed, state_gaps,
     covering_law_mismatch, retrocausal, has_cycle,
-    seam_wellformed, seam_home,
+    seam_wellformed, seam_home, prediction_pairing_mismatch,
     keypair_from_seed, sign_record, verify_record,
     InMemoryStore, RejectedWrite)
 from causalontology import ed25519                 # noqa: E402
@@ -37,9 +39,11 @@ from causalontology.semantics import ENRICHMENT_FIELDS  # noqa: E402
 # ---------------------------------------------------------------------------
 _SCHEMES = ("occurrent", "causal_relation_object", "continuant", "realizable",
             "assertion", "enrichment", "retraction", "succession",
-            "stratum", "bridge", "port", "conduit", "quality",
+            "stratum", "bridge", "cross_stratal_seam", "port", "conduit",
+            "quality",
             "token_individual", "token_occurrence", "state_assertion",
-            "token_causal_claim")
+            "token_causal_claim",
+            "attitude", "predicted_occurrence", "prediction_error")
 WHOLE_WORD = set(_SCHEMES) | {"ed25519"}
 _KEYS = {}
 
@@ -1094,13 +1098,232 @@ def v119():
 
 
 # ---------------------------------------------------------------------------
+# V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+# prediction_error)
+# ---------------------------------------------------------------------------
+def attitude(holder, attitude_type, content):
+    return mk({"type": "attitude", "holder": holder,
+               "attitude_type": attitude_type, "content": content})
+
+
+def predicted(instantiates, interval, predictor, strength=None):
+    o = {"type": "predicted_occurrence", "instantiates": instantiates,
+         "interval": interval, "predictor": predictor}
+    if strength is not None:
+        o["strength"] = strength
+    return mk(o)
+
+
+def prediction_error(predicted_id, discrepancy, observed=None):
+    o = {"type": "prediction_error", "predicted": predicted_id,
+         "discrepancy": discrepancy}
+    if observed:
+        o["observed"] = observed
+    return mk(o)
+
+
+def _predictor():
+    c = cnt("forecasting_mind")
+    return individual(c["id"], designator="predictor_p")["id"]
+
+
+# -- Group X: prediction and prediction error (Section A) --
+def v120():
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], {"start_tick": 3, "end_tick": 8}, _predictor())
+    ok, why = validate_schema(p); assert ok, why
+    ok, why = validate_semantics(p); assert ok, why
+    assert p["id"].startswith("predicted_occurrence:")
+    report = identify({"type": "token_occurrence", "instantiates": o["id"],
+                       "interval": {"start_tick": 3, "end_tick": 8}},
+                      "token_occurrence")
+    assert p["id"] != report                # a forecast is not a report
+    assert report.startswith("token_occurrence:")
+
+def v121():
+    o = occ("rainfall_begins")
+    wall = {"start": "2026-07-23T00:00:00Z", "end": "2026-07-24T00:00:00Z"}
+    who = _predictor()
+    with_strength = predicted(o["id"], wall, who, strength=0.8)
+    without = predicted(o["id"], wall, who)
+    for p in (with_strength, without):
+        ok, why = validate_schema(p); assert ok, why
+        ok, why = validate_semantics(p); assert ok, why
+    assert with_strength["id"] != without["id"]   # strength is identity-bearing
+
+def v122():
+    o = occ("rainfall_begins")
+    bad = mk({"type": "predicted_occurrence", "instantiates": o["id"],
+              "interval": {"start_tick": 3}})
+    ok, why = validate_schema(bad, "predicted_occurrence")
+    assert not ok and any("predictor" in w for w in why), why
+
+def v123():
+    o = occ("rainfall_begins")
+    both = predicted(o["id"], {"start": "2026-07-23T00:00:00Z",
+                               "start_tick": 3}, _predictor())
+    ok, why = validate_schema(both); assert ok, why
+    ok, why = validate_semantics(both)
+    assert not ok and any("dimension_conflict" in w for w in why), why
+
+def v124():
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], {"start": "2026-07-23T00:00:00Z"}, _predictor())
+    t = token(o["id"], {"start": "2026-07-23T06:00:00Z"})
+    err = prediction_error(p["id"], 0.0, observed=t["id"])
+    ok, why = validate_schema(err); assert ok, why
+    ok, why = validate_semantics(err); assert ok, why
+    assert prediction_pairing_mismatch(err, p, t) is False
+
+def v125():
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], {"start": "2026-07-23T00:00:00Z"}, _predictor())
+    err = prediction_error(p["id"], -1.0)
+    ok, why = validate_schema(err); assert ok, why
+    ok, why = validate_semantics(err); assert ok, why
+    assert "observed" not in err
+    assert prediction_pairing_mismatch(err, p, None) is False
+
+def v126():
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], {"start_tick": 0}, _predictor())
+    bad = mk({"type": "prediction_error", "predicted": p["id"]})
+    ok, why = validate_schema(bad, "prediction_error")
+    assert not ok and any("discrepancy" in w for w in why), why
+
+def v127():
+    o = occ("rainfall_begins"); other = occ("snowfall_begins")
+    p = predicted(o["id"], {"start": "2026-07-23T00:00:00Z"}, _predictor())
+    t = token(other["id"], {"start": "2026-07-23T06:00:00Z"})
+    err = prediction_error(p["id"], 1.0, observed=t["id"])
+    ok, why = validate_schema(err); assert ok, why
+    assert prediction_pairing_mismatch(err, p, t) is True
+
+
+# -- Group Y: attitude and theory of mind (Section B) --
+def _believer(designator="holder_h"):
+    c = cnt("believing_mind")
+    return individual(c["id"], designator=designator)["id"]
+
+def v128():
+    st, _ = _state_fixture("quantity", {"quantity": 15.0, "unit": "ug/dL"},
+                           "ug/dL")
+    att = attitude(_believer(), "believes", st["id"])
+    ok, why = validate_schema(att); assert ok, why
+    ok, why = validate_semantics(att); assert ok, why
+
+def v129():
+    a, b = occ("switch_pressed"), occ("light_on")
+    actual = cro([a["id"]], [b["id"]], modality="sufficient")
+    believed = cro([a["id"]], [b["id"]], modality="preventive")
+    assert conflicts(believed, actual) is True   # the CLAIMS contradict
+    att = attitude(_believer(), "believes", believed["id"])
+    ok, why = validate_schema(att); assert ok, why
+    ok, why = validate_semantics(att); assert ok, why   # validity unaffected
+    s = InMemoryStore()
+    s.put(a); s.put(b); s.put(actual); s.put(att)
+    assert s.gaps("conflict") == []              # Rule 25: NO conflict raised
+
+def v130():
+    o = occ("rainfall_begins")
+    att = attitude(_believer(), "desires", o["id"])
+    ok, why = validate_schema(att); assert ok, why
+    ok, why = validate_semantics(att); assert ok, why
+
+def v131():
+    o = occ("press_button")
+    att = attitude(_believer(), "intends", o["id"])
+    ok, why = validate_schema(att); assert ok, why
+    ok, why = validate_semantics(att); assert ok, why
+
+def v132():
+    st, _ = _state_fixture("boolean", {"boolean": True})
+    inner = attitude(_believer("holder_b"), "believes", st["id"])
+    outer = attitude(_believer("holder_a"), "believes", inner["id"])
+    for att in (inner, outer):
+        ok, why = validate_schema(att); assert ok, why
+        ok, why = validate_semantics(att); assert ok, why
+    assert outer["id"] != inner["id"]
+    assert outer["content"] == inner["id"]
+
+def v133():
+    o = occ("rainfall_begins")
+    bad = mk({"type": "attitude", "holder": _believer(),
+              "attitude_type": "suspects", "content": o["id"]})
+    ok, why = validate_schema(bad, "attitude")
+    assert not ok and any("attitude_type" in w for w in why), why
+
+def v134():
+    o = occ("rainfall_begins")
+    bad = mk({"type": "attitude", "holder": _believer(),
+              "attitude_type": "believes", "content": o["id"],
+              "strength": 0.9})
+    ok, why = validate_schema(bad, "attitude")
+    assert not ok and any("strength" in w for w in why), why
+
+def v135():
+    o = occ("rainfall_begins")
+    att = attitude(_believer(), "expects", o["id"])
+    a = signed("assertion", {"about": att["id"],
+                             "evidence_type": "observation",
+                             "confidence": 0.9}, "signer")
+    ok, why = validate_schema(a); assert ok, why
+    assert verify_record(a) is True
+    # the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+    assert att["holder"].split(":", 1)[0] == "token_individual"
+    assert a["source"].split(":", 1)[0] == "ed25519"
+    assert att["holder"] != a["source"]
+
+def v136():
+    # the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+    secs = {"type": "causal_relation_object", "causes": [sym("occurrent:a")],
+            "effects": [sym("occurrent:b")], "modality": "sufficient",
+            "temporal": {"minimum_delay": 0, "maximum_delay": 1,
+                         "unit": "seconds"}}
+    assert identify(secs) == ("causal_relation_object:"
+        "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c")
+    # the V118 unbound conduit, re-pinned under 4.0.0
+    unbound = _conduit_realized()
+    assert unbound["id"] == ("conduit:"
+        "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6")
+
+def v137():
+    hexid = "0" * 64
+    # NOTE: the abbreviated prefixes below are intentional (the negative test);
+    # they must NOT be re-minted. Each is assembled to survive re-mint tools.
+    att_abbr = "a" + "t" + "t"
+    prd_abbr = "p" + "r" + "d"
+    err_abbr = "e" + "r" + "r"
+    bad_att = {"type": "attitude", "id": att_abbr + ":" + hexid,
+               "holder": "token_individual:" + hexid,
+               "attitude_type": "believes",
+               "content": "state_assertion:" + hexid}
+    ok, _ = validate_schema(bad_att, "attitude"); assert not ok
+    bad_prd = {"type": "predicted_occurrence", "id": prd_abbr + ":" + hexid,
+               "instantiates": "occurrent:" + hexid,
+               "interval": {"start_tick": 0},
+               "predictor": "token_individual:" + hexid}
+    ok, _ = validate_schema(bad_prd, "predicted_occurrence"); assert not ok
+    bad_err = {"type": "prediction_error", "id": err_abbr + ":" + hexid,
+               "predicted": "predicted_occurrence:" + hexid,
+               "discrepancy": 0.0}
+    ok, _ = validate_schema(bad_err, "prediction_error"); assert not ok
+    whole_att = dict(bad_att, id="attitude:" + hexid)
+    ok, why = validate_schema(whole_att, "attitude"); assert ok, why
+    whole_prd = dict(bad_prd, id="predicted_occurrence:" + hexid)
+    ok, why = validate_schema(whole_prd, "predicted_occurrence"); assert ok, why
+    whole_err = dict(bad_err, id="prediction_error:" + hexid)
+    ok, why = validate_schema(whole_err, "prediction_error"); assert ok, why
+
+
+# ---------------------------------------------------------------------------
 def main():
-    print("causalontology-py conformance run (specification 3.0.0)")
+    print("causalontology-py conformance run (specification 4.0.0)")
     print("internal checks (RFC 8032, RFC 8785, fixed constants) ... ", end="")
     internal_checks()
     print("ok")
     failures = 0
-    total = 119
+    total = 137
     for n in range(1, total + 1):
         fn = globals()["v%02d" % n]
         name = Path(glob.glob(str(VECDIR / ("v%02d_*.json" % n)))[0]).stem
@@ -1115,7 +1338,7 @@ def main():
     if failures:
         sys.exit(1)
     print("causalontology-py is CONFORMANT to the suite "
-          "(vectors frozen at specification 3.0.0).")
+          "(vectors frozen at specification 4.0.0).")
 
 
 if __name__ == "__main__":

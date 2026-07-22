@@ -1,9 +1,9 @@
-# Causalontology — Normative Specification (specification 3.0.0 — eighteen kinds; the ordinal tick unit, the managed cross-stratal seam, and the realized_by reference added additively over the whole-word baseline)
+# Causalontology — Normative Specification (specification 4.0.0 — twenty-one kinds; the attitude, the predicted occurrence, and the prediction error added additively over the 3.0.0 baseline)
 
 **Causalontology's purest form is a specification, not a program.** This file is
 the normative core; the complete design rationale, glossary, and lay-readable
 explanations live in the master document at the repository root,
-`Causalontology_Standalone_Design_v25.txt`, which is authoritative where this
+`Causalontology_Standalone_Design_v26.txt`, which is authoritative where this
 summary and it could ever be read to differ.
 
 Every identifier scheme and type value in this standard is a whole English word
@@ -11,7 +11,7 @@ Every identifier scheme and type value in this standard is a whole English word
 The only exceptions are the proper names of external standards (ed25519,
 SHA-256, RFC 8785, RFC 3339, UCUM, UTC, JSON, JSON-LD, BFO, RO, PROV).
 
-## The object model: eighteen kinds
+## The object model: twenty-one kinds
 
 ### Type-tier content kinds (identity is content; immutable, content-addressed)
 
@@ -36,6 +36,9 @@ SHA-256, RFC 8785, RFC 3339, UCUM, UTC, JSON, JSON-LD, BFO, RO, PROV).
 | Token Occurrence | `token_occurrence:` | a particular happening, at absolute time, with participants |
 | State Assertion | `state_assertion:` | a particular individual bearing a particular value over an interval |
 | Token Causal Claim | `token_causal_claim:` | a particular happening causing a particular happening |
+| Attitude | `attitude:` | **4.0.0.** what a modeled agent's mind CONTAINS (believes, desires, intends, knows, expects, fears) toward any content object — which may be false, and may be another attitude |
+| Predicted Occurrence | `predicted_occurrence:` | **4.0.0.** an EXPECTATION: an occurrent type predicted by a stated predictor over exactly one temporal dimension — the sibling of the token occurrence that has not (yet) happened |
+| Prediction Error | `prediction_error:` | **4.0.0.** how a prediction met the world: the signed discrepancy (actual minus expected) between a predicted occurrence and what was, or was not, observed |
 
 ### Provenance kinds (signed, add-only records)
 
@@ -48,15 +51,22 @@ SHA-256, RFC 8785, RFC 3339, UCUM, UTC, JSON, JSON-LD, BFO, RO, PROV).
 
 **Scope:** this specification models BOTH type-level (generic) causation and
 token-level (particular) history. The token tier is shipped as a cascade
-(§5.5 of the change order) and is LOCAL BY DEFAULT; see `safety.md`.
+(§5.5 of the change order) and is now seven kinds (4.0.0 adds the attitude,
+the predicted occurrence, and the prediction error), still LOCAL BY DEFAULT;
+see `safety.md`.
 
 ## The load-bearing decision
 
 Content is separated from provenance, uniformly. Content objects are pure and
 immutable; every mutable datum — every alias, link, claim, withdrawal, key
-rotation — is a signed record with an author. The ten new content kinds obey
+rotation — is a signed record with an author. The ten 2.0.0 content kinds obey
 this without exception: none carries strength, confidence, probability, source, or
-timestamp-of-assertion (Principle P4).
+timestamp-of-assertion (Principle P4). The three 4.0.0 token kinds obey it too,
+with ONE recorded, deliberate carve-out: a `predicted_occurrence`'s optional
+`strength` is part of the PREDICTED CONTENT itself — the grade of the
+expectation, like a relation's modality — not a provenance evaluation of the
+record; confidence in and evidence for the prediction still travel in
+assertions (the 4.0.0 locked-decision extension).
 
 ## Requiredness
 
@@ -67,14 +77,14 @@ converts the "no mechanism" gap into a finding (Principle P5).
 ## Conformance clause
 
 An implementation is conformant if and only if it passes every vector in
-`../conformance/vectors/` (V01–V119) for specification version 3.0.0. See
+`../conformance/vectors/` (V01–V137) for specification version 4.0.0. See
 `../conformance/README.md`.
 
 ## Normative companions
 
-- `identity.md` — canonicalization (RFC 8785), hashing (Secure Hash Algorithm 256-bit (SHA-256)), identity-bearing fields for all eighteen kinds, merge
-- `semantics.md` — the rules beyond the schemas (rules 1–12, six amended; new rules 13–23)
+- `identity.md` — canonicalization (RFC 8785), hashing (Secure Hash Algorithm 256-bit (SHA-256)), identity-bearing fields for all twenty-one kinds, merge
+- `semantics.md` — the rules beyond the schemas (rules 1–12, six amended; new rules 13–25)
 - `provenance.md` — signatures (Ed25519), evidence grading (with simulation), evidenced_by, retraction, succession, trust
 - `store.md` — abstract operations, Hypertext Transfer Protocol (HTTP) binding, query, resolve, the complete gap taxonomy
 - `safety.md` — abuse resistance, claims of consequence, takedown by tier, TOKEN-TIER SAFETY
-- `schema/` — the eighteen JSON Schemas, the JSON-LD context, the optional Protobuf encoding
+- `schema/` — the twenty-one JSON Schemas, the JSON-LD context, the optional Protobuf encoding
