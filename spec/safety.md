@@ -79,7 +79,7 @@ addressing, and no future version of this specification can repair it.
 
 ### The rules
 
-- **R1. Tokens are local by default.** A conformant store MUST NOT publish
+- **R1. Tokens are local by default (Principle P2).** A conformant store MUST NOT publish
   token-tier records (`token_individual:`, `token_occurrence:`,
   `state_assertion:`, `token_causal_claim:`) to any federated peer or public
   endpoint unless explicitly instructed by its operator, per record or by

@@ -60,7 +60,7 @@ timestamp-of-assertion (Principle P4).
 
 ## Requiredness
 
-In a Causal Relation Object only `id`, `causes`, and `effects` are required.
+In a Causal Relation Object only `id`, `causes`, and `effects` are required (the required-fields minimalism of Principle P6).
 Partial and degenerate objects are first-class. `skips: true` positively
 converts the "no mechanism" gap into a finding (Principle P5).
 

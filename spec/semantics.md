@@ -52,7 +52,7 @@ are given in Section 12 and implemented in every binding.
 
 ### New rules (2.0.0)
 
-13. **Stratal comparability.** Two strata are comparable iff they share a
+13. **Stratal comparability (Principle P3).** Two strata are comparable iff they share a
     scheme. An implementation MUST NOT compare ordinals across schemes;
     attempting it surfaces `scheme_mismatch` (HARD).
 14. **Bridge well-formedness.** A Bridge is well-formed iff coarse has a

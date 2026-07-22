@@ -22,7 +22,8 @@
   names.
 - Every binding is gated in Continuous Integration on the conformance
   vectors; a failing release is not published.
-- Change process (in the spirit of a W3C or IETF working group): a written
+- Change process (in the spirit of a W3C or IETF working group), enforcing
+  Principle P6 that every addition be forced by a recorded need: a written
   proposal, review in the open, a **conformance impact statement** (which
   vectors change), and a decision recorded in this repository.
 - The takedown procedure (spec/safety.md) is part of governance; every
