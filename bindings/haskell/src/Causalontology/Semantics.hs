@@ -27,6 +27,11 @@ module Causalontology.Semantics
   , coveringLawMismatch
   , retrocausal
   , hasCycle
+    -- 3.0.0 additions (the ordinal tick unit and the cross-stratal seam)
+  , seamWellformed
+  , seamHome
+    -- 4.0.0 additions (prediction-to-observation pairing)
+  , predictionPairingMismatch
   ) where
 
 import Causalontology.Canonical (inferKind, kindOfPrefix)
@@ -51,6 +56,26 @@ unitSeconds unit =
     , ("months", 2629746)
     , ("years", 31556952)
     ]
+
+-- | 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete
+-- step with NO wall-clock mapping; a tick window is ordered by integer
+-- comparison, and an ordinal window and a wall-clock window are DIFFERENT
+-- DIMENSIONS that do not compare (mixing them is never within-window and
+-- never overlapping).
+ordinalUnits :: [String]
+ordinalUnits = ["ticks"]
+
+-- | @"ordinal"@ for a tick-like unit, else @"wallclock"@.
+dimensionOf :: String -> String
+dimensionOf unit = if unit `elem` ordinalUnits then "ordinal" else "wallclock"
+
+-- | A comparable magnitude within ONE dimension: the raw tick count for an
+-- ordinal unit, seconds for a wall-clock unit. Never mix dimensions.
+magnitudeOf :: Double -> String -> Double
+magnitudeOf value unit
+  | unit `elem` ordinalUnits = value -- a dimensionless tick count
+  | unit == "instant" = 0
+  | otherwise = value * fromInteger (fromMaybe 0 (unitSeconds unit))
 
 -- | Rule 12: enrichment field-to-kind validity and entry shapes.
 enrichmentFieldTable :: [(String, ([String], String))]
@@ -81,10 +106,49 @@ validateSemantics obj mkind = do
   let errs = case kind of
         "causal_relation_object" -> croErrors
         "enrichment" -> enrichmentErrors
+        "cross_stratal_seam" -> seamErrors
+        "predicted_occurrence" -> predictedErrors
         _ -> []
   Right (null errs, errs)
   where
     croErrors = temporalErrors ++ mechanismErrors ++ refinesErrors ++ skipErrors
+
+    -- 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain
+    -- has, by drawing it, a modelled intervening mechanism - so
+    -- mechanism_status 'absent' contradicts a present chain (the honest-
+    -- ignorance distinction must stay honest). The stratal well-formedness
+    -- (non-adjacency, adjacency of chain steps, scheme, the home rule) needs
+    -- the strata map and lives in 'seamWellformed', exactly as bridge
+    -- well-formedness does.
+    seamErrors = case objGet "chain" obj of
+      Just c
+        | jTruthy c
+        , (objGet "mechanism_status" obj >>= asStr) == Just "absent" ->
+            [ "contradictory_seam: a drawn chain cannot carry mechanism_status "
+                ++ "'absent' (a drawn mechanism is not absent)"
+            ]
+      _ -> []
+
+    -- 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+    -- exactly ONE temporal dimension - a wall-clock start (optional end) or
+    -- an ordinal start_tick (optional end_tick), never both and never
+    -- neither. Per Rule 23 the two dimensions never compare. The pairing
+    -- check of a prediction_error against its predicted_occurrence and its
+    -- observed token_occurrence needs those objects and lives in
+    -- 'predictionPairingMismatch', exactly as 'coveringLawMismatch' does.
+    predictedErrors =
+      let iv = fromMaybe (JObj []) (objGet "interval" obj)
+          wall = objHas "start" iv
+          tick = objHas "start_tick" iv
+      in [ "dimension_conflict: a predicted interval must carry exactly one "
+             ++ "temporal dimension, not a wall-clock start AND an ordinal "
+             ++ "start_tick"
+         | wall && tick
+         ]
+           ++ [ "missing_dimension: a predicted interval must carry a "
+                  ++ "wall-clock start or an ordinal start_tick"
+              | not wall && not tick
+              ]
 
     -- Rule 16, clause 1 (contradictory_skip): a HARD, locally-decidable
     -- contradiction between skips:true and a non-empty mechanism.
@@ -152,31 +216,39 @@ isPartial cro = (not (null missing), missing)
   where
     missing = [ f | f <- croOptionalFields, not (objHas f cro) ]
 
--- | Rule 4: temporal admissibility with the fixed constants.
+-- | Rule 4: temporal admissibility. For a wall-clock window @elapsed@ is in
+-- seconds; for an ordinal (@ticks@) window @elapsed@ is a tick count (3.0.0).
+-- Ordering is by magnitude WITHIN the window's own dimension.
 admissible :: JValue -> Double -> Bool
-admissible cro elapsedSeconds = case objGet "temporal" cro of
+admissible cro elapsed = case objGet "temporal" cro of
   Nothing -> True -- no window imposes no constraint
   Just t -> case windowBounds t of
-    Just (lo, hi) -> lo <= elapsedSeconds && elapsedSeconds <= hi
+    Just (lo, hi) -> lo <= elapsed && elapsed <= hi
     Nothing -> False
 
--- | The window bounds of a temporal object, in seconds.
+-- | The window bounds of a temporal object, as magnitudes within its own
+-- dimension (seconds for a wall-clock unit, a raw tick count for an ordinal
+-- one).
 windowBounds :: JValue -> Maybe (Double, Double)
 windowBounds t = do
   unit <- objGet "unit" t >>= asStr
-  perUnit <- unitSeconds unit
   minimum_delay <- objGet "minimum_delay" t >>= jNumber
   maximum_delay <- objGet "maximum_delay" t >>= jNumber
-  Just (minimum_delay * fromInteger perUnit, maximum_delay * fromInteger perUnit)
+  Just (magnitudeOf minimum_delay unit, magnitudeOf maximum_delay unit)
 
 -- | Do two temporal windows overlap? Either window absent counts as
--- overlapping.
+-- overlapping. 3.0.0: an ordinal window and a wall-clock window are different
+-- dimensions and never overlap.
 windowOverlap :: JValue -> JValue -> Bool
 windowOverlap a b = case (objGet "temporal" a, objGet "temporal" b) of
-  (Just ta, Just tb) -> case (windowBounds ta, windowBounds tb) of
-    (Just (loA, hiA), Just (loB, hiB)) -> loA <= hiB && loB <= hiA
-    _ -> True
+  (Just ta, Just tb)
+    | dimensionOf (unitOf ta) /= dimensionOf (unitOf tb) -> False
+    | otherwise -> case (windowBounds ta, windowBounds tb) of
+        (Just (loA, hiA), Just (loB, hiB)) -> loA <= hiB && loB <= hiA
+        _ -> True
   _ -> True
+  where
+    unitOf t = fromMaybe "" (objGet "unit" t >>= asStr)
 
 -- | Are two context sets compatible? Either absent (or empty) counts as
 -- compatible; otherwise equal or one a subset of the other.
@@ -386,23 +458,39 @@ skipGaps cro classification
       ]
 
 -- | ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+-- 3.0.0: an ordinal (@ticks@) unit is dimensionless and has NO wall-clock
+-- mapping - converting one to seconds is a category error and is refused.
 toSeconds :: Double -> String -> Double
 toSeconds duration unit
+  | unit `elem` ordinalUnits =
+      error
+        ( "'" ++ unit ++ "' is an ordinal (dimensionless) unit and has no "
+            ++ "wall-clock seconds mapping"
+        )
   | unit == "instant" = 0
   | otherwise = duration * fromInteger (fromMaybe 0 (unitSeconds unit))
 
 -- | ALGORITHM E (Rule 20): does an observed delay fall within a covering
--- law's temporal window? Inclusive at both ends.
+-- law's temporal window? Inclusive at both ends. 3.0.0: an ordinal delay
+-- compares to an ordinal window by integer tick count; an ordinal delay and
+-- a wall-clock window (or vice versa) are different dimensions and never fall
+-- within one another.
 delayWithinWindow :: JValue -> JValue -> Bool
-delayWithinWindow actualDelay temporal =
-  case (bounds actualDelay "duration", windowBounds temporal) of
-    (Just observed, Just (lo, hi)) -> lo <= observed && observed <= hi
-    _ -> True -- nothing to check
+delayWithinWindow actualDelay temporal
+  | not (present actualDelay) || not (present temporal) = True -- nothing to check
+  | dimensionOf delayUnit /= dimensionOf windowUnit = False
+  | otherwise = case (observed, windowBounds temporal) of
+      (Just obs, Just (lo, hi)) -> lo <= obs && obs <= hi
+      _ -> True
   where
-    bounds obj durKey = do
-      dur <- objGet durKey obj >>= jNumber
-      unit <- objGet "unit" obj >>= asStr
-      Just (toSeconds dur unit)
+    present o = case o of
+      JObj kvs -> not (null kvs)
+      _ -> False
+    delayUnit = fromMaybe "" (objGet "unit" actualDelay >>= asStr)
+    windowUnit = fromMaybe "" (objGet "unit" temporal >>= asStr)
+    observed = do
+      dur <- objGet "duration" actualDelay >>= jNumber
+      Just (magnitudeOf dur delayUnit)
 
 -- ---- Rule 14 / N3.2.1: Bridge well-formedness -----------------------------
 
@@ -432,6 +520,80 @@ bridgeWellformed bridge occMap stratumMap =
                            (Just oc, Just of_)
                              | oc > of_ -> (True, "well-formed bridge")
                            _ -> (False, "malformed_bridge: coarse ordinal not > fine ordinal (e)")
+
+-- ---- 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness -------
+
+-- | @(ok, reason)@ for a Cross Stratal Seam. All of (a)-(g) must hold, else
+-- malformed_seam. A seam is a MANAGED jump across NON-ADJACENT strata; when it
+-- DRAWS a chain, the chain must be an adjacent-stratum path spanning the two
+-- endpoints' strata.
+seamWellformed :: JValue -> [(String, JValue)] -> [(String, JValue)] -> (Bool, String)
+seamWellformed seam occMap stratumMap =
+  case (endpointStratum "source", endpointStratum "target") of
+    (Nothing, _) -> (False, "malformed_seam: an endpoint has no stratum (a)")
+    (_, Nothing) -> (False, "malformed_seam: an endpoint has no stratum (a)")
+    (Just srcS, Just tgtS)
+      | schemeOf srcS /= schemeOf tgtS ->
+          (False, "malformed_seam: endpoints differ in scheme (b)")
+      | abs (ordAt srcS - ordAt tgtS) <= 1 ->
+          ( False
+          , "malformed_seam: endpoints are adjacent or co-stratal; a seam is "
+              ++ "for NON-adjacent strata (c)"
+          )
+      | otherwise -> case objGet "chain" seam of
+          Just (JArr chain) ->
+            chainCheck srcS (ordAt srcS) (ordAt tgtS)
+              [ oid | c <- chain, Just oid <- [asStr c] ]
+          _ -> ok
+  where
+    endpointStratum k = objGet k seam >>= asStr >>= stratumOf occMap
+    schemeOf sid = lookup sid stratumMap >>= objGet "scheme" >>= asStr
+    ordAt sid = fromMaybe 0 (lookup sid stratumMap >>= ordinalOf)
+    ok = (True, "well-formed cross_stratal_seam")
+    chainCheck srcS so to_ oids
+      | (objGet "mechanism_status" seam >>= asStr) == Just "absent" =
+          ( False
+          , "malformed_seam: a drawn chain contradicts mechanism_status "
+              ++ "'absent' (d)"
+          )
+      | otherwise = go oids []
+      where
+        lo = min so to_
+        hi = max so to_
+        go [] ords
+          | not (all (\o -> lo < o && o < hi) ords) =
+              ( False
+              , "malformed_seam: a chain member is not at an INTERVENING "
+                  ++ "stratum, strictly between the endpoints (f)"
+              )
+          | not (monotone ords) =
+              ( False
+              , "malformed_seam: chain is not strictly monotone from one "
+                  ++ "endpoint toward the other (g)"
+              )
+          | otherwise = ok
+        go (oid : rest) ords = case stratumOf occMap oid of
+          Nothing -> (False, "malformed_seam: a chain member has no stratum (e)")
+          Just st
+            | schemeOf st /= schemeOf srcS ->
+                (False, "malformed_seam: a chain member differs in scheme (e)")
+            | otherwise -> go rest (ords ++ [ordAt st])
+    monotone ords =
+      let diffs = zipWith (-) (drop 1 ords) ords
+      in null diffs || all (> 0) diffs || all (< 0) diffs
+
+-- | THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST
+-- stratum it touches - the endpoint of the greater ordinal. 'Nothing' when an
+-- endpoint is unstratified. A layer-to-stratum binding places and checks the
+-- seam by this rule.
+seamHome :: JValue -> [(String, JValue)] -> [(String, JValue)] -> Maybe String
+seamHome seam occMap stratumMap =
+  case (endpointStratum "source", endpointStratum "target") of
+    (Just srcS, Just tgtS) -> Just (if ordAt srcS >= ordAt tgtS then srcS else tgtS)
+    _ -> Nothing
+  where
+    endpointStratum k = objGet k seam >>= asStr >>= stratumOf occMap
+    ordAt sid = fromMaybe 0 (lookup sid stratumMap >>= ordinalOf)
 
 -- ---- Rule 17 / N4.2.1-2: Conduit well-formedness --------------------------
 
@@ -503,6 +665,22 @@ coveringLawMismatch tcc tokenMap law
     lawEffects = strList (fromMaybe (JArr []) (objGet "effects" law))
     tokenList k = strList (fromMaybe (JArr []) (objGet k tcc))
     instOf tid = lookup tid tokenMap >>= objGet "instantiates" >>= asStr
+
+-- ---- 4.0.0 Rule 24: prediction-to-observation pairing ---------------------
+
+-- | True iff the prediction error's observed token does not instantiate the
+-- occurrent its predicted_occurrence instantiates (surfaces pairing_mismatch).
+-- An ABSENT observed ('Nothing', or an absent @observed@ field) is never a
+-- mismatch - it means the predicted occurrence was not fulfilled by any
+-- recorded occurrence.
+predictionPairingMismatch :: JValue -> JValue -> Maybe JValue -> Bool
+predictionPairingMismatch err predicted observed =
+  case (objGet "observed" err, observed) of
+    (Just obs, Just obj)
+      | jTruthy obs ->
+          (objGet "instantiates" obj >>= asStr)
+            /= (objGet "instantiates" predicted >>= asStr)
+    _ -> False
 
 -- ---- Rule 21: temporal coherence of token causation -----------------------
 

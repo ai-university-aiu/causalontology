@@ -1,17 +1,22 @@
-# The Causalontology conformance runner for causalontology-elixir.
+# The Causalontology conformance runner for causalontology-elixir (spec 4.0.0).
 #
 # Runs every vector in conformance/vectors/ against the Elixir binding. An
 # implementation is conformant if and only if it passes every vector; this
-# runner exits nonzero on any failure.
+# runner exits nonzero on any failure. Mirrors
+# bindings/python/tests/run_conformance.py exactly.
 #
 # Standalone script: it Code.require_file's the lib modules directly, so no
 # mix compile is needed — `cd bindings/elixir && elixir conformance.exs`.
 #
-# The vectors are the whole-word 2.0.0 baseline (Principle P7): V01-V38 are the
-# 1.0.0 suite re-frozen unaltered in meaning, V39-V107 are new. They carry
+# Vectors V01-V107 are the whole-word 2.0.0 baseline (Principle P7): V01-V38 are
+# the 1.0.0 suite re-frozen unaltered in meaning, V39-V107 are new. They carry
 # concrete 64-hex identifiers and real Ed25519 keys, which pass through the
 # (retained) normalization unchanged; behavioral vectors derive deterministic
 # keypairs from sha256("key:" <> name), exactly as the Python harness does.
+# V108-V119 are the 3.0.0 additions (the ticks unit, the cross_stratal_seam,
+# the conduit realized_by); V120-V137 are the 4.0.0 additions (the attitude,
+# the predicted_occurrence, the prediction_error) — all built in the runner,
+# mirroring the Python reference exactly.
 
 Code.require_file("lib/causalontology/json.ex", __DIR__)
 Code.require_file("lib/causalontology/jcs.ex", __DIR__)
@@ -35,9 +40,10 @@ defmodule Conformance do
   # Whole-word schemes (Principle P7); the same set the Python harness uses.
   @schemes ~w(occurrent causal_relation_object continuant realizable
               assertion enrichment retraction succession
-              stratum bridge port conduit quality
+              stratum bridge cross_stratal_seam port conduit quality
               token_individual token_occurrence state_assertion
-              token_causal_claim)
+              token_causal_claim
+              attitude predicted_occurrence prediction_error)
   @whole_word MapSet.new(@schemes ++ ["ed25519"])
   @sym_regex Regex.compile!("^(" <> Enum.join(@schemes ++ ["ed25519"], "|") <> "):")
   @hex64 ~r/^[0-9a-f]{64}$/
@@ -1251,6 +1257,456 @@ defmodule Conformance do
   end
 
   # -------------------------------------------------------------------------
+  # V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam, realized_by)
+  # -------------------------------------------------------------------------
+
+  # -- Change One: the ordinal (tick) temporal unit --
+  def run_vector(108) do
+    p =
+      cro([sym("occurrent:a")], [sym("occurrent:b")], %{
+        "temporal" => %{"minimum_delay" => 0, "maximum_delay" => 5, "unit" => "ticks"},
+        "modality" => "sufficient"
+      })
+
+    {ok, why} = Schema.validate_schema(p)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.validate_semantics(p)
+    assert!(ok, inspect(why))
+  end
+
+  def run_vector(109) do
+    p =
+      cro([sym("occurrent:a")], [sym("occurrent:b")], %{
+        "temporal" => %{"minimum_delay" => 2, "maximum_delay" => 5, "unit" => "ticks"}
+      })
+
+    assert!(Semantics.admissible(p, 3) == true, "3 ticks inside [2, 5]")
+    assert!(Semantics.admissible(p, 2) == true and Semantics.admissible(p, 5) == true, "endpoints are admissible")
+    assert!(Semantics.admissible(p, 6) == false and Semantics.admissible(p, 1) == false, "outside the tick window is not admissible")
+  end
+
+  def run_vector(110) do
+    tick_window = %{"minimum_delay" => 0, "maximum_delay" => 5, "unit" => "ticks"}
+    wall_window = %{"minimum_delay" => 0, "maximum_delay" => 5, "unit" => "seconds"}
+
+    assert!(Semantics.delay_within_window(%{"duration" => 3, "unit" => "ticks"}, tick_window) == true, "3 ticks within the tick window")
+    assert!(Semantics.delay_within_window(%{"duration" => 1, "unit" => "ticks"}, wall_window) == false, "a tick delay is not within a wall-clock window")
+    assert!(Semantics.delay_within_window(%{"duration" => 1, "unit" => "seconds"}, tick_window) == false, "a seconds delay is not within a tick window")
+
+    a = %{"causes" => [sym("occurrent:a")], "effects" => [sym("occurrent:b")], "temporal" => tick_window, "modality" => "sufficient"}
+    b = %{"causes" => [sym("occurrent:a")], "effects" => [sym("occurrent:b")], "temporal" => wall_window, "modality" => "preventive"}
+    assert!(Semantics.conflicts(a, b) == false, "disjoint dimensions do not overlap")
+
+    refused =
+      try do
+        Semantics.to_seconds(1, "ticks")
+        false
+      rescue
+        _ -> true
+      end
+
+    assert!(refused, "to_seconds must refuse an ordinal unit")
+  end
+
+  def run_vector(111) do
+    base = %{
+      "type" => "causal_relation_object",
+      "causes" => [sym("occurrent:a")],
+      "effects" => [sym("occurrent:b")],
+      "modality" => "sufficient"
+    }
+
+    tick = Map.put(base, "temporal", %{"minimum_delay" => 0, "maximum_delay" => 1, "unit" => "ticks"})
+    secs = Map.put(base, "temporal", %{"minimum_delay" => 0, "maximum_delay" => 1, "unit" => "seconds"})
+    assert!(Canonical.identify(tick) != Canonical.identify(secs), "the unit is identity-bearing")
+    # A wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0).
+    assert!(
+      Canonical.identify(secs) ==
+        "causal_relation_object:d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+      "the wall-clock CRO identity is pinned"
+    )
+  end
+
+  # -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+  def run_vector(112) do
+    {sm, omap, smap} = seam_fixture(14, 4, "unmodeled")
+    {ok, why} = Schema.validate_schema(sm)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.validate_semantics(sm)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.seam_wellformed(sm, omap, smap)
+    assert!(ok, why)
+  end
+
+  def run_vector(113) do
+    {a, _, _} = seam_fixture(14, 4, "unmodeled")
+    {b, omap, smap} = seam_fixture(14, 4, "absent")
+    {ok, why} = Schema.validate_schema(b)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.seam_wellformed(b, omap, smap)
+    assert!(ok, why)
+    assert!(a["id"] != b["id"], "mechanism_status is identity-bearing")
+  end
+
+  def run_vector(114) do
+    {drawn, omap, smap} = seam_fixture(14, 4, "unmodeled", [9, 7, 6, 5])
+    {ok, why} = Schema.validate_schema(drawn)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.seam_wellformed(drawn, omap, smap)
+    assert!(ok, why)
+
+    {bad, omap2, smap2} = seam_fixture(14, 4, "absent", [9, 7, 6, 5])
+    {ok, why} = Semantics.validate_semantics(bad)
+    assert!(not ok and Enum.any?(why, &String.contains?(&1, "contradictory_seam")), inspect(why))
+    {ok2, _} = Semantics.seam_wellformed(bad, omap2, smap2)
+    assert!(not ok2, "a drawn chain with absent status is malformed")
+  end
+
+  def run_vector(115) do
+    {sm, omap, smap} = seam_fixture(14, 4, "unmodeled")
+    s = neuro()
+    assert!(Semantics.seam_home(sm, omap, smap) == s[14]["id"], "the home is the coarsest (max ordinal) stratum")
+  end
+
+  def run_vector(116) do
+    # adjacent (gap 1)
+    {adj, o1, s1} = seam_fixture(6, 5, "unmodeled")
+    {ok, _} = Semantics.seam_wellformed(adj, o1, s1)
+    assert!(not ok, "an adjacent seam is malformed")
+    # co-stratal (gap 0)
+    {co, o2, s2} = seam_fixture(6, 6, "unmodeled")
+    {ok, _} = Semantics.seam_wellformed(co, o2, s2)
+    assert!(not ok, "a co-stratal seam is malformed")
+    {sm, _, _} = seam_fixture(14, 4, "unmodeled")
+    assert!(String.starts_with?(sm["id"], "cross_stratal_seam:"), "a new identity scheme")
+  end
+
+  # -- Change Three: the realized_by reference --
+  def run_vector(117) do
+    c = conduit_realized("causal_relation_object:" <> String.duplicate("a", 64))
+    {ok, why} = Schema.validate_schema(c)
+    assert!(ok, inspect(why))
+    # A native scheme reference is legal.
+    c2 = conduit_realized("native:region_stratum_predict")
+    {ok, why} = Schema.validate_schema(c2)
+    assert!(ok, inspect(why))
+  end
+
+  def run_vector(118) do
+    bound = conduit_realized("native:region_stratum_predict")
+    unbound = conduit_realized()
+    assert!(bound["id"] != unbound["id"], "realized_by is identity-bearing")
+    # An unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0).
+    assert!(
+      unbound["id"] ==
+        "conduit:dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+      "the unbound conduit identity is pinned"
+    )
+  end
+
+  def run_vector(119) do
+    unbound = conduit_realized()
+    {ok, why} = Schema.validate_schema(unbound)
+    assert!(ok, inspect(why))
+    bad = Map.put(unbound, "realized_by", "not-a-scheme-qualified-reference")
+    {ok, _} = Schema.validate_schema(bad, "conduit")
+    assert!(not ok, "a malformed realized_by reference is rejected")
+  end
+
+  # -------------------------------------------------------------------------
+  # V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+  # prediction_error)
+  # -------------------------------------------------------------------------
+
+  # -- Group X: prediction and prediction error (Section A) --
+  def run_vector(120) do
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], %{"start_tick" => 3, "end_tick" => 8}, predictor())
+    {ok, why} = Schema.validate_schema(p)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.validate_semantics(p)
+    assert!(ok, inspect(why))
+    assert!(String.starts_with?(p["id"], "predicted_occurrence:"), "a new identity scheme")
+
+    report =
+      Canonical.identify(
+        %{
+          "type" => "token_occurrence",
+          "instantiates" => o["id"],
+          "interval" => %{"start_tick" => 3, "end_tick" => 8}
+        },
+        "token_occurrence"
+      )
+
+    assert!(p["id"] != report, "a forecast is not a report")
+    assert!(String.starts_with?(report, "token_occurrence:"), "the report is a token_occurrence")
+  end
+
+  def run_vector(121) do
+    o = occ("rainfall_begins")
+    wall = %{"start" => "2026-07-23T00:00:00Z", "end" => "2026-07-24T00:00:00Z"}
+    who = predictor()
+    with_strength = predicted(o["id"], wall, who, 0.8)
+    without = predicted(o["id"], wall, who)
+
+    for p <- [with_strength, without] do
+      {ok, why} = Schema.validate_schema(p)
+      assert!(ok, inspect(why))
+      {ok, why} = Semantics.validate_semantics(p)
+      assert!(ok, inspect(why))
+    end
+
+    assert!(with_strength["id"] != without["id"], "strength is identity-bearing")
+  end
+
+  def run_vector(122) do
+    o = occ("rainfall_begins")
+    bad = mk(%{"type" => "predicted_occurrence", "instantiates" => o["id"], "interval" => %{"start_tick" => 3}})
+    {ok, why} = Schema.validate_schema(bad, "predicted_occurrence")
+    assert!(not ok and Enum.any?(why, &String.contains?(&1, "predictor")), inspect(why))
+  end
+
+  def run_vector(123) do
+    o = occ("rainfall_begins")
+    both = predicted(o["id"], %{"start" => "2026-07-23T00:00:00Z", "start_tick" => 3}, predictor())
+    {ok, why} = Schema.validate_schema(both)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.validate_semantics(both)
+    assert!(not ok and Enum.any?(why, &String.contains?(&1, "dimension_conflict")), inspect(why))
+  end
+
+  def run_vector(124) do
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], %{"start" => "2026-07-23T00:00:00Z"}, predictor())
+    t = token(o["id"], %{"start" => "2026-07-23T06:00:00Z"})
+    err = prediction_error(p["id"], 0.0, t["id"])
+    {ok, why} = Schema.validate_schema(err)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.validate_semantics(err)
+    assert!(ok, inspect(why))
+    assert!(Semantics.prediction_pairing_mismatch(err, p, t) == false, "no pairing mismatch")
+  end
+
+  def run_vector(125) do
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], %{"start" => "2026-07-23T00:00:00Z"}, predictor())
+    err = prediction_error(p["id"], -1.0)
+    {ok, why} = Schema.validate_schema(err)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.validate_semantics(err)
+    assert!(ok, inspect(why))
+    assert!(not Map.has_key?(err, "observed"), "observed is absent")
+    assert!(Semantics.prediction_pairing_mismatch(err, p, nil) == false, "an absent observed is never a mismatch")
+  end
+
+  def run_vector(126) do
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], %{"start_tick" => 0}, predictor())
+    bad = mk(%{"type" => "prediction_error", "predicted" => p["id"]})
+    {ok, why} = Schema.validate_schema(bad, "prediction_error")
+    assert!(not ok and Enum.any?(why, &String.contains?(&1, "discrepancy")), inspect(why))
+  end
+
+  def run_vector(127) do
+    o = occ("rainfall_begins")
+    other = occ("snowfall_begins")
+    p = predicted(o["id"], %{"start" => "2026-07-23T00:00:00Z"}, predictor())
+    t = token(other["id"], %{"start" => "2026-07-23T06:00:00Z"})
+    err = prediction_error(p["id"], 1.0, t["id"])
+    {ok, why} = Schema.validate_schema(err)
+    assert!(ok, inspect(why))
+    assert!(Semantics.prediction_pairing_mismatch(err, p, t) == true, "pairing mismatch")
+  end
+
+  # -- Group Y: attitude and theory of mind (Section B) --
+  def run_vector(128) do
+    {st, _} = state_fixture("quantity", %{"quantity" => 15.0, "unit" => "ug/dL"}, "ug/dL")
+    att = attitude(believer(), "believes", st["id"])
+    {ok, why} = Schema.validate_schema(att)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.validate_semantics(att)
+    assert!(ok, inspect(why))
+  end
+
+  def run_vector(129) do
+    a = occ("switch_pressed")
+    b = occ("light_on")
+    actual = cro([a["id"]], [b["id"]], %{"modality" => "sufficient"})
+    believed = cro([a["id"]], [b["id"]], %{"modality" => "preventive"})
+    assert!(Semantics.conflicts(believed, actual) == true, "the claims contradict")
+
+    att = attitude(believer(), "believes", believed["id"])
+    {ok, why} = Schema.validate_schema(att)
+    assert!(ok, inspect(why))
+    # Validity unaffected (Rule 25).
+    {ok, why} = Semantics.validate_semantics(att)
+    assert!(ok, inspect(why))
+
+    s = Store.new()
+    {:ok, s, _} = Store.put(s, a)
+    {:ok, s, _} = Store.put(s, b)
+    {:ok, s, _} = Store.put(s, actual)
+    {:ok, s, _} = Store.put(s, att)
+    assert!(Store.gaps(s, "conflict") == [], "Rule 25: no conflict raised for a quarantined belief")
+  end
+
+  def run_vector(130) do
+    o = occ("rainfall_begins")
+    att = attitude(believer(), "desires", o["id"])
+    {ok, why} = Schema.validate_schema(att)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.validate_semantics(att)
+    assert!(ok, inspect(why))
+  end
+
+  def run_vector(131) do
+    o = occ("press_button")
+    att = attitude(believer(), "intends", o["id"])
+    {ok, why} = Schema.validate_schema(att)
+    assert!(ok, inspect(why))
+    {ok, why} = Semantics.validate_semantics(att)
+    assert!(ok, inspect(why))
+  end
+
+  def run_vector(132) do
+    {st, _} = state_fixture("boolean", %{"boolean" => true})
+    inner = attitude(believer("holder_b"), "believes", st["id"])
+    outer = attitude(believer("holder_a"), "believes", inner["id"])
+
+    for att <- [inner, outer] do
+      {ok, why} = Schema.validate_schema(att)
+      assert!(ok, inspect(why))
+      {ok, why} = Semantics.validate_semantics(att)
+      assert!(ok, inspect(why))
+    end
+
+    assert!(outer["id"] != inner["id"], "distinct ids")
+    assert!(outer["content"] == inner["id"], "nested content")
+  end
+
+  def run_vector(133) do
+    o = occ("rainfall_begins")
+    bad = mk(%{"type" => "attitude", "holder" => believer(), "attitude_type" => "suspects", "content" => o["id"]})
+    {ok, why} = Schema.validate_schema(bad, "attitude")
+    assert!(not ok and Enum.any?(why, &String.contains?(&1, "attitude_type")), inspect(why))
+  end
+
+  def run_vector(134) do
+    o = occ("rainfall_begins")
+
+    bad =
+      mk(%{
+        "type" => "attitude",
+        "holder" => believer(),
+        "attitude_type" => "believes",
+        "content" => o["id"],
+        "strength" => 0.9
+      })
+
+    {ok, why} = Schema.validate_schema(bad, "attitude")
+    assert!(not ok and Enum.any?(why, &String.contains?(&1, "strength")), inspect(why))
+  end
+
+  def run_vector(135) do
+    o = occ("rainfall_begins")
+    att = attitude(believer(), "expects", o["id"])
+
+    a =
+      signed(
+        "assertion",
+        %{"about" => att["id"], "evidence_type" => "observation", "confidence" => 0.9},
+        "signer"
+      )
+
+    {ok, why} = Schema.validate_schema(a)
+    assert!(ok, inspect(why))
+    assert!(Signing.verify_record(a) == true, "the assertion verifies")
+    # The HOLDER (a modeled agent) and the SOURCE (a signing key) differ.
+    assert!((att["holder"] |> String.split(":", parts: 2) |> hd()) == "token_individual", "the holder is a modeled agent")
+    assert!((a["source"] |> String.split(":", parts: 2) |> hd()) == "ed25519", "the source is a signing key")
+    assert!(att["holder"] != a["source"], "the holder and the source differ")
+  end
+
+  def run_vector(136) do
+    # The V111 wall-clock Causal Relation Object, re-pinned under 4.0.0.
+    secs = %{
+      "type" => "causal_relation_object",
+      "causes" => [sym("occurrent:a")],
+      "effects" => [sym("occurrent:b")],
+      "modality" => "sufficient",
+      "temporal" => %{"minimum_delay" => 0, "maximum_delay" => 1, "unit" => "seconds"}
+    }
+
+    assert!(
+      Canonical.identify(secs) ==
+        "causal_relation_object:d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+      "the wall-clock CRO identity holds under 4.0.0"
+    )
+
+    # The V118 unbound conduit, re-pinned under 4.0.0.
+    unbound = conduit_realized()
+
+    assert!(
+      unbound["id"] ==
+        "conduit:dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+      "the unbound conduit identity holds under 4.0.0"
+    )
+  end
+
+  def run_vector(137) do
+    hexid = String.duplicate("0", 64)
+    # NOTE: the abbreviated prefixes are intentional (the negative test); they
+    # must NOT be re-minted. Each is assembled to survive re-mint tools.
+    att_abbr = "a" <> "t" <> "t"
+    prd_abbr = "p" <> "r" <> "d"
+    err_abbr = "e" <> "r" <> "r"
+
+    bad_att = %{
+      "type" => "attitude",
+      "id" => att_abbr <> ":" <> hexid,
+      "holder" => "token_individual:" <> hexid,
+      "attitude_type" => "believes",
+      "content" => "state_assertion:" <> hexid
+    }
+
+    {ok, _} = Schema.validate_schema(bad_att, "attitude")
+    assert!(not ok, "the abbreviated attitude scheme must be rejected")
+
+    bad_prd = %{
+      "type" => "predicted_occurrence",
+      "id" => prd_abbr <> ":" <> hexid,
+      "instantiates" => "occurrent:" <> hexid,
+      "interval" => %{"start_tick" => 0},
+      "predictor" => "token_individual:" <> hexid
+    }
+
+    {ok, _} = Schema.validate_schema(bad_prd, "predicted_occurrence")
+    assert!(not ok, "the abbreviated predicted_occurrence scheme must be rejected")
+
+    bad_err = %{
+      "type" => "prediction_error",
+      "id" => err_abbr <> ":" <> hexid,
+      "predicted" => "predicted_occurrence:" <> hexid,
+      "discrepancy" => 0.0
+    }
+
+    {ok, _} = Schema.validate_schema(bad_err, "prediction_error")
+    assert!(not ok, "the abbreviated prediction_error scheme must be rejected")
+
+    whole_att = Map.put(bad_att, "id", "attitude:" <> hexid)
+    {ok, why} = Schema.validate_schema(whole_att, "attitude")
+    assert!(ok, "the whole-word attitude validates: " <> inspect(why))
+
+    whole_prd = Map.put(bad_prd, "id", "predicted_occurrence:" <> hexid)
+    {ok, why} = Schema.validate_schema(whole_prd, "predicted_occurrence")
+    assert!(ok, "the whole-word predicted_occurrence validates: " <> inspect(why))
+
+    whole_err = Map.put(bad_err, "id", "prediction_error:" <> hexid)
+    {ok, why} = Schema.validate_schema(whole_err, "prediction_error")
+    assert!(ok, "the whole-word prediction_error validates: " <> inspect(why))
+  end
+
+  # -------------------------------------------------------------------------
   # fixtures shared by the 2.0.0 vectors (grouped here so the run_vector/1
   # clauses stay contiguous)
   # -------------------------------------------------------------------------
@@ -1360,6 +1816,103 @@ defmodule Conformance do
     {law, o_cause, o_effect, t_cause, t_effect}
   end
 
+  # -------------------------------------------------------------------------
+  # builders and fixtures shared by the 3.0.0 and 4.0.0 vectors
+  # -------------------------------------------------------------------------
+
+  # A cross_stratal_seam content object, completed with its content-addressed id.
+  defp seam(source, target, mechanism_status, chain \\ nil) do
+    mk(
+      %{
+        "type" => "cross_stratal_seam",
+        "source" => source,
+        "target" => target,
+        "mechanism_status" => mechanism_status
+      }
+      |> put_if("chain", chain)
+    )
+  end
+
+  # Build a seam over the neuro fixture: {seam, occ_map, stratum_map}.
+  defp seam_fixture(src_ord, tgt_ord, mechanism_status, chain_ords \\ nil) do
+    s = neuro()
+    src = occ("source_event", s[src_ord]["id"])
+    tgt = occ("target_event", s[tgt_ord]["id"])
+    omap = %{src["id"] => src, tgt["id"] => tgt}
+    smap = %{s[src_ord]["id"] => s[src_ord], s[tgt_ord]["id"] => s[tgt_ord]}
+
+    {chain, omap, smap} =
+      if chain_ords == nil do
+        {nil, omap, smap}
+      else
+        chain_ords
+        |> Enum.with_index()
+        |> Enum.reduce({[], omap, smap}, fn {o, i}, {chain, omap, smap} ->
+          c = occ("chain_#{i}", s[o]["id"])
+          {chain ++ [c["id"]], Map.put(omap, c["id"], c), Map.put(smap, s[o]["id"], s[o])}
+        end)
+      end
+
+    {seam(src["id"], tgt["id"], mechanism_status, chain), omap, smap}
+  end
+
+  # A conduit with an optional realized_by reference, completed with its id.
+  defp conduit_realized(realized_by \\ nil) do
+    mk(
+      %{
+        "type" => "conduit",
+        "label" => "conn",
+        "from" => "port:" <> String.duplicate("1", 64),
+        "to" => "port:" <> String.duplicate("2", 64),
+        "carries" => ["occurrent:" <> String.duplicate("3", 64)]
+      }
+      |> put_if("realized_by", realized_by)
+    )
+  end
+
+  # An attitude content object, completed with its content-addressed id.
+  defp attitude(holder, attitude_type, content) do
+    mk(%{
+      "type" => "attitude",
+      "holder" => holder,
+      "attitude_type" => attitude_type,
+      "content" => content
+    })
+  end
+
+  # A predicted_occurrence, completed with its content-addressed id.
+  defp predicted(instantiates, interval, predictor, strength \\ nil) do
+    mk(
+      %{
+        "type" => "predicted_occurrence",
+        "instantiates" => instantiates,
+        "interval" => interval,
+        "predictor" => predictor
+      }
+      |> put_if("strength", strength)
+    )
+  end
+
+  # A prediction_error, completed with its content-addressed id.
+  defp prediction_error(predicted_id, discrepancy, observed \\ nil) do
+    mk(
+      %{"type" => "prediction_error", "predicted" => predicted_id, "discrepancy" => discrepancy}
+      |> put_if("observed", observed)
+    )
+  end
+
+  # A modeled predicting agent (a token individual), by identity.
+  defp predictor do
+    c = cnt("forecasting_mind")
+    individual(c["id"], "predictor_p")["id"]
+  end
+
+  # A modeled believing agent (a token individual), by identity.
+  defp believer(designator \\ "holder_h") do
+    c = cnt("believing_mind")
+    individual(c["id"], designator)["id"]
+  end
+
   defp scan_schemes(node, re, acc) when is_binary(node) do
     case Regex.run(re, node) do
       [_, scheme] -> [scheme | acc]
@@ -1378,13 +1931,15 @@ defmodule Conformance do
   # -------------------------------------------------------------------------
 
   def main do
-    IO.puts("causalontology-elixir conformance run")
+    IO.puts("causalontology-elixir conformance run (specification 4.0.0)")
     IO.write("internal checks (RFC 8032 known-answer, RFC 8785 basics) ... ")
     internal_checks()
     IO.puts("ok")
 
+    total = 137
+
     failures =
-      Enum.reduce(1..107, 0, fn n, failures ->
+      Enum.reduce(1..total, 0, fn n, failures ->
         name = vector_name(n)
 
         try do
@@ -1402,7 +1957,6 @@ defmodule Conformance do
         end
       end)
 
-    total = 107
     IO.puts(String.duplicate("-", 60))
     IO.puts("#{total - failures}/#{total} vectors passed")
 
@@ -1412,7 +1966,7 @@ defmodule Conformance do
 
     IO.puts(
       "causalontology-elixir is CONFORMANT to the suite " <>
-        "(vectors frozen at specification 2.0.0)."
+        "(vectors frozen at specification 4.0.0)."
     )
   end
 end

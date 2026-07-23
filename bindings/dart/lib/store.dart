@@ -19,7 +19,13 @@ import 'schema.dart';
 import 'semantics.dart';
 import 'signing.dart';
 
-const Set<String> contentKinds = {'occurrent', 'causal_relation_object', 'continuant', 'realizable'};
+const Set<String> contentKinds = {
+  'occurrent', 'causal_relation_object', 'continuant', 'realizable',
+  'stratum', 'bridge', 'cross_stratal_seam', 'port', 'conduit',
+  'quality', 'token_individual', 'token_occurrence', 'state_assertion',
+  'token_causal_claim',
+  'attitude', 'predicted_occurrence', 'prediction_error',
+};
 const Set<String> recordKinds = {'assertion', 'enrichment', 'retraction', 'succession'};
 
 /// An enforcing store refused a write, with the reason as [message].

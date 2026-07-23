@@ -502,8 +502,11 @@ yet green is listed PENDING with its blocker; a false "all shipped" is not
 permitted.
 
 POST-RELEASE CHECKLIST AND CURRENT STATUS (tick a language only when both
-hold; the status is the truthful state as of 2026-07-22, the day the 4.0.0
-specification froze):
+hold - published AND fresh-install 137/137; the code-level status below is the
+truthful state as of 2026-07-22, updated after the second binding wave brought
+every remaining language to 4.0.0 green locally. No box is ticked yet: every
+language is GREEN LOCALLY but UNPUBLISHED, because publication needs the owner's
+registry credentials and, for several languages, a standing human gate):
 
   [ ] C++        - v4.0.0 tag tarball out; ports at 4.0.0; fresh build 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
@@ -511,71 +514,94 @@ specification froze):
                    and reads 4.0.0; the v4.0.0 tag tarball is not yet out, and
                    the vcpkg and Conan ports besides await their CLA gates.
   [ ] C#         - published to NuGet; fresh install 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally and the csproj reads
+                   4.0.0; NuGet still carries 2.0.0; only publication and the
+                   fresh-install check remain.
   [ ] Dart       - published to pub.dev; fresh add 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally and pubspec.yaml reads
+                   4.0.0; pub.dev still carries 2.0.0; only publication and the
+                   fresh-install check remain.
   [ ] Elixir     - published to Hex; fresh consume 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally and mix.exs reads
+                   4.0.0; Hex still carries 2.0.0; only publication and the
+                   fresh-install check remain.
   [ ] Go         - /v4 module tag pushed and proxied; fresh get 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level (the /v2 module;
-                   no /v3 was ever cut); toolchain not present on the build
-                   machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   as a NEW bindings/go/v4 module (second wave); passes 137/137
+                   locally; the /v2 module stays live and no /v3 was ever cut;
+                   only the bindings/go/v4/v4.0.0 tag, proxy prime, and
+                   fresh-get check remain.
   [ ] Haskell    - published to Hackage; fresh consume 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine; the Hackage account and
-                   upload-token gate stands besides.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally and the .cabal reads
+                   4.0.0; the Hackage account and upload-token gate stands
+                   besides.
   [ ] Java       - released on Maven Central; fresh consume 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally and pom.xml reads
+                   4.0.0; Maven Central still carries 2.0.0; only the signed
+                   deploy and fresh-consume check remain.
   [ ] JavaScript - published to npm; types reflect the 4.0.0 shape; 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
                    passes 137/137 and reads 4.0.0; npm still carries 2.0.0;
                    only publication and the fresh-install check remain.
   [ ] Julia      - registered in General at 4.0.0; fresh add 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine; the contested General-registry
-                   review stands besides.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally and Project.toml reads
+                   4.0.0; the contested General-registry review stands besides.
   [ ] Kotlin     - released on Maven Central (causalontology-kotlin); 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally on Kotlin/JVM over the
+                   shared sources and build.gradle.kts reads 4.0.0; Maven
+                   Central still carries 2.0.0.
   [ ] Lua        - published to LuaRocks; fresh install 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally with a new
+                   causalontology-4.0.0-1.rockspec; LuaRocks still carries
+                   2.0.0; only the upload and fresh-install check remain.
   [ ] Perl       - uploaded to CPAN via PAUSE; fresh install 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
                    passes 137/137 and reads 4.0.0; nothing is on CPAN yet;
                    the PAUSE web-form upload stands besides, then the
                    fresh-install check.
   [ ] PHP        - v4.0.0 tag registered on Packagist; fresh require 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally and
+                   bindings/php/composer.json reads 4.0.0; Packagist mirrors
+                   git tags, so the v4.0.0 tag and fresh-require check remain.
   [ ] Python     - published to PyPI; fresh install 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
                    passes 137/137 and its manifests read 4.0.0; PyPI still
                    carries 2.0.0; only publication and the fresh-install check
                    remain.
   [ ] R          - submitted to and accepted by CRAN; fresh install 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine; the CRAN human review stands
-                   besides.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally, DESCRIPTION reads
+                   4.0.0, and inst/schema is refreshed to the twenty-one 4.0.0
+                   schemas; the CRAN human review stands besides.
   [ ] Ruby       - published to RubyGems; fresh install 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally and both the VERSION
+                   constant and the gemspec read 4.0.0; RubyGems still carries
+                   2.0.0; only publication and the fresh-install check remain.
   [ ] Rust       - published to crates.io; fresh install 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
                    passes 137/137 and reads 4.0.0; crates.io still carries
                    2.0.0; only publication and the fresh-install check remain.
   [ ] Swift      - v4.0.0 tag pushed; fresh resolve 137/137.
-                   STATUS: PENDING - code at the 2.0.0 level (Swift Package
-                   Manager currently resolves to v2.0.1); toolchain not
-                   present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally (Swift 5.10); Swift
+                   Package Manager is tag-resolved, so only a fresh v4.0.0 tag
+                   and the fresh-resolve check remain.
   [ ] Zig        - v4.0.0 tarball published and hash recorded; fresh fetch
                    137/137.
-                   STATUS: PENDING - code at the 2.0.0 level; toolchain not
-                   present on the build machine.
+                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
+                   (second wave); passes 137/137 locally and both build.zig.zon
+                   manifests read 4.0.0; only the v4.0.0 tag, recorded hash, and
+                   fresh-fetch check remain.
 
 WHEN THE PACKAGES ARE OUT:
   - Update the standard's README.md and the Standalone Design to point at the

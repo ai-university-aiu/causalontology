@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "io.github.ai-university-aiu"
-version = "2.0.0"
+version = "4.0.0"
 
 repositories {
     mavenCentral()
@@ -48,7 +48,7 @@ publishing {
                 "The Kotlin/Native binding of the Causalontology standard - reified " +
                     "causation as a programming-language-neutral standard and shared commons. " +
                     "Pure Kotlin, all cryptography (SHA-2, Ed25519, bignum) hand-built; " +
-                    "passes all 107 frozen conformance vectors."
+                    "passes all 137 frozen conformance vectors."
             )
             url.set("https://github.com/ai-university-aiu/causalontology")
             licenses {

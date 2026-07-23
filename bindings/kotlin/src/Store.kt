@@ -13,8 +13,9 @@
 package org.causalontology
 
 val CONTENT_KINDS = setOf("occurrent", "causal_relation_object", "continuant",
-    "realizable", "stratum", "bridge", "port", "conduit", "quality",
-    "token_individual", "token_occurrence", "state_assertion", "token_causal_claim")
+    "realizable", "stratum", "bridge", "cross_stratal_seam", "port", "conduit",
+    "quality", "token_individual", "token_occurrence", "state_assertion",
+    "token_causal_claim", "attitude", "predicted_occurrence", "prediction_error")
 val RECORD_KINDS = setOf("assertion", "enrichment", "retraction", "succession")
 
 // An enforcing store refused a write, with the reason as the message.

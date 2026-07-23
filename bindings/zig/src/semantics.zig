@@ -27,6 +27,28 @@ pub fn unitSeconds(unit: []const u8) ?f64 {
     return null;
 }
 
+/// 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete
+/// step with NO wall-clock mapping; a tick window is ordered by integer
+/// comparison, and an ordinal window and a wall-clock window are DIFFERENT
+/// DIMENSIONS that do not compare (mixing them is never within-window and
+/// never overlapping).
+fn isOrdinalUnit(unit: []const u8) bool {
+    return std.mem.eql(u8, unit, "ticks");
+}
+
+/// "ordinal" for a tick-like unit, else "wallclock".
+fn dimensionOf(unit: []const u8) []const u8 {
+    return if (isOrdinalUnit(unit)) "ordinal" else "wallclock";
+}
+
+/// A comparable magnitude WITHIN one dimension: the raw tick count for an
+/// ordinal unit, seconds for a wall-clock unit. Never mix dimensions.
+fn magnitudeOf(value: f64, unit: []const u8) f64 {
+    if (isOrdinalUnit(unit)) return value; // a dimensionless tick count
+    if (std.mem.eql(u8, unit, "instant")) return 0;
+    return value * unitSeconds(unit).?;
+}
+
 /// Rule 12: enrichment field-to-kind validity and entry shapes.
 pub const EnrichmentFieldSpec = struct {
     field: []const u8,
@@ -133,6 +155,42 @@ pub fn validateSemantics(a: Allocator, obj_value: Value, kind_opt: ?[]const u8) 
         }
     }
 
+    // 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain
+    // has, by drawing it, a modelled intervening mechanism - so
+    // mechanism_status 'absent' contradicts a present chain (the honest-
+    // ignorance distinction must stay honest). The stratal well-formedness
+    // (non-adjacency, adjacency of chain steps, scheme, the home rule) needs
+    // the strata map and lives in seamWellformed, exactly as bridge
+    // well-formedness does.
+    if (std.mem.eql(u8, kind, "cross_stratal_seam")) {
+        const chain = obj.get("chain");
+        const has_chain = chain != null and chain.? != .null;
+        const status = jcs.getString(obj, "mechanism_status") orelse "";
+        if (has_chain and std.mem.eql(u8, status, "absent")) {
+            try errors.append("contradictory_seam: a drawn chain cannot carry mechanism_status 'absent' (a drawn mechanism is not absent)");
+        }
+    }
+
+    // 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+    // exactly ONE temporal dimension - a wall-clock start (optional end) or an
+    // ordinal start_tick (optional end_tick), never both and never neither.
+    // Per Rule 23 the two dimensions never compare. The pairing check of a
+    // prediction_error against its predicted_occurrence and its observed
+    // token_occurrence needs those objects and lives in
+    // predictionPairingMismatch, exactly as coveringLawMismatch does.
+    if (std.mem.eql(u8, kind, "predicted_occurrence")) {
+        const iv = obj.get("interval");
+        const has_obj = iv != null and iv.? == .object;
+        const wall = has_obj and iv.?.object.contains("start");
+        const tick = has_obj and iv.?.object.contains("start_tick");
+        if (wall and tick) {
+            try errors.append("dimension_conflict: a predicted interval must carry exactly one temporal dimension, not a wall-clock start AND an ordinal start_tick");
+        }
+        if (!wall and !tick) {
+            try errors.append("missing_dimension: a predicted interval must carry a wall-clock start or an ordinal start_tick");
+        }
+    }
+
     return .{ .ok = errors.items.len == 0, .errors = errors.items };
 }
 
@@ -150,14 +208,15 @@ pub fn isPartial(a: Allocator, cro: ObjectMap) !Partial {
     return .{ .partial = missing.items.len > 0, .missing = missing.items };
 }
 
-/// Rule 4: temporal admissibility with the fixed constants.
-pub fn admissible(cro: ObjectMap, elapsed_seconds: f64) bool {
+/// Rule 4: temporal admissibility. For a wall-clock window `elapsed` is in
+/// seconds; for an ordinal ('ticks') window `elapsed` is a tick count (3.0.0).
+pub fn admissible(cro: ObjectMap, elapsed: f64) bool {
     const t = cro.get("temporal") orelse return true; // no window, no constraint
     if (t != .object) return true;
-    const unit = unitSeconds(jcs.getString(t.object, "unit") orelse "").?;
-    const lo = jcs.numAsF64(t.object.get("minimum_delay").?).? * unit;
-    const hi = jcs.numAsF64(t.object.get("maximum_delay").?).? * unit;
-    return lo <= elapsed_seconds and elapsed_seconds <= hi;
+    const unit = jcs.getString(t.object, "unit") orelse "";
+    const lo = magnitudeOf(jcs.numAsF64(t.object.get("minimum_delay").?).?, unit);
+    const hi = magnitudeOf(jcs.numAsF64(t.object.get("maximum_delay").?).?, unit);
+    return lo <= elapsed and elapsed <= hi;
 }
 
 /// True iff every string in xs appears in ys (as a set relation).
@@ -179,12 +238,14 @@ fn windowOverlap(x: ObjectMap, y: ObjectMap) bool {
     const ta = x.get("temporal") orelse return true;
     const tb = y.get("temporal") orelse return true;
     if (ta != .object or tb != .object) return true; // either absent counts as overlapping
-    const ua = unitSeconds(jcs.getString(ta.object, "unit") orelse "").?;
-    const ub = unitSeconds(jcs.getString(tb.object, "unit") orelse "").?;
-    const lo_a = jcs.numAsF64(ta.object.get("minimum_delay").?).? * ua;
-    const hi_a = jcs.numAsF64(ta.object.get("maximum_delay").?).? * ua;
-    const lo_b = jcs.numAsF64(tb.object.get("minimum_delay").?).? * ub;
-    const hi_b = jcs.numAsF64(tb.object.get("maximum_delay").?).? * ub;
+    const ua = jcs.getString(ta.object, "unit") orelse "";
+    const ub = jcs.getString(tb.object, "unit") orelse "";
+    // 3.0.0: an ordinal window and a wall-clock window never overlap.
+    if (!std.mem.eql(u8, dimensionOf(ua), dimensionOf(ub))) return false;
+    const lo_a = magnitudeOf(jcs.numAsF64(ta.object.get("minimum_delay").?).?, ua);
+    const hi_a = magnitudeOf(jcs.numAsF64(ta.object.get("maximum_delay").?).?, ua);
+    const lo_b = magnitudeOf(jcs.numAsF64(tb.object.get("minimum_delay").?).?, ub);
+    const hi_b = magnitudeOf(jcs.numAsF64(tb.object.get("maximum_delay").?).?, ub);
     return lo_a <= hi_b and lo_b <= hi_a;
 }
 
@@ -485,7 +546,11 @@ pub fn skipGaps(a: Allocator, cro: ObjectMap, classification: []const u8) !std.A
 }
 
 /// ALGORITHM E helper: normalize a delay to seconds by the fixed table.
-pub fn toSeconds(duration: f64, unit: []const u8) f64 {
+/// 3.0.0: an ordinal ('ticks') unit is dimensionless and has NO wall-clock
+/// mapping - converting one to seconds is a category error and is refused
+/// (error.OrdinalUnitHasNoSeconds).
+pub fn toSeconds(duration: f64, unit: []const u8) !f64 {
+    if (isOrdinalUnit(unit)) return error.OrdinalUnitHasNoSeconds;
     if (std.mem.eql(u8, unit, "instant")) return 0;
     return duration * unitSeconds(unit).?;
 }
@@ -496,9 +561,14 @@ pub fn delayWithinWindow(actual_delay: ?ObjectMap, temporal: ?ObjectMap) bool {
     if (actual_delay == null or temporal == null) return true; // nothing to check
     const ad = actual_delay.?;
     const t = temporal.?;
-    const observed = toSeconds(jcs.numAsF64(ad.get("duration").?).?, jcs.getString(ad, "unit").?);
-    const lo = toSeconds(jcs.numAsF64(t.get("minimum_delay").?).?, jcs.getString(t, "unit").?);
-    const hi = toSeconds(jcs.numAsF64(t.get("maximum_delay").?).?, jcs.getString(t, "unit").?);
+    const delay_unit = jcs.getString(ad, "unit") orelse "";
+    const window_unit = jcs.getString(t, "unit") orelse "";
+    // 3.0.0: an ordinal delay compares to an ordinal window by integer tick
+    // count; a tick delay is never within a wall-clock window (or vice versa).
+    if (!std.mem.eql(u8, dimensionOf(delay_unit), dimensionOf(window_unit))) return false;
+    const observed = magnitudeOf(jcs.numAsF64(ad.get("duration").?).?, delay_unit);
+    const lo = magnitudeOf(jcs.numAsF64(t.get("minimum_delay").?).?, window_unit);
+    const hi = magnitudeOf(jcs.numAsF64(t.get("maximum_delay").?).?, window_unit);
     return lo <= observed and observed <= hi;
 }
 
@@ -531,6 +601,74 @@ pub fn bridgeWellformed(bridge: ObjectMap, occ_map: *const ObjMap, stratum_map: 
         return .{ .ok = false, .reason = "malformed_bridge: coarse ordinal not > fine ordinal (e)" };
     }
     return .{ .ok = true, .reason = "well-formed bridge" };
+}
+
+/// 3.0.0 Rule 22 / Algorithm F: cross-stratal seam well-formedness. All of
+/// (a)-(g) must hold, else malformed_seam. A seam is a MANAGED jump across
+/// NON-ADJACENT strata; when it DRAWS a chain, the chain must be an
+/// adjacent-stratum path spanning the two endpoints' strata.
+pub fn seamWellformed(seam: ObjectMap, occ_map: *const ObjMap, stratum_map: *const ObjMap) OkReason {
+    const src_s = stratumOf(occ_map, jcs.getString(seam, "source") orelse "") orelse
+        return .{ .ok = false, .reason = "malformed_seam: an endpoint has no stratum (a)" };
+    const tgt_s = stratumOf(occ_map, jcs.getString(seam, "target") orelse "") orelse
+        return .{ .ok = false, .reason = "malformed_seam: an endpoint has no stratum (a)" };
+    const src_scheme = jcs.getString(stratum_map.get(src_s).?, "scheme").?;
+    const tgt_scheme = jcs.getString(stratum_map.get(tgt_s).?, "scheme").?;
+    if (!std.mem.eql(u8, src_scheme, tgt_scheme)) {
+        return .{ .ok = false, .reason = "malformed_seam: endpoints differ in scheme (b)" };
+    }
+    const so = ordinalOf(stratum_map, src_s);
+    const to = ordinalOf(stratum_map, tgt_s);
+    const diff = if (so > to) so - to else to - so;
+    if (diff <= 1) {
+        return .{ .ok = false, .reason = "malformed_seam: endpoints are adjacent or co-stratal; a seam is for NON-adjacent strata (c)" };
+    }
+    const chain = seam.get("chain");
+    if (chain != null and chain.? == .array) {
+        if (std.mem.eql(u8, jcs.getString(seam, "mechanism_status") orelse "", "absent")) {
+            return .{ .ok = false, .reason = "malformed_seam: a drawn chain contradicts mechanism_status 'absent' (d)" };
+        }
+        const lo = @min(so, to);
+        const hi = @max(so, to);
+        // (f) each chain member strictly INTERVENING; (g) the drawn ordinals
+        // strictly monotone from one endpoint toward the other - tracked
+        // inline (prev/direction) so no allocation is needed.
+        var prev: ?i64 = null;
+        var direction: i64 = 0; // 0 unknown, 1 rising, -1 falling
+        for (chain.?.array.items) |cid| {
+            if (cid != .string) continue;
+            const cst = stratumOf(occ_map, cid.string) orelse
+                return .{ .ok = false, .reason = "malformed_seam: a chain member has no stratum (e)" };
+            const cscheme = jcs.getString(stratum_map.get(cst).?, "scheme").?;
+            if (!std.mem.eql(u8, cscheme, src_scheme)) {
+                return .{ .ok = false, .reason = "malformed_seam: a chain member differs in scheme (e)" };
+            }
+            const o = ordinalOf(stratum_map, cst);
+            if (!(lo < o and o < hi)) {
+                return .{ .ok = false, .reason = "malformed_seam: a chain member is not at an INTERVENING stratum, strictly between the endpoints (f)" };
+            }
+            if (prev) |p| {
+                const step = o - p;
+                const this_dir: i64 = if (step > 0) 1 else if (step < 0) -1 else 0;
+                if (this_dir == 0 or (direction != 0 and direction != this_dir)) {
+                    return .{ .ok = false, .reason = "malformed_seam: chain is not strictly monotone from one endpoint toward the other (g)" };
+                }
+                direction = this_dir;
+            }
+            prev = o;
+        }
+    }
+    return .{ .ok = true, .reason = "well-formed cross_stratal_seam" };
+}
+
+/// THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST stratum
+/// it touches - the endpoint of the greater ordinal. Returns that stratum's
+/// identifier, or null when an endpoint is unstratified. A layer-to-stratum
+/// binding places and checks the seam by this rule.
+pub fn seamHome(seam: ObjectMap, occ_map: *const ObjMap, stratum_map: *const ObjMap) ?[]const u8 {
+    const src_s = stratumOf(occ_map, jcs.getString(seam, "source") orelse "") orelse return null;
+    const tgt_s = stratumOf(occ_map, jcs.getString(seam, "target") orelse "") orelse return null;
+    return if (ordinalOf(stratum_map, src_s) >= ordinalOf(stratum_map, tgt_s)) src_s else tgt_s;
 }
 
 fn allIn(needles: []const Value, haystack: []const Value) bool {
@@ -637,6 +775,21 @@ fn containsStr(xs: []const Value, needle: []const u8) bool {
         if (x == .string and std.mem.eql(u8, x.string, needle)) return true;
     }
     return false;
+}
+
+/// 4.0.0 Rule 24: prediction-to-observation pairing. True iff the prediction
+/// error's observed token does not instantiate the occurrent its
+/// predicted_occurrence instantiates (surfaces pairing_mismatch). An ABSENT
+/// observed is never a mismatch - it means the predicted occurrence was not
+/// fulfilled by any recorded occurrence. `observed` is null when no token
+/// occurrence answered the prediction.
+pub fn predictionPairingMismatch(err: ObjectMap, predicted: ObjectMap, observed: ?ObjectMap) bool {
+    const obs_ref = err.get("observed");
+    if (obs_ref == null or obs_ref.? == .null) return false;
+    const obs = observed orelse return false;
+    const obs_inst = jcs.getString(obs, "instantiates") orelse "";
+    const pred_inst = jcs.getString(predicted, "instantiates") orelse "";
+    return !std.mem.eql(u8, obs_inst, pred_inst);
 }
 
 /// Rule 21: True iff any cause token starts after any effect token (HARD;

@@ -25,8 +25,15 @@ public struct RejectedWrite: Error, CustomStringConvertible {
     }
 }
 
-/// The four immutable content object kinds.
-public let contentKinds: Set<String> = ["occurrent", "causal_relation_object", "continuant", "realizable"]
+/// The immutable content object kinds (3.0.0 adds cross_stratal_seam; 4.0.0
+/// adds attitude, predicted_occurrence, and prediction_error).
+public let contentKinds: Set<String> = [
+    "occurrent", "causal_relation_object", "continuant", "realizable",
+    "stratum", "bridge", "cross_stratal_seam", "port", "conduit",
+    "quality", "token_individual", "token_occurrence",
+    "state_assertion", "token_causal_claim",
+    "attitude", "predicted_occurrence", "prediction_error",
+]
 
 /// The four signed provenance record kinds.
 public let recordKinds: Set<String> = ["assertion", "enrichment", "retraction", "succession"]

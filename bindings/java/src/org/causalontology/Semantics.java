@@ -24,6 +24,15 @@ public final class Semantics {
     /** Rule 4: the fixed unit-conversion constants (average Gregorian). */
     public static final Map<String, Long> UNIT_SECONDS;
 
+    /**
+     * 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete
+     * step with NO wall-clock mapping; a tick window is ordered by integer
+     * comparison, and an ordinal window and a wall-clock window are DIFFERENT
+     * DIMENSIONS that do not compare (mixing them is never within-window and
+     * never overlapping).
+     */
+    public static final Set<String> ORDINAL_UNITS = Set.of("ticks");
+
     /** The optional CRO fields, in the fixed partiality order. */
     public static final List<String> CRO_OPTIONAL_FIELDS =
         List.of("mechanism", "temporal", "modality", "context");
@@ -77,6 +86,25 @@ public final class Semantics {
     }
 
     private Semantics() {
+    }
+
+    /** "ordinal" for a tick-like unit, else "wallclock" (3.0.0). */
+    private static String dimension(String unit) {
+        return ORDINAL_UNITS.contains(unit) ? "ordinal" : "wallclock";
+    }
+
+    /**
+     * A comparable magnitude WITHIN one dimension: a raw tick count for an
+     * ordinal unit, seconds for a wall-clock unit. Never mix dimensions.
+     */
+    private static double magnitude(double value, String unit) {
+        if (ORDINAL_UNITS.contains(unit)) {
+            return value; // a dimensionless tick count
+        }
+        if (unit.equals("instant")) {
+            return 0;
+        }
+        return value * UNIT_SECONDS.get(unit);
     }
 
     private static String kindOfId(String identifier) {
@@ -170,6 +198,46 @@ public final class Semantics {
             }
         }
 
+        // 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain
+        // has, by drawing it, a modelled intervening mechanism - so
+        // mechanism_status 'absent' contradicts a present chain (the honest-
+        // ignorance distinction must stay honest). The stratal well-formedness
+        // (non-adjacency, adjacency of chain steps, scheme, the home rule)
+        // needs the strata map and lives in seamWellformed, exactly as bridge
+        // well-formedness does.
+        if (k.equals("cross_stratal_seam")) {
+            if (obj.get("chain") != null
+                    && "absent".equals(obj.get("mechanism_status"))) {
+                errors.add("contradictory_seam: a drawn chain cannot carry "
+                           + "mechanism_status 'absent' (a drawn mechanism is "
+                           + "not absent)");
+            }
+        }
+
+        // 4.0.0 Rule 24, local clause: a predicted_occurrence's interval
+        // carries exactly ONE temporal dimension - a wall-clock start (optional
+        // end) or an ordinal start_tick (optional end_tick), never both and
+        // never neither. Per Rule 23 the two dimensions never compare. The
+        // pairing check of a prediction_error against its predicted_occurrence
+        // and its observed token_occurrence needs those objects and lives in
+        // predictionPairingMismatch, exactly as coveringLawMismatch does.
+        if (k.equals("predicted_occurrence")) {
+            Map<?, ?> iv = obj.get("interval") instanceof Map
+                ? (Map<?, ?>) obj.get("interval") : Collections.emptyMap();
+            boolean wall = iv.containsKey("start");
+            boolean tick = iv.containsKey("start_tick");
+            if (wall && tick) {
+                errors.add("dimension_conflict: a predicted interval must "
+                           + "carry exactly one temporal dimension, not a "
+                           + "wall-clock start AND an ordinal start_tick");
+            }
+            if (!wall && !tick) {
+                errors.add("missing_dimension: a predicted interval must "
+                           + "carry a wall-clock start or an ordinal "
+                           + "start_tick");
+            }
+        }
+
         return new Validation(errors.isEmpty(), errors);
     }
 
@@ -184,18 +252,24 @@ public final class Semantics {
         return missing;
     }
 
-    /** Rule 4: temporal admissibility with the fixed constants. */
+    /**
+     * Rule 4: temporal admissibility. For a wall-clock window elapsed is in
+     * seconds; for an ordinal ('ticks') window elapsed is a tick count.
+     * Ordering is by magnitude WITHIN the window's own dimension (3.0.0).
+     */
     public static boolean admissible(Map<String, Object> cro,
-                                     double elapsedSeconds) {
+                                     double elapsed) {
         Object temporalObj = cro.get("temporal");
         if (temporalObj == null) {
             return true; // no window imposes no constraint
         }
         Map<?, ?> temporal = (Map<?, ?>) temporalObj;
-        long unit = UNIT_SECONDS.get((String) temporal.get("unit"));
-        double lo = ((Number) temporal.get("minimum_delay")).doubleValue() * unit;
-        double hi = ((Number) temporal.get("maximum_delay")).doubleValue() * unit;
-        return lo <= elapsedSeconds && elapsedSeconds <= hi;
+        String unit = (String) temporal.get("unit");
+        double lo = magnitude(
+            ((Number) temporal.get("minimum_delay")).doubleValue(), unit);
+        double hi = magnitude(
+            ((Number) temporal.get("maximum_delay")).doubleValue(), unit);
+        return lo <= elapsed && elapsed <= hi;
     }
 
     private static boolean windowOverlap(Map<String, Object> a,
@@ -207,12 +281,20 @@ public final class Semantics {
         }
         Map<?, ?> ta = (Map<?, ?>) taObj;
         Map<?, ?> tb = (Map<?, ?>) tbObj;
-        long ua = UNIT_SECONDS.get((String) ta.get("unit"));
-        long ub = UNIT_SECONDS.get((String) tb.get("unit"));
-        double loA = ((Number) ta.get("minimum_delay")).doubleValue() * ua;
-        double hiA = ((Number) ta.get("maximum_delay")).doubleValue() * ua;
-        double loB = ((Number) tb.get("minimum_delay")).doubleValue() * ub;
-        double hiB = ((Number) tb.get("maximum_delay")).doubleValue() * ub;
+        String unitA = (String) ta.get("unit");
+        String unitB = (String) tb.get("unit");
+        // 3.0.0: an ordinal window and a wall-clock window never overlap.
+        if (!dimension(unitA).equals(dimension(unitB))) {
+            return false;
+        }
+        double loA = magnitude(
+            ((Number) ta.get("minimum_delay")).doubleValue(), unitA);
+        double hiA = magnitude(
+            ((Number) ta.get("maximum_delay")).doubleValue(), unitA);
+        double loB = magnitude(
+            ((Number) tb.get("minimum_delay")).doubleValue(), unitB);
+        double hiB = magnitude(
+            ((Number) tb.get("maximum_delay")).doubleValue(), unitB);
         return loA <= hiB && loB <= hiA;
     }
 
@@ -557,8 +639,16 @@ public final class Semantics {
         return gaps;
     }
 
-    /** ALGORITHM E helper: normalize a delay to seconds by the fixed table. */
+    /**
+     * ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+     * 3.0.0: an ordinal ('ticks') unit is dimensionless and has NO wall-clock
+     * mapping - converting one to seconds is a category error and is refused.
+     */
     public static long toSeconds(long duration, String unit) {
+        if (ORDINAL_UNITS.contains(unit)) {
+            throw new IllegalArgumentException("'" + unit + "' is an ordinal "
+                + "(dimensionless) unit and has no wall-clock seconds mapping");
+        }
         if (unit.equals("instant")) {
             return 0;
         }
@@ -575,15 +665,20 @@ public final class Semantics {
                 || temporal == null || temporal.isEmpty()) {
             return true; // nothing to check
         }
-        long observed = toSeconds(
-            ((Number) actualDelay.get("duration")).longValue(),
-            (String) actualDelay.get("unit"));
-        long lo = toSeconds(
-            ((Number) temporal.get("minimum_delay")).longValue(),
-            (String) temporal.get("unit"));
-        long hi = toSeconds(
-            ((Number) temporal.get("maximum_delay")).longValue(),
-            (String) temporal.get("unit"));
+        String delayUnit = (String) actualDelay.get("unit");
+        String windowUnit = (String) temporal.get("unit");
+        // 3.0.0: an ordinal delay compares to an ordinal window by integer tick
+        // count; a tick delay is never within a wall-clock window (or vice
+        // versa).
+        if (!dimension(delayUnit).equals(dimension(windowUnit))) {
+            return false;
+        }
+        double observed = magnitude(
+            ((Number) actualDelay.get("duration")).doubleValue(), delayUnit);
+        double lo = magnitude(
+            ((Number) temporal.get("minimum_delay")).doubleValue(), windowUnit);
+        double hi = magnitude(
+            ((Number) temporal.get("maximum_delay")).doubleValue(), windowUnit);
         return lo <= observed && observed <= hi;
     }
 
@@ -625,6 +720,105 @@ public final class Semantics {
                 "malformed_bridge: coarse ordinal not > fine ordinal (e)");
         }
         return new Validation(true, List.of("well-formed bridge"));
+    }
+
+    /**
+     * 3.0.0 Rule 22 / Algorithm F: cross-stratal seam well-formedness. All of
+     * (a)-(g) must hold, else malformed_seam. A seam is a MANAGED jump across
+     * NON-ADJACENT strata; when it DRAWS a chain, the chain must be an
+     * adjacent-stratum path spanning the two endpoints' strata.
+     */
+    public static Validation seamWellformed(
+            Map<String, Object> seam,
+            Map<String, Map<String, Object>> occMap,
+            Map<String, Map<String, Object>> stratumMap) {
+        Object srcS = stratumOf(seam.get("source"), occMap);
+        Object tgtS = stratumOf(seam.get("target"), occMap);
+        if (srcS == null || tgtS == null) {
+            return Validation.invalid(
+                "malformed_seam: an endpoint has no stratum (a)");
+        }
+        if (!stratumMap.get(srcS).get("scheme")
+                .equals(stratumMap.get(tgtS).get("scheme"))) {
+            return Validation.invalid(
+                "malformed_seam: endpoints differ in scheme (b)");
+        }
+        long so = ordinalOf(srcS, stratumMap);
+        long to = ordinalOf(tgtS, stratumMap);
+        if (Math.abs(so - to) <= 1) {
+            return Validation.invalid(
+                "malformed_seam: endpoints are adjacent or co-stratal; a seam "
+                + "is for NON-adjacent strata (c)");
+        }
+        Object chainObj = seam.get("chain");
+        if (chainObj != null) {
+            if ("absent".equals(seam.get("mechanism_status"))) {
+                return Validation.invalid(
+                    "malformed_seam: a drawn chain contradicts "
+                    + "mechanism_status 'absent' (d)");
+            }
+            long lo = Math.min(so, to);
+            long hi = Math.max(so, to);
+            List<Long> ords = new ArrayList<>();
+            for (Object oid : (List<?>) chainObj) {
+                Object st = stratumOf(oid, occMap);
+                if (st == null) {
+                    return Validation.invalid(
+                        "malformed_seam: a chain member has no stratum (e)");
+                }
+                if (!stratumMap.get(st).get("scheme")
+                        .equals(stratumMap.get(srcS).get("scheme"))) {
+                    return Validation.invalid(
+                        "malformed_seam: a chain member differs in scheme (e)");
+                }
+                ords.add(ordinalOf(st, stratumMap));
+            }
+            for (long o : ords) {
+                if (!(lo < o && o < hi)) {
+                    return Validation.invalid(
+                        "malformed_seam: a chain member is not at an "
+                        + "INTERVENING stratum, strictly between the endpoints "
+                        + "(f)");
+                }
+            }
+            if (ords.size() > 1) {
+                boolean allRising = true;
+                boolean allFalling = true;
+                for (int i = 0; i + 1 < ords.size(); i++) {
+                    long d = ords.get(i + 1) - ords.get(i);
+                    if (d <= 0) {
+                        allRising = false;
+                    }
+                    if (d >= 0) {
+                        allFalling = false;
+                    }
+                }
+                if (!allRising && !allFalling) {
+                    return Validation.invalid(
+                        "malformed_seam: chain is not strictly monotone from "
+                        + "one endpoint toward the other (g)");
+                }
+            }
+        }
+        return new Validation(true, List.of("well-formed cross_stratal_seam"));
+    }
+
+    /**
+     * THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST
+     * stratum it touches - the endpoint of the greater ordinal. Returns that
+     * stratum's identifier (null when an endpoint is unstratified).
+     */
+    public static String seamHome(
+            Map<String, Object> seam,
+            Map<String, Map<String, Object>> occMap,
+            Map<String, Map<String, Object>> stratumMap) {
+        Object srcS = stratumOf(seam.get("source"), occMap);
+        Object tgtS = stratumOf(seam.get("target"), occMap);
+        if (srcS == null || tgtS == null) {
+            return null;
+        }
+        return ordinalOf(srcS, stratumMap) >= ordinalOf(tgtS, stratumMap)
+            ? (String) srcS : (String) tgtS;
     }
 
     /** Rule 17 / N4.2.1-2: conduit well-formedness. */
@@ -734,6 +928,23 @@ public final class Semantics {
             }
         }
         return false;
+    }
+
+    /**
+     * 4.0.0 Rule 24: prediction-to-observation pairing. True iff the
+     * prediction error's observed token does not instantiate the occurrent its
+     * predicted_occurrence instantiates (surfaces pairing_mismatch). An ABSENT
+     * observed (a null observed object) is never a mismatch - it means the
+     * predicted occurrence was not fulfilled by any recorded occurrence.
+     */
+    public static boolean predictionPairingMismatch(
+            Map<String, Object> error, Map<String, Object> predicted,
+            Map<String, Object> observed) {
+        if (error.get("observed") == null || observed == null) {
+            return false;
+        }
+        return !Objects.equals(observed.get("instantiates"),
+                               predicted.get("instantiates"));
     }
 
     /**

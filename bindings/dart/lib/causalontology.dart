@@ -27,15 +27,19 @@ export 'semantics.dart'
         toSeconds,
         delayWithinWindow,
         bridgeWellformed,
+        seamWellformed,
+        seamHome,
         conduitWellformed,
         stateGaps,
         coveringLawMismatch,
+        predictionPairingMismatch,
         retrocausal,
         hasCycle,
         enrichmentFields,
-        unitSeconds;
+        unitSeconds,
+        ordinalUnits;
 export 'signing.dart' show keypairFromSeed, signRecord, verifyRecord;
 export 'store.dart' show InMemoryStore, RejectedWrite;
 
-/// Specification 2.0.0 (whole-word re-mint; vectors frozen 2026-07-15).
-const String causalontologyVersion = '2.0.0';
+/// Specification 4.0.0 (attitude, predicted_occurrence, prediction_error).
+const String causalontologyVersion = '4.0.0';

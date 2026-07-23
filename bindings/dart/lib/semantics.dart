@@ -22,6 +22,24 @@ const Map<String, int> unitSeconds = {
   'years': 31556952,
 };
 
+/// 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete step
+/// with NO wall-clock mapping; a tick window is ordered by integer comparison,
+/// and an ordinal window and a wall-clock window are DIFFERENT DIMENSIONS that
+/// do not compare (mixing them is never within-window and never overlapping).
+const Set<String> ordinalUnits = {'ticks'};
+
+/// 'ordinal' for a tick-like unit, else 'wallclock'.
+String _dimension(String unit) =>
+    ordinalUnits.contains(unit) ? 'ordinal' : 'wallclock';
+
+/// A comparable magnitude within ONE dimension: raw tick count for an ordinal
+/// unit, seconds for a wall-clock unit. Never mix dimensions.
+num _magnitude(num value, String unit) {
+  if (ordinalUnits.contains(unit)) return value; // a dimensionless tick count
+  if (unit == 'instant') return 0;
+  return value * unitSeconds[unit]!;
+}
+
 /// Rule 12: enrichment field-to-kind validity and entry shapes. Two occurrent
 /// forms added in 2.0.0.
 const Map<String, (List<String>, String)> enrichmentFields = {
@@ -99,6 +117,42 @@ String? _kindOfId(String identifier) =>
     }
   }
 
+  // 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain has,
+  // by drawing it, a modelled intervening mechanism - so mechanism_status
+  // 'absent' contradicts a present chain (the honest-ignorance distinction
+  // must stay honest). The stratal well-formedness (non-adjacency, adjacency
+  // of chain steps, scheme, the home rule) needs the strata map and lives in
+  // seamWellformed, exactly as bridge well-formedness does.
+  if (k == 'cross_stratal_seam') {
+    if (obj.containsKey('chain') &&
+        obj['mechanism_status'] == 'absent') {
+      errors.add('contradictory_seam: a drawn chain cannot carry '
+          "mechanism_status 'absent' (a drawn mechanism is not absent)");
+    }
+  }
+
+  // 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+  // exactly ONE temporal dimension - a wall-clock start (optional end) or an
+  // ordinal start_tick (optional end_tick), never both and never neither.
+  // Per Rule 23 the two dimensions never compare. The pairing check of a
+  // prediction_error against its predicted_occurrence and its observed
+  // token_occurrence needs those objects and lives in
+  // predictionPairingMismatch, exactly as coveringLawMismatch does.
+  if (k == 'predicted_occurrence') {
+    final iv = obj['interval'] as Map?;
+    final wall = iv != null && iv.containsKey('start');
+    final tick = iv != null && iv.containsKey('start_tick');
+    if (wall && tick) {
+      errors.add('dimension_conflict: a predicted interval must '
+          'carry exactly one temporal dimension, not a '
+          'wall-clock start AND an ordinal start_tick');
+    }
+    if (!wall && !tick) {
+      errors.add('missing_dimension: a predicted interval must '
+          'carry a wall-clock start or an ordinal start_tick');
+    }
+  }
+
   return (errors.isEmpty, errors);
 }
 
@@ -109,16 +163,18 @@ String? _kindOfId(String identifier) =>
   return (missing.isNotEmpty, missing);
 }
 
-/// Rule 4: temporal admissibility with the fixed constants.
-bool admissible(Map<String, dynamic> cro, num elapsedSeconds) {
+/// Rule 4: temporal admissibility. For a wall-clock window [elapsed] is in
+/// seconds; for an ordinal ('ticks') window [elapsed] is a tick count. Ordering
+/// is by magnitude WITHIN the window's own dimension (3.0.0).
+bool admissible(Map<String, dynamic> cro, num elapsed) {
   final t = cro['temporal'] as Map?;
   if (t == null) {
     return true; // no window imposes no constraint
   }
-  final unit = unitSeconds[t['unit'] as String]!;
-  final lo = (t['minimum_delay'] as num) * unit;
-  final hi = (t['maximum_delay'] as num) * unit;
-  return lo <= elapsedSeconds && elapsedSeconds <= hi;
+  final unit = t['unit'] as String;
+  final lo = _magnitude(t['minimum_delay'] as num, unit);
+  final hi = _magnitude(t['maximum_delay'] as num, unit);
+  return lo <= elapsed && elapsed <= hi;
 }
 
 bool _windowOverlap(Map<String, dynamic> a, Map<String, dynamic> b) {
@@ -127,10 +183,14 @@ bool _windowOverlap(Map<String, dynamic> a, Map<String, dynamic> b) {
   if (ta == null || tb == null) {
     return true; // either absent counts as overlapping
   }
-  final ua = unitSeconds[ta['unit'] as String]!;
-  final ub = unitSeconds[tb['unit'] as String]!;
-  final loA = (ta['minimum_delay'] as num) * ua, hiA = (ta['maximum_delay'] as num) * ua;
-  final loB = (tb['minimum_delay'] as num) * ub, hiB = (tb['maximum_delay'] as num) * ub;
+  final ua = ta['unit'] as String;
+  final ub = tb['unit'] as String;
+  // 3.0.0: an ordinal window and a wall-clock window never overlap
+  if (_dimension(ua) != _dimension(ub)) return false;
+  final loA = _magnitude(ta['minimum_delay'] as num, ua),
+      hiA = _magnitude(ta['maximum_delay'] as num, ua);
+  final loB = _magnitude(tb['minimum_delay'] as num, ub),
+      hiB = _magnitude(tb['maximum_delay'] as num, ub);
   return loA <= hiB && loB <= hiA;
 }
 
@@ -365,13 +425,22 @@ List<String> skipGaps(Map<String, dynamic> cro, String classification) {
 }
 
 /// ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+/// 3.0.0: an ordinal ('ticks') unit is dimensionless and has NO wall-clock
+/// mapping - converting one to seconds is a category error and is refused.
 num toSeconds(num duration, String unit) {
+  if (ordinalUnits.contains(unit)) {
+    throw ArgumentError("'$unit' is an ordinal (dimensionless) unit and has "
+        'no wall-clock seconds mapping');
+  }
   if (unit == 'instant') return 0;
   return duration * unitSeconds[unit]!;
 }
 
 /// ALGORITHM E (Rule 20): does an observed delay fall within a covering law's
-/// temporal window? Inclusive at both ends (N12.5.2).
+/// temporal window? Inclusive at both ends (N12.5.2). 3.0.0: an ordinal delay
+/// compares to an ordinal window by integer tick count; an ordinal delay and a
+/// wall-clock window (or vice versa) are different dimensions and never fall
+/// within one another.
 bool delayWithinWindow(
     Map<String, dynamic>? actualDelay, Map<String, dynamic>? temporal) {
   if (actualDelay == null ||
@@ -380,10 +449,13 @@ bool delayWithinWindow(
       temporal.isEmpty) {
     return true; // nothing to check
   }
-  final observed =
-      toSeconds(actualDelay['duration'] as num, actualDelay['unit'] as String);
-  final lo = toSeconds(temporal['minimum_delay'] as num, temporal['unit'] as String);
-  final hi = toSeconds(temporal['maximum_delay'] as num, temporal['unit'] as String);
+  final du = actualDelay['unit'] as String;
+  final tu = temporal['unit'] as String;
+  // dimension mismatch: a tick delay is not within a wall-clock window
+  if (_dimension(du) != _dimension(tu)) return false;
+  final observed = _magnitude(actualDelay['duration'] as num, du);
+  final lo = _magnitude(temporal['minimum_delay'] as num, tu);
+  final hi = _magnitude(temporal['maximum_delay'] as num, tu);
   return lo <= observed && observed <= hi;
 }
 
@@ -415,6 +487,92 @@ bool delayWithinWindow(
     return (false, 'malformed_bridge: coarse ordinal not > fine ordinal (e)');
   }
   return (true, 'well-formed bridge');
+}
+
+/// 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness. (ok,
+/// reason). All of (a)-(g) must hold, else malformed_seam. A seam is a MANAGED
+/// jump across NON-ADJACENT strata; when it DRAWS a chain, the chain must be an
+/// adjacent-stratum path spanning the two endpoints' strata.
+(bool, String) seamWellformed(Map<String, dynamic> seam,
+    Map<String, Map<String, dynamic>> occMap,
+    Map<String, Map<String, dynamic>> stratumMap) {
+  final srcS = _stratumOf(occMap, seam['source'] as String);
+  final tgtS = _stratumOf(occMap, seam['target'] as String);
+  if (srcS == null || tgtS == null) {
+    return (false, 'malformed_seam: an endpoint has no stratum (a)');
+  }
+  if (stratumMap[srcS]!['scheme'] != stratumMap[tgtS]!['scheme']) {
+    return (false, 'malformed_seam: endpoints differ in scheme (b)');
+  }
+  final so = stratumMap[srcS]!['ordinal'] as num;
+  final to = stratumMap[tgtS]!['ordinal'] as num;
+  if ((so - to).abs() <= 1) {
+    return (
+      false,
+      'malformed_seam: endpoints are adjacent or co-stratal; '
+          'a seam is for NON-adjacent strata (c)'
+    );
+  }
+  if (seam.containsKey('chain')) {
+    if (seam['mechanism_status'] == 'absent') {
+      return (
+        false,
+        'malformed_seam: a drawn chain contradicts '
+            "mechanism_status 'absent' (d)"
+      );
+    }
+    final lo = math.min(so, to), hi = math.max(so, to);
+    final ords = <num>[];
+    for (final oid in (seam['chain'] as List).cast<String>()) {
+      final st = _stratumOf(occMap, oid);
+      if (st == null) {
+        return (false, 'malformed_seam: a chain member has no stratum (e)');
+      }
+      if (stratumMap[st]!['scheme'] != stratumMap[srcS]!['scheme']) {
+        return (false, 'malformed_seam: a chain member differs in scheme (e)');
+      }
+      ords.add(stratumMap[st]!['ordinal'] as num);
+    }
+    for (final o in ords) {
+      if (!(lo < o && o < hi)) {
+        return (
+          false,
+          'malformed_seam: a chain member is not at an '
+              'INTERVENING stratum, strictly between the endpoints (f)'
+        );
+      }
+    }
+    if (ords.length >= 2) {
+      final diffs = <num>[
+        for (var i = 0; i < ords.length - 1; i++) ords[i + 1] - ords[i],
+      ];
+      final allPos = diffs.every((d) => d > 0);
+      final allNeg = diffs.every((d) => d < 0);
+      if (!(allPos || allNeg)) {
+        return (
+          false,
+          'malformed_seam: chain is not strictly monotone from '
+              'one endpoint toward the other (g)'
+        );
+      }
+    }
+  }
+  return (true, 'well-formed cross_stratal_seam');
+}
+
+/// THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST stratum
+/// it touches - the endpoint of the greater ordinal. Returns that stratum's
+/// identifier (null if an endpoint is unstratified).
+String? seamHome(Map<String, dynamic> seam,
+    Map<String, Map<String, dynamic>> occMap,
+    Map<String, Map<String, dynamic>> stratumMap) {
+  final srcS = _stratumOf(occMap, seam['source'] as String);
+  final tgtS = _stratumOf(occMap, seam['target'] as String);
+  if (srcS == null || tgtS == null) return null;
+  return (stratumMap[srcS]!['ordinal'] as num) >=
+          (stratumMap[tgtS]!['ordinal'] as num)
+      ? srcS
+      : tgtS;
 }
 
 /// Rule 17 / N4.2.1-2: (ok, reason). N4.2.1 with the transform exception of
@@ -493,6 +651,17 @@ bool coveringLawMismatch(Map<String, dynamic> tcc,
     if (!lawEffects.contains(tokenMap[e]!['instantiates'])) return true;
   }
   return false;
+}
+
+/// 4.0.0 Rule 24: prediction-to-observation pairing. True iff the prediction
+/// error's observed token does not instantiate the occurrent its
+/// predicted_occurrence instantiates. An ABSENT observed is never a mismatch -
+/// it means the predicted occurrence was not fulfilled by any recorded
+/// occurrence.
+bool predictionPairingMismatch(Map<String, dynamic> error,
+    Map<String, dynamic> predicted, Map<String, dynamic>? observed) {
+  if (error['observed'] == null || observed == null) return false;
+  return observed['instantiates'] != predicted['instantiates'];
 }
 
 /// Rule 21: True iff any cause token starts after any effect token (HARD;

@@ -1,19 +1,21 @@
 //! Schema validation against spec/schema/*.schema.json.
 //!
 //! A deliberately small interpreter for exactly the JSON Schema keywords the
-//! eight Causalontology schemas use: type, const, enum, pattern, required,
+//! twenty-one Causalontology schemas use: type, const, enum, pattern, required,
 //! properties, additionalProperties, items, minItems, minLength, minimum,
 //! maximum, oneOf, and local $ref (#/$defs/...). "format" is treated as an
 //! annotation, as the 2020-12 draft does by default. Ported from
 //! bindings/python/causalontology/schema.py.
 //!
-//! The schemas use exactly three anchored pattern families, so no regex
+//! The schemas use exactly four anchored pattern families, so no regex
 //! engine is needed - dedicated matchers cover them all:
 //!   ^[0-9a-f]{128}$                    (a signature)
 //!   ^(pre|fix|es):[0-9a-f]{64}$        (scheme-prefixed identifiers,
 //!                                       one prefix or an alternation,
 //!                                       including ed25519 keys)
 //!   ^[a-z][a-z0-9_]*$                  (a canonical snake_case label)
+//!   ^[a-z][a-z0-9_]*:.+$               (a scheme-qualified reference, 3.0.0:
+//!                                       the conduit's realized_by)
 
 const std = @import("std");
 const jcs = @import("jcs.zig");
@@ -45,8 +47,8 @@ fn schemaFileForKind(kind: []const u8) ?[]const u8 {
     return null; // sentinel: use <kind>.schema.json (built by loadSchema)
 }
 
-/// Point the validator at the directory holding the seventeen *.schema.json
-/// files (nine new + eight re-minted).
+/// Point the validator at the directory holding the twenty-one *.schema.json
+/// files.
 pub fn setSpecDir(a: Allocator, dir: []const u8) void {
     spec_alloc = a;
     spec_dir = dir;
@@ -267,6 +269,9 @@ pub fn matchesPattern(pattern: []const u8, s: []const u8) bool {
 
     if (std.mem.eql(u8, body, "[0-9a-f]{128}")) return jcs.isHex(s, 128);
     if (std.mem.eql(u8, body, "[a-z][a-z0-9_]*")) return isLabel(s);
+    // 3.0.0: the conduit's realized_by - a scheme-qualified reference whose
+    // scheme is a snake_case label and whose target is any non-empty tail.
+    if (std.mem.eql(u8, body, "[a-z][a-z0-9_]*:.+")) return isSchemeQualifiedRef(s);
 
     const hex_suffix = ":[0-9a-f]{64}";
     if (std.mem.endsWith(u8, body, hex_suffix)) {
@@ -283,6 +288,25 @@ pub fn matchesPattern(pattern: []const u8, s: []const u8) bool {
         return false;
     }
     return false;
+}
+
+/// ^[a-z][a-z0-9_]*:.+$ - a scheme-qualified reference: a snake_case scheme,
+/// a single ':', then at least one further character of any kind.
+fn isSchemeQualifiedRef(s: []const u8) bool {
+    if (s.len == 0) return false;
+    switch (s[0]) {
+        'a'...'z' => {},
+        else => return false,
+    }
+    var i: usize = 1;
+    while (i < s.len) : (i += 1) {
+        switch (s[i]) {
+            'a'...'z', '0'...'9', '_' => {},
+            else => break,
+        }
+    }
+    if (i >= s.len or s[i] != ':') return false; // the scheme must end at ':'
+    return i + 1 < s.len; // .+ needs at least one character after the ':'
 }
 
 /// ^[a-z][a-z0-9_]*$ - a canonical lowercase snake_case label.

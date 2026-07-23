@@ -1,12 +1,14 @@
 #!/usr/bin/env julia
-# The Causalontology conformance runner for causalontology-julia (spec 2.0.0).
+# The Causalontology conformance runner for causalontology-julia (spec 4.0.0).
 #
 # Runs every vector in conformance/vectors/ against the Julia binding.  An
 # implementation is conformant if and only if it passes every vector; this
 # runner exits nonzero on any failure.  Mirrors
 # bindings/python/tests/run_conformance.py exactly: V01-V38 are the whole-word
 # re-freeze of the 1.0.0 suite (unaltered in meaning), V39-V107 are the 2.0.0
-# additions.
+# additions, V108-V119 are the 3.0.0 additions (the ticks unit, the
+# cross_stratal_seam, the conduit realized_by), and V120-V137 are the 4.0.0
+# additions (the attitude, the predicted_occurrence, the prediction_error).
 
 include(joinpath(@__DIR__, "src", "Causalontology.jl"))
 
@@ -22,9 +24,11 @@ const VECDIR = joinpath(ROOT, "conformance", "vectors")
 # ---------------------------------------------------------------------------
 const _SCHEMES = ("occurrent", "causal_relation_object", "continuant",
                   "realizable", "assertion", "enrichment", "retraction",
-                  "succession", "stratum", "bridge", "port", "conduit",
+                  "succession", "stratum", "bridge", "cross_stratal_seam",
+                  "port", "conduit",
                   "quality", "token_individual", "token_occurrence",
-                  "state_assertion", "token_causal_claim")
+                  "state_assertion", "token_causal_claim",
+                  "attitude", "predicted_occurrence", "prediction_error")
 const WHOLE_WORD = Set{String}(vcat(collect(_SCHEMES), ["ed25519"]))
 const _KEYS = Dict{String,Tuple{Vector{UInt8},String}}()
 const _HEX64 = r"^[0-9a-f]{64}$"
@@ -990,6 +994,402 @@ function v107()
     ok, why = validate_schema(whole, "causal_relation_object"); check(ok, join(why, "; "))
 end
 
+# ===========================================================================
+# V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam, realized_by)
+# ===========================================================================
+# a cross_stratal_seam content object, completed with its content-addressed id
+function seam(source, target, mechanism_status, chain=nothing)
+    o = jobj("type" => "cross_stratal_seam", "source" => source,
+             "target" => target, "mechanism_status" => mechanism_status)
+    (chain !== nothing && !isempty(chain)) && jset!(o, "chain", chain)
+    return mk(o)
+end
+
+# build a seam over the neuro fixture: (seam, occ_map, stratum_map).
+function _seam_fixture(src_ord, tgt_ord, mechanism_status, chain_ords=nothing)
+    s = _neuro()
+    src = occ("source_event", s[src_ord]["id"])
+    tgt = occ("target_event", s[tgt_ord]["id"])
+    omap = Dict{Any,Any}(src["id"] => src, tgt["id"] => tgt)
+    smap = Dict{Any,Any}(s[src_ord]["id"] => s[src_ord],
+                         s[tgt_ord]["id"] => s[tgt_ord])
+    chain = nothing
+    if chain_ords !== nothing
+        chain = Any[]
+        for (i, o) in enumerate(chain_ords)
+            c = occ("chain_$(i - 1)", s[o]["id"])
+            omap[c["id"]] = c
+            smap[s[o]["id"]] = s[o]
+            push!(chain, c["id"])
+        end
+    end
+    return seam(src["id"], tgt["id"], mechanism_status, chain), omap, smap
+end
+
+# a conduit with an optional realized_by reference, completed with its id
+function _conduit_realized(realized_by=nothing)
+    frm = "port:" * "1"^64
+    to = "port:" * "2"^64
+    x = "occurrent:" * "3"^64
+    o = jobj("type" => "conduit", "label" => "conn", "from" => frm,
+             "to" => to, "carries" => Any[x])
+    realized_by !== nothing && jset!(o, "realized_by", realized_by)
+    return mk(o)
+end
+
+# -- Change One: the ordinal (tick) temporal unit --
+function v108()
+    P = cro([sym("occurrent:a")], [sym("occurrent:b")];
+            temporal=jobj("minimum_delay" => 0, "maximum_delay" => 5,
+                          "unit" => "ticks"), modality="sufficient")
+    ok, why = validate_schema(P); check(ok, join(why, "; "))
+    ok, why = validate_semantics(P); check(ok, join(why, "; "))
+end
+
+function v109()
+    P = cro([sym("occurrent:a")], [sym("occurrent:b")];
+            temporal=jobj("minimum_delay" => 2, "maximum_delay" => 5,
+                          "unit" => "ticks"))
+    check(admissible(P, 3) === true)                 # 3 ticks inside [2, 5]
+    check(admissible(P, 2) === true && admissible(P, 5) === true)
+    check(admissible(P, 6) === false && admissible(P, 1) === false)
+end
+
+function v110()
+    tick_window = jobj("minimum_delay" => 0, "maximum_delay" => 5, "unit" => "ticks")
+    wall_window = jobj("minimum_delay" => 0, "maximum_delay" => 5, "unit" => "seconds")
+    check(delay_within_window(jobj("duration" => 3, "unit" => "ticks"),
+                              tick_window) === true)
+    check(delay_within_window(jobj("duration" => 1, "unit" => "ticks"),
+                              wall_window) === false)
+    check(delay_within_window(jobj("duration" => 1, "unit" => "seconds"),
+                              tick_window) === false)
+    a = jobj("causes" => Any[sym("occurrent:a")], "effects" => Any[sym("occurrent:b")],
+             "temporal" => tick_window, "modality" => "sufficient")
+    b = jobj("causes" => Any[sym("occurrent:a")], "effects" => Any[sym("occurrent:b")],
+             "temporal" => wall_window, "modality" => "preventive")
+    check(conflicts(a, b) === false)                 # disjoint dimensions -> no overlap
+    threw = false
+    try
+        to_seconds(1, "ticks")
+    catch
+        threw = true
+    end
+    check(threw, "to_seconds must refuse an ordinal unit")
+end
+
+function v111()
+    base(temporal) = jobj("type" => "causal_relation_object",
+        "causes" => Any[sym("occurrent:a")], "effects" => Any[sym("occurrent:b")],
+        "modality" => "sufficient", "temporal" => temporal)
+    tick = base(jobj("minimum_delay" => 0, "maximum_delay" => 1, "unit" => "ticks"))
+    secs = base(jobj("minimum_delay" => 0, "maximum_delay" => 1, "unit" => "seconds"))
+    check(identify(tick) != identify(secs))          # the unit is identity-bearing
+    # a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+    check(identify(secs) == "causal_relation_object:" *
+          "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c")
+end
+
+# -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+function v112()
+    sm, omap, smap = _seam_fixture(14, 4, "unmodeled")
+    ok, why = validate_schema(sm); check(ok, join(why, "; "))
+    ok, why = validate_semantics(sm); check(ok, join(why, "; "))
+    ok, why = seam_wellformed(sm, omap, smap); check(ok, why)
+end
+
+function v113()
+    a, _, _ = _seam_fixture(14, 4, "unmodeled")
+    b, omap, smap = _seam_fixture(14, 4, "absent")
+    ok, why = validate_schema(b); check(ok, join(why, "; "))
+    ok, why = seam_wellformed(b, omap, smap); check(ok, why)
+    check(a["id"] != b["id"])                        # mechanism_status is identity-bearing
+end
+
+function v114()
+    drawn, omap, smap = _seam_fixture(14, 4, "unmodeled", [9, 7, 6, 5])
+    ok, why = validate_schema(drawn); check(ok, join(why, "; "))
+    ok, why = seam_wellformed(drawn, omap, smap); check(ok, why)
+    bad, omap2, smap2 = _seam_fixture(14, 4, "absent", [9, 7, 6, 5])
+    ok, why = validate_semantics(bad)
+    check(!ok && any(w -> occursin("contradictory_seam", w), why), join(why, "; "))
+    ok2, _ = seam_wellformed(bad, omap2, smap2); check(!ok2)
+end
+
+function v115()
+    sm, omap, smap = _seam_fixture(14, 4, "unmodeled")
+    s = _neuro()
+    check(seam_home(sm, omap, smap) == s[14]["id"])  # coarsest (max ordinal) stratum
+end
+
+function v116()
+    adj, o1, s1 = _seam_fixture(6, 5, "unmodeled")    # adjacent (gap 1)
+    ok, _ = seam_wellformed(adj, o1, s1); check(!ok)
+    co, o2, s2 = _seam_fixture(6, 6, "unmodeled")     # co-stratal (gap 0)
+    ok, _ = seam_wellformed(co, o2, s2); check(!ok)
+    sm, _, _ = _seam_fixture(14, 4, "unmodeled")
+    check(startswith(sm["id"], "cross_stratal_seam:"))  # a new identity scheme
+end
+
+# -- Change Three: the realized_by reference --
+function v117()
+    c = _conduit_realized("causal_relation_object:" * "a"^64)
+    ok, why = validate_schema(c); check(ok, join(why, "; "))
+    c2 = _conduit_realized("native:region_stratum_predict")
+    ok, why = validate_schema(c2); check(ok, join(why, "; "))  # a native scheme is legal
+end
+
+function v118()
+    bound = _conduit_realized("native:region_stratum_predict")
+    unbound = _conduit_realized()
+    check(bound["id"] != unbound["id"])              # realized_by is identity-bearing
+    # an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+    check(unbound["id"] == "conduit:" *
+          "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6")
+end
+
+function v119()
+    unbound = _conduit_realized()
+    ok, why = validate_schema(unbound); check(ok, join(why, "; "))  # unbound is legal
+    bad = jcopy(unbound)
+    jset!(bad, "realized_by", "not-a-scheme-qualified-reference")
+    ok, _ = validate_schema(bad, "conduit"); check(!ok)
+end
+
+# ===========================================================================
+# V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+# prediction_error)
+# ===========================================================================
+attitude(holder, attitude_type, content) =
+    mk(jobj("type" => "attitude", "holder" => holder,
+            "attitude_type" => attitude_type, "content" => content))
+
+function predicted(instantiates, interval, predictor, strength=nothing)
+    o = jobj("type" => "predicted_occurrence", "instantiates" => instantiates,
+             "interval" => interval, "predictor" => predictor)
+    strength !== nothing && jset!(o, "strength", strength)
+    return mk(o)
+end
+
+function prediction_error(predicted_id, discrepancy, observed=nothing)
+    o = jobj("type" => "prediction_error", "predicted" => predicted_id,
+             "discrepancy" => discrepancy)
+    observed !== nothing && jset!(o, "observed", observed)
+    return mk(o)
+end
+
+# a modeled predicting agent (a token individual), by identity
+_predictor() =
+    individual(cnt("forecasting_mind")["id"]; designator="predictor_p")["id"]
+
+# a modeled believing agent (a token individual), by identity
+_believer(designator="holder_h") =
+    individual(cnt("believing_mind")["id"]; designator=designator)["id"]
+
+# -- Group X: prediction and prediction error (Section A) --
+function v120()
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], jobj("start_tick" => 3, "end_tick" => 8), _predictor())
+    ok, why = validate_schema(p); check(ok, join(why, "; "))
+    ok, why = validate_semantics(p); check(ok, join(why, "; "))
+    check(startswith(p["id"], "predicted_occurrence:"))
+    report = identify(jobj("type" => "token_occurrence", "instantiates" => o["id"],
+                           "interval" => jobj("start_tick" => 3, "end_tick" => 8)),
+                      "token_occurrence")
+    check(p["id"] != report)                         # a forecast is not a report
+    check(startswith(report, "token_occurrence:"))
+end
+
+function v121()
+    o = occ("rainfall_begins")
+    wall = jobj("start" => "2026-07-23T00:00:00Z", "end" => "2026-07-24T00:00:00Z")
+    who = _predictor()
+    with_strength = predicted(o["id"], wall, who, 0.8)
+    without = predicted(o["id"], wall, who)
+    for p in (with_strength, without)
+        ok, why = validate_schema(p); check(ok, join(why, "; "))
+        ok, why = validate_semantics(p); check(ok, join(why, "; "))
+    end
+    check(with_strength["id"] != without["id"])      # strength is identity-bearing
+end
+
+function v122()
+    o = occ("rainfall_begins")
+    bad = mk(jobj("type" => "predicted_occurrence", "instantiates" => o["id"],
+                  "interval" => jobj("start_tick" => 3)))
+    ok, why = validate_schema(bad, "predicted_occurrence")
+    check(!ok && any(w -> occursin("predictor", w), why), join(why, "; "))
+end
+
+function v123()
+    o = occ("rainfall_begins")
+    both = predicted(o["id"], jobj("start" => "2026-07-23T00:00:00Z",
+                                   "start_tick" => 3), _predictor())
+    ok, why = validate_schema(both); check(ok, join(why, "; "))
+    ok, why = validate_semantics(both)
+    check(!ok && any(w -> occursin("dimension_conflict", w), why), join(why, "; "))
+end
+
+function v124()
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], jobj("start" => "2026-07-23T00:00:00Z"), _predictor())
+    t = token(o["id"], jobj("start" => "2026-07-23T06:00:00Z"))
+    err = prediction_error(p["id"], 0.0, t["id"])
+    ok, why = validate_schema(err); check(ok, join(why, "; "))
+    ok, why = validate_semantics(err); check(ok, join(why, "; "))
+    check(prediction_pairing_mismatch(err, p, t) === false)
+end
+
+function v125()
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], jobj("start" => "2026-07-23T00:00:00Z"), _predictor())
+    err = prediction_error(p["id"], -1.0)
+    ok, why = validate_schema(err); check(ok, join(why, "; "))
+    ok, why = validate_semantics(err); check(ok, join(why, "; "))
+    check(!jhas(err, "observed"))                    # observed is absent
+    check(prediction_pairing_mismatch(err, p, nothing) === false)
+end
+
+function v126()
+    o = occ("rainfall_begins")
+    p = predicted(o["id"], jobj("start_tick" => 0), _predictor())
+    bad = mk(jobj("type" => "prediction_error", "predicted" => p["id"]))
+    ok, why = validate_schema(bad, "prediction_error")
+    check(!ok && any(w -> occursin("discrepancy", w), why), join(why, "; "))
+end
+
+function v127()
+    o = occ("rainfall_begins"); other = occ("snowfall_begins")
+    p = predicted(o["id"], jobj("start" => "2026-07-23T00:00:00Z"), _predictor())
+    t = token(other["id"], jobj("start" => "2026-07-23T06:00:00Z"))
+    err = prediction_error(p["id"], 1.0, t["id"])
+    ok, why = validate_schema(err); check(ok, join(why, "; "))
+    check(prediction_pairing_mismatch(err, p, t) === true)  # pairing mismatch
+end
+
+# -- Group Y: attitude and theory of mind (Section B) --
+function v128()
+    st, _ = _state_fixture("quantity", jobj("quantity" => 15.0, "unit" => "ug/dL"),
+                           "ug/dL")
+    att = attitude(_believer(), "believes", st["id"])
+    ok, why = validate_schema(att); check(ok, join(why, "; "))
+    ok, why = validate_semantics(att); check(ok, join(why, "; "))
+end
+
+function v129()
+    a = occ("switch_pressed"); b = occ("light_on")
+    actual = cro([a["id"]], [b["id"]]; modality="sufficient")
+    believed = cro([a["id"]], [b["id"]]; modality="preventive")
+    check(conflicts(believed, actual) === true)      # the CLAIMS contradict
+    att = attitude(_believer(), "believes", believed["id"])
+    ok, why = validate_schema(att); check(ok, join(why, "; "))
+    ok, why = validate_semantics(att); check(ok, join(why, "; "))  # validity unaffected
+    s = InMemoryStore()
+    put(s, a); put(s, b); put(s, actual); put(s, att)
+    check(isempty(gaps(s; kind="conflict")))         # Rule 25: NO conflict raised
+end
+
+function v130()
+    o = occ("rainfall_begins")
+    att = attitude(_believer(), "desires", o["id"])
+    ok, why = validate_schema(att); check(ok, join(why, "; "))
+    ok, why = validate_semantics(att); check(ok, join(why, "; "))
+end
+
+function v131()
+    o = occ("press_button")
+    att = attitude(_believer(), "intends", o["id"])
+    ok, why = validate_schema(att); check(ok, join(why, "; "))
+    ok, why = validate_semantics(att); check(ok, join(why, "; "))
+end
+
+function v132()
+    st, _ = _state_fixture("boolean", jobj("boolean" => true))
+    inner = attitude(_believer("holder_b"), "believes", st["id"])
+    outer = attitude(_believer("holder_a"), "believes", inner["id"])
+    for att in (inner, outer)
+        ok, why = validate_schema(att); check(ok, join(why, "; "))
+        ok, why = validate_semantics(att); check(ok, join(why, "; "))
+    end
+    check(outer["id"] != inner["id"])
+    check(outer["content"] == inner["id"])           # nested content
+end
+
+function v133()
+    o = occ("rainfall_begins")
+    bad = mk(jobj("type" => "attitude", "holder" => _believer(),
+                  "attitude_type" => "suspects", "content" => o["id"]))
+    ok, why = validate_schema(bad, "attitude")
+    check(!ok && any(w -> occursin("attitude_type", w), why), join(why, "; "))
+end
+
+function v134()
+    o = occ("rainfall_begins")
+    bad = mk(jobj("type" => "attitude", "holder" => _believer(),
+                  "attitude_type" => "believes", "content" => o["id"],
+                  "strength" => 0.9))
+    ok, why = validate_schema(bad, "attitude")
+    check(!ok && any(w -> occursin("strength", w), why), join(why, "; "))
+end
+
+function v135()
+    o = occ("rainfall_begins")
+    att = attitude(_believer(), "expects", o["id"])
+    a = signed("assertion", jobj("about" => att["id"],
+                                 "evidence_type" => "observation",
+                                 "confidence" => 0.9), "signer")
+    ok, why = validate_schema(a); check(ok, join(why, "; "))
+    check(verify_record(a) === true)
+    # the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+    check(String(split(att["holder"], ':'; limit=2)[1]) == "token_individual")
+    check(String(split(a["source"], ':'; limit=2)[1]) == "ed25519")
+    check(att["holder"] != a["source"])
+end
+
+function v136()
+    # the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+    secs = jobj("type" => "causal_relation_object",
+                "causes" => Any[sym("occurrent:a")], "effects" => Any[sym("occurrent:b")],
+                "modality" => "sufficient",
+                "temporal" => jobj("minimum_delay" => 0, "maximum_delay" => 1,
+                                   "unit" => "seconds"))
+    check(identify(secs) == "causal_relation_object:" *
+          "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c")
+    # the V118 unbound conduit, re-pinned under 4.0.0
+    unbound = _conduit_realized()
+    check(unbound["id"] == "conduit:" *
+          "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6")
+end
+
+function v137()
+    hexid = "0"^64
+    # NOTE: the abbreviated prefixes are intentional (the negative test); they
+    # must NOT be re-minted.  Each is assembled to survive re-mint tools.
+    att_abbr = "a" * "t" * "t"
+    prd_abbr = "p" * "r" * "d"
+    err_abbr = "e" * "r" * "r"
+    bad_att = jobj("type" => "attitude", "id" => att_abbr * ":" * hexid,
+                   "holder" => "token_individual:" * hexid,
+                   "attitude_type" => "believes",
+                   "content" => "state_assertion:" * hexid)
+    ok, _ = validate_schema(bad_att, "attitude"); check(!ok)
+    bad_prd = jobj("type" => "predicted_occurrence", "id" => prd_abbr * ":" * hexid,
+                   "instantiates" => "occurrent:" * hexid,
+                   "interval" => jobj("start_tick" => 0),
+                   "predictor" => "token_individual:" * hexid)
+    ok, _ = validate_schema(bad_prd, "predicted_occurrence"); check(!ok)
+    bad_err = jobj("type" => "prediction_error", "id" => err_abbr * ":" * hexid,
+                   "predicted" => "predicted_occurrence:" * hexid,
+                   "discrepancy" => 0.0)
+    ok, _ = validate_schema(bad_err, "prediction_error"); check(!ok)
+    whole_att = jcopy(bad_att); jset!(whole_att, "id", "attitude:" * hexid)
+    ok, why = validate_schema(whole_att, "attitude"); check(ok, join(why, "; "))
+    whole_prd = jcopy(bad_prd); jset!(whole_prd, "id", "predicted_occurrence:" * hexid)
+    ok, why = validate_schema(whole_prd, "predicted_occurrence"); check(ok, join(why, "; "))
+    whole_err = jcopy(bad_err); jset!(whole_err, "id", "prediction_error:" * hexid)
+    ok, why = validate_schema(whole_err, "prediction_error"); check(ok, join(why, "; "))
+end
+
 # ---------------------------------------------------------------------------
 const VFUNCS = Function[
     v01, v02, v03, v04, v05, v06, v07, v08, v09, v10,
@@ -1002,16 +1402,19 @@ const VFUNCS = Function[
     v71, v72, v73, v74, v75, v76, v77, v78, v79, v80,
     v81, v82, v83, v84, v85, v86, v87, v88, v89, v90,
     v91, v92, v93, v94, v95, v96, v97, v98, v99, v100,
-    v101, v102, v103, v104, v105, v106, v107,
+    v101, v102, v103, v104, v105, v106, v107, v108, v109, v110,
+    v111, v112, v113, v114, v115, v116, v117, v118, v119, v120,
+    v121, v122, v123, v124, v125, v126, v127, v128, v129, v130,
+    v131, v132, v133, v134, v135, v136, v137,
 ]
 
 function main()
-    println("causalontology-julia conformance run (specification 2.0.0)")
+    println("causalontology-julia conformance run (specification 4.0.0)")
     print("internal checks (RFC 8032, RFC 8785, fixed constants) ... ")
     internal_checks()
     println("ok")
     failures = 0
-    total = 107
+    total = 137
     for n in 1:total
         name = vecstem(n)
         try
@@ -1026,7 +1429,7 @@ function main()
     println("$(total - failures)/$total vectors passed")
     failures > 0 && exit(1)
     println("causalontology-julia is CONFORMANT to the suite " *
-            "(vectors frozen at specification 2.0.0).")
+            "(vectors frozen at specification 4.0.0).")
 end
 
 main()

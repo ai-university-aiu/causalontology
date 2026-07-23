@@ -13,20 +13,20 @@ RFC 8032 — deterministic signatures, seed-derived keypairs), `ext-hash`
 | `src/Jcs.php` | RFC 8785 (JSON Canonicalization Scheme) serialization: bytewise key ordering (equals UTF-16 code-unit order for ASCII keys), minimal string escapes, ECMAScript-style canonical numbers (`1.0` → `1`, `0.7` stays `0.7`, `e-7` not `e-07`) |
 | `src/Canonical.php` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
 | `src/Signing.php` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key; Ed25519 via libsodium, gated on the RFC 8032 TEST 1 known answer |
-| `src/SchemaValidator.php` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
-| `src/Semantics.php` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
+| `src/SchemaValidator.php` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `src/Semantics.php` | the semantic rules: temporal admissibility with the fixed unit constants and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule, enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check (Rule 24), and the prediction-to-observation pairing |
 | `src/Store.php` | an in-memory conformant store (the Python binding's `InMemoryStore`): idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
 | `src/RejectedWrite.php` | the exception an enforcing store raises when it refuses a write |
 | `src/Causalontology.php` | the facade holding the declared specification version |
-| `conformance.php` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.php` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ php bindings/php/conformance.php
 ...
-107/107 vectors passed
-causalontology-php is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
+137/137 vectors passed
+causalontology-php is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
 The runner reads the vectors from `../../conformance/vectors` and the
@@ -34,9 +34,13 @@ schemas from `../../spec/schema` relative to its own location; the schema
 location can be overridden with the environment variable
 `CAUSALONTOLOGY_SPEC` (naming the `spec/` directory).
 
-The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
-concrete identifiers, real keys, and a real verifying signature. The
-harness's old normalization now simply passes frozen values through.
+The V01-V107 vectors are the whole-word 2.0.0 baseline (2026-07-13): they
+carry concrete identifiers, real keys, and a real verifying signature, and
+the harness's normalization now simply passes those frozen values through.
+The V108-V119 (3.0.0: the `ticks` unit, the cross_stratal_seam, the conduit
+`realized_by`) and V120-V137 (4.0.0: the attitude, the predicted_occurrence,
+the prediction_error) fixtures are built in the runner, mirroring the Python
+reference exactly.
 
 ## PHP-specific decisions
 
@@ -82,11 +86,13 @@ var_dump($store->gaps('missing_field')); // the degenerate claim is a visible in
 
 ## Status
 
-Source complete and ported line-for-line from the Python binding; executed
-by GitHub Actions CI (`shivammathur/setup-php` with PHP 8.3 and
-`ext-sodium`, then `php bindings/php/conformance.php`) — there is no PHP
-runtime on the authoring machine, so CI is the gate, as it is for every
-binding.
+Ported line-for-line from the Python binding and **green at 137/137
+locally** (PHP 8.3 with `ext-sodium`, specification 4.0.0), with
+content-addressed identifiers byte-for-byte identical to the Python
+reference (the V136 witnesses re-pinned). Also executed by GitHub Actions CI
+(`shivammathur/setup-php` with PHP 8.3 and `ext-sodium`, then
+`php bindings/php/conformance.php`). Registry publication (a tagged Git
+release picked up by the Packagist webhook) still pending.
 
 License: "The attribution always; no profit, no problem license." — see the
 repository `LICENSE` and `NOTICE`.

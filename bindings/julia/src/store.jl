@@ -9,9 +9,11 @@
 # because Julia's Dict is unordered where Python's dict is not.
 
 const CONTENT_KINDS = ("occurrent", "causal_relation_object", "continuant",
-                       "realizable", "stratum", "bridge", "port", "conduit",
+                       "realizable", "stratum", "bridge", "cross_stratal_seam",
+                       "port", "conduit",
                        "quality", "token_individual", "token_occurrence",
-                       "state_assertion", "token_causal_claim")
+                       "state_assertion", "token_causal_claim",
+                       "attitude", "predicted_occurrence", "prediction_error")
 const RECORD_KINDS = ("assertion", "enrichment", "retraction", "succession")
 
 "An enforcing store refused a write, with the reason in msg."

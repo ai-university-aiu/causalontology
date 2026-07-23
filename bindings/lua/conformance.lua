@@ -1,12 +1,15 @@
 #!/usr/bin/env lua
 -- conformance.lua - the Causalontology conformance runner for
--- causalontology-lua (specification 2.0.0).
+-- causalontology-lua (specification 4.0.0).
 --
 -- Runs every vector in conformance/vectors/ against the Lua binding.  An
 -- implementation is conformant if and only if it passes every vector; this
 -- runner exits nonzero on any failure.  It mirrors
 -- bindings/python/tests/run_conformance.py exactly: V01-V38 re-frozen unaltered
--- in meaning (whole-word re-mint, Principle P7), V39-V107 new in 2.0.0.
+-- in meaning (whole-word re-mint, Principle P7), V39-V107 new in 2.0.0,
+-- V108-V119 the 3.0.0 additions (the ordinal ticks unit, the cross_stratal_seam
+-- with Algorithm F, the conduit realized_by), and V120-V137 the 4.0.0 additions
+-- (the attitude, the predicted_occurrence, the prediction_error).
 --
 -- Usage, from anywhere:  lua bindings/lua/conformance.lua
 -- The repository root is CAUSALONTOLOGY_ROOT when set, else two directories
@@ -82,9 +85,10 @@ end
 local SCHEMES = {
   occurrent = true, causal_relation_object = true, continuant = true,
   realizable = true, assertion = true, enrichment = true, retraction = true,
-  succession = true, stratum = true, bridge = true, port = true,
-  conduit = true, quality = true, token_individual = true,
+  succession = true, stratum = true, bridge = true, cross_stratal_seam = true,
+  port = true, conduit = true, quality = true, token_individual = true,
   token_occurrence = true, state_assertion = true, token_causal_claim = true,
+  attitude = true, predicted_occurrence = true, prediction_error = true,
 }
 local WHOLE_WORD = {}
 for k in pairs(SCHEMES) do WHOLE_WORD[k] = true end
@@ -1163,6 +1167,437 @@ V[107] = function()
 end
 
 -- ---------------------------------------------------------------------
+-- V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam, realized_by)
+-- ---------------------------------------------------------------------
+
+-- a cross_stratal_seam content object, completed with its content-addressed id
+local function seam(source, target, mechanism_status, chain)
+  local o = O("type", "cross_stratal_seam", "source", source, "target", target,
+              "mechanism_status", mechanism_status)
+  if chain ~= nil and #chain > 0 then json.set(o, "chain", A(chain)) end
+  return mk(o)
+end
+
+-- build a seam over the neuro fixture: (seam, occ_map, stratum_map).
+local function seam_fixture(src_ord, tgt_ord, mechanism_status, chain_ords)
+  local s = neuro()
+  local src = occ("source_event", s[src_ord]["id"])
+  local tgt = occ("target_event", s[tgt_ord]["id"])
+  local omap = { [src["id"]] = src, [tgt["id"]] = tgt }
+  local smap = { [s[src_ord]["id"]] = s[src_ord], [s[tgt_ord]["id"]] = s[tgt_ord] }
+  local chain = nil
+  if chain_ords ~= nil then
+    chain = {}
+    for i, ord in ipairs(chain_ords) do
+      local c = occ("chain_" .. (i - 1), s[ord]["id"])
+      omap[c["id"]] = c
+      smap[s[ord]["id"]] = s[ord]
+      chain[#chain + 1] = c["id"]
+    end
+  end
+  return seam(src["id"], tgt["id"], mechanism_status, chain), omap, smap
+end
+
+-- a conduit with an optional realized_by reference, completed with its id
+local function conduit_realized(realized_by)
+  local o = O("type", "conduit", "label", "conn",
+              "from", "port:" .. string.rep("1", 64),
+              "to", "port:" .. string.rep("2", 64),
+              "carries", A({ "occurrent:" .. string.rep("3", 64) }))
+  if realized_by ~= nil then json.set(o, "realized_by", realized_by) end
+  return mk(o)
+end
+
+-- -- Change One: the ordinal (tick) temporal unit --
+V[108] = function()
+  local P = cro(A({ sym("occurrent:a") }), A({ sym("occurrent:b") }),
+    { temporal = O("minimum_delay", 0, "maximum_delay", 5, "unit", "ticks"),
+      modality = "sufficient" })
+  local ok, why = validate_schema(P); check(ok, reasons_str(why))
+  local ok2, why2 = validate_semantics(P); check(ok2, reasons_str(why2))
+end
+
+V[109] = function()
+  local P = cro(A({ sym("occurrent:a") }), A({ sym("occurrent:b") }),
+    { temporal = O("minimum_delay", 2, "maximum_delay", 5, "unit", "ticks") })
+  check(semantics.admissible(P, 3) == true, "3 ticks inside [2, 5]")
+  check(semantics.admissible(P, 2) == true and semantics.admissible(P, 5) == true,
+        "endpoints are admissible")
+  check(semantics.admissible(P, 6) == false and semantics.admissible(P, 1) == false,
+        "outside the tick window is not admissible")
+end
+
+V[110] = function()
+  local tick_window = O("minimum_delay", 0, "maximum_delay", 5, "unit", "ticks")
+  local wall_window = O("minimum_delay", 0, "maximum_delay", 5, "unit", "seconds")
+  check(semantics.delay_within_window(O("duration", 3, "unit", "ticks"), tick_window) == true,
+        "3 ticks within the tick window")
+  check(semantics.delay_within_window(O("duration", 1, "unit", "ticks"), wall_window) == false,
+        "a tick delay is not within a wall-clock window")
+  check(semantics.delay_within_window(O("duration", 1, "unit", "seconds"), tick_window) == false,
+        "a seconds delay is not within a tick window")
+  local a = O("causes", A({ sym("occurrent:a") }), "effects", A({ sym("occurrent:b") }),
+              "temporal", tick_window, "modality", "sufficient")
+  local b = O("causes", A({ sym("occurrent:a") }), "effects", A({ sym("occurrent:b") }),
+              "temporal", wall_window, "modality", "preventive")
+  check(semantics.conflicts(a, b) == false, "disjoint dimensions do not overlap")
+  local accepted = pcall(function() semantics.to_seconds(1, "ticks") end)
+  check(not accepted, "to_seconds must refuse an ordinal unit")
+end
+
+V[111] = function()
+  local function base_cro(temporal)
+    local o = O("type", "causal_relation_object",
+                "causes", A({ sym("occurrent:a") }),
+                "effects", A({ sym("occurrent:b") }),
+                "modality", "sufficient")
+    json.set(o, "temporal", temporal)
+    return o
+  end
+  local tick = base_cro(O("minimum_delay", 0, "maximum_delay", 1, "unit", "ticks"))
+  local secs = base_cro(O("minimum_delay", 0, "maximum_delay", 1, "unit", "seconds"))
+  check(identify(tick) ~= identify(secs), "the unit is identity-bearing")
+  -- a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+  check(identify(secs) == "causal_relation_object:"
+    .. "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+    "the wall-clock CRO identity is pinned")
+end
+
+-- -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+V[112] = function()
+  local sm, omap, smap = seam_fixture(14, 4, "unmodeled")
+  local ok, why = validate_schema(sm); check(ok, reasons_str(why))
+  local ok2, why2 = validate_semantics(sm); check(ok2, reasons_str(why2))
+  local ok3, why3 = semantics.seam_wellformed(sm, omap, smap); check(ok3, why3)
+end
+
+V[113] = function()
+  local a = seam_fixture(14, 4, "unmodeled")
+  local b, omap, smap = seam_fixture(14, 4, "absent")
+  local ok, why = validate_schema(b); check(ok, reasons_str(why))
+  local ok2, why2 = semantics.seam_wellformed(b, omap, smap); check(ok2, why2)
+  check(a["id"] ~= b["id"], "mechanism_status is identity-bearing")
+end
+
+V[114] = function()
+  local drawn, omap, smap = seam_fixture(14, 4, "unmodeled", { 9, 7, 6, 5 })
+  local ok, why = validate_schema(drawn); check(ok, reasons_str(why))
+  local ok2, why2 = semantics.seam_wellformed(drawn, omap, smap); check(ok2, why2)
+  local bad, omap2, smap2 = seam_fixture(14, 4, "absent", { 9, 7, 6, 5 })
+  local ok3, why3 = validate_semantics(bad)
+  check(not ok3 and any_mention(why3, "contradictory_seam"),
+        "contradictory_seam: " .. reasons_str(why3))
+  local ok4 = semantics.seam_wellformed(bad, omap2, smap2)
+  check(not ok4, "a drawn chain with absent status is malformed")
+end
+
+V[115] = function()
+  local sm, omap, smap = seam_fixture(14, 4, "unmodeled")
+  local s = neuro()
+  check(semantics.seam_home(sm, omap, smap) == s[14]["id"],
+        "the home is the coarsest (max ordinal) stratum")
+end
+
+V[116] = function()
+  local adj, o1, s1 = seam_fixture(6, 5, "unmodeled")   -- adjacent (gap 1)
+  local ok1 = semantics.seam_wellformed(adj, o1, s1)
+  check(not ok1, "an adjacent seam is malformed")
+  local co, o2, s2 = seam_fixture(6, 6, "unmodeled")    -- co-stratal (gap 0)
+  local ok2 = semantics.seam_wellformed(co, o2, s2)
+  check(not ok2, "a co-stratal seam is malformed")
+  local sm = seam_fixture(14, 4, "unmodeled")
+  check(sm["id"]:sub(1, #"cross_stratal_seam:") == "cross_stratal_seam:",
+        "a new identity scheme")
+end
+
+-- -- Change Three: the realized_by reference --
+V[117] = function()
+  local c = conduit_realized("causal_relation_object:" .. string.rep("a", 64))
+  local ok, why = validate_schema(c); check(ok, reasons_str(why))
+  local c2 = conduit_realized("native:region_stratum_predict")
+  local ok2, why2 = validate_schema(c2); check(ok2, reasons_str(why2))  -- native scheme is legal
+end
+
+V[118] = function()
+  local bound = conduit_realized("native:region_stratum_predict")
+  local unbound = conduit_realized()
+  check(bound["id"] ~= unbound["id"], "realized_by is identity-bearing")
+  -- an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+  check(unbound["id"] == "conduit:"
+    .. "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+    "the unbound conduit identity is pinned")
+end
+
+V[119] = function()
+  local unbound = conduit_realized()
+  local ok, why = validate_schema(unbound); check(ok, reasons_str(why))  -- unbound is legal
+  local bad = json.copy_object(unbound)
+  json.set(bad, "realized_by", "not-a-scheme-qualified-reference")
+  local ok2 = validate_schema(bad, "conduit")
+  check(not ok2, "a malformed realized_by reference is rejected")
+end
+
+-- ---------------------------------------------------------------------
+-- V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+-- prediction_error)
+-- ---------------------------------------------------------------------
+local function attitude(holder, attitude_type, content)
+  return mk(O("type", "attitude", "holder", holder,
+              "attitude_type", attitude_type, "content", content))
+end
+
+local function predicted(instantiates, interval, predictor, strength)
+  local o = O("type", "predicted_occurrence", "instantiates", instantiates,
+              "interval", interval, "predictor", predictor)
+  if strength ~= nil then json.set(o, "strength", strength) end
+  return mk(o)
+end
+
+local function prediction_error(predicted_id, discrepancy, observed)
+  local o = O("type", "prediction_error", "predicted", predicted_id,
+              "discrepancy", discrepancy)
+  if observed ~= nil then json.set(o, "observed", observed) end
+  return mk(o)
+end
+
+-- an interval carrying the ordinal (tick) dimension
+local function tick_interval(start_tick, end_tick)
+  local o = O("start_tick", start_tick)
+  if end_tick ~= nil then json.set(o, "end_tick", end_tick) end
+  return o
+end
+
+-- a modeled predicting agent (a token individual), by identity
+local function predictor_id()
+  return individual(cnt("forecasting_mind")["id"], "predictor_p")["id"]
+end
+
+-- a modeled believing agent (a token individual), by identity
+local function believer_id(designator)
+  return individual(cnt("believing_mind")["id"], designator or "holder_h")["id"]
+end
+
+-- -- Group X: prediction and prediction error (Section A) --
+V[120] = function()
+  local o = occ("rainfall_begins")
+  local p = predicted(o["id"], tick_interval(3, 8), predictor_id())
+  local ok, why = validate_schema(p); check(ok, reasons_str(why))
+  local ok2, why2 = validate_semantics(p); check(ok2, reasons_str(why2))
+  check(p["id"]:sub(1, #"predicted_occurrence:") == "predicted_occurrence:",
+        "a new identity scheme")
+  local report = identify(O("type", "token_occurrence", "instantiates", o["id"],
+    "interval", tick_interval(3, 8)), "token_occurrence")
+  check(p["id"] ~= report, "a forecast is not a report")
+  check(report:sub(1, #"token_occurrence:") == "token_occurrence:",
+        "the report is a token_occurrence")
+end
+
+V[121] = function()
+  local o = occ("rainfall_begins")
+  local wall = O("start", "2026-07-23T00:00:00Z", "end", "2026-07-24T00:00:00Z")
+  local who = predictor_id()
+  local with_strength = predicted(o["id"], wall, who, 0.8)
+  local without = predicted(o["id"], wall, who)
+  for _, p in ipairs({ with_strength, without }) do
+    local ok, why = validate_schema(p); check(ok, reasons_str(why))
+    local ok2, why2 = validate_semantics(p); check(ok2, reasons_str(why2))
+  end
+  check(with_strength["id"] ~= without["id"], "strength is identity-bearing")
+end
+
+V[122] = function()
+  local o = occ("rainfall_begins")
+  local bad = mk(O("type", "predicted_occurrence", "instantiates", o["id"],
+    "interval", tick_interval(3)))
+  local ok, why = validate_schema(bad, "predicted_occurrence")
+  check(not ok and any_mention(why, "predictor"),
+        "predictor is required: " .. reasons_str(why))
+end
+
+V[123] = function()
+  local o = occ("rainfall_begins")
+  local both = predicted(o["id"],
+    O("start", "2026-07-23T00:00:00Z", "start_tick", 3), predictor_id())
+  local ok, why = validate_schema(both); check(ok, reasons_str(why))
+  local ok2, why2 = validate_semantics(both)
+  check(not ok2 and any_mention(why2, "dimension_conflict"),
+        "dimension_conflict: " .. reasons_str(why2))
+end
+
+V[124] = function()
+  local o = occ("rainfall_begins")
+  local p = predicted(o["id"], O("start", "2026-07-23T00:00:00Z"), predictor_id())
+  local t = token(o["id"], O("start", "2026-07-23T06:00:00Z"))
+  local err = prediction_error(p["id"], 0.0, t["id"])
+  local ok, why = validate_schema(err); check(ok, reasons_str(why))
+  local ok2, why2 = validate_semantics(err); check(ok2, reasons_str(why2))
+  check(semantics.prediction_pairing_mismatch(err, p, t) == false, "no pairing mismatch")
+end
+
+V[125] = function()
+  local o = occ("rainfall_begins")
+  local p = predicted(o["id"], O("start", "2026-07-23T00:00:00Z"), predictor_id())
+  local err = prediction_error(p["id"], -1.0)
+  local ok, why = validate_schema(err); check(ok, reasons_str(why))
+  local ok2, why2 = validate_semantics(err); check(ok2, reasons_str(why2))
+  check(err["observed"] == nil, "observed is absent")
+  check(semantics.prediction_pairing_mismatch(err, p, nil) == false,
+        "an absent observed is never a mismatch")
+end
+
+V[126] = function()
+  local o = occ("rainfall_begins")
+  local p = predicted(o["id"], tick_interval(0), predictor_id())
+  local bad = mk(O("type", "prediction_error", "predicted", p["id"]))
+  local ok, why = validate_schema(bad, "prediction_error")
+  check(not ok and any_mention(why, "discrepancy"),
+        "discrepancy is required: " .. reasons_str(why))
+end
+
+V[127] = function()
+  local o = occ("rainfall_begins")
+  local other = occ("snowfall_begins")
+  local p = predicted(o["id"], O("start", "2026-07-23T00:00:00Z"), predictor_id())
+  local t = token(other["id"], O("start", "2026-07-23T06:00:00Z"))
+  local err = prediction_error(p["id"], 1.0, t["id"])
+  local ok, why = validate_schema(err); check(ok, reasons_str(why))
+  check(semantics.prediction_pairing_mismatch(err, p, t) == true, "pairing mismatch")
+end
+
+-- -- Group Y: attitude and theory of mind (Section B) --
+V[128] = function()
+  local st = state_fixture("quantity", O("quantity", 15.0, "unit", "ug/dL"), "ug/dL")
+  local att = attitude(believer_id(), "believes", st["id"])
+  local ok, why = validate_schema(att); check(ok, reasons_str(why))
+  local ok2, why2 = validate_semantics(att); check(ok2, reasons_str(why2))
+end
+
+V[129] = function()
+  local a = occ("switch_pressed")
+  local b = occ("light_on")
+  local actual = cro(A({ a["id"] }), A({ b["id"] }), { modality = "sufficient" })
+  local believed = cro(A({ a["id"] }), A({ b["id"] }), { modality = "preventive" })
+  check(semantics.conflicts(believed, actual) == true, "the claims contradict")
+  local att = attitude(believer_id(), "believes", believed["id"])
+  local ok, why = validate_schema(att); check(ok, reasons_str(why))
+  local ok2, why2 = validate_semantics(att); check(ok2, reasons_str(why2))  -- validity unaffected
+  local s = store.new()
+  s:put(a); s:put(b); s:put(actual); s:put(att)
+  local conflicts_gaps = s:gaps("conflict")
+  check(#conflicts_gaps == 0, "Rule 25: no conflict raised for a quarantined belief")
+end
+
+V[130] = function()
+  local o = occ("rainfall_begins")
+  local att = attitude(believer_id(), "desires", o["id"])
+  local ok, why = validate_schema(att); check(ok, reasons_str(why))
+  local ok2, why2 = validate_semantics(att); check(ok2, reasons_str(why2))
+end
+
+V[131] = function()
+  local o = occ("press_button")
+  local att = attitude(believer_id(), "intends", o["id"])
+  local ok, why = validate_schema(att); check(ok, reasons_str(why))
+  local ok2, why2 = validate_semantics(att); check(ok2, reasons_str(why2))
+end
+
+V[132] = function()
+  local st = state_fixture("boolean", O("boolean", true))
+  local inner = attitude(believer_id("holder_b"), "believes", st["id"])
+  local outer = attitude(believer_id("holder_a"), "believes", inner["id"])
+  for _, att in ipairs({ inner, outer }) do
+    local ok, why = validate_schema(att); check(ok, reasons_str(why))
+    local ok2, why2 = validate_semantics(att); check(ok2, reasons_str(why2))
+  end
+  check(outer["id"] ~= inner["id"], "distinct ids")
+  check(outer["content"] == inner["id"], "nested content")
+end
+
+V[133] = function()
+  local o = occ("rainfall_begins")
+  local bad = mk(O("type", "attitude", "holder", believer_id(),
+    "attitude_type", "suspects", "content", o["id"]))
+  local ok, why = validate_schema(bad, "attitude")
+  check(not ok and any_mention(why, "attitude_type"),
+        "attitude_type is a closed enumeration: " .. reasons_str(why))
+end
+
+V[134] = function()
+  local o = occ("rainfall_begins")
+  local bad = mk(O("type", "attitude", "holder", believer_id(),
+    "attitude_type", "believes", "content", o["id"], "strength", 0.9))
+  local ok, why = validate_schema(bad, "attitude")
+  check(not ok and any_mention(why, "strength"),
+        "an attitude carries no strength: " .. reasons_str(why))
+end
+
+V[135] = function()
+  local o = occ("rainfall_begins")
+  local att = attitude(believer_id(), "expects", o["id"])
+  local a = signed("assertion", O("about", att["id"],
+    "evidence_type", "observation", "confidence", 0.9), "signer")
+  local ok, why = validate_schema(a); check(ok, reasons_str(why))
+  check(signing.verify_record(a) == true, "the assertion verifies")
+  -- the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+  check(att["holder"]:match("^([^:]+):") == "token_individual",
+        "the holder is a modeled agent")
+  check(a["source"]:match("^([^:]+):") == "ed25519",
+        "the source is a signing key")
+  check(att["holder"] ~= a["source"], "the holder and the source differ")
+end
+
+V[136] = function()
+  -- the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+  local secs = O("type", "causal_relation_object",
+    "causes", A({ sym("occurrent:a") }), "effects", A({ sym("occurrent:b") }),
+    "modality", "sufficient",
+    "temporal", O("minimum_delay", 0, "maximum_delay", 1, "unit", "seconds"))
+  check(identify(secs) == "causal_relation_object:"
+    .. "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+    "the wall-clock CRO identity holds under 4.0.0")
+  -- the V118 unbound conduit, re-pinned under 4.0.0
+  local unbound = conduit_realized()
+  check(unbound["id"] == "conduit:"
+    .. "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+    "the unbound conduit identity holds under 4.0.0")
+end
+
+V[137] = function()
+  local hexid = string.rep("0", 64)
+  -- NOTE: the abbreviated prefixes are intentional (the negative test); they
+  -- must NOT be re-minted. Each is assembled to survive re-mint tools.
+  local att_abbr = "a" .. "t" .. "t"
+  local prd_abbr = "p" .. "r" .. "d"
+  local err_abbr = "e" .. "r" .. "r"
+  local bad_att = O("type", "attitude", "id", att_abbr .. ":" .. hexid,
+    "holder", "token_individual:" .. hexid, "attitude_type", "believes",
+    "content", "state_assertion:" .. hexid)
+  local ok = validate_schema(bad_att, "attitude")
+  check(not ok, "the abbreviated attitude scheme must be rejected")
+  local bad_prd = O("type", "predicted_occurrence", "id", prd_abbr .. ":" .. hexid,
+    "instantiates", "occurrent:" .. hexid, "interval", tick_interval(0),
+    "predictor", "token_individual:" .. hexid)
+  local ok2 = validate_schema(bad_prd, "predicted_occurrence")
+  check(not ok2, "the abbreviated predicted_occurrence scheme must be rejected")
+  local bad_err = O("type", "prediction_error", "id", err_abbr .. ":" .. hexid,
+    "predicted", "predicted_occurrence:" .. hexid, "discrepancy", 0.0)
+  local ok3 = validate_schema(bad_err, "prediction_error")
+  check(not ok3, "the abbreviated prediction_error scheme must be rejected")
+  local whole_att = json.copy_object(bad_att)
+  json.set(whole_att, "id", "attitude:" .. hexid)
+  local ok4, why4 = validate_schema(whole_att, "attitude")
+  check(ok4, "the whole-word attitude validates: " .. reasons_str(why4))
+  local whole_prd = json.copy_object(bad_prd)
+  json.set(whole_prd, "id", "predicted_occurrence:" .. hexid)
+  local ok5, why5 = validate_schema(whole_prd, "predicted_occurrence")
+  check(ok5, "the whole-word predicted_occurrence validates: " .. reasons_str(why5))
+  local whole_err = json.copy_object(bad_err)
+  json.set(whole_err, "id", "prediction_error:" .. hexid)
+  local ok6, why6 = validate_schema(whole_err, "prediction_error")
+  check(ok6, "the whole-word prediction_error validates: " .. reasons_str(why6))
+end
+
+-- ---------------------------------------------------------------------
 
 local function describe(err)
   if store.is_rejected(err) then return "RejectedWrite: " .. err.message end
@@ -1170,12 +1605,12 @@ local function describe(err)
 end
 
 local function main()
-  print("causalontology-lua conformance run (specification 2.0.0)")
+  print("causalontology-lua conformance run (specification 4.0.0)")
   io.write("internal checks (RFC 8032, RFC 8785, fixed constants) ... ")
   internal_checks()
   print("ok")
   local failures = 0
-  local total = 107
+  local total = 137
   for n = 1, total do
     local ok, err = pcall(V[n])
     if ok then
@@ -1191,7 +1626,7 @@ local function main()
     os.exit(1)
   end
   print("causalontology-lua is CONFORMANT to the suite " ..
-        "(vectors frozen at specification 2.0.0).")
+        "(vectors frozen at specification 4.0.0).")
 end
 
 main()

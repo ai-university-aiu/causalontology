@@ -21,7 +21,25 @@ defmodule Causalontology.Store do
 
   alias Causalontology.{Canonical, Schema, Semantics, Signing}
 
-  @content_kinds ["occurrent", "causal_relation_object", "continuant", "realizable"]
+  @content_kinds [
+    "occurrent",
+    "causal_relation_object",
+    "continuant",
+    "realizable",
+    "stratum",
+    "bridge",
+    "cross_stratal_seam",
+    "port",
+    "conduit",
+    "quality",
+    "token_individual",
+    "token_occurrence",
+    "state_assertion",
+    "token_causal_claim",
+    "attitude",
+    "predicted_occurrence",
+    "prediction_error"
+  ]
   @record_kinds ["assertion", "enrichment", "retraction", "succession"]
 
   defstruct enforcing: true,

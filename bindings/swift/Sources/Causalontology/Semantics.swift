@@ -20,6 +20,29 @@ public let unitSeconds: [String: Double] = [
     "years": 31556952,
 ]
 
+/// 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete step
+/// with NO wall-clock mapping; a tick window is ordered by integer comparison,
+/// and an ordinal window and a wall-clock window are DIFFERENT DIMENSIONS that
+/// do not compare (mixing them is never within-window and never overlapping).
+public let ordinalUnits: Set<String> = ["ticks"]
+
+/// "ordinal" for a tick-like unit, else "wallclock".
+func dimensionOf(_ unit: String) -> String {
+    return ordinalUnits.contains(unit) ? "ordinal" : "wallclock"
+}
+
+/// A comparable magnitude within ONE dimension: raw tick count for an ordinal
+/// unit, seconds for a wall-clock unit. Never mix dimensions.
+func magnitudeOf(_ value: Double, _ unit: String) -> Double {
+    if ordinalUnits.contains(unit) {
+        return value  // a dimensionless tick count
+    }
+    if unit == "instant" {
+        return 0
+    }
+    return value * (unitSeconds[unit] ?? 0)
+}
+
 /// Rule 12: enrichment field-to-kind validity and entry shapes. The entry
 /// shape is either the literal "alias" (a language-tagged text object) or
 /// the scheme prefix a string entry must carry.
@@ -120,6 +143,42 @@ public func validateSemantics(
         }
     }
 
+    // 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain has,
+    // by drawing it, a modelled intervening mechanism - so mechanism_status
+    // 'absent' contradicts a present chain (the honest-ignorance distinction
+    // must stay honest). The stratal well-formedness (non-adjacency, adjacency
+    // of chain steps, scheme, the home rule) needs the strata map and lives in
+    // seamWellformed, exactly as bridge well-formedness does.
+    if resolvedKind == "cross_stratal_seam" {
+        if let chain = obj["chain"], !chain.isNull,
+           obj["mechanism_status"]?.stringValue == "absent" {
+            errors.append("contradictory_seam: a drawn chain cannot carry "
+                          + "mechanism_status 'absent' (a drawn mechanism is not absent)")
+        }
+    }
+
+    // 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+    // exactly ONE temporal dimension - a wall-clock start (optional end) or an
+    // ordinal start_tick (optional end_tick), never both and never neither.
+    // Per Rule 23 the two dimensions never compare. The pairing check of a
+    // prediction_error against its predicted_occurrence and its observed
+    // token_occurrence needs those objects and lives in
+    // predictionPairingMismatch, exactly as coveringLawMismatch does.
+    if resolvedKind == "predicted_occurrence" {
+        let interval = obj["interval"]?.objectValue ?? [:]
+        let wall = interval["start"] != nil
+        let tick = interval["start_tick"] != nil
+        if wall && tick {
+            errors.append("dimension_conflict: a predicted interval must "
+                          + "carry exactly one temporal dimension, not a "
+                          + "wall-clock start AND an ordinal start_tick")
+        }
+        if !wall && !tick {
+            errors.append("missing_dimension: a predicted interval must "
+                          + "carry a wall-clock start or an ordinal start_tick")
+        }
+    }
+
     return (errors.isEmpty, errors)
 }
 
@@ -133,39 +192,43 @@ public func isPartial(_ cro: [String: JsonValue]) -> (partial: Bool, missing: [S
     return (!missing.isEmpty, missing)
 }
 
-/// Rule 4: temporal admissibility with the fixed constants. A missing
-/// window imposes no constraint.
+/// Rule 4: temporal admissibility. For a wall-clock window `elapsedSeconds` is
+/// in seconds; for an ordinal ('ticks') window it is a tick count. Ordering is
+/// by magnitude WITHIN the window's own dimension (3.0.0). A missing window
+/// imposes no constraint.
 public func admissible(_ cro: [String: JsonValue], elapsedSeconds: Double) -> Bool {
     guard let temporal = cro["temporal"]?.objectValue else {
         return true
     }
     guard let unitName = temporal["unit"]?.stringValue,
-          let unit = unitSeconds[unitName],
           let minimum_delay = temporal["minimum_delay"]?.numberValue,
           let maximum_delay = temporal["maximum_delay"]?.numberValue else {
         return false
     }
-    let lo = minimum_delay * unit
-    let hi = maximum_delay * unit
+    let lo = magnitudeOf(minimum_delay, unitName)
+    let hi = magnitudeOf(maximum_delay, unitName)
     return lo <= elapsedSeconds && elapsedSeconds <= hi
 }
 
 /// True when the two temporal windows overlap; either window absent (or
-/// malformed) counts as overlapping.
+/// malformed) counts as overlapping. 3.0.0: an ordinal window and a wall-clock
+/// window are different dimensions and never overlap.
 func windowOverlap(_ a: [String: JsonValue], _ b: [String: JsonValue]) -> Bool {
     guard let ta = a["temporal"]?.objectValue, let tb = b["temporal"]?.objectValue else {
         return true
     }
-    guard let ua = unitSeconds[ta["unit"]?.stringValue ?? ""],
-          let ub = unitSeconds[tb["unit"]?.stringValue ?? ""],
+    guard let unitA = ta["unit"]?.stringValue, let unitB = tb["unit"]?.stringValue,
           let dminA = ta["minimum_delay"]?.numberValue, let dmaxA = ta["maximum_delay"]?.numberValue,
           let dminB = tb["minimum_delay"]?.numberValue, let dmaxB = tb["maximum_delay"]?.numberValue else {
         return true
     }
-    let loA = dminA * ua
-    let hiA = dmaxA * ua
-    let loB = dminB * ub
-    let hiB = dmaxB * ub
+    if dimensionOf(unitA) != dimensionOf(unitB) {
+        return false  // an ordinal window and a wall-clock window never overlap
+    }
+    let loA = magnitudeOf(dminA, unitA)
+    let hiA = magnitudeOf(dmaxA, unitA)
+    let loB = magnitudeOf(dminB, unitB)
+    let hiB = magnitudeOf(dmaxB, unitB)
     return loA <= hiB && loB <= hiA
 }
 
@@ -445,7 +508,13 @@ public func skipGaps(_ cro: [String: JsonValue], _ classification: String) -> [S
 }
 
 /// ALGORITHM E helper: normalize a delay to seconds by the fixed table.
-public func toSeconds(_ duration: Double, _ unit: String) -> Double {
+/// 3.0.0: an ordinal ('ticks') unit is dimensionless and has NO wall-clock
+/// mapping - converting one to seconds is a category error and is refused.
+public func toSeconds(_ duration: Double, _ unit: String) throws -> Double {
+    if ordinalUnits.contains(unit) {
+        throw CausalontologyError("'\(unit)' is an ordinal (dimensionless) unit "
+                                  + "and has no wall-clock seconds mapping")
+    }
     if unit == "instant" {
         return 0
     }
@@ -453,7 +522,10 @@ public func toSeconds(_ duration: Double, _ unit: String) -> Double {
 }
 
 /// ALGORITHM E (Rule 20): does an observed delay fall within a covering
-/// law's temporal window? Inclusive at both ends.
+/// law's temporal window? Inclusive at both ends. 3.0.0: an ordinal delay
+/// compares to an ordinal window by integer tick count; an ordinal delay and a
+/// wall-clock window (or vice versa) are different dimensions and never fall
+/// within one another.
 public func delayWithinWindow(
     _ actualDelay: [String: JsonValue]?,
     _ temporal: [String: JsonValue]?
@@ -462,12 +534,14 @@ public func delayWithinWindow(
           let temporal = temporal, !temporal.isEmpty else {
         return true  // nothing to check
     }
-    let observed = toSeconds(actualDelay["duration"]?.numberValue ?? 0,
-                             actualDelay["unit"]?.stringValue ?? "")
-    let lo = toSeconds(temporal["minimum_delay"]?.numberValue ?? 0,
-                       temporal["unit"]?.stringValue ?? "")
-    let hi = toSeconds(temporal["maximum_delay"]?.numberValue ?? 0,
-                       temporal["unit"]?.stringValue ?? "")
+    let delayUnit = actualDelay["unit"]?.stringValue ?? ""
+    let windowUnit = temporal["unit"]?.stringValue ?? ""
+    if dimensionOf(delayUnit) != dimensionOf(windowUnit) {
+        return false  // a tick delay is never within a wall-clock window
+    }
+    let observed = magnitudeOf(actualDelay["duration"]?.numberValue ?? 0, delayUnit)
+    let lo = magnitudeOf(temporal["minimum_delay"]?.numberValue ?? 0, windowUnit)
+    let hi = magnitudeOf(temporal["maximum_delay"]?.numberValue ?? 0, windowUnit)
     return lo <= observed && observed <= hi
 }
 
@@ -500,6 +574,89 @@ public func bridgeWellformed(
         return (false, "malformed_bridge: coarse ordinal not > fine ordinal (e)")
     }
     return (true, "well-formed bridge")
+}
+
+/// 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness. All of
+/// (a)-(g) must hold, else malformed_seam. A seam is a MANAGED jump across
+/// NON-ADJACENT strata; when it DRAWS a chain, the chain must be an
+/// adjacent-stratum path spanning the two endpoints' strata.
+public func seamWellformed(
+    _ seam: [String: JsonValue],
+    _ occMap: [String: [String: JsonValue]],
+    _ stratumMap: [String: [String: JsonValue]]
+) -> (ok: Bool, reason: String) {
+    guard let sourceId = seam["source"]?.stringValue,
+          let srcS = occMap[sourceId]?["stratum"]?.stringValue,
+          let targetId = seam["target"]?.stringValue,
+          let tgtS = occMap[targetId]?["stratum"]?.stringValue,
+          let srcStratum = stratumMap[srcS], let tgtStratum = stratumMap[tgtS] else {
+        return (false, "malformed_seam: an endpoint has no stratum (a)")
+    }
+    if srcStratum["scheme"]?.stringValue != tgtStratum["scheme"]?.stringValue {
+        return (false, "malformed_seam: endpoints differ in scheme (b)")
+    }
+    let so = srcStratum["ordinal"]?.numberValue ?? 0
+    let to = tgtStratum["ordinal"]?.numberValue ?? 0
+    if abs(so - to) <= 1 {
+        return (false, "malformed_seam: endpoints are adjacent or co-stratal; "
+                + "a seam is for NON-adjacent strata (c)")
+    }
+    if let chain = seam["chain"], !chain.isNull {
+        if seam["mechanism_status"]?.stringValue == "absent" {
+            return (false, "malformed_seam: a drawn chain contradicts "
+                    + "mechanism_status 'absent' (d)")
+        }
+        let lo = Swift.min(so, to)
+        let hi = Swift.max(so, to)
+        var ords: [Double] = []
+        for oid in stringArray(seam["chain"]) {
+            guard let st = occMap[oid]?["stratum"]?.stringValue,
+                  let stStratum = stratumMap[st] else {
+                return (false, "malformed_seam: a chain member has no stratum (e)")
+            }
+            if stStratum["scheme"]?.stringValue != srcStratum["scheme"]?.stringValue {
+                return (false, "malformed_seam: a chain member differs in scheme (e)")
+            }
+            ords.append(stStratum["ordinal"]?.numberValue ?? 0)
+        }
+        if !ords.allSatisfy({ lo < $0 && $0 < hi }) {
+            return (false, "malformed_seam: a chain member is not at an "
+                    + "INTERVENING stratum, strictly between the endpoints (f)")
+        }
+        if ords.count > 1 {
+            var diffs: [Double] = []
+            for i in 0..<(ords.count - 1) {
+                diffs.append(ords[i + 1] - ords[i])
+            }
+            let allRising = diffs.allSatisfy { $0 > 0 }
+            let allFalling = diffs.allSatisfy { $0 < 0 }
+            if !(allRising || allFalling) {
+                return (false, "malformed_seam: chain is not strictly monotone from "
+                        + "one endpoint toward the other (g)")
+            }
+        }
+    }
+    return (true, "well-formed cross_stratal_seam")
+}
+
+/// THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST stratum
+/// it touches - the endpoint of the greater ordinal. Returns that stratum's
+/// identifier (nil if an endpoint is unstratified). A layer-to-stratum binding
+/// places and checks the seam by this rule.
+public func seamHome(
+    _ seam: [String: JsonValue],
+    _ occMap: [String: [String: JsonValue]],
+    _ stratumMap: [String: [String: JsonValue]]
+) -> String? {
+    guard let sourceId = seam["source"]?.stringValue,
+          let srcS = occMap[sourceId]?["stratum"]?.stringValue,
+          let targetId = seam["target"]?.stringValue,
+          let tgtS = occMap[targetId]?["stratum"]?.stringValue else {
+        return nil
+    }
+    let srcOrd = stratumMap[srcS]?["ordinal"]?.numberValue ?? 0
+    let tgtOrd = stratumMap[tgtS]?["ordinal"]?.numberValue ?? 0
+    return srcOrd >= tgtOrd ? srcS : tgtS
 }
 
 /// Rule 17 / N4.2.1-2: Conduit well-formedness, with the transform exception.
@@ -589,6 +746,25 @@ public func coveringLawMismatch(
         }
     }
     return false
+}
+
+/// 4.0.0 Rule 24: prediction-to-observation pairing. True iff the prediction
+/// error's observed token does not instantiate the occurrent its
+/// predicted_occurrence instantiates (surfaces pairing_mismatch). An ABSENT
+/// observed is never a mismatch - it means the predicted occurrence was not
+/// fulfilled by any recorded occurrence.
+public func predictionPairingMismatch(
+    _ error: [String: JsonValue],
+    _ predicted: [String: JsonValue],
+    _ observed: [String: JsonValue]?
+) -> Bool {
+    guard let observedRef = error["observed"], !observedRef.isNull else {
+        return false
+    }
+    guard let observed = observed else {
+        return false
+    }
+    return observed["instantiates"]?.stringValue != predicted["instantiates"]?.stringValue
 }
 
 /// Rule 21: true iff any cause token starts after any effect token (HARD;

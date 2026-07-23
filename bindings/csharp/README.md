@@ -16,18 +16,18 @@ answer before any vector runs. Requires the **.NET 8 SDK** or newer.
 | `Causalontology/Canonical.cs` | identity-bearing field filtering per kind and Secure Hash Algorithm 256-bit (SHA-256) content-addressed `Identify()` (spec/identity.md) |
 | `Causalontology/Ed25519.cs` | Ed25519 (RFC 8032) in pure C# over `System.Numerics.BigInteger`; every field reduction is normalized with `((a % p) + p) % p` because C#'s `%` can return negatives |
 | `Causalontology/Signing.cs` | record-level `SignRecord()` / `VerifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `Causalontology/SchemaValidator.cs` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
-| `Causalontology/Semantics.cs` | the 21 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s; year = 31,556,952 s), the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
+| `Causalontology/SchemaValidator.cs` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `Causalontology/Semantics.cs` | the 25 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s; year = 31,556,952 s) and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `Causalontology/Store.cs` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `Gaps()` read |
-| `conformance/Program.cs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance/Program.cs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ dotnet run --project bindings/csharp/conformance
 ...
-107/107 vectors passed
-causalontology-csharp is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
+137/137 vectors passed
+causalontology-csharp is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
@@ -35,7 +35,7 @@ environment variable when set, otherwise by walking up from the working
 directory until it finds `conformance/vectors`; the schemas are read from
 `spec/schema` under the same root (overridable with `CAUSALONTOLOGY_SPEC`).
 
-The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors, V01–V137): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 
 ## Thirty-second taste
 
@@ -60,7 +60,7 @@ Console.WriteLine(store.Gaps("missing_field").Count); // the degenerate claim is
 
 Source complete and ported line-for-line from the Python binding;
 verified locally with the .NET 8 SDK — `dotnet run --project
-bindings/csharp/conformance` prints `107/107 vectors passed` — and built
+bindings/csharp/conformance` prints `137/137 vectors passed` — and built
 and executed by GitHub Actions CI as well, as it is for every binding.
 
 License: "The attribution always; no profit, no problem license." — see

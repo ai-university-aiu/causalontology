@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
  * Schema validation against spec/schema/*.schema.json.
  *
  * A deliberately small interpreter for exactly the JSON Schema keywords the
- * eight Causalontology schemas use: type, const, enum, pattern (search
+ * twenty-one Causalontology schemas use: type, const, enum, pattern (search
  * semantics, like Python re.search / java.util.regex find()), required,
  * properties, additionalProperties:false, items, minItems, minLength,
  * minimum, maximum, oneOf (exactly one branch), and local $ref
@@ -45,6 +45,7 @@ public final class SchemaValidator {
         files.put("realizable", "realizable.schema.json");
         files.put("stratum", "stratum.schema.json");
         files.put("bridge", "bridge.schema.json");
+        files.put("cross_stratal_seam", "cross_stratal_seam.schema.json");
         files.put("port", "port.schema.json");
         files.put("conduit", "conduit.schema.json");
         files.put("quality", "quality.schema.json");
@@ -52,6 +53,9 @@ public final class SchemaValidator {
         files.put("token_occurrence", "token.schema.json");
         files.put("state_assertion", "state.schema.json");
         files.put("token_causal_claim", "token_causal_claim.schema.json");
+        files.put("attitude", "attitude.schema.json");
+        files.put("predicted_occurrence", "predicted_occurrence.schema.json");
+        files.put("prediction_error", "prediction_error.schema.json");
         files.put("assertion", "assertion.schema.json");
         files.put("enrichment", "enrichment.schema.json");
         files.put("retraction", "retraction.schema.json");

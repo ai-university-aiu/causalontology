@@ -14,8 +14,13 @@
 # the scheme, the type value, and the id prefix are one and the same
 # string. Kinds are keyed here by that whole word throughout.
 
-# The identity-bearing fields of each of the seventeen kinds. "type" is
-# always injected, so it is not listed. Order is irrelevant (JCS sorts).
+# The identity-bearing fields of each of the twenty-one kinds (3.0.0 adds the
+# cross_stratal_seam; the conduit gains realized_by; 4.0.0 adds the attitude,
+# the predicted_occurrence, and the prediction_error - all additive and
+# identity-preserving, so a record that omits a new field keeps its earlier
+# identifier byte-for-byte, and the new kinds open new identity schemes that
+# disturb no existing record). "type" is always injected, so it is not listed.
+# Order is irrelevant (JCS sorts).
 co_identity_fields <- list(
   # ---- type tier ----
   occurrent  = c("label", "category", "stratum"),
@@ -25,8 +30,9 @@ co_identity_fields <- list(
   realizable = c("kind", "bearer", "label"),
   stratum    = c("label", "scheme", "ordinal", "unit", "governs"),
   bridge     = c("coarse", "fine", "relation"),
+  cross_stratal_seam = c("source", "target", "mechanism_status", "chain"),
   port       = c("bearer", "label", "direction", "accepts", "realizable"),
-  conduit    = c("label", "from", "to", "carries", "transform"),
+  conduit    = c("label", "from", "to", "carries", "transform", "realized_by"),
   quality    = c("label", "datatype", "unit", "stratum"),
   # ---- token tier ----
   token_individual   = c("instantiates", "designator", "part_of"),
@@ -35,6 +41,9 @@ co_identity_fields <- list(
   state_assertion    = c("subject", "quality", "value", "interval"),
   token_causal_claim = c("causes", "effects", "covering_law",
                          "actual_delay", "counterfactual"),
+  attitude             = c("holder", "attitude_type", "content"),
+  predicted_occurrence = c("instantiates", "interval", "predictor", "strength"),
+  prediction_error     = c("predicted", "observed", "discrepancy"),
   # ---- provenance tier ----
   assertion  = c("about", "source", "evidence_type", "evidence", "strength",
                  "confidence", "timestamp", "evidenced_by"),

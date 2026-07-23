@@ -13,8 +13,10 @@ module Causalontology
 
 using SHA
 
-# specification 2.0.0 (whole-word re-mint; vectors frozen 2026-07-13)
-const VERSION_STRING = "2.0.0"
+# specification 4.0.0 (attitude, predicted_occurrence, prediction_error;
+# folds in the 3.0.0 delta - the ticks unit, the cross_stratal_seam, and the
+# conduit realized_by reference)
+const VERSION_STRING = "4.0.0"
 
 include("json.jl")
 include("jcs.jl")
@@ -32,8 +34,9 @@ export JObj, jobj, jget, jset!, jsetdefault!, jdel!, jhas, jkeys, jcopy,
        is_partial, admissible, conflicts, refinement_valid,
        hierarchy_consistent, UNIT_SECONDS,
        bridge_closure, classify_cro, endpoints_mixed, skip_gaps, to_seconds,
-       delay_within_window, bridge_wellformed, conduit_wellformed, state_gaps,
-       covering_law_mismatch, retrocausal, has_cycle, ENRICHMENT_FIELDS,
+       delay_within_window, bridge_wellformed, seam_wellformed, seam_home,
+       conduit_wellformed, state_gaps, covering_law_mismatch,
+       prediction_pairing_mismatch, retrocausal, has_cycle, ENRICHMENT_FIELDS,
        keypair_from_seed, sign_record, verify_record, Ed25519,
        InMemoryStore, RejectedWrite, put, put_record, force_merge_record,
        assertions_about, enrichments_about, lineage, getobj, resolve, gaps

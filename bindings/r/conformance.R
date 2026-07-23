@@ -1,17 +1,20 @@
 #!/usr/bin/env Rscript
-# The Causalontology conformance runner for causalontology-r (spec 2.0.0).
+# The Causalontology conformance runner for causalontology-r (spec 4.0.0).
 #
 # Runs every vector in conformance/vectors/ against the R binding. An
 # implementation is conformant if and only if it passes every vector; this
 # runner exits nonzero on any failure. It mirrors the reference harness
-# bindings/python/tests/run_conformance.py vector for vector (V01-V107).
+# bindings/python/tests/run_conformance.py vector for vector (V01-V137).
 #
-# The vectors are the whole-word 2.0.0 baseline (Principle P7): V01-V38 are
-# the 1.0.0 suite re-frozen unaltered in meaning, V39-V107 are new.
+# Vectors V01-V107 are the whole-word 2.0.0 baseline (Principle P7): V01-V38
+# are the 1.0.0 suite re-frozen unaltered in meaning, V39-V107 are new.
+# V108-V119 are the 3.0.0 additions (the ordinal tick unit, the
+# cross_stratal_seam, the conduit realized_by); V120-V137 are the 4.0.0
+# additions (the attitude, the predicted_occurrence, the prediction_error).
 #
 # Run from anywhere:   Rscript bindings/r/conformance.R
-# Crypto: SHA-256 is pure base R; Ed25519 (RFC 8032) is delegated to the
-# system `openssl` command-line tool. No CRAN package is required.
+# Crypto: SHA-256 is pure base R; Ed25519 (RFC 8032) uses the 'openssl' R
+# package. No system command-line tool is invoked.
 
 # --------------------------------------------------------------------------
 # locate the binding directory and the repository root, then load the code
@@ -54,9 +57,10 @@ check <- function(cond, msg = "assertion failed") {
 
 co_schemes <- c("occurrent", "causal_relation_object", "continuant",
                 "realizable", "assertion", "enrichment", "retraction",
-                "succession", "stratum", "bridge", "port", "conduit",
-                "quality", "token_individual", "token_occurrence",
-                "state_assertion", "token_causal_claim")
+                "succession", "stratum", "bridge", "cross_stratal_seam",
+                "port", "conduit", "quality", "token_individual",
+                "token_occurrence", "state_assertion", "token_causal_claim",
+                "attitude", "predicted_occurrence", "prediction_error")
 co_whole_word <- c(co_schemes, "ed25519")
 co_schemes_pattern <- paste0("^(", paste(co_whole_word, collapse = "|"), "):")
 
@@ -248,6 +252,88 @@ neuro <- function() {
     s[[o]] <- b_stratum(labels[[o]], "neuroendocrine", as.numeric(o))
   }
   s
+}
+
+# ---- 3.0.0 builders (cross_stratal_seam, conduit realized_by) ------------
+b_seam <- function(source, target, mechanism_status, chain = NULL) {
+  o <- co_obj(type = "cross_stratal_seam", source = source, target = target,
+              mechanism_status = mechanism_status)
+  if (!is.null(chain) && length(chain) > 0L) o[["chain"]] <- co_arr_from(chain)
+  mk(o)
+}
+
+# Build a seam over the neuro fixture: list(sm, omap, smap).
+seam_fixture <- function(src_ord, tgt_ord, mechanism_status, chain_ords = NULL) {
+  s <- neuro()
+  src <- b_occ("source_event", s[[as.character(src_ord)]][["id"]])
+  tgt <- b_occ("target_event", s[[as.character(tgt_ord)]][["id"]])
+  omap <- list(); omap[[src[["id"]]]] <- src; omap[[tgt[["id"]]]] <- tgt
+  smap <- list()
+  smap[[s[[as.character(src_ord)]][["id"]]]] <- s[[as.character(src_ord)]]
+  smap[[s[[as.character(tgt_ord)]][["id"]]]] <- s[[as.character(tgt_ord)]]
+  chain <- NULL
+  if (!is.null(chain_ords)) {
+    chain <- list()
+    i <- 0L
+    for (o in chain_ords) {
+      c <- b_occ(sprintf("chain_%d", i), s[[as.character(o)]][["id"]])
+      omap[[c[["id"]]]] <- c
+      smap[[s[[as.character(o)]][["id"]]]] <- s[[as.character(o)]]
+      chain[[length(chain) + 1L]] <- c[["id"]]
+      i <- i + 1L
+    }
+  }
+  list(sm = b_seam(src[["id"]], tgt[["id"]], mechanism_status, chain),
+       omap = omap, smap = smap)
+}
+
+# A conduit with an optional realized_by reference, completed with its id.
+conduit_realized <- function(realized_by = NULL) {
+  o <- co_obj(type = "conduit", label = "conn",
+              from = paste0("port:", strrep("1", 64L)),
+              to = paste0("port:", strrep("2", 64L)),
+              carries = co_arr(paste0("occurrent:", strrep("3", 64L))))
+  if (!is.null(realized_by)) o[["realized_by"]] <- realized_by
+  mk(o)
+}
+
+# ---- 4.0.0 builders (attitude, predicted_occurrence, prediction_error) ----
+b_attitude <- function(holder, attitude_type, content) {
+  mk(co_obj(type = "attitude", holder = holder,
+            attitude_type = attitude_type, content = content))
+}
+
+b_predicted <- function(instantiates, interval, predictor, strength = NULL) {
+  o <- co_obj(type = "predicted_occurrence", instantiates = instantiates,
+              interval = interval, predictor = predictor)
+  if (!is.null(strength)) o[["strength"]] <- co_wrap(strength)
+  mk(o)
+}
+
+b_prediction_error <- function(predicted_id, discrepancy, observed = NULL) {
+  o <- co_obj(type = "prediction_error", predicted = predicted_id,
+              discrepancy = co_wrap(discrepancy))
+  if (!is.null(observed)) o[["observed"]] <- observed
+  mk(o)
+}
+
+# An interval carrying the ordinal (tick) dimension.
+tick_interval <- function(start_tick, end_tick = NULL) {
+  o <- co_obj(start_tick = start_tick)
+  if (!is.null(end_tick)) o[["end_tick"]] <- co_wrap(end_tick)
+  o
+}
+
+# A modeled predicting agent (a token individual), by identity.
+predictor_id <- function() {
+  c <- b_cnt("forecasting_mind")
+  b_individual(c[["id"]], designator = "predictor_p")[["id"]]
+}
+
+# A modeled believing agent (a token individual), by identity.
+believer_id <- function(designator = "holder_h") {
+  c <- b_cnt("believing_mind")
+  b_individual(c[["id"]], designator = designator)[["id"]]
 }
 
 # --------------------------------------------------------------------------
@@ -1194,16 +1280,387 @@ v107 <- function() {
 }
 
 # --------------------------------------------------------------------------
+# V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam, realized_by)
+# --------------------------------------------------------------------------
+
+# -- Change One: the ordinal (tick) temporal unit --
+v108 <- function() {
+  P <- b_cro(sym("occurrent:a"), sym("occurrent:b"),
+             temporal = co_obj(minimum_delay = 0, maximum_delay = 5, unit = "ticks"),
+             modality = "sufficient")
+  r <- co_validate_schema(P); check(r$ok, paste(r$errors, collapse = "; "))
+  r <- co_validate_semantics(P); check(r$ok, paste(r$errors, collapse = "; "))
+}
+
+v109 <- function() {
+  P <- b_cro(sym("occurrent:a"), sym("occurrent:b"),
+             temporal = co_obj(minimum_delay = 2, maximum_delay = 5, unit = "ticks"))
+  check(isTRUE(co_admissible(P, 3)), "3 ticks inside [2, 5]")
+  check(isTRUE(co_admissible(P, 2)) && isTRUE(co_admissible(P, 5)),
+        "endpoints are admissible")
+  check(identical(co_admissible(P, 6), FALSE) &&
+          identical(co_admissible(P, 1), FALSE),
+        "outside the tick window is not admissible")
+}
+
+v110 <- function() {
+  tick_window <- co_obj(minimum_delay = 0, maximum_delay = 5, unit = "ticks")
+  wall_window <- co_obj(minimum_delay = 0, maximum_delay = 5, unit = "seconds")
+  check(isTRUE(co_delay_within_window(co_obj(duration = 3, unit = "ticks"),
+                                      tick_window)),
+        "3 ticks within the tick window")
+  check(identical(co_delay_within_window(co_obj(duration = 1, unit = "ticks"),
+                                         wall_window), FALSE),
+        "a tick delay is not within a wall-clock window")
+  check(identical(co_delay_within_window(co_obj(duration = 1, unit = "seconds"),
+                                         tick_window), FALSE),
+        "a seconds delay is not within a tick window")
+  a <- co_obj(causes = co_arr(sym("occurrent:a")),
+              effects = co_arr(sym("occurrent:b")),
+              temporal = tick_window, modality = "sufficient")
+  b <- co_obj(causes = co_arr(sym("occurrent:a")),
+              effects = co_arr(sym("occurrent:b")),
+              temporal = wall_window, modality = "preventive")
+  check(identical(co_conflicts(a, b), FALSE), "disjoint dimensions do not overlap")
+  accepted <- tryCatch({ co_to_seconds(1, "ticks"); TRUE }, error = function(e) FALSE)
+  check(identical(accepted, FALSE), "to_seconds must refuse an ordinal unit")
+}
+
+v111 <- function() {
+  tick <- co_obj(type = "causal_relation_object",
+                 causes = co_arr(sym("occurrent:a")),
+                 effects = co_arr(sym("occurrent:b")), modality = "sufficient",
+                 temporal = co_obj(minimum_delay = 0, maximum_delay = 1, unit = "ticks"))
+  secs <- co_obj(type = "causal_relation_object",
+                 causes = co_arr(sym("occurrent:a")),
+                 effects = co_arr(sym("occurrent:b")), modality = "sufficient",
+                 temporal = co_obj(minimum_delay = 0, maximum_delay = 1, unit = "seconds"))
+  check(!identical(co_identify(tick), co_identify(secs)),
+        "the unit is identity-bearing")
+  # a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+  check(identical(co_identify(secs), paste0("causal_relation_object:",
+          "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c")),
+        "the wall-clock CRO identity is pinned")
+}
+
+# -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+v112 <- function() {
+  fx <- seam_fixture(14, 4, "unmodeled")
+  r <- co_validate_schema(fx$sm); check(r$ok, paste(r$errors, collapse = "; "))
+  r <- co_validate_semantics(fx$sm); check(r$ok, paste(r$errors, collapse = "; "))
+  rr <- co_seam_wellformed(fx$sm, fx$omap, fx$smap); check(rr$ok, rr$reason)
+}
+
+v113 <- function() {
+  a <- seam_fixture(14, 4, "unmodeled")$sm
+  fx <- seam_fixture(14, 4, "absent")
+  r <- co_validate_schema(fx$sm); check(r$ok, paste(r$errors, collapse = "; "))
+  rr <- co_seam_wellformed(fx$sm, fx$omap, fx$smap); check(rr$ok, rr$reason)
+  check(!identical(a[["id"]], fx$sm[["id"]]),
+        "mechanism_status is identity-bearing")
+}
+
+v114 <- function() {
+  drawn <- seam_fixture(14, 4, "unmodeled", chain_ords = c(9, 7, 6, 5))
+  r <- co_validate_schema(drawn$sm); check(r$ok, paste(r$errors, collapse = "; "))
+  rr <- co_seam_wellformed(drawn$sm, drawn$omap, drawn$smap); check(rr$ok, rr$reason)
+  bad <- seam_fixture(14, 4, "absent", chain_ords = c(9, 7, 6, 5))
+  r <- co_validate_semantics(bad$sm)
+  check(!r$ok && any(grepl("contradictory_seam", r$errors, fixed = TRUE)),
+        paste(r$errors, collapse = "; "))
+  rr2 <- co_seam_wellformed(bad$sm, bad$omap, bad$smap)
+  check(!rr2$ok, "a drawn chain with absent status is malformed")
+}
+
+v115 <- function() {
+  fx <- seam_fixture(14, 4, "unmodeled")
+  s <- neuro()
+  check(identical(co_seam_home(fx$sm, fx$omap, fx$smap), s[["14"]][["id"]]),
+        "the home is the coarsest (max ordinal) stratum")
+}
+
+v116 <- function() {
+  adj <- seam_fixture(6, 5, "unmodeled")   # adjacent (gap 1)
+  check(!co_seam_wellformed(adj$sm, adj$omap, adj$smap)$ok,
+        "an adjacent seam is malformed")
+  cost <- seam_fixture(6, 6, "unmodeled")  # co-stratal (gap 0)
+  check(!co_seam_wellformed(cost$sm, cost$omap, cost$smap)$ok,
+        "a co-stratal seam is malformed")
+  sm <- seam_fixture(14, 4, "unmodeled")$sm
+  check(startsWith(sm[["id"]], "cross_stratal_seam:"), "a new identity scheme")
+}
+
+# -- Change Three: the realized_by reference --
+v117 <- function() {
+  c <- conduit_realized(paste0("causal_relation_object:", strrep("a", 64L)))
+  r <- co_validate_schema(c); check(r$ok, paste(r$errors, collapse = "; "))
+  c2 <- conduit_realized("native:region_stratum_predict")
+  r <- co_validate_schema(c2); check(r$ok, paste(r$errors, collapse = "; "))
+}
+
+v118 <- function() {
+  bound <- conduit_realized("native:region_stratum_predict")
+  unbound <- conduit_realized()
+  check(!identical(bound[["id"]], unbound[["id"]]), "realized_by is identity-bearing")
+  # an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+  check(identical(unbound[["id"]], paste0("conduit:",
+          "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6")),
+        "the unbound conduit identity is pinned")
+}
+
+v119 <- function() {
+  unbound <- conduit_realized()
+  r <- co_validate_schema(unbound); check(r$ok, paste(r$errors, collapse = "; "))
+  bad <- unbound; bad[["realized_by"]] <- "not-a-scheme-qualified-reference"
+  check(!co_validate_schema(bad, "conduit")$ok,
+        "a malformed realized_by reference is rejected")
+}
+
+# --------------------------------------------------------------------------
+# V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+# prediction_error)
+# --------------------------------------------------------------------------
+
+# -- Group X: prediction and prediction error (Section A) --
+v120 <- function() {
+  o <- b_occ("rainfall_begins")
+  p <- b_predicted(o[["id"]], tick_interval(3L, 8L), predictor_id())
+  r <- co_validate_schema(p); check(r$ok, paste(r$errors, collapse = "; "))
+  r <- co_validate_semantics(p); check(r$ok, paste(r$errors, collapse = "; "))
+  check(startsWith(p[["id"]], "predicted_occurrence:"), "a new identity scheme")
+  report <- co_identify(co_obj(type = "token_occurrence", instantiates = o[["id"]],
+                               interval = tick_interval(3L, 8L)), "token_occurrence")
+  check(!identical(p[["id"]], report), "a forecast is not a report")
+  check(startsWith(report, "token_occurrence:"), "the report is a token_occurrence")
+}
+
+v121 <- function() {
+  o <- b_occ("rainfall_begins")
+  wall <- co_obj(start = "2026-07-23T00:00:00Z", end = "2026-07-24T00:00:00Z")
+  who <- predictor_id()
+  with_strength <- b_predicted(o[["id"]], wall, who, strength = 0.8)
+  without <- b_predicted(o[["id"]], wall, who)
+  for (p in list(with_strength, without)) {
+    r <- co_validate_schema(p); check(r$ok, paste(r$errors, collapse = "; "))
+    r <- co_validate_semantics(p); check(r$ok, paste(r$errors, collapse = "; "))
+  }
+  check(!identical(with_strength[["id"]], without[["id"]]),
+        "strength is identity-bearing")
+}
+
+v122 <- function() {
+  o <- b_occ("rainfall_begins")
+  bad <- mk(co_obj(type = "predicted_occurrence", instantiates = o[["id"]],
+                   interval = tick_interval(3L)))
+  r <- co_validate_schema(bad, "predicted_occurrence")
+  check(!r$ok && any(grepl("predictor", r$errors, fixed = TRUE)),
+        paste(r$errors, collapse = "; "))
+}
+
+v123 <- function() {
+  o <- b_occ("rainfall_begins")
+  both <- b_predicted(o[["id"]],
+                      co_obj(start = "2026-07-23T00:00:00Z", start_tick = 3L),
+                      predictor_id())
+  r <- co_validate_schema(both); check(r$ok, paste(r$errors, collapse = "; "))
+  r <- co_validate_semantics(both)
+  check(!r$ok && any(grepl("dimension_conflict", r$errors, fixed = TRUE)),
+        paste(r$errors, collapse = "; "))
+}
+
+v124 <- function() {
+  o <- b_occ("rainfall_begins")
+  p <- b_predicted(o[["id"]], co_obj(start = "2026-07-23T00:00:00Z"), predictor_id())
+  t <- b_token(o[["id"]], co_obj(start = "2026-07-23T06:00:00Z"))
+  err <- b_prediction_error(p[["id"]], 0.0, observed = t[["id"]])
+  r <- co_validate_schema(err); check(r$ok, paste(r$errors, collapse = "; "))
+  r <- co_validate_semantics(err); check(r$ok, paste(r$errors, collapse = "; "))
+  check(identical(co_prediction_pairing_mismatch(err, p, t), FALSE),
+        "no pairing mismatch")
+}
+
+v125 <- function() {
+  o <- b_occ("rainfall_begins")
+  p <- b_predicted(o[["id"]], co_obj(start = "2026-07-23T00:00:00Z"), predictor_id())
+  err <- b_prediction_error(p[["id"]], -1.0)
+  r <- co_validate_schema(err); check(r$ok, paste(r$errors, collapse = "; "))
+  r <- co_validate_semantics(err); check(r$ok, paste(r$errors, collapse = "; "))
+  check(!co_has(err, "observed"), "observed is absent")
+  check(identical(co_prediction_pairing_mismatch(err, p, NULL), FALSE),
+        "an absent observed is never a mismatch")
+}
+
+v126 <- function() {
+  o <- b_occ("rainfall_begins")
+  p <- b_predicted(o[["id"]], tick_interval(0L), predictor_id())
+  bad <- mk(co_obj(type = "prediction_error", predicted = p[["id"]]))
+  r <- co_validate_schema(bad, "prediction_error")
+  check(!r$ok && any(grepl("discrepancy", r$errors, fixed = TRUE)),
+        paste(r$errors, collapse = "; "))
+}
+
+v127 <- function() {
+  o <- b_occ("rainfall_begins")
+  other <- b_occ("snowfall_begins")
+  p <- b_predicted(o[["id"]], co_obj(start = "2026-07-23T00:00:00Z"), predictor_id())
+  t <- b_token(other[["id"]], co_obj(start = "2026-07-23T06:00:00Z"))
+  err <- b_prediction_error(p[["id"]], 1.0, observed = t[["id"]])
+  r <- co_validate_schema(err); check(r$ok, paste(r$errors, collapse = "; "))
+  check(isTRUE(co_prediction_pairing_mismatch(err, p, t)), "pairing mismatch")
+}
+
+# -- Group Y: attitude and theory of mind (Section B) --
+v128 <- function() {
+  fx <- state_fixture("quantity", co_obj(quantity = 15.0, unit = "ug/dL"), "ug/dL")
+  att <- b_attitude(believer_id(), "believes", fx$st[["id"]])
+  r <- co_validate_schema(att); check(r$ok, paste(r$errors, collapse = "; "))
+  r <- co_validate_semantics(att); check(r$ok, paste(r$errors, collapse = "; "))
+}
+
+v129 <- function() {
+  a <- b_occ("switch_pressed"); b <- b_occ("light_on")
+  actual <- b_cro(a[["id"]], b[["id"]], modality = "sufficient")
+  believed <- b_cro(a[["id"]], b[["id"]], modality = "preventive")
+  check(isTRUE(co_conflicts(believed, actual)), "the claims contradict")
+  att <- b_attitude(believer_id(), "believes", believed[["id"]])
+  r <- co_validate_schema(att); check(r$ok, paste(r$errors, collapse = "; "))
+  r <- co_validate_semantics(att); check(r$ok, paste(r$errors, collapse = "; "))
+  s <- co_store_new()
+  co_store_put(s, a); co_store_put(s, b)
+  co_store_put(s, actual); co_store_put(s, att)
+  check(length(co_store_gaps(s, "conflict")) == 0L,
+        "Rule 25: no conflict raised for a quarantined belief")
+}
+
+v130 <- function() {
+  o <- b_occ("rainfall_begins")
+  att <- b_attitude(believer_id(), "desires", o[["id"]])
+  r <- co_validate_schema(att); check(r$ok, paste(r$errors, collapse = "; "))
+  r <- co_validate_semantics(att); check(r$ok, paste(r$errors, collapse = "; "))
+}
+
+v131 <- function() {
+  o <- b_occ("press_button")
+  att <- b_attitude(believer_id(), "intends", o[["id"]])
+  r <- co_validate_schema(att); check(r$ok, paste(r$errors, collapse = "; "))
+  r <- co_validate_semantics(att); check(r$ok, paste(r$errors, collapse = "; "))
+}
+
+v132 <- function() {
+  fx <- state_fixture("boolean", co_obj(boolean = TRUE))
+  inner <- b_attitude(believer_id("holder_b"), "believes", fx$st[["id"]])
+  outer <- b_attitude(believer_id("holder_a"), "believes", inner[["id"]])
+  for (att in list(inner, outer)) {
+    r <- co_validate_schema(att); check(r$ok, paste(r$errors, collapse = "; "))
+    r <- co_validate_semantics(att); check(r$ok, paste(r$errors, collapse = "; "))
+  }
+  check(!identical(outer[["id"]], inner[["id"]]), "distinct ids")
+  check(identical(as.character(co_get(outer, "content")), inner[["id"]]),
+        "nested content")
+}
+
+v133 <- function() {
+  o <- b_occ("rainfall_begins")
+  bad <- mk(co_obj(type = "attitude", holder = believer_id(),
+                   attitude_type = "suspects", content = o[["id"]]))
+  r <- co_validate_schema(bad, "attitude")
+  check(!r$ok && any(grepl("attitude_type", r$errors, fixed = TRUE)),
+        paste(r$errors, collapse = "; "))
+}
+
+v134 <- function() {
+  o <- b_occ("rainfall_begins")
+  bad <- mk(co_obj(type = "attitude", holder = believer_id(),
+                   attitude_type = "believes", content = o[["id"]],
+                   strength = 0.9))
+  r <- co_validate_schema(bad, "attitude")
+  check(!r$ok && any(grepl("strength", r$errors, fixed = TRUE)),
+        paste(r$errors, collapse = "; "))
+}
+
+v135 <- function() {
+  o <- b_occ("rainfall_begins")
+  att <- b_attitude(believer_id(), "expects", o[["id"]])
+  a <- signed("assertion", co_obj(about = att[["id"]],
+              evidence_type = "observation", confidence = 0.9), "signer")
+  r <- co_validate_schema(a); check(r$ok, paste(r$errors, collapse = "; "))
+  check(isTRUE(co_verify_record(a)), "the assertion verifies")
+  # the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+  holder <- as.character(co_get(att, "holder"))
+  source <- as.character(co_get(a, "source"))
+  check(identical(strsplit(holder, ":", fixed = TRUE)[[1]][[1]], "token_individual"),
+        "the holder is a modeled agent")
+  check(identical(strsplit(source, ":", fixed = TRUE)[[1]][[1]], "ed25519"),
+        "the source is a signing key")
+  check(!identical(holder, source), "the holder and the source differ")
+}
+
+v136 <- function() {
+  # the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+  secs <- co_obj(type = "causal_relation_object",
+                 causes = co_arr(sym("occurrent:a")),
+                 effects = co_arr(sym("occurrent:b")), modality = "sufficient",
+                 temporal = co_obj(minimum_delay = 0, maximum_delay = 1, unit = "seconds"))
+  check(identical(co_identify(secs), paste0("causal_relation_object:",
+          "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c")),
+        "the wall-clock CRO identity holds under 4.0.0")
+  # the V118 unbound conduit, re-pinned under 4.0.0
+  unbound <- conduit_realized()
+  check(identical(unbound[["id"]], paste0("conduit:",
+          "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6")),
+        "the unbound conduit identity holds under 4.0.0")
+}
+
+v137 <- function() {
+  hexid <- strrep("0", 64L)
+  # NOTE: the abbreviated prefixes are intentional (the negative test); they
+  # must NOT be re-minted. Each is assembled to survive re-mint tools.
+  att_abbr <- paste0("a", "t", "t")
+  prd_abbr <- paste0("p", "r", "d")
+  err_abbr <- paste0("e", "r", "r")
+  bad_att <- co_obj(type = "attitude", id = paste0(att_abbr, ":", hexid),
+                    holder = paste0("token_individual:", hexid),
+                    attitude_type = "believes",
+                    content = paste0("state_assertion:", hexid))
+  check(!co_validate_schema(bad_att, "attitude")$ok,
+        "the abbreviated attitude scheme must be rejected")
+  bad_prd <- co_obj(type = "predicted_occurrence",
+                    id = paste0(prd_abbr, ":", hexid),
+                    instantiates = paste0("occurrent:", hexid),
+                    interval = tick_interval(0L),
+                    predictor = paste0("token_individual:", hexid))
+  check(!co_validate_schema(bad_prd, "predicted_occurrence")$ok,
+        "the abbreviated predicted_occurrence scheme must be rejected")
+  bad_err <- co_obj(type = "prediction_error", id = paste0(err_abbr, ":", hexid),
+                    predicted = paste0("predicted_occurrence:", hexid),
+                    discrepancy = 0.0)
+  check(!co_validate_schema(bad_err, "prediction_error")$ok,
+        "the abbreviated prediction_error scheme must be rejected")
+  whole_att <- bad_att; whole_att[["id"]] <- paste0("attitude:", hexid)
+  r <- co_validate_schema(whole_att, "attitude")
+  check(r$ok, paste("the whole-word attitude validates:",
+                    paste(r$errors, collapse = "; ")))
+  whole_prd <- bad_prd; whole_prd[["id"]] <- paste0("predicted_occurrence:", hexid)
+  r <- co_validate_schema(whole_prd, "predicted_occurrence")
+  check(r$ok, paste("the whole-word predicted_occurrence validates:",
+                    paste(r$errors, collapse = "; ")))
+  whole_err <- bad_err; whole_err[["id"]] <- paste0("prediction_error:", hexid)
+  r <- co_validate_schema(whole_err, "prediction_error")
+  check(r$ok, paste("the whole-word prediction_error validates:",
+                    paste(r$errors, collapse = "; ")))
+}
+
+# --------------------------------------------------------------------------
 # main
 # --------------------------------------------------------------------------
 
 main <- function() {
-  cat("causalontology-r conformance run (specification 2.0.0)\n")
+  cat("causalontology-r conformance run (specification 4.0.0)\n")
   cat("internal checks (RFC 8032 known-answer, RFC 8785, fixed constants) ... ")
   internal_checks()
   cat("ok\n")
   failures <- 0L
-  total <- 107L
+  total <- 137L
   for (n in 1:total) {
     fn <- match.fun(sprintf("v%02d", n))
     name <- sub("\\.json$", "", basename(vecfile(n)))
@@ -1220,7 +1677,7 @@ main <- function() {
   cat(sprintf("%d/%d vectors passed\n", total - failures, total))
   if (failures > 0L) quit(save = "no", status = 1L)
   cat(paste0("causalontology-r is CONFORMANT to the suite ",
-             "(vectors frozen at specification 2.0.0).\n"))
+             "(vectors frozen at specification 4.0.0).\n"))
 }
 
 main()

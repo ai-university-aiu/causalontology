@@ -43,9 +43,10 @@ public final class Conformance {
     private static final Set<String> SCHEMES =
         Set.of("occurrent", "causal_relation_object", "continuant",
                "realizable", "assertion", "enrichment", "retraction",
-               "succession", "stratum", "bridge", "port", "conduit",
-               "quality", "token_individual", "token_occurrence",
-               "state_assertion", "token_causal_claim");
+               "succession", "stratum", "bridge", "cross_stratal_seam",
+               "port", "conduit", "quality", "token_individual",
+               "token_occurrence", "state_assertion", "token_causal_claim",
+               "attitude", "predicted_occurrence", "prediction_error");
 
     private static final Map<String, Signing.Keys> KEYS = new HashMap<>();
 
@@ -1767,6 +1768,629 @@ public final class Conformance {
     }
 
     // -----------------------------------------------------------------
+    // V108 - V137 builders (the folded-in 3.0.0 and the 4.0.0 additions)
+    // -----------------------------------------------------------------
+
+    /** A Cross Stratal Seam content object (chain omitted when null/empty). */
+    static Map<String, Object> seam(String source, String target,
+                                    String mechanismStatus, List<Object> chain) {
+        Map<String, Object> o = map("type", "cross_stratal_seam",
+                                    "source", source, "target", target,
+                                    "mechanism_status", mechanismStatus);
+        if (chain != null && !chain.isEmpty()) {
+            o.put("chain", chain);
+        }
+        return mk(o);
+    }
+
+    /** (seam, occ-map, stratum-map) over the neuroendocrine strata. */
+    static Object[] seamFixture(int srcOrd, int tgtOrd, String mechanismStatus,
+                                int[] chainOrds) {
+        Map<Integer, Map<String, Object>> s = neuro();
+        Map<String, Object> src = occ("source_event", id(s.get(srcOrd)));
+        Map<String, Object> tgt = occ("target_event", id(s.get(tgtOrd)));
+        Map<String, Map<String, Object>> om = new LinkedHashMap<>();
+        om.put(id(src), src);
+        om.put(id(tgt), tgt);
+        Map<String, Map<String, Object>> smap = new LinkedHashMap<>();
+        smap.put(id(s.get(srcOrd)), s.get(srcOrd));
+        smap.put(id(s.get(tgtOrd)), s.get(tgtOrd));
+        List<Object> chain = null;
+        if (chainOrds != null) {
+            chain = new ArrayList<>();
+            for (int i = 0; i < chainOrds.length; i++) {
+                Map<String, Object> c = occ("chain_" + i,
+                                            id(s.get(chainOrds[i])));
+                om.put(id(c), c);
+                smap.put(id(s.get(chainOrds[i])), s.get(chainOrds[i]));
+                chain.add(id(c));
+            }
+        }
+        Map<String, Object> sm = seam(id(src), id(tgt), mechanismStatus, chain);
+        return new Object[] {sm, om, smap};
+    }
+
+    /** A conduit with (or, when null, without) a realized_by reference. */
+    static Map<String, Object> conduitRealized(String realizedBy) {
+        Map<String, Object> o = map("type", "conduit", "label", "conn",
+            "from", "port:" + "1".repeat(64),
+            "to", "port:" + "2".repeat(64),
+            "carries", List.of("occurrent:" + "3".repeat(64)));
+        if (realizedBy != null) {
+            o.put("realized_by", realizedBy);
+        }
+        return mk(o);
+    }
+
+    /** An attitude content object. */
+    static Map<String, Object> attitude(String holder, String attitudeType,
+                                        String content) {
+        return mk(map("type", "attitude", "holder", holder,
+                      "attitude_type", attitudeType, "content", content));
+    }
+
+    /** A predicted_occurrence content object. */
+    static Map<String, Object> predicted(String instantiates,
+                                         Map<String, Object> interval,
+                                         String predictor) {
+        return predicted(instantiates, interval, predictor, null);
+    }
+
+    /** A predicted_occurrence; strength omitted when null. */
+    static Map<String, Object> predicted(String instantiates,
+                                         Map<String, Object> interval,
+                                         String predictor, Double strength) {
+        Map<String, Object> o = map("type", "predicted_occurrence",
+            "instantiates", instantiates, "interval", interval,
+            "predictor", predictor);
+        if (strength != null) {
+            o.put("strength", strength);
+        }
+        return mk(o);
+    }
+
+    /** A prediction_error content object. */
+    static Map<String, Object> predictionError(String predictedId,
+                                               double discrepancy) {
+        return predictionError(predictedId, discrepancy, null);
+    }
+
+    /** A prediction_error; observed omitted when null. */
+    static Map<String, Object> predictionError(String predictedId,
+                                               double discrepancy,
+                                               String observed) {
+        Map<String, Object> o = map("type", "prediction_error",
+            "predicted", predictedId,
+            "discrepancy", Double.valueOf(discrepancy));
+        if (observed != null) {
+            o.put("observed", observed);
+        }
+        return mk(o);
+    }
+
+    /** A modeled predictor: a token individual of a forecasting continuant. */
+    static String predictorId() {
+        Map<String, Object> c = cnt("forecasting_mind");
+        return id(individual(id(c), "predictor_p"));
+    }
+
+    /** A modeled believer: a token individual of a believing continuant. */
+    static String believerId() {
+        return believerId("holder_h");
+    }
+
+    static String believerId(String designator) {
+        Map<String, Object> c = cnt("believing_mind");
+        return id(individual(id(c), designator));
+    }
+
+    // -----------------------------------------------------------------
+    // V108 - V119: the 3.0.0 additions (tick unit, seam, realized_by)
+    // -----------------------------------------------------------------
+
+    // -- Change One: the ordinal (tick) temporal unit --
+    static void v108() {
+        Map<String, Object> p = cro(List.of(sym("occurrent:a")),
+            List.of(sym("occurrent:b")),
+            map("temporal", map("minimum_delay", Long.valueOf(0L),
+                    "maximum_delay", Long.valueOf(5L), "unit", "ticks"),
+                "modality", "sufficient"));
+        Validation schema = SchemaValidator.validateSchema(p, null);
+        check(schema.ok, schema.reason());
+        Validation semantics = Semantics.validateSemantics(p, null);
+        check(semantics.ok, semantics.reason());
+    }
+
+    static void v109() {
+        Map<String, Object> p = cro(List.of(sym("occurrent:a")),
+            List.of(sym("occurrent:b")),
+            map("temporal", map("minimum_delay", Long.valueOf(2L),
+                    "maximum_delay", Long.valueOf(5L), "unit", "ticks")));
+        check(Semantics.admissible(p, 3), "3 ticks must be inside [2, 5]");
+        check(Semantics.admissible(p, 2) && Semantics.admissible(p, 5),
+              "the tick window is inclusive at both ends");
+        check(!Semantics.admissible(p, 6) && !Semantics.admissible(p, 1),
+              "ticks outside [2, 5] must not be admissible");
+    }
+
+    static void v110() {
+        Map<String, Object> tickWindow = map("minimum_delay", Long.valueOf(0L),
+            "maximum_delay", Long.valueOf(5L), "unit", "ticks");
+        Map<String, Object> wallWindow = map("minimum_delay", Long.valueOf(0L),
+            "maximum_delay", Long.valueOf(5L), "unit", "seconds");
+        check(Semantics.delayWithinWindow(
+                  map("duration", Long.valueOf(3L), "unit", "ticks"),
+                  tickWindow),
+              "a tick delay must fall within a tick window");
+        check(!Semantics.delayWithinWindow(
+                  map("duration", Long.valueOf(1L), "unit", "ticks"),
+                  wallWindow),
+              "a tick delay is never within a wall-clock window");
+        check(!Semantics.delayWithinWindow(
+                  map("duration", Long.valueOf(1L), "unit", "seconds"),
+                  tickWindow),
+              "a wall-clock delay is never within a tick window");
+        Map<String, Object> a = map("causes", List.of(sym("occurrent:a")),
+            "effects", List.of(sym("occurrent:b")), "temporal", tickWindow,
+            "modality", "sufficient");
+        Map<String, Object> b = map("causes", List.of(sym("occurrent:a")),
+            "effects", List.of(sym("occurrent:b")), "temporal", wallWindow,
+            "modality", "preventive");
+        check(!Semantics.conflicts(a, b), "disjoint dimensions -> no overlap");
+        boolean refused = false;
+        try {
+            Semantics.toSeconds(1, "ticks");
+        } catch (IllegalArgumentException e) {
+            refused = true;
+        }
+        check(refused, "to_seconds accepted ticks");
+    }
+
+    static void v111() {
+        Map<String, Object> base = map("type", "causal_relation_object",
+            "causes", List.of(sym("occurrent:a")),
+            "effects", List.of(sym("occurrent:b")), "modality", "sufficient");
+        Map<String, Object> tick = new LinkedHashMap<>(base);
+        tick.put("temporal", map("minimum_delay", Long.valueOf(0L),
+            "maximum_delay", Long.valueOf(1L), "unit", "ticks"));
+        Map<String, Object> secs = new LinkedHashMap<>(base);
+        secs.put("temporal", map("minimum_delay", Long.valueOf(0L),
+            "maximum_delay", Long.valueOf(1L), "unit", "seconds"));
+        check(!Canonical.identify(tick, null)
+                .equals(Canonical.identify(secs, null)),
+              "the unit is identity-bearing");
+        // a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned
+        // 2.0.0 value).
+        check(Canonical.identify(secs, null).equals("causal_relation_object:"
+                + "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c"),
+              "the pinned 2.0.0 identifier must hold: got "
+              + Canonical.identify(secs, null));
+    }
+
+    // -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+    @SuppressWarnings("unchecked")
+    static void v112() {
+        Object[] fx = seamFixture(14, 4, "unmodeled", null);
+        Map<String, Object> sm = (Map<String, Object>) fx[0];
+        Map<String, Map<String, Object>> om =
+            (Map<String, Map<String, Object>>) fx[1];
+        Map<String, Map<String, Object>> smap =
+            (Map<String, Map<String, Object>>) fx[2];
+        Validation schema = SchemaValidator.validateSchema(sm, null);
+        check(schema.ok, schema.reason());
+        Validation semantics = Semantics.validateSemantics(sm, null);
+        check(semantics.ok, semantics.reason());
+        Validation wf = Semantics.seamWellformed(sm, om, smap);
+        check(wf.ok, wf.reason());
+    }
+
+    @SuppressWarnings("unchecked")
+    static void v113() {
+        Object[] fa = seamFixture(14, 4, "unmodeled", null);
+        Map<String, Object> a = (Map<String, Object>) fa[0];
+        Object[] fb = seamFixture(14, 4, "absent", null);
+        Map<String, Object> b = (Map<String, Object>) fb[0];
+        Map<String, Map<String, Object>> om =
+            (Map<String, Map<String, Object>>) fb[1];
+        Map<String, Map<String, Object>> smap =
+            (Map<String, Map<String, Object>>) fb[2];
+        Validation schema = SchemaValidator.validateSchema(b, null);
+        check(schema.ok, schema.reason());
+        Validation wf = Semantics.seamWellformed(b, om, smap);
+        check(wf.ok, wf.reason());
+        check(!id(a).equals(id(b)),
+              "mechanism_status must be identity-bearing");
+    }
+
+    @SuppressWarnings("unchecked")
+    static void v114() {
+        Object[] fd = seamFixture(14, 4, "unmodeled", new int[] {9, 7, 6, 5});
+        Map<String, Object> drawn = (Map<String, Object>) fd[0];
+        Map<String, Map<String, Object>> omd =
+            (Map<String, Map<String, Object>>) fd[1];
+        Map<String, Map<String, Object>> smd =
+            (Map<String, Map<String, Object>>) fd[2];
+        Validation schema = SchemaValidator.validateSchema(drawn, null);
+        check(schema.ok, schema.reason());
+        Validation wf = Semantics.seamWellformed(drawn, omd, smd);
+        check(wf.ok, wf.reason());
+        Object[] fbad = seamFixture(14, 4, "absent", new int[] {9, 7, 6, 5});
+        Map<String, Object> bad = (Map<String, Object>) fbad[0];
+        Map<String, Map<String, Object>> omb =
+            (Map<String, Map<String, Object>>) fbad[1];
+        Map<String, Map<String, Object>> smb =
+            (Map<String, Map<String, Object>>) fbad[2];
+        Validation semantics = Semantics.validateSemantics(bad, null);
+        check(!semantics.ok
+                && semantics.anyReasonContains("contradictory_seam"),
+              "semantics must reject the drawn 'absent' seam: "
+              + semantics.reason());
+        check(!Semantics.seamWellformed(bad, omb, smb).ok,
+              "the drawn 'absent' seam must be malformed");
+    }
+
+    @SuppressWarnings("unchecked")
+    static void v115() {
+        Object[] fx = seamFixture(14, 4, "unmodeled", null);
+        Map<String, Object> sm = (Map<String, Object>) fx[0];
+        Map<String, Map<String, Object>> om =
+            (Map<String, Map<String, Object>>) fx[1];
+        Map<String, Map<String, Object>> smap =
+            (Map<String, Map<String, Object>>) fx[2];
+        Map<Integer, Map<String, Object>> s = neuro();
+        check(id(s.get(14)).equals(Semantics.seamHome(sm, om, smap)),
+              "home must be the coarsest (max ordinal) stratum");
+    }
+
+    @SuppressWarnings("unchecked")
+    static void v116() {
+        Object[] adj = seamFixture(6, 5, "unmodeled", null); // adjacent (gap 1)
+        check(!Semantics.seamWellformed((Map<String, Object>) adj[0],
+                  (Map<String, Map<String, Object>>) adj[1],
+                  (Map<String, Map<String, Object>>) adj[2]).ok,
+              "adjacent endpoints must be malformed");
+        Object[] co = seamFixture(6, 6, "unmodeled", null); // co-stratal (gap 0)
+        check(!Semantics.seamWellformed((Map<String, Object>) co[0],
+                  (Map<String, Map<String, Object>>) co[1],
+                  (Map<String, Map<String, Object>>) co[2]).ok,
+              "co-stratal endpoints must be malformed");
+        Object[] fx = seamFixture(14, 4, "unmodeled", null);
+        check(id((Map<String, Object>) fx[0]).startsWith("cross_stratal_seam:"),
+              "a seam must mint in the new identity scheme");
+    }
+
+    // -- Change Three: the realized_by reference --
+    static void v117() {
+        Map<String, Object> c = conduitRealized(
+            "causal_relation_object:" + "a".repeat(64));
+        Validation schema = SchemaValidator.validateSchema(c, null);
+        check(schema.ok, schema.reason());
+        Map<String, Object> c2 = conduitRealized("native:region_stratum_predict");
+        Validation schema2 = SchemaValidator.validateSchema(c2, null);
+        check(schema2.ok, schema2.reason()); // a native scheme reference is legal
+    }
+
+    static void v118() {
+        Map<String, Object> bound =
+            conduitRealized("native:region_stratum_predict");
+        Map<String, Object> unbound = conduitRealized(null);
+        check(!id(bound).equals(id(unbound)),
+              "realized_by must be identity-bearing");
+        // an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0
+        // value).
+        check(id(unbound).equals("conduit:"
+                + "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6"),
+              "the pinned 2.0.0 identifier must hold: got " + id(unbound));
+    }
+
+    static void v119() {
+        Map<String, Object> unbound = conduitRealized(null);
+        Validation schema = SchemaValidator.validateSchema(unbound, null);
+        check(schema.ok, schema.reason()); // unbound is legal
+        Map<String, Object> bad = new LinkedHashMap<>(unbound);
+        bad.put("realized_by", "not-a-scheme-qualified-reference");
+        Validation schemaBad = SchemaValidator.validateSchema(bad, "conduit");
+        check(!schemaBad.ok, "a malformed realized_by reference must be rejected");
+    }
+
+    // -----------------------------------------------------------------
+    // V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+    // prediction_error)
+    // -----------------------------------------------------------------
+
+    // -- Group X: prediction and prediction error (Section A) --
+    static void v120() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> p = predicted(id(o),
+            map("start_tick", Long.valueOf(3L), "end_tick", Long.valueOf(8L)),
+            predictorId());
+        Validation schema = SchemaValidator.validateSchema(p, null);
+        check(schema.ok, schema.reason());
+        Validation semantics = Semantics.validateSemantics(p, null);
+        check(semantics.ok, semantics.reason());
+        check(id(p).startsWith("predicted_occurrence:"),
+              "a forecast must mint in the new identity scheme");
+        Map<String, Object> reportObj = map("type", "token_occurrence",
+            "instantiates", id(o),
+            "interval", map("start_tick", Long.valueOf(3L),
+                            "end_tick", Long.valueOf(8L)));
+        String report = Canonical.identify(reportObj, "token_occurrence");
+        check(!id(p).equals(report), "a forecast is not a report");
+        check(report.startsWith("token_occurrence:"),
+              "the report keeps its own scheme");
+    }
+
+    static void v121() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> wall = map("start", "2026-07-23T00:00:00Z",
+                                       "end", "2026-07-24T00:00:00Z");
+        String who = predictorId();
+        Map<String, Object> withStrength =
+            predicted(id(o), wall, who, Double.valueOf(0.8));
+        Map<String, Object> without = predicted(id(o), wall, who);
+        for (Map<String, Object> p : List.of(withStrength, without)) {
+            Validation schema = SchemaValidator.validateSchema(p, null);
+            check(schema.ok, schema.reason());
+            Validation semantics = Semantics.validateSemantics(p, null);
+            check(semantics.ok, semantics.reason());
+        }
+        check(!id(withStrength).equals(id(without)),
+              "strength must be identity-bearing");
+    }
+
+    static void v122() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> bad = mk(map("type", "predicted_occurrence",
+            "instantiates", id(o),
+            "interval", map("start_tick", Long.valueOf(3L))));
+        Validation schema =
+            SchemaValidator.validateSchema(bad, "predicted_occurrence");
+        check(!schema.ok && schema.anyReasonContains("predictor"),
+              "expected predictor error: " + schema.reason());
+    }
+
+    static void v123() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> both = predicted(id(o),
+            map("start", "2026-07-23T00:00:00Z", "start_tick", Long.valueOf(3L)),
+            predictorId());
+        Validation schema = SchemaValidator.validateSchema(both, null);
+        check(schema.ok, schema.reason());
+        Validation semantics = Semantics.validateSemantics(both, null);
+        check(!semantics.ok && semantics.anyReasonContains("dimension_conflict"),
+              "semantics must reject both dimensions: " + semantics.reason());
+    }
+
+    static void v124() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> p = predicted(id(o),
+            map("start", "2026-07-23T00:00:00Z"), predictorId());
+        Map<String, Object> t = token(id(o),
+            map("start", "2026-07-23T06:00:00Z"));
+        Map<String, Object> err = predictionError(id(p), 0.0, id(t));
+        Validation schema = SchemaValidator.validateSchema(err, null);
+        check(schema.ok, schema.reason());
+        Validation semantics = Semantics.validateSemantics(err, null);
+        check(semantics.ok, semantics.reason());
+        check(!Semantics.predictionPairingMismatch(err, p, t),
+              "a matching observation is not a mismatch");
+    }
+
+    static void v125() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> p = predicted(id(o),
+            map("start", "2026-07-23T00:00:00Z"), predictorId());
+        Map<String, Object> err = predictionError(id(p), -1.0);
+        Validation schema = SchemaValidator.validateSchema(err, null);
+        check(schema.ok, schema.reason());
+        Validation semantics = Semantics.validateSemantics(err, null);
+        check(semantics.ok, semantics.reason());
+        check(!err.containsKey("observed"), "observed must be absent");
+        check(!Semantics.predictionPairingMismatch(err, p, null),
+              "an unfulfilled prediction is not a mismatch");
+    }
+
+    static void v126() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> p = predicted(id(o),
+            map("start_tick", Long.valueOf(0L)), predictorId());
+        Map<String, Object> bad = mk(map("type", "prediction_error",
+            "predicted", id(p)));
+        Validation schema =
+            SchemaValidator.validateSchema(bad, "prediction_error");
+        check(!schema.ok && schema.anyReasonContains("discrepancy"),
+              "expected discrepancy error: " + schema.reason());
+    }
+
+    static void v127() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> other = occ("snowfall_begins");
+        Map<String, Object> p = predicted(id(o),
+            map("start", "2026-07-23T00:00:00Z"), predictorId());
+        Map<String, Object> t = token(id(other),
+            map("start", "2026-07-23T06:00:00Z"));
+        Map<String, Object> err = predictionError(id(p), 1.0, id(t));
+        Validation schema = SchemaValidator.validateSchema(err, null);
+        check(schema.ok, schema.reason());
+        check(Semantics.predictionPairingMismatch(err, p, t),
+              "must surface a pairing mismatch");
+    }
+
+    // -- Group Y: attitude and theory of mind (Section B) --
+    @SuppressWarnings("unchecked")
+    static void v128() {
+        Object[] fx = stateFixture("quantity",
+            map("quantity", Double.valueOf(15.0), "unit", "ug/dL"), "ug/dL");
+        Map<String, Object> st = (Map<String, Object>) fx[0];
+        Map<String, Object> att = attitude(believerId(), "believes", id(st));
+        Validation schema = SchemaValidator.validateSchema(att, null);
+        check(schema.ok, schema.reason());
+        Validation semantics = Semantics.validateSemantics(att, null);
+        check(semantics.ok, semantics.reason());
+    }
+
+    static void v129() {
+        Map<String, Object> a = occ("switch_pressed");
+        Map<String, Object> b = occ("light_on");
+        Map<String, Object> actual = cro(List.of(id(a)), List.of(id(b)),
+            map("modality", "sufficient"));
+        Map<String, Object> believed = cro(List.of(id(a)), List.of(id(b)),
+            map("modality", "preventive"));
+        check(Semantics.conflicts(believed, actual), "the CLAIMS contradict");
+        Map<String, Object> att =
+            attitude(believerId(), "believes", id(believed));
+        Validation schema = SchemaValidator.validateSchema(att, null);
+        check(schema.ok, schema.reason());
+        Validation semantics = Semantics.validateSemantics(att, null);
+        check(semantics.ok, semantics.reason()); // validity unaffected
+        Store s = new Store(true);
+        s.put(a);
+        s.put(b);
+        s.put(actual);
+        s.put(att);
+        check(s.gaps("conflict").isEmpty(), "Rule 25: NO conflict raised");
+    }
+
+    static void v130() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> att = attitude(believerId(), "desires", id(o));
+        Validation schema = SchemaValidator.validateSchema(att, null);
+        check(schema.ok, schema.reason());
+        Validation semantics = Semantics.validateSemantics(att, null);
+        check(semantics.ok, semantics.reason());
+    }
+
+    static void v131() {
+        Map<String, Object> o = occ("press_button");
+        Map<String, Object> att = attitude(believerId(), "intends", id(o));
+        Validation schema = SchemaValidator.validateSchema(att, null);
+        check(schema.ok, schema.reason());
+        Validation semantics = Semantics.validateSemantics(att, null);
+        check(semantics.ok, semantics.reason());
+    }
+
+    @SuppressWarnings("unchecked")
+    static void v132() {
+        Object[] fx = stateFixture("boolean", map("boolean", Boolean.TRUE),
+                                   null);
+        Map<String, Object> st = (Map<String, Object>) fx[0];
+        Map<String, Object> inner =
+            attitude(believerId("holder_b"), "believes", id(st));
+        Map<String, Object> outer =
+            attitude(believerId("holder_a"), "believes", id(inner));
+        for (Map<String, Object> att : List.of(inner, outer)) {
+            Validation schema = SchemaValidator.validateSchema(att, null);
+            check(schema.ok, schema.reason());
+            Validation semantics = Semantics.validateSemantics(att, null);
+            check(semantics.ok, semantics.reason());
+        }
+        check(!id(outer).equals(id(inner)), "ids must differ");
+        check(id(inner).equals(outer.get("content")),
+              "the outer content must be the inner attitude");
+    }
+
+    static void v133() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> bad = mk(map("type", "attitude",
+            "holder", believerId(), "attitude_type", "suspects",
+            "content", id(o)));
+        Validation schema = SchemaValidator.validateSchema(bad, "attitude");
+        check(!schema.ok && schema.anyReasonContains("attitude_type"),
+              "expected attitude_type error: " + schema.reason());
+    }
+
+    static void v134() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> bad = mk(map("type", "attitude",
+            "holder", believerId(), "attitude_type", "believes",
+            "content", id(o), "strength", Double.valueOf(0.9)));
+        Validation schema = SchemaValidator.validateSchema(bad, "attitude");
+        check(!schema.ok && schema.anyReasonContains("strength"),
+              "expected strength error: " + schema.reason());
+    }
+
+    static void v135() {
+        Map<String, Object> o = occ("rainfall_begins");
+        Map<String, Object> att = attitude(believerId(), "expects", id(o));
+        Map<String, Object> a = signed("assertion",
+            map("about", id(att), "evidence_type", "observation",
+                "confidence", Double.valueOf(0.9)),
+            "signer", 0);
+        Validation schema = SchemaValidator.validateSchema(a, null);
+        check(schema.ok, schema.reason());
+        check(Signing.verifyRecord(a, null), "the assertion must verify");
+        // the HOLDER (a modeled agent) and the SOURCE (a signing key) differ.
+        String holder = (String) att.get("holder");
+        check(holder.substring(0, holder.indexOf(':')).equals("token_individual"),
+              "the holder must be a modeled agent");
+        String source = (String) a.get("source");
+        check(source.substring(0, source.indexOf(':')).equals("ed25519"),
+              "the source must be a signing key");
+        check(!holder.equals(source), "holder and source are different things");
+    }
+
+    static void v136() {
+        // the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0.
+        Map<String, Object> secs = map("type", "causal_relation_object",
+            "causes", List.of(sym("occurrent:a")),
+            "effects", List.of(sym("occurrent:b")),
+            "modality", "sufficient",
+            "temporal", map("minimum_delay", Long.valueOf(0L),
+                "maximum_delay", Long.valueOf(1L), "unit", "seconds"));
+        check(Canonical.identify(secs, null).equals("causal_relation_object:"
+                + "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c"),
+              "the 3.0.0 wall-clock identifier must hold under 4.0.0");
+        // the V118 unbound conduit, re-pinned under 4.0.0.
+        Map<String, Object> unbound = conduitRealized(null);
+        check(id(unbound).equals("conduit:"
+                + "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6"),
+              "the 3.0.0 unbound-conduit identifier must hold under 4.0.0");
+    }
+
+    static void v137() {
+        String hexid = "0".repeat(64);
+        // The abbreviated prefixes here are the deliberate negative tests;
+        // each is assembled so it survives any whole-word re-mint pass.
+        String attAbbr = "a" + "t" + "t";
+        String prdAbbr = "p" + "r" + "d";
+        String errAbbr = "e" + "r" + "r";
+        Map<String, Object> badAtt = map("type", "attitude",
+            "id", attAbbr + ":" + hexid,
+            "holder", "token_individual:" + hexid,
+            "attitude_type", "believes",
+            "content", "state_assertion:" + hexid);
+        check(!SchemaValidator.validateSchema(badAtt, "attitude").ok,
+              "abbreviated attitude scheme must be rejected");
+        Map<String, Object> badPrd = map("type", "predicted_occurrence",
+            "id", prdAbbr + ":" + hexid,
+            "instantiates", "occurrent:" + hexid,
+            "interval", map("start_tick", Long.valueOf(0L)),
+            "predictor", "token_individual:" + hexid);
+        check(!SchemaValidator.validateSchema(badPrd, "predicted_occurrence").ok,
+              "abbreviated predicted_occurrence scheme must be rejected");
+        Map<String, Object> badErr = map("type", "prediction_error",
+            "id", errAbbr + ":" + hexid,
+            "predicted", "predicted_occurrence:" + hexid,
+            "discrepancy", Double.valueOf(0.0));
+        check(!SchemaValidator.validateSchema(badErr, "prediction_error").ok,
+              "abbreviated prediction_error scheme must be rejected");
+        Map<String, Object> wholeAtt = new LinkedHashMap<>(badAtt);
+        wholeAtt.put("id", "attitude:" + hexid);
+        Validation attOk = SchemaValidator.validateSchema(wholeAtt, "attitude");
+        check(attOk.ok, attOk.reason());
+        Map<String, Object> wholePrd = new LinkedHashMap<>(badPrd);
+        wholePrd.put("id", "predicted_occurrence:" + hexid);
+        Validation prdOk =
+            SchemaValidator.validateSchema(wholePrd, "predicted_occurrence");
+        check(prdOk.ok, prdOk.reason());
+        Map<String, Object> wholeErr = new LinkedHashMap<>(badErr);
+        wholeErr.put("id", "prediction_error:" + hexid);
+        Validation errOk =
+            SchemaValidator.validateSchema(wholeErr, "prediction_error");
+        check(errOk.ok, errOk.reason());
+    }
+
+    // -----------------------------------------------------------------
 
     static void runVector(int n) {
         switch (n) {
@@ -1877,6 +2501,36 @@ public final class Conformance {
             case 105: v105(); break;
             case 106: v106(); break;
             case 107: v107(); break;
+            case 108: v108(); break;
+            case 109: v109(); break;
+            case 110: v110(); break;
+            case 111: v111(); break;
+            case 112: v112(); break;
+            case 113: v113(); break;
+            case 114: v114(); break;
+            case 115: v115(); break;
+            case 116: v116(); break;
+            case 117: v117(); break;
+            case 118: v118(); break;
+            case 119: v119(); break;
+            case 120: v120(); break;
+            case 121: v121(); break;
+            case 122: v122(); break;
+            case 123: v123(); break;
+            case 124: v124(); break;
+            case 125: v125(); break;
+            case 126: v126(); break;
+            case 127: v127(); break;
+            case 128: v128(); break;
+            case 129: v129(); break;
+            case 130: v130(); break;
+            case 131: v131(); break;
+            case 132: v132(); break;
+            case 133: v133(); break;
+            case 134: v134(); break;
+            case 135: v135(); break;
+            case 136: v136(); break;
+            case 137: v137(); break;
             default:
                 throw new IllegalArgumentException("no vector " + n);
         }
@@ -1884,12 +2538,12 @@ public final class Conformance {
 
     public static void main(String[] args) {
         System.out.println(
-            "causalontology-java conformance run (specification 2.0.0)");
+            "causalontology-java conformance run (specification 4.0.0)");
         System.out.print(
             "internal checks (RFC 8032, RFC 8785, fixed constants) ... ");
         internalChecks();
         System.out.println("ok");
-        int total = 107;
+        int total = 137;
         int failures = 0;
         for (int n = 1; n <= total; n++) {
             String name = vectorFile(n).getFileName().toString();
@@ -1911,6 +2565,6 @@ public final class Conformance {
             System.exit(1);
         }
         System.out.println("causalontology-java is CONFORMANT to the suite "
-                           + "(vectors frozen at specification 2.0.0).");
+                           + "(vectors frozen at specification 4.0.0).");
     }
 }

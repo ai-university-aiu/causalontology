@@ -10,8 +10,8 @@ RFC 8785 (JSON Canonicalization Scheme) bytes with SHA-256, record-level Ed25519
 signing and verification (RFC 8032, via the \pkg{openssl} package), schema and
 semantic validation, and an in-memory conformant store. Behavior is byte-identical
 to the other bindings; an implementation is conformant if and only if it passes
-the 107 frozen conformance vectors for the specification version it declares
-(2.0.0).
+the 137 frozen conformance vectors for the specification version it declares
+(4.0.0).
 }
 \section{Main functions}{
 \itemize{

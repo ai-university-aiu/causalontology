@@ -18,9 +18,14 @@ namespace Causalontology;
 final class Canonical
 {
     /**
-     * The identity-bearing fields of each of the seventeen kinds. "type" is
-     * always injected, so it is not listed here. Order does not matter (JCS
-     * sorts keys). 2.0.0: every identifier scheme is a whole English word
+     * The identity-bearing fields of each of the twenty-one kinds (3.0.0 adds
+     * the cross_stratal_seam; the conduit gains realized_by; 4.0.0 adds the
+     * attitude, the predicted_occurrence, and the prediction_error - all
+     * additive and identity-preserving, so a record that omits a new field
+     * keeps its earlier identifier byte-for-byte, and the new kinds open new
+     * identity schemes that disturb no existing record). "type" is always
+     * injected, so it is not listed here. Order does not matter (JCS sorts
+     * keys). 2.0.0: every identifier scheme is a whole English word
      * (Principle P7); scheme = type value = id prefix.
      */
     public const IDENTITY_FIELDS = [
@@ -32,8 +37,9 @@ final class Canonical
         'realizable' => ['kind', 'bearer', 'label'],
         'stratum'    => ['label', 'scheme', 'ordinal', 'unit', 'governs'],
         'bridge'     => ['coarse', 'fine', 'relation'],
+        'cross_stratal_seam' => ['source', 'target', 'mechanism_status', 'chain'],
         'port'       => ['bearer', 'label', 'direction', 'accepts', 'realizable'],
-        'conduit'    => ['label', 'from', 'to', 'carries', 'transform'],
+        'conduit'    => ['label', 'from', 'to', 'carries', 'transform', 'realized_by'],
         'quality'    => ['label', 'datatype', 'unit', 'stratum'],
         // ---- token tier ----
         'token_individual'   => ['instantiates', 'designator', 'part_of'],
@@ -42,6 +48,10 @@ final class Canonical
         'state_assertion'    => ['subject', 'quality', 'value', 'interval'],
         'token_causal_claim' => ['causes', 'effects', 'covering_law',
                                  'actual_delay', 'counterfactual'],
+        'attitude'             => ['holder', 'attitude_type', 'content'],
+        'predicted_occurrence' => ['instantiates', 'interval', 'predictor',
+                                   'strength'],
+        'prediction_error'     => ['predicted', 'observed', 'discrepancy'],
         // ---- provenance tier ----
         'assertion'  => ['about', 'source', 'evidence_type', 'evidence', 'strength',
                          'confidence', 'timestamp', 'evidenced_by'],
@@ -58,6 +68,7 @@ final class Canonical
         'realizable'             => 'realizable',
         'stratum'                => 'stratum',
         'bridge'                 => 'bridge',
+        'cross_stratal_seam'     => 'cross_stratal_seam',
         'port'                   => 'port',
         'conduit'                => 'conduit',
         'quality'                => 'quality',
@@ -65,6 +76,9 @@ final class Canonical
         'token_occurrence'       => 'token_occurrence',
         'state_assertion'        => 'state_assertion',
         'token_causal_claim'     => 'token_causal_claim',
+        'attitude'               => 'attitude',
+        'predicted_occurrence'   => 'predicted_occurrence',
+        'prediction_error'       => 'prediction_error',
         'assertion'              => 'assertion',
         'enrichment'             => 'enrichment',
         'retraction'             => 'retraction',
@@ -79,6 +93,7 @@ final class Canonical
         'realizable'             => 'realizable',
         'stratum'                => 'stratum',
         'bridge'                 => 'bridge',
+        'cross_stratal_seam'     => 'cross_stratal_seam',
         'port'                   => 'port',
         'conduit'                => 'conduit',
         'quality'                => 'quality',
@@ -86,6 +101,9 @@ final class Canonical
         'token_occurrence'       => 'token_occurrence',
         'state_assertion'        => 'state_assertion',
         'token_causal_claim'     => 'token_causal_claim',
+        'attitude'               => 'attitude',
+        'predicted_occurrence'   => 'predicted_occurrence',
+        'prediction_error'       => 'prediction_error',
         'assertion'              => 'assertion',
         'enrichment'             => 'enrichment',
         'retraction'             => 'retraction',

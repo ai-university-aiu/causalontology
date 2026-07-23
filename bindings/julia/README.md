@@ -17,31 +17,34 @@ lists only the `SHA` stdlib. Requires **Julia 1.6 or newer** (CI runs
 | `src/canonical.jl` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify` (spec/identity.md) |
 | `src/ed25519.jl` | pure-Julia Ed25519 (RFC 8032) over native `BigInt` with `mod`/`powermod` (floored, non-negative remainders, matching Python's `%`), verified against the RFC's TEST 1 known answer before any vector runs |
 | `src/signing.jl` | record-level `sign_record` / `verify_record` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `src/schema.jl` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
-| `src/semantics.jl` | the 21 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s, year = 31,556,952 s), the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
+| `src/schema.jl` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `src/semantics.jl` | the semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s, year = 31,556,952 s) and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule, enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check, and the prediction-to-observation pairing |
 | `src/store.jl` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps` read — with explicit insertion-order bookkeeping (`object_order`, `record_order`), since Julia's `Dict` iterates in arbitrary order where Python's dict does not |
-| `conformance.jl` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.jl` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ julia bindings/julia/conformance.jl
 ...
-107/107 vectors passed
-causalontology-julia is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
+137/137 vectors passed
+causalontology-julia is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-Verified locally (107/107, exit 0) and run in CI by the `julia` job of
+Verified locally (137/137, exit 0) and run in CI by the `julia` job of
 `.github/workflows/conformance.yml` on Julia 1.10. The runner locates the
 repository root relative to its own location inside `bindings/julia/`; the
 schemas are read from `spec/schema` under the same root (overridable with
 `CAUSALONTOLOGY_SPEC`, which names the `spec/` directory).
 
-The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
-concrete identifiers, real keys, and a real verifying signature. The
-harness's old normalization now simply passes frozen values through, and
-the behavioral vectors derive deterministic keypairs from the seed
-`sha256("key:" + name)`.
+The V01–V107 vectors are the whole-word 2.0.0 baseline (2026-07-13): they
+carry concrete identifiers, real keys, and a real verifying signature, and
+the harness's normalization now simply passes those frozen values through,
+while the behavioral vectors derive deterministic keypairs from the seed
+`sha256("key:" + name)`. The V108–V119 (3.0.0: the `ticks` unit, the
+cross_stratal_seam, the conduit `realized_by`) and V120–V137 (4.0.0: the
+attitude, the predicted_occurrence, the prediction_error) fixtures are built
+in the runner, mirroring the Python reference exactly.
 
 ## Thirty-second taste
 

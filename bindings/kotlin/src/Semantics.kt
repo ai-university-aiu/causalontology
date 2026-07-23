@@ -19,6 +19,25 @@ object Semantics {
         "years" to 31556952L
     )
 
+    // 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete
+    // step with NO wall-clock mapping; a tick window is ordered by integer
+    // comparison, and an ordinal window and a wall-clock window are DIFFERENT
+    // DIMENSIONS that do not compare (mixing them is never within-window and
+    // never overlapping).
+    val ORDINAL_UNITS: Set<String> = setOf("ticks")
+
+    // "ordinal" for a tick-like unit, else "wallclock".
+    private fun dimension(unit: String): String =
+        if (unit in ORDINAL_UNITS) "ordinal" else "wallclock"
+
+    // A comparable magnitude within ONE dimension: raw tick count for an
+    // ordinal unit, seconds for a wall-clock unit. Never mix dimensions.
+    private fun magnitude(value: Any?, unit: String): Double {
+        if (unit in ORDINAL_UNITS) return asDoubleNum(value)  // a dimensionless tick count
+        if (unit == "instant") return 0.0
+        return asDoubleNum(value) * UNIT_SECONDS[unit]!!.toDouble()
+    }
+
     // Rule 12: enrichment field-to-kind validity and entry shapes. Two
     // occurrent forms added in 2.0.0.
     val ENRICHMENT_FIELDS: Map<String, Pair<List<String>, String>> = mapOf(
@@ -87,6 +106,42 @@ object Semantics {
             }
         }
 
+        // 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain
+        // has, by drawing it, a modelled intervening mechanism - so
+        // mechanism_status 'absent' contradicts a present chain (the honest-
+        // ignorance distinction must stay honest). The stratal well-formedness
+        // (non-adjacency, adjacency of chain steps, scheme, the home rule) needs
+        // the strata map and lives in seamWellformed, exactly as bridge
+        // well-formedness does.
+        if (k == "cross_stratal_seam") {
+            if (obj["chain"] != null && obj["mechanism_status"] == "absent") {
+                errors.add("contradictory_seam: a drawn chain cannot carry " +
+                    "mechanism_status 'absent' (a drawn mechanism is not absent)")
+            }
+        }
+
+        // 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+        // exactly ONE temporal dimension - a wall-clock start (optional end) or
+        // an ordinal start_tick (optional end_tick), never both and never
+        // neither. Per Rule 23 the two dimensions never compare. The pairing
+        // check of a prediction_error against its predicted_occurrence and its
+        // observed token_occurrence needs those objects and lives in
+        // predictionPairingMismatch, exactly as coveringLawMismatch does.
+        if (k == "predicted_occurrence") {
+            val iv = (obj["interval"] as? Map<*, *>) ?: emptyMap<String, Any?>()
+            val wall = iv.containsKey("start")
+            val tick = iv.containsKey("start_tick")
+            if (wall && tick) {
+                errors.add("dimension_conflict: a predicted interval must carry " +
+                    "exactly one temporal dimension, not a wall-clock start AND " +
+                    "an ordinal start_tick")
+            }
+            if (!wall && !tick) {
+                errors.add("missing_dimension: a predicted interval must carry a " +
+                    "wall-clock start or an ordinal start_tick")
+            }
+        }
+
         return Pair(errors.isEmpty(), errors)
     }
 
@@ -96,24 +151,27 @@ object Semantics {
         return Pair(missing.isNotEmpty(), missing)
     }
 
-    // Rule 4: temporal admissibility with the fixed constants.
-    fun admissible(cro: JObj, elapsedSeconds: Double): Boolean {
+    // Rule 4: temporal admissibility. For a wall-clock window elapsed is in
+    // seconds; for an ordinal ('ticks') window elapsed is a tick count. Ordering
+    // is by magnitude WITHIN the window's own dimension (3.0.0).
+    fun admissible(cro: JObj, elapsed: Double): Boolean {
         val t = cro["temporal"] ?: return true  // no window imposes no constraint
         val tm = asObj(t)
-        val unit = UNIT_SECONDS[tm["unit"] as String]!!.toDouble()
-        val lo = asDoubleNum(tm["minimum_delay"]) * unit
-        val hi = asDoubleNum(tm["maximum_delay"]) * unit
-        return lo <= elapsedSeconds && elapsedSeconds <= hi
+        val unit = tm["unit"] as String
+        val lo = magnitude(tm["minimum_delay"], unit)
+        val hi = magnitude(tm["maximum_delay"], unit)
+        return lo <= elapsed && elapsed <= hi
     }
 
     private fun windowOverlap(a: JObj, b: JObj): Boolean {
         val ta = a["temporal"] ?: return true
         val tb = b["temporal"] ?: return true  // either absent counts as overlapping
         val ma = asObj(ta); val mb = asObj(tb)
-        val ua = UNIT_SECONDS[ma["unit"] as String]!!.toDouble()
-        val ub = UNIT_SECONDS[mb["unit"] as String]!!.toDouble()
-        val loA = asDoubleNum(ma["minimum_delay"]) * ua; val hiA = asDoubleNum(ma["maximum_delay"]) * ua
-        val loB = asDoubleNum(mb["minimum_delay"]) * ub; val hiB = asDoubleNum(mb["maximum_delay"]) * ub
+        val ua = ma["unit"] as String; val ub = mb["unit"] as String
+        // 3.0.0: an ordinal window and a wall-clock window never overlap.
+        if (dimension(ua) != dimension(ub)) return false
+        val loA = magnitude(ma["minimum_delay"], ua); val hiA = magnitude(ma["maximum_delay"], ua)
+        val loB = magnitude(mb["minimum_delay"], ub); val hiB = magnitude(mb["maximum_delay"], ub)
         return loA <= hiB && loB <= hiA
     }
 
@@ -307,19 +365,32 @@ object Semantics {
     }
 
     // ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+    // 3.0.0: an ordinal ('ticks') unit is dimensionless and has NO wall-clock
+    // mapping - converting one to seconds is a category error and is refused.
     fun toSeconds(duration: Number, unit: String): Long {
+        if (unit in ORDINAL_UNITS) {
+            throw IllegalArgumentException(
+                "'$unit' is an ordinal (dimensionless) unit and has no " +
+                "wall-clock seconds mapping")
+        }
         if (unit == "instant") return 0
         return duration.toLong() * UNIT_SECONDS[unit]!!
     }
 
     // ALGORITHM E (Rule 20): does an observed delay fall within a covering
-    // law's temporal window? Inclusive at both ends (N12.5.2).
+    // law's temporal window? Inclusive at both ends (N12.5.2). 3.0.0: an ordinal
+    // delay compares to an ordinal window by integer tick count; an ordinal
+    // delay and a wall-clock window (or vice versa) never fall within one
+    // another.
     fun delayWithinWindow(actualDelay: JObj?, temporal: JObj?): Boolean {
         if (actualDelay == null || actualDelay.isEmpty() ||
             temporal == null || temporal.isEmpty()) return true
-        val observed = toSeconds(actualDelay["duration"] as Number, actualDelay["unit"] as String)
-        val lo = toSeconds(temporal["minimum_delay"] as Number, temporal["unit"] as String)
-        val hi = toSeconds(temporal["maximum_delay"] as Number, temporal["unit"] as String)
+        val delayUnit = actualDelay["unit"] as String
+        val windowUnit = temporal["unit"] as String
+        if (dimension(delayUnit) != dimension(windowUnit)) return false
+        val observed = magnitude(actualDelay["duration"], delayUnit)
+        val lo = magnitude(temporal["minimum_delay"], windowUnit)
+        val hi = magnitude(temporal["maximum_delay"], windowUnit)
         return lo <= observed && observed <= hi
     }
 
@@ -343,6 +414,65 @@ object Semantics {
             return Pair(false, "malformed_bridge: coarse ordinal not > fine ordinal (e)")
         }
         return Pair(true, "well-formed bridge")
+    }
+
+    // 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness. All of
+    // (a)-(g) must hold, else malformed_seam. A seam is a MANAGED jump across
+    // NON-ADJACENT strata; when it DRAWS a chain, the chain must be an
+    // adjacent-stratum path spanning the two endpoints' strata.
+    fun seamWellformed(seam: JObj, occMap: Map<String, JObj>,
+                       stratumMap: Map<String, JObj>): Pair<Boolean, String> {
+        val srcS = stratumOf(seam["source"] as String, occMap)
+        val tgtS = stratumOf(seam["target"] as String, occMap)
+        if (srcS == null || tgtS == null) {
+            return Pair(false, "malformed_seam: an endpoint has no stratum (a)")
+        }
+        if (stratumMap[srcS]!!["scheme"] != stratumMap[tgtS]!!["scheme"]) {
+            return Pair(false, "malformed_seam: endpoints differ in scheme (b)")
+        }
+        val so = ordOf(srcS, stratumMap); val to = ordOf(tgtS, stratumMap)
+        if (kotlin.math.abs(so - to) <= 1) {
+            return Pair(false, "malformed_seam: endpoints are adjacent or co-stratal; " +
+                "a seam is for NON-adjacent strata (c)")
+        }
+        val chain = seam["chain"]
+        if (chain != null) {
+            if (seam["mechanism_status"] == "absent") {
+                return Pair(false, "malformed_seam: a drawn chain contradicts " +
+                    "mechanism_status 'absent' (d)")
+            }
+            val lo = minOf(so, to); val hi = maxOf(so, to)
+            val ords = mutableListOf<Long>()
+            for (oid in asList(chain)) {
+                val st = stratumOf(oid as String, occMap)
+                    ?: return Pair(false, "malformed_seam: a chain member has no stratum (e)")
+                if (stratumMap[st]!!["scheme"] != stratumMap[srcS]!!["scheme"]) {
+                    return Pair(false, "malformed_seam: a chain member differs in scheme (e)")
+                }
+                ords.add(ordOf(st, stratumMap))
+            }
+            if (!ords.all { lo < it && it < hi }) {
+                return Pair(false, "malformed_seam: a chain member is not at an " +
+                    "INTERVENING stratum, strictly between the endpoints (f)")
+            }
+            val diffs = (0 until ords.size - 1).map { ords[it + 1] - ords[it] }
+            if (diffs.isNotEmpty() && !(diffs.all { it > 0 } || diffs.all { it < 0 })) {
+                return Pair(false, "malformed_seam: chain is not strictly monotone from " +
+                    "one endpoint toward the other (g)")
+            }
+        }
+        return Pair(true, "well-formed cross_stratal_seam")
+    }
+
+    // THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST
+    // stratum it touches - the endpoint of the greater ordinal. Returns that
+    // stratum's identifier (null if an endpoint is unstratified). A layer-to-
+    // stratum binding places and checks the seam by this rule.
+    fun seamHome(seam: JObj, occMap: Map<String, JObj>,
+                 stratumMap: Map<String, JObj>): String? {
+        val srcS = stratumOf(seam["source"] as String, occMap) ?: return null
+        val tgtS = stratumOf(seam["target"] as String, occMap) ?: return null
+        return if (ordOf(srcS, stratumMap) >= ordOf(tgtS, stratumMap)) srcS else tgtS
     }
 
     // Rule 17 / N4.2.1-2: Conduit well-formedness with the transform exception.
@@ -414,6 +544,16 @@ object Semantics {
             if (tokenMap[e]!!["instantiates"] !in lawEffects) return true
         }
         return false
+    }
+
+    // 4.0.0 Rule 24: prediction-to-observation pairing. True iff the prediction
+    // error's observed token does not instantiate the occurrent its
+    // predicted_occurrence instantiates (surfaces pairing_mismatch). An ABSENT
+    // observed is never a mismatch - it means the predicted occurrence was not
+    // fulfilled by any recorded occurrence.
+    fun predictionPairingMismatch(error: JObj, predicted: JObj, observed: JObj?): Boolean {
+        if (error["observed"] == null || observed == null) return false
+        return observed["instantiates"] != predicted["instantiates"]
     }
 
     // Rule 21: temporal coherence of token causation. True iff any cause token

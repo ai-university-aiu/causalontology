@@ -1,6 +1,6 @@
 {
   "name": "causalontology/causalontology",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "description": "The PHP binding of the Causalontology standard - a verb-first noun-hosting ontology; reified causation as a programming-language-neutral standard and shared commons. Bundled extensions only; zero Composer dependencies.",
   "type": "library",
   "license": "Apache-2.0",

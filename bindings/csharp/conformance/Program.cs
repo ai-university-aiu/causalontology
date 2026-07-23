@@ -4,11 +4,14 @@
 // implementation is conformant if and only if it passes every vector;
 // this runner exits nonzero on any failure.
 //
-// The vectors are frozen at specification 2.0.0: they carry concrete
-// 64-hex identifiers, real Ed25519 keys, and a real verifying signature,
-// which pass through normalization unchanged. Behavioral vectors still
-// derive deterministic keypairs in this harness from symbolic key names
-// (seed = sha256("key:" + name)), mirroring
+// The vectors are frozen at specification 4.0.0: V01-V107 are the
+// whole-word 2.0.0 baseline (Principle P7), V108-V119 the 3.0.0 additions
+// (tick unit, cross_stratal_seam, realized_by), V120-V137 the 4.0.0
+// additions (attitude, predicted_occurrence, prediction_error). They carry
+// concrete 64-hex identifiers, real Ed25519 keys, and a real verifying
+// signature, which pass through normalization unchanged. Behavioral vectors
+// still derive deterministic keypairs in this harness from symbolic key
+// names (seed = sha256("key:" + name)), mirroring
 // bindings/python/tests/run_conformance.py exactly.
 
 using System.Security.Cryptography;
@@ -23,9 +26,10 @@ internal static class Program
     // recognizes the whole-word identifier schemes the vectors use (P7)
     private static readonly Regex SymbolicPrefix =
         new("^(occurrent|causal_relation_object|continuant|realizable|assertion|"
-            + "enrichment|retraction|succession|stratum|bridge|port|conduit|"
-            + "quality|token_individual|token_occurrence|state_assertion|"
-            + "token_causal_claim|ed25519):");
+            + "enrichment|retraction|succession|stratum|bridge|cross_stratal_seam|"
+            + "port|conduit|quality|token_individual|token_occurrence|"
+            + "state_assertion|token_causal_claim|attitude|predicted_occurrence|"
+            + "prediction_error|ed25519):");
 
     // recognizes an already-frozen 64-character lowercase hex name
     private static readonly Regex Hex64 = new("^[0-9a-f]{64}$");
@@ -1493,8 +1497,10 @@ internal static class Program
     {
         "occurrent", "causal_relation_object", "continuant", "realizable",
         "assertion", "enrichment", "retraction", "succession", "stratum",
-        "bridge", "port", "conduit", "quality", "token_individual",
-        "token_occurrence", "state_assertion", "token_causal_claim", "ed25519",
+        "bridge", "cross_stratal_seam", "port", "conduit", "quality",
+        "token_individual", "token_occurrence", "state_assertion",
+        "token_causal_claim", "attitude", "predicted_occurrence",
+        "prediction_error", "ed25519",
     };
 
     private static void V106()
@@ -1559,6 +1565,582 @@ internal static class Program
     }
 
     // -----------------------------------------------------------------------
+    // V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam,
+    // realized_by), mirroring bindings/python/tests/run_conformance.py.
+    // -----------------------------------------------------------------------
+    private static JsonMap Seam(string source, string target,
+                                string mechanismStatus, List<object?>? chain = null)
+    {
+        var o = new JsonMap { { "type", "cross_stratal_seam" },
+                              { "source", source }, { "target", target },
+                              { "mechanism_status", mechanismStatus } };
+        if (chain is not null && chain.Count > 0) o["chain"] = chain;
+        return Mk(o);
+    }
+
+    private static (JsonMap Seam, Dictionary<string, JsonMap> Omap,
+                    Dictionary<string, JsonMap> Smap) SeamFixture(
+        int srcOrd, int tgtOrd, string mechanismStatus, int[]? chainOrds = null)
+    {
+        var s = Neuro();
+        var src = Occ("source_event", (string)s[srcOrd]["id"]!);
+        var tgt = Occ("target_event", (string)s[tgtOrd]["id"]!);
+        var omap = new Dictionary<string, JsonMap>
+        {
+            [(string)src["id"]!] = src,
+            [(string)tgt["id"]!] = tgt,
+        };
+        var smap = new Dictionary<string, JsonMap>
+        {
+            [(string)s[srcOrd]["id"]!] = s[srcOrd],
+            [(string)s[tgtOrd]["id"]!] = s[tgtOrd],
+        };
+        List<object?>? chain = null;
+        if (chainOrds is not null)
+        {
+            chain = new List<object?>();
+            for (var i = 0; i < chainOrds.Length; i++)
+            {
+                var c = Occ($"chain_{i}", (string)s[chainOrds[i]]["id"]!);
+                omap[(string)c["id"]!] = c;
+                smap[(string)s[chainOrds[i]]["id"]!] = s[chainOrds[i]];
+                chain.Add(c["id"]);
+            }
+        }
+        return (Seam((string)src["id"]!, (string)tgt["id"]!, mechanismStatus,
+                     chain), omap, smap);
+    }
+
+    private static JsonMap ConduitRealized(string? realizedBy = null)
+    {
+        var o = new JsonMap { { "type", "conduit" }, { "label", "conn" },
+                              { "from", "port:" + new string('1', 64) },
+                              { "to", "port:" + new string('2', 64) },
+                              { "carries", L("occurrent:" + new string('3', 64)) } };
+        if (realizedBy is not null) o["realized_by"] = realizedBy;
+        return Mk(o);
+    }
+
+    // -- Change One: the ordinal (tick) temporal unit --
+    private static void V108()
+    {
+        var p = Cro(L(Sym("occurrent:a")), L(Sym("occurrent:b")),
+                    new JsonMap {
+                        { "temporal", new JsonMap { { "minimum_delay", 0L },
+                                                    { "maximum_delay", 5L },
+                                                    { "unit", "ticks" } } },
+                        { "modality", "sufficient" } });
+        SchemaOk(p);
+        var (ok, why) = Semantics.ValidateSemantics(p);
+        Check(ok, string.Join("; ", why));
+    }
+
+    private static void V109()
+    {
+        var p = Cro(L(Sym("occurrent:a")), L(Sym("occurrent:b")),
+                    new JsonMap {
+                        { "temporal", new JsonMap { { "minimum_delay", 2L },
+                                                    { "maximum_delay", 5L },
+                                                    { "unit", "ticks" } } } });
+        Check(Semantics.Admissible(p, 3), "3 ticks must be inside [2, 5]");
+        Check(Semantics.Admissible(p, 2) && Semantics.Admissible(p, 5),
+              "the tick window is inclusive at both ends");
+        Check(!Semantics.Admissible(p, 6) && !Semantics.Admissible(p, 1),
+              "ticks outside [2, 5] must not be admissible");
+    }
+
+    private static void V110()
+    {
+        var tickWindow = new JsonMap { { "minimum_delay", 0L },
+                                       { "maximum_delay", 5L }, { "unit", "ticks" } };
+        var wallWindow = new JsonMap { { "minimum_delay", 0L },
+                                       { "maximum_delay", 5L }, { "unit", "seconds" } };
+        Check(Semantics.DelayWithinWindow(
+                  new JsonMap { { "duration", 3L }, { "unit", "ticks" } },
+                  tickWindow),
+              "a tick delay must fall within a tick window");
+        Check(!Semantics.DelayWithinWindow(
+                  new JsonMap { { "duration", 1L }, { "unit", "ticks" } },
+                  wallWindow),
+              "a tick delay is never within a wall-clock window");
+        Check(!Semantics.DelayWithinWindow(
+                  new JsonMap { { "duration", 1L }, { "unit", "seconds" } },
+                  tickWindow),
+              "a wall-clock delay is never within a tick window");
+        var a = new JsonMap { { "causes", L(Sym("occurrent:a")) },
+                              { "effects", L(Sym("occurrent:b")) },
+                              { "temporal", tickWindow },
+                              { "modality", "sufficient" } };
+        var b = new JsonMap { { "causes", L(Sym("occurrent:a")) },
+                              { "effects", L(Sym("occurrent:b")) },
+                              { "temporal", wallWindow },
+                              { "modality", "preventive" } };
+        Check(!Semantics.Conflicts(a, b), "disjoint dimensions -> no overlap");
+        var refused = false;
+        try { Semantics.ToSeconds(1, "ticks"); }
+        catch (Exception) { refused = true; }
+        Check(refused, "to_seconds accepted ticks");
+    }
+
+    private static void V111()
+    {
+        JsonMap Base() => new()
+        {
+            { "type", "causal_relation_object" },
+            { "causes", L(Sym("occurrent:a")) },
+            { "effects", L(Sym("occurrent:b")) },
+            { "modality", "sufficient" },
+        };
+        var tick = Base();
+        tick["temporal"] = new JsonMap { { "minimum_delay", 0L },
+                                         { "maximum_delay", 1L },
+                                         { "unit", "ticks" } };
+        var secs = Base();
+        secs["temporal"] = new JsonMap { { "minimum_delay", 0L },
+                                         { "maximum_delay", 1L },
+                                         { "unit", "seconds" } };
+        Check(Canonical.Identify(tick) != Canonical.Identify(secs),
+              "the unit is identity-bearing");
+        // a wall-clock record's identity is UNCHANGED under 3.0.0 (2.0.0 value)
+        Check(Canonical.Identify(secs) == "causal_relation_object:"
+                  + "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+              "the pinned 2.0.0 identifier must hold: got "
+              + Canonical.Identify(secs));
+    }
+
+    // -- Change Two: the managed cross-stratal seam --
+    private static void V112()
+    {
+        var (seam, omap, smap) = SeamFixture(14, 4, "unmodeled");
+        SchemaOk(seam);
+        var (semOk, semWhy) = Semantics.ValidateSemantics(seam);
+        Check(semOk, string.Join("; ", semWhy));
+        var (ok, why) = Semantics.SeamWellformed(seam, omap, smap);
+        Check(ok, why);
+    }
+
+    private static void V113()
+    {
+        var (a, _, _) = SeamFixture(14, 4, "unmodeled");
+        var (b, omap, smap) = SeamFixture(14, 4, "absent");
+        SchemaOk(b);
+        var (ok, why) = Semantics.SeamWellformed(b, omap, smap);
+        Check(ok, why);
+        Check((string)a["id"]! != (string)b["id"]!,
+              "mechanism_status must be identity-bearing");
+    }
+
+    private static void V114()
+    {
+        var (drawn, omap, smap) = SeamFixture(14, 4, "unmodeled",
+                                              new[] { 9, 7, 6, 5 });
+        SchemaOk(drawn);
+        var (ok, why) = Semantics.SeamWellformed(drawn, omap, smap);
+        Check(ok, why);
+        var (bad, omap2, smap2) = SeamFixture(14, 4, "absent",
+                                              new[] { 9, 7, 6, 5 });
+        var (semOk, semWhy) = Semantics.ValidateSemantics(bad);
+        Check(!semOk && Mentions(semWhy, "contradictory_seam"),
+              "semantics must reject the drawn 'absent' seam: "
+              + string.Join("; ", semWhy));
+        Check(!Semantics.SeamWellformed(bad, omap2, smap2).Ok,
+              "the drawn 'absent' seam must be malformed");
+    }
+
+    private static void V115()
+    {
+        var (seam, omap, smap) = SeamFixture(14, 4, "unmodeled");
+        var s = Neuro();
+        Check(Semantics.SeamHome(seam, omap, smap) == (string)s[14]["id"]!,
+              "home must be the coarsest (max ordinal) stratum");
+    }
+
+    private static void V116()
+    {
+        var (adj, o1, s1) = SeamFixture(6, 5, "unmodeled"); // adjacent (gap 1)
+        Check(!Semantics.SeamWellformed(adj, o1, s1).Ok,
+              "adjacent endpoints must be malformed");
+        var (co, o2, s2) = SeamFixture(6, 6, "unmodeled"); // co-stratal (gap 0)
+        Check(!Semantics.SeamWellformed(co, o2, s2).Ok,
+              "co-stratal endpoints must be malformed");
+        var (seam, _, _) = SeamFixture(14, 4, "unmodeled");
+        Check(((string)seam["id"]!).StartsWith("cross_stratal_seam:",
+                  StringComparison.Ordinal),
+              "a seam must mint in the new identity scheme");
+    }
+
+    // -- Change Three: the realized_by reference --
+    private static void V117()
+    {
+        var c = ConduitRealized("causal_relation_object:" + new string('a', 64));
+        SchemaOk(c);
+        var c2 = ConduitRealized("native:region_stratum_predict");
+        SchemaOk(c2); // a native scheme reference is legal
+    }
+
+    private static void V118()
+    {
+        var bound = ConduitRealized("native:region_stratum_predict");
+        var unbound = ConduitRealized();
+        Check((string)bound["id"]! != (string)unbound["id"]!,
+              "realized_by must be identity-bearing");
+        // an unbound conduit's identity is UNCHANGED under 3.0.0 (2.0.0 value)
+        Check((string)unbound["id"]! == "conduit:"
+                  + "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+              "the pinned 2.0.0 identifier must hold: got "
+              + (string)unbound["id"]!);
+    }
+
+    private static void V119()
+    {
+        var unbound = ConduitRealized();
+        SchemaOk(unbound); // unbound is legal
+        var bad = unbound.Copy();
+        bad["realized_by"] = "not-a-scheme-qualified-reference";
+        Check(!SchemaValidator.ValidateSchema(bad, "conduit").Ok,
+              "a malformed realized_by reference must be rejected");
+    }
+
+    // -----------------------------------------------------------------------
+    // V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+    // prediction_error), mirroring bindings/python/tests/run_conformance.py.
+    // -----------------------------------------------------------------------
+    private static JsonMap Attitude(string holder, string attitudeType,
+                                    string content)
+        => Mk(new JsonMap { { "type", "attitude" }, { "holder", holder },
+                            { "attitude_type", attitudeType },
+                            { "content", content } });
+
+    private static JsonMap Predicted(string instantiates, JsonMap interval,
+                                     string predictor, double? strength = null)
+    {
+        var o = new JsonMap { { "type", "predicted_occurrence" },
+                              { "instantiates", instantiates },
+                              { "interval", interval },
+                              { "predictor", predictor } };
+        if (strength is not null) o["strength"] = strength.Value;
+        return Mk(o);
+    }
+
+    private static JsonMap PredictionError(string predictedId, double discrepancy,
+                                           string? observed = null)
+    {
+        var o = new JsonMap { { "type", "prediction_error" },
+                              { "predicted", predictedId },
+                              { "discrepancy", discrepancy } };
+        if (observed is not null) o["observed"] = observed;
+        return Mk(o);
+    }
+
+    private static string Predictor()
+    {
+        var c = Cnt("forecasting_mind");
+        return (string)Individual((string)c["id"]!,
+                                  designator: "predictor_p")["id"]!;
+    }
+
+    private static string Believer(string designator = "holder_h")
+    {
+        var c = Cnt("believing_mind");
+        return (string)Individual((string)c["id"]!, designator: designator)["id"]!;
+    }
+
+    // -- Group X: prediction and prediction error (Section A) --
+    private static void V120()
+    {
+        var o = Occ("rainfall_begins");
+        var p = Predicted((string)o["id"]!,
+                          new JsonMap { { "start_tick", 3L }, { "end_tick", 8L } },
+                          Predictor());
+        SchemaOk(p);
+        var (ok, why) = Semantics.ValidateSemantics(p);
+        Check(ok, string.Join("; ", why));
+        Check(((string)p["id"]!).StartsWith("predicted_occurrence:",
+                  StringComparison.Ordinal),
+              "a forecast must mint in the new identity scheme");
+        var report = Canonical.Identify(
+            new JsonMap { { "type", "token_occurrence" },
+                          { "instantiates", o["id"] },
+                          { "interval", new JsonMap { { "start_tick", 3L },
+                                                      { "end_tick", 8L } } } },
+            "token_occurrence");
+        Check((string)p["id"]! != report, "a forecast is not a report");
+        Check(report.StartsWith("token_occurrence:", StringComparison.Ordinal),
+              "the report keeps its own scheme");
+    }
+
+    private static void V121()
+    {
+        var o = Occ("rainfall_begins");
+        var wall = new JsonMap { { "start", "2026-07-23T00:00:00Z" },
+                                 { "end", "2026-07-24T00:00:00Z" } };
+        var who = Predictor();
+        var withStrength = Predicted((string)o["id"]!, wall, who, 0.8);
+        var without = Predicted((string)o["id"]!, wall, who);
+        foreach (var p in new[] { withStrength, without })
+        {
+            SchemaOk(p);
+            var (ok, why) = Semantics.ValidateSemantics(p);
+            Check(ok, string.Join("; ", why));
+        }
+        Check((string)withStrength["id"]! != (string)without["id"]!,
+              "strength must be identity-bearing");
+    }
+
+    private static void V122()
+    {
+        var o = Occ("rainfall_begins");
+        var bad = Mk(new JsonMap {
+            { "type", "predicted_occurrence" }, { "instantiates", o["id"] },
+            { "interval", new JsonMap { { "start_tick", 3L } } } });
+        var (ok, why) = SchemaValidator.ValidateSchema(bad, "predicted_occurrence");
+        Check(!ok && Mentions(why, "predictor"), string.Join("; ", why));
+    }
+
+    private static void V123()
+    {
+        var o = Occ("rainfall_begins");
+        var both = Predicted((string)o["id"]!,
+                             new JsonMap { { "start", "2026-07-23T00:00:00Z" },
+                                           { "start_tick", 3L } },
+                             Predictor());
+        SchemaOk(both);
+        var (ok, why) = Semantics.ValidateSemantics(both);
+        Check(!ok && Mentions(why, "dimension_conflict"),
+              "semantics must reject both dimensions: " + string.Join("; ", why));
+    }
+
+    private static void V124()
+    {
+        var o = Occ("rainfall_begins");
+        var p = Predicted((string)o["id"]!,
+                          new JsonMap { { "start", "2026-07-23T00:00:00Z" } },
+                          Predictor());
+        var t = Token((string)o["id"]!,
+                      new JsonMap { { "start", "2026-07-23T06:00:00Z" } });
+        var err = PredictionError((string)p["id"]!, 0.0, (string)t["id"]!);
+        SchemaOk(err);
+        var (ok, why) = Semantics.ValidateSemantics(err);
+        Check(ok, string.Join("; ", why));
+        Check(!Semantics.PredictionPairingMismatch(err, p, t),
+              "a matching observation is not a mismatch");
+    }
+
+    private static void V125()
+    {
+        var o = Occ("rainfall_begins");
+        var p = Predicted((string)o["id"]!,
+                          new JsonMap { { "start", "2026-07-23T00:00:00Z" } },
+                          Predictor());
+        var err = PredictionError((string)p["id"]!, -1.0);
+        SchemaOk(err);
+        var (ok, why) = Semantics.ValidateSemantics(err);
+        Check(ok, string.Join("; ", why));
+        Check(!err.ContainsKey("observed"), "observed must be absent");
+        Check(!Semantics.PredictionPairingMismatch(err, p, null),
+              "an unfulfilled prediction is not a mismatch");
+    }
+
+    private static void V126()
+    {
+        var o = Occ("rainfall_begins");
+        var p = Predicted((string)o["id"]!,
+                          new JsonMap { { "start_tick", 0L } }, Predictor());
+        var bad = Mk(new JsonMap {
+            { "type", "prediction_error" }, { "predicted", p["id"] } });
+        var (ok, why) = SchemaValidator.ValidateSchema(bad, "prediction_error");
+        Check(!ok && Mentions(why, "discrepancy"), string.Join("; ", why));
+    }
+
+    private static void V127()
+    {
+        var o = Occ("rainfall_begins");
+        var other = Occ("snowfall_begins");
+        var p = Predicted((string)o["id"]!,
+                          new JsonMap { { "start", "2026-07-23T00:00:00Z" } },
+                          Predictor());
+        var t = Token((string)other["id"]!,
+                      new JsonMap { { "start", "2026-07-23T06:00:00Z" } });
+        var err = PredictionError((string)p["id"]!, 1.0, (string)t["id"]!);
+        SchemaOk(err);
+        Check(Semantics.PredictionPairingMismatch(err, p, t),
+              "must surface a pairing mismatch");
+    }
+
+    // -- Group Y: attitude and theory of mind (Section B) --
+    private static void V128()
+    {
+        var (st, _) = StateFixture("quantity",
+            new JsonMap { { "quantity", 15.0 }, { "unit", "ug/dL" } }, "ug/dL");
+        var att = Attitude(Believer(), "believes", (string)st["id"]!);
+        SchemaOk(att);
+        var (ok, why) = Semantics.ValidateSemantics(att);
+        Check(ok, string.Join("; ", why));
+    }
+
+    private static void V129()
+    {
+        var a = Occ("switch_pressed");
+        var b = Occ("light_on");
+        var actual = Cro(L(a["id"]), L(b["id"]),
+                         new JsonMap { { "modality", "sufficient" } });
+        var believed = Cro(L(a["id"]), L(b["id"]),
+                           new JsonMap { { "modality", "preventive" } });
+        Check(Semantics.Conflicts(believed, actual), "the CLAIMS contradict");
+        var att = Attitude(Believer(), "believes", (string)believed["id"]!);
+        SchemaOk(att);
+        var (ok, why) = Semantics.ValidateSemantics(att);
+        Check(ok, string.Join("; ", why)); // validity unaffected
+        var s = new InMemoryStore();
+        s.Put(a);
+        s.Put(b);
+        s.Put(actual);
+        s.Put(att);
+        Check(s.Gaps("conflict").Count == 0, "Rule 25: NO conflict raised");
+    }
+
+    private static void V130()
+    {
+        var o = Occ("rainfall_begins");
+        var att = Attitude(Believer(), "desires", (string)o["id"]!);
+        SchemaOk(att);
+        var (ok, why) = Semantics.ValidateSemantics(att);
+        Check(ok, string.Join("; ", why));
+    }
+
+    private static void V131()
+    {
+        var o = Occ("press_button");
+        var att = Attitude(Believer(), "intends", (string)o["id"]!);
+        SchemaOk(att);
+        var (ok, why) = Semantics.ValidateSemantics(att);
+        Check(ok, string.Join("; ", why));
+    }
+
+    private static void V132()
+    {
+        var (st, _) = StateFixture("boolean", new JsonMap { { "boolean", true } });
+        var inner = Attitude(Believer("holder_b"), "believes", (string)st["id"]!);
+        var outer = Attitude(Believer("holder_a"), "believes",
+                             (string)inner["id"]!);
+        foreach (var att in new[] { inner, outer })
+        {
+            SchemaOk(att);
+            var (ok, why) = Semantics.ValidateSemantics(att);
+            Check(ok, string.Join("; ", why));
+        }
+        Check((string)outer["id"]! != (string)inner["id"]!, "ids must differ");
+        Check((string)outer["content"]! == (string)inner["id"]!,
+              "the outer content must be the inner attitude");
+    }
+
+    private static void V133()
+    {
+        var o = Occ("rainfall_begins");
+        var bad = Mk(new JsonMap {
+            { "type", "attitude" }, { "holder", Believer() },
+            { "attitude_type", "suspects" }, { "content", o["id"] } });
+        var (ok, why) = SchemaValidator.ValidateSchema(bad, "attitude");
+        Check(!ok && Mentions(why, "attitude_type"), string.Join("; ", why));
+    }
+
+    private static void V134()
+    {
+        var o = Occ("rainfall_begins");
+        var bad = Mk(new JsonMap {
+            { "type", "attitude" }, { "holder", Believer() },
+            { "attitude_type", "believes" }, { "content", o["id"] },
+            { "strength", 0.9 } });
+        var (ok, why) = SchemaValidator.ValidateSchema(bad, "attitude");
+        Check(!ok && Mentions(why, "strength"), string.Join("; ", why));
+    }
+
+    private static void V135()
+    {
+        var o = Occ("rainfall_begins");
+        var att = Attitude(Believer(), "expects", (string)o["id"]!);
+        var a = Signed("assertion",
+            new JsonMap { { "about", att["id"] },
+                          { "evidence_type", "observation" },
+                          { "confidence", 0.9 } }, "signer");
+        SchemaOk(a);
+        Check(Signing.VerifyRecord(a), "the assertion must verify");
+        // the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+        var holder = (string)att["holder"]!;
+        Check(holder.Split(':', 2)[0] == "token_individual",
+              "the holder must be a modeled agent");
+        var source = (string)a["source"]!;
+        Check(source.Split(':', 2)[0] == "ed25519",
+              "the source must be a signing key");
+        Check(holder != source, "holder and source are different things");
+    }
+
+    private static void V136()
+    {
+        // the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+        var secs = new JsonMap {
+            { "type", "causal_relation_object" },
+            { "causes", L(Sym("occurrent:a")) },
+            { "effects", L(Sym("occurrent:b")) },
+            { "modality", "sufficient" },
+            { "temporal", new JsonMap { { "minimum_delay", 0L },
+                                        { "maximum_delay", 1L },
+                                        { "unit", "seconds" } } } };
+        Check(Canonical.Identify(secs) == "causal_relation_object:"
+                  + "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+              "the 3.0.0 wall-clock identifier must hold under 4.0.0");
+        // the V118 unbound conduit, re-pinned under 4.0.0
+        var unbound = ConduitRealized();
+        Check((string)unbound["id"]! == "conduit:"
+                  + "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+              "the 3.0.0 unbound-conduit identifier must hold under 4.0.0");
+    }
+
+    private static void V137()
+    {
+        var hexid = new string('0', 64);
+        // The abbreviated prefixes here are the deliberate negative tests; each
+        // is assembled so it survives any whole-word re-mint pass.
+        var attAbbr = "a" + "t" + "t";
+        var prdAbbr = "p" + "r" + "d";
+        var errAbbr = "e" + "r" + "r";
+        var badAtt = new JsonMap {
+            { "type", "attitude" }, { "id", attAbbr + ":" + hexid },
+            { "holder", "token_individual:" + hexid },
+            { "attitude_type", "believes" },
+            { "content", "state_assertion:" + hexid } };
+        Check(!SchemaValidator.ValidateSchema(badAtt, "attitude").Ok,
+              "abbreviated attitude scheme must be rejected");
+        var badPrd = new JsonMap {
+            { "type", "predicted_occurrence" }, { "id", prdAbbr + ":" + hexid },
+            { "instantiates", "occurrent:" + hexid },
+            { "interval", new JsonMap { { "start_tick", 0L } } },
+            { "predictor", "token_individual:" + hexid } };
+        Check(!SchemaValidator.ValidateSchema(badPrd, "predicted_occurrence").Ok,
+              "abbreviated predicted_occurrence scheme must be rejected");
+        var badErr = new JsonMap {
+            { "type", "prediction_error" }, { "id", errAbbr + ":" + hexid },
+            { "predicted", "predicted_occurrence:" + hexid },
+            { "discrepancy", 0.0 } };
+        Check(!SchemaValidator.ValidateSchema(badErr, "prediction_error").Ok,
+              "abbreviated prediction_error scheme must be rejected");
+        var wholeAtt = badAtt.Copy();
+        wholeAtt["id"] = "attitude:" + hexid;
+        var (attOk, attWhy) = SchemaValidator.ValidateSchema(wholeAtt, "attitude");
+        Check(attOk, string.Join("; ", attWhy));
+        var wholePrd = badPrd.Copy();
+        wholePrd["id"] = "predicted_occurrence:" + hexid;
+        var (prdOk, prdWhy) =
+            SchemaValidator.ValidateSchema(wholePrd, "predicted_occurrence");
+        Check(prdOk, string.Join("; ", prdWhy));
+        var wholeErr = badErr.Copy();
+        wholeErr["id"] = "prediction_error:" + hexid;
+        var (errOk, errWhy) =
+            SchemaValidator.ValidateSchema(wholeErr, "prediction_error");
+        Check(errOk, string.Join("; ", errWhy));
+    }
+
+    // -----------------------------------------------------------------------
     private static int Main()
     {
         var root = FindRepoRoot();
@@ -1584,7 +2166,10 @@ internal static class Program
             V71, V72, V73, V74, V75, V76, V77, V78, V79, V80,
             V81, V82, V83, V84, V85, V86, V87, V88, V89, V90,
             V91, V92, V93, V94, V95, V96, V97, V98, V99, V100,
-            V101, V102, V103, V104, V105, V106, V107,
+            V101, V102, V103, V104, V105, V106, V107, V108, V109, V110,
+            V111, V112, V113, V114, V115, V116, V117, V118, V119, V120,
+            V121, V122, V123, V124, V125, V126, V127, V128, V129, V130,
+            V131, V132, V133, V134, V135, V136, V137,
         };
         var failures = 0;
         for (var n = 1; n <= vectors.Length; n++)
@@ -1607,7 +2192,7 @@ internal static class Program
         if (failures > 0)
             return 1;
         Console.WriteLine("causalontology-csharp is CONFORMANT to the suite "
-                          + "(vectors frozen at specification 2.0.0).");
+                          + "(vectors frozen at specification 4.0.0).");
         return 0;
     }
 }

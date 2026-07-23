@@ -22,9 +22,14 @@ pub const KindSpec = struct {
     fields: []const []const u8,
 };
 
-/// The seventeen kinds and their identity-bearing fields (IDENTITY_FIELDS +
+/// The twenty-one kinds and their identity-bearing fields (IDENTITY_FIELDS +
 /// PREFIX). Whole-word re-mint (P7): the scheme IS the type value for every
-/// kind, so prefix == kind throughout.
+/// kind, so prefix == kind throughout. 3.0.0 adds the cross_stratal_seam and
+/// the conduit's realized_by; 4.0.0 adds the attitude, the
+/// predicted_occurrence, and the prediction_error - all additive and
+/// identity-preserving: a record that omits a new field keeps its earlier
+/// identifier byte-for-byte, and the new kinds open new identity schemes that
+/// disturb no existing record.
 pub const kind_specs = [_]KindSpec{
     // ---- type tier ----
     .{ .kind = "occurrent", .prefix = "occurrent", .fields = &.{ "label", "category", "stratum" } },
@@ -33,14 +38,18 @@ pub const kind_specs = [_]KindSpec{
     .{ .kind = "realizable", .prefix = "realizable", .fields = &.{ "kind", "bearer", "label" } },
     .{ .kind = "stratum", .prefix = "stratum", .fields = &.{ "label", "scheme", "ordinal", "unit", "governs" } },
     .{ .kind = "bridge", .prefix = "bridge", .fields = &.{ "coarse", "fine", "relation" } },
+    .{ .kind = "cross_stratal_seam", .prefix = "cross_stratal_seam", .fields = &.{ "source", "target", "mechanism_status", "chain" } },
     .{ .kind = "port", .prefix = "port", .fields = &.{ "bearer", "label", "direction", "accepts", "realizable" } },
-    .{ .kind = "conduit", .prefix = "conduit", .fields = &.{ "label", "from", "to", "carries", "transform" } },
+    .{ .kind = "conduit", .prefix = "conduit", .fields = &.{ "label", "from", "to", "carries", "transform", "realized_by" } },
     .{ .kind = "quality", .prefix = "quality", .fields = &.{ "label", "datatype", "unit", "stratum" } },
     // ---- token tier ----
     .{ .kind = "token_individual", .prefix = "token_individual", .fields = &.{ "instantiates", "designator", "part_of" } },
     .{ .kind = "token_occurrence", .prefix = "token_occurrence", .fields = &.{ "instantiates", "interval", "participants", "locus", "observer" } },
     .{ .kind = "state_assertion", .prefix = "state_assertion", .fields = &.{ "subject", "quality", "value", "interval" } },
     .{ .kind = "token_causal_claim", .prefix = "token_causal_claim", .fields = &.{ "causes", "effects", "covering_law", "actual_delay", "counterfactual" } },
+    .{ .kind = "attitude", .prefix = "attitude", .fields = &.{ "holder", "attitude_type", "content" } },
+    .{ .kind = "predicted_occurrence", .prefix = "predicted_occurrence", .fields = &.{ "instantiates", "interval", "predictor", "strength" } },
+    .{ .kind = "prediction_error", .prefix = "prediction_error", .fields = &.{ "predicted", "observed", "discrepancy" } },
     // ---- provenance tier ----
     .{ .kind = "assertion", .prefix = "assertion", .fields = &.{ "about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp", "evidenced_by" } },
     .{ .kind = "enrichment", .prefix = "enrichment", .fields = &.{ "about", "field", "entry", "source", "timestamp" } },

@@ -1,7 +1,7 @@
 // Schema validation against spec/schema/*.schema.json.
 //
 // A deliberately small interpreter for exactly the JSON Schema keywords the
-// eight Causalontology schemas use: type, const, enum, pattern, required,
+// twenty-one Causalontology schemas use: type, const, enum, pattern, required,
 // properties, additionalProperties, items, minItems, minLength, minimum,
 // maximum, oneOf, and local $ref (#/$defs/...). "format" is treated as an
 // annotation, as the 2020-12 draft does by default. Patterns are interpreted
@@ -20,6 +20,7 @@ object Schema {
         "realizable" to "realizable.schema.json",
         "stratum" to "stratum.schema.json",
         "bridge" to "bridge.schema.json",
+        "cross_stratal_seam" to "cross_stratal_seam.schema.json",
         "port" to "port.schema.json",
         "conduit" to "conduit.schema.json",
         "quality" to "quality.schema.json",
@@ -27,6 +28,9 @@ object Schema {
         "token_occurrence" to "token.schema.json",
         "state_assertion" to "state.schema.json",
         "token_causal_claim" to "token_causal_claim.schema.json",
+        "attitude" to "attitude.schema.json",
+        "predicted_occurrence" to "predicted_occurrence.schema.json",
+        "prediction_error" to "prediction_error.schema.json",
         "assertion" to "assertion.schema.json",
         "enrichment" to "enrichment.schema.json",
         "retraction" to "retraction.schema.json",

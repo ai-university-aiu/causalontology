@@ -1,14 +1,17 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
 
-# The Causalontology conformance runner for causalontology-ruby (spec 2.0.0).
+# The Causalontology conformance runner for causalontology-ruby (spec 4.0.0).
 #
 # Runs every vector in conformance/vectors/ against the Ruby binding. An
 # implementation is conformant if and only if it passes every vector; this
 # runner exits nonzero on any failure. It mirrors
 # bindings/python/tests/run_conformance.py exactly: same fixtures, same
-# expected results. Vectors are the whole-word 2.0.0 baseline (Principle P7):
-# V01-V38 re-frozen unaltered in meaning, V39-V107 new.
+# expected results. Vectors V01-V107 are the whole-word 2.0.0 baseline
+# (Principle P7): V01-V38 re-frozen unaltered in meaning, V39-V107 new.
+# V108-V119 are the 3.0.0 additions (the ticks unit, the cross_stratal_seam,
+# the conduit realized_by); V120-V137 are the 4.0.0 additions (the attitude,
+# the predicted_occurrence, the prediction_error).
 #
 # Symbolic names still used inside this harness's own behavioral constructions
 # ("occurrent:A", key "alice") are normalized deterministically - symbolic
@@ -38,9 +41,10 @@ end
 # ---------------------------------------------------------------------------
 SCHEMES = ["occurrent", "causal_relation_object", "continuant", "realizable",
            "assertion", "enrichment", "retraction", "succession",
-           "stratum", "bridge", "port", "conduit", "quality",
-           "token_individual", "token_occurrence", "state_assertion",
-           "token_causal_claim"].freeze
+           "stratum", "bridge", "cross_stratal_seam", "port", "conduit",
+           "quality", "token_individual", "token_occurrence", "state_assertion",
+           "token_causal_claim",
+           "attitude", "predicted_occurrence", "prediction_error"].freeze
 WHOLE_WORD = Set.new(SCHEMES) | Set.new(["ed25519"])
 SCHEME_PREFIX = /\A(#{(SCHEMES + ["ed25519"]).join("|")}):/
 HEX64 = /\A[0-9a-f]{64}\z/
@@ -1152,13 +1156,461 @@ def v107
 end
 
 # ---------------------------------------------------------------------------
+# V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam, realized_by)
+# ---------------------------------------------------------------------------
+def seam(source, target, mechanism_status, chain = nil)
+  o = { "type" => "cross_stratal_seam", "source" => source,
+        "target" => target, "mechanism_status" => mechanism_status }
+  o["chain"] = chain unless chain.nil? || chain.empty?
+  mk(o)
+end
+
+# Build a seam over the neuro fixture: [seam, occ_map, stratum_map].
+def seam_fixture(src_ord, tgt_ord, mechanism_status, chain_ords = nil)
+  s = neuro
+  src = occ("source_event", s[src_ord]["id"])
+  tgt = occ("target_event", s[tgt_ord]["id"])
+  omap = { src["id"] => src, tgt["id"] => tgt }
+  smap = { s[src_ord]["id"] => s[src_ord], s[tgt_ord]["id"] => s[tgt_ord] }
+  chain = nil
+  unless chain_ords.nil?
+    chain = []
+    chain_ords.each_with_index do |o, i|
+      c = occ("chain_#{i}", s[o]["id"])
+      omap[c["id"]] = c
+      smap[s[o]["id"]] = s[o]
+      chain << c["id"]
+    end
+  end
+  [seam(src["id"], tgt["id"], mechanism_status, chain), omap, smap]
+end
+
+# A conduit with an optional realized_by reference, completed with its id.
+def conduit_realized(realized_by = nil)
+  frm = "port:" + "1" * 64
+  to = "port:" + "2" * 64
+  x = "occurrent:" + "3" * 64
+  o = { "type" => "conduit", "label" => "conn", "from" => frm, "to" => to,
+        "carries" => [x] }
+  o["realized_by"] = realized_by if realized_by
+  mk(o)
+end
+
+# -- Change One: the ordinal (tick) temporal unit --
+def v108
+  p = cro([sym("occurrent:a")], [sym("occurrent:b")],
+          temporal: { "minimum_delay" => 0, "maximum_delay" => 5,
+                      "unit" => "ticks" },
+          modality: "sufficient")
+  ok, why = C.validate_schema(p)
+  assert ok, why
+  ok, why = C.validate_semantics(p)
+  assert ok, why
+end
+
+def v109
+  p = cro([sym("occurrent:a")], [sym("occurrent:b")],
+          temporal: { "minimum_delay" => 2, "maximum_delay" => 5,
+                      "unit" => "ticks" })
+  assert C.admissible(p, 3) == true                 # 3 ticks inside [2, 5]
+  assert C.admissible(p, 2) == true && C.admissible(p, 5) == true
+  assert C.admissible(p, 6) == false && C.admissible(p, 1) == false
+end
+
+def v110
+  tick_window = { "minimum_delay" => 0, "maximum_delay" => 5, "unit" => "ticks" }
+  wall_window = { "minimum_delay" => 0, "maximum_delay" => 5, "unit" => "seconds" }
+  assert C.delay_within_window({ "duration" => 3, "unit" => "ticks" },
+                               tick_window) == true
+  assert C.delay_within_window({ "duration" => 1, "unit" => "ticks" },
+                               wall_window) == false
+  assert C.delay_within_window({ "duration" => 1, "unit" => "seconds" },
+                               tick_window) == false
+  a = { "causes" => [sym("occurrent:a")], "effects" => [sym("occurrent:b")],
+        "temporal" => tick_window, "modality" => "sufficient" }
+  b = { "causes" => [sym("occurrent:a")], "effects" => [sym("occurrent:b")],
+        "temporal" => wall_window, "modality" => "preventive" }
+  assert C.conflicts(a, b) == false                 # disjoint dimensions
+  begin
+    C.to_seconds(1, "ticks")
+    raise VectorFailure, "to_seconds accepted ticks"
+  rescue ArgumentError
+    # expected: an ordinal unit has no wall-clock seconds mapping
+  end
+end
+
+def v111
+  base = { "type" => "causal_relation_object", "causes" => [sym("occurrent:a")],
+           "effects" => [sym("occurrent:b")], "modality" => "sufficient" }
+  tick = base.merge("temporal" => { "minimum_delay" => 0, "maximum_delay" => 1,
+                                    "unit" => "ticks" })
+  secs = base.merge("temporal" => { "minimum_delay" => 0, "maximum_delay" => 1,
+                                    "unit" => "seconds" })
+  assert C.identify(tick) != C.identify(secs)       # the unit is identity-bearing
+  # a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0 value)
+  assert C.identify(secs) == "causal_relation_object:" \
+         "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c"
+end
+
+# -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+def v112
+  sm, omap, smap = seam_fixture(14, 4, "unmodeled")
+  ok, why = C.validate_schema(sm)
+  assert ok, why
+  ok, why = C.validate_semantics(sm)
+  assert ok, why
+  ok, why = C.seam_wellformed(sm, omap, smap)
+  assert ok, why
+end
+
+def v113
+  a, = seam_fixture(14, 4, "unmodeled")
+  b, omap, smap = seam_fixture(14, 4, "absent")
+  ok, why = C.validate_schema(b)
+  assert ok, why
+  ok, why = C.seam_wellformed(b, omap, smap)
+  assert ok, why
+  assert a["id"] != b["id"]                          # mechanism_status is identity-bearing
+end
+
+def v114
+  drawn, omap, smap = seam_fixture(14, 4, "unmodeled", [9, 7, 6, 5])
+  ok, why = C.validate_schema(drawn)
+  assert ok, why
+  ok, why = C.seam_wellformed(drawn, omap, smap)
+  assert ok, why
+  bad, omap2, smap2 = seam_fixture(14, 4, "absent", [9, 7, 6, 5])
+  ok, why = C.validate_semantics(bad)
+  assert !ok && why.any? { |w| w.include?("contradictory_seam") }, why
+  ok2, _ = C.seam_wellformed(bad, omap2, smap2)
+  assert !ok2
+end
+
+def v115
+  sm, omap, smap = seam_fixture(14, 4, "unmodeled")
+  s = neuro
+  assert C.seam_home(sm, omap, smap) == s[14]["id"]  # coarsest (max ordinal) stratum
+end
+
+def v116
+  adj, o1, s1 = seam_fixture(6, 5, "unmodeled")       # adjacent (gap 1)
+  ok, _ = C.seam_wellformed(adj, o1, s1)
+  assert !ok
+  co, o2, s2 = seam_fixture(6, 6, "unmodeled")        # co-stratal (gap 0)
+  ok, _ = C.seam_wellformed(co, o2, s2)
+  assert !ok
+  sm, = seam_fixture(14, 4, "unmodeled")
+  assert sm["id"].start_with?("cross_stratal_seam:") # a new identity scheme
+end
+
+# -- Change Three: the realized_by reference --
+def v117
+  c = conduit_realized("causal_relation_object:" + "a" * 64)
+  ok, why = C.validate_schema(c)
+  assert ok, why
+  c2 = conduit_realized("native:region_stratum_predict")
+  ok, why = C.validate_schema(c2)
+  assert ok, why                                     # a native scheme reference is legal
+end
+
+def v118
+  bound = conduit_realized("native:region_stratum_predict")
+  unbound = conduit_realized
+  assert bound["id"] != unbound["id"]                # realized_by is identity-bearing
+  # an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0 value)
+  assert unbound["id"] == "conduit:" \
+         "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6"
+end
+
+def v119
+  unbound = conduit_realized
+  ok, why = C.validate_schema(unbound)
+  assert ok, why                                     # unbound is legal
+  bad = unbound.dup
+  bad["realized_by"] = "not-a-scheme-qualified-reference"
+  ok, _ = C.validate_schema(bad, "conduit")
+  assert !ok
+end
+
+# ---------------------------------------------------------------------------
+# V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+# prediction_error)
+# ---------------------------------------------------------------------------
+def attitude(holder, attitude_type, content)
+  mk({ "type" => "attitude", "holder" => holder,
+       "attitude_type" => attitude_type, "content" => content })
+end
+
+def predicted(instantiates, interval, predictor, strength: nil)
+  o = { "type" => "predicted_occurrence", "instantiates" => instantiates,
+        "interval" => interval, "predictor" => predictor }
+  o["strength"] = strength unless strength.nil?
+  mk(o)
+end
+
+def prediction_error(predicted_id, discrepancy, observed: nil)
+  o = { "type" => "prediction_error", "predicted" => predicted_id,
+        "discrepancy" => discrepancy }
+  o["observed"] = observed if observed
+  mk(o)
+end
+
+# A modeled predicting agent (a token individual), by identity.
+def predictor_id
+  c = cnt("forecasting_mind")
+  individual(c["id"], designator: "predictor_p")["id"]
+end
+
+# A modeled believing agent (a token individual), by identity.
+def believer(designator = "holder_h")
+  c = cnt("believing_mind")
+  individual(c["id"], designator: designator)["id"]
+end
+
+# -- Group X: prediction and prediction error (Section A) --
+def v120
+  o = occ("rainfall_begins")
+  p = predicted(o["id"], { "start_tick" => 3, "end_tick" => 8 }, predictor_id)
+  ok, why = C.validate_schema(p)
+  assert ok, why
+  ok, why = C.validate_semantics(p)
+  assert ok, why
+  assert p["id"].start_with?("predicted_occurrence:")
+  report = C.identify({ "type" => "token_occurrence", "instantiates" => o["id"],
+                        "interval" => { "start_tick" => 3, "end_tick" => 8 } },
+                      "token_occurrence")
+  assert p["id"] != report                           # a forecast is not a report
+  assert report.start_with?("token_occurrence:")
+end
+
+def v121
+  o = occ("rainfall_begins")
+  wall = { "start" => "2026-07-23T00:00:00Z", "end" => "2026-07-24T00:00:00Z" }
+  who = predictor_id
+  with_strength = predicted(o["id"], wall, who, strength: 0.8)
+  without = predicted(o["id"], wall, who)
+  [with_strength, without].each do |p|
+    ok, why = C.validate_schema(p)
+    assert ok, why
+    ok, why = C.validate_semantics(p)
+    assert ok, why
+  end
+  assert with_strength["id"] != without["id"]        # strength is identity-bearing
+end
+
+def v122
+  o = occ("rainfall_begins")
+  bad = mk({ "type" => "predicted_occurrence", "instantiates" => o["id"],
+             "interval" => { "start_tick" => 3 } })
+  ok, why = C.validate_schema(bad, "predicted_occurrence")
+  assert !ok && why.any? { |w| w.include?("predictor") }, why
+end
+
+def v123
+  o = occ("rainfall_begins")
+  both = predicted(o["id"],
+                   { "start" => "2026-07-23T00:00:00Z", "start_tick" => 3 },
+                   predictor_id)
+  ok, why = C.validate_schema(both)
+  assert ok, why
+  ok, why = C.validate_semantics(both)
+  assert !ok && why.any? { |w| w.include?("dimension_conflict") }, why
+end
+
+def v124
+  o = occ("rainfall_begins")
+  p = predicted(o["id"], { "start" => "2026-07-23T00:00:00Z" }, predictor_id)
+  t = token(o["id"], { "start" => "2026-07-23T06:00:00Z" })
+  err = prediction_error(p["id"], 0.0, observed: t["id"])
+  ok, why = C.validate_schema(err)
+  assert ok, why
+  ok, why = C.validate_semantics(err)
+  assert ok, why
+  assert C.prediction_pairing_mismatch(err, p, t) == false
+end
+
+def v125
+  o = occ("rainfall_begins")
+  p = predicted(o["id"], { "start" => "2026-07-23T00:00:00Z" }, predictor_id)
+  err = prediction_error(p["id"], -1.0)
+  ok, why = C.validate_schema(err)
+  assert ok, why
+  ok, why = C.validate_semantics(err)
+  assert ok, why
+  assert !err.key?("observed")
+  assert C.prediction_pairing_mismatch(err, p, nil) == false
+end
+
+def v126
+  o = occ("rainfall_begins")
+  p = predicted(o["id"], { "start_tick" => 0 }, predictor_id)
+  bad = mk({ "type" => "prediction_error", "predicted" => p["id"] })
+  ok, why = C.validate_schema(bad, "prediction_error")
+  assert !ok && why.any? { |w| w.include?("discrepancy") }, why
+end
+
+def v127
+  o = occ("rainfall_begins")
+  other = occ("snowfall_begins")
+  p = predicted(o["id"], { "start" => "2026-07-23T00:00:00Z" }, predictor_id)
+  t = token(other["id"], { "start" => "2026-07-23T06:00:00Z" })
+  err = prediction_error(p["id"], 1.0, observed: t["id"])
+  ok, why = C.validate_schema(err)
+  assert ok, why
+  assert C.prediction_pairing_mismatch(err, p, t) == true
+end
+
+# -- Group Y: attitude and theory of mind (Section B) --
+def v128
+  st, = state_fixture("quantity", { "quantity" => 15.0, "unit" => "ug/dL" },
+                      "ug/dL")
+  att = attitude(believer, "believes", st["id"])
+  ok, why = C.validate_schema(att)
+  assert ok, why
+  ok, why = C.validate_semantics(att)
+  assert ok, why
+end
+
+def v129
+  a = occ("switch_pressed")
+  b = occ("light_on")
+  actual = cro([a["id"]], [b["id"]], modality: "sufficient")
+  believed = cro([a["id"]], [b["id"]], modality: "preventive")
+  assert C.conflicts(believed, actual) == true       # the CLAIMS contradict
+  att = attitude(believer, "believes", believed["id"])
+  ok, why = C.validate_schema(att)
+  assert ok, why
+  ok, why = C.validate_semantics(att)
+  assert ok, why                                     # validity unaffected
+  s = C::InMemoryStore.new
+  s.put(a)
+  s.put(b)
+  s.put(actual)
+  s.put(att)
+  assert s.gaps("conflict") == []                    # Rule 25: NO conflict raised
+end
+
+def v130
+  o = occ("rainfall_begins")
+  att = attitude(believer, "desires", o["id"])
+  ok, why = C.validate_schema(att)
+  assert ok, why
+  ok, why = C.validate_semantics(att)
+  assert ok, why
+end
+
+def v131
+  o = occ("press_button")
+  att = attitude(believer, "intends", o["id"])
+  ok, why = C.validate_schema(att)
+  assert ok, why
+  ok, why = C.validate_semantics(att)
+  assert ok, why
+end
+
+def v132
+  st, = state_fixture("boolean", { "boolean" => true })
+  inner = attitude(believer("holder_b"), "believes", st["id"])
+  outer = attitude(believer("holder_a"), "believes", inner["id"])
+  [inner, outer].each do |att|
+    ok, why = C.validate_schema(att)
+    assert ok, why
+    ok, why = C.validate_semantics(att)
+    assert ok, why
+  end
+  assert outer["id"] != inner["id"]
+  assert outer["content"] == inner["id"]             # nested content
+end
+
+def v133
+  o = occ("rainfall_begins")
+  bad = mk({ "type" => "attitude", "holder" => believer,
+             "attitude_type" => "suspects", "content" => o["id"] })
+  ok, why = C.validate_schema(bad, "attitude")
+  assert !ok && why.any? { |w| w.include?("attitude_type") }, why
+end
+
+def v134
+  o = occ("rainfall_begins")
+  bad = mk({ "type" => "attitude", "holder" => believer,
+             "attitude_type" => "believes", "content" => o["id"],
+             "strength" => 0.9 })
+  ok, why = C.validate_schema(bad, "attitude")
+  assert !ok && why.any? { |w| w.include?("strength") }, why
+end
+
+def v135
+  o = occ("rainfall_begins")
+  att = attitude(believer, "expects", o["id"])
+  a = signed("assertion", { "about" => att["id"],
+                            "evidence_type" => "observation",
+                            "confidence" => 0.9 }, "signer")
+  ok, why = C.validate_schema(a)
+  assert ok, why
+  assert C.verify_record(a) == true
+  # the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+  assert att["holder"].split(":", 2)[0] == "token_individual"
+  assert a["source"].split(":", 2)[0] == "ed25519"
+  assert att["holder"] != a["source"]
+end
+
+def v136
+  # the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+  secs = { "type" => "causal_relation_object", "causes" => [sym("occurrent:a")],
+           "effects" => [sym("occurrent:b")], "modality" => "sufficient",
+           "temporal" => { "minimum_delay" => 0, "maximum_delay" => 1,
+                           "unit" => "seconds" } }
+  assert C.identify(secs) == "causal_relation_object:" \
+         "d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c"
+  # the V118 unbound conduit, re-pinned under 4.0.0
+  unbound = conduit_realized
+  assert unbound["id"] == "conduit:" \
+         "dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6"
+end
+
+def v137
+  hexid = "0" * 64
+  # NOTE: the abbreviated prefixes below are intentional (the negative test);
+  # they must NOT be re-minted. Each is assembled to survive re-mint tools.
+  att_abbr = "a" + "t" + "t"
+  prd_abbr = "p" + "r" + "d"
+  err_abbr = "e" + "r" + "r"
+  bad_att = { "type" => "attitude", "id" => att_abbr + ":" + hexid,
+              "holder" => "token_individual:" + hexid,
+              "attitude_type" => "believes",
+              "content" => "state_assertion:" + hexid }
+  ok, _ = C.validate_schema(bad_att, "attitude")
+  assert !ok
+  bad_prd = { "type" => "predicted_occurrence", "id" => prd_abbr + ":" + hexid,
+              "instantiates" => "occurrent:" + hexid,
+              "interval" => { "start_tick" => 0 },
+              "predictor" => "token_individual:" + hexid }
+  ok, _ = C.validate_schema(bad_prd, "predicted_occurrence")
+  assert !ok
+  bad_err = { "type" => "prediction_error", "id" => err_abbr + ":" + hexid,
+              "predicted" => "predicted_occurrence:" + hexid,
+              "discrepancy" => 0.0 }
+  ok, _ = C.validate_schema(bad_err, "prediction_error")
+  assert !ok
+  whole_att = bad_att.merge("id" => "attitude:" + hexid)
+  ok, why = C.validate_schema(whole_att, "attitude")
+  assert ok, why
+  whole_prd = bad_prd.merge("id" => "predicted_occurrence:" + hexid)
+  ok, why = C.validate_schema(whole_prd, "predicted_occurrence")
+  assert ok, why
+  whole_err = bad_err.merge("id" => "prediction_error:" + hexid)
+  ok, why = C.validate_schema(whole_err, "prediction_error")
+  assert ok, why
+end
+
+# ---------------------------------------------------------------------------
 def main
-  puts "causalontology-ruby conformance run (specification 2.0.0)"
+  puts "causalontology-ruby conformance run (specification 4.0.0)"
   print "internal checks (RFC 8032, RFC 8785, fixed constants) ... "
   internal_checks
   puts "ok"
   failures = 0
-  total = 107
+  total = 137
   (1..total).each do |n|
     name = vec_name(n)
     begin
@@ -1173,7 +1625,7 @@ def main
   puts "#{total - failures}/#{total} vectors passed"
   exit 1 if failures > 0
   puts "causalontology-ruby is CONFORMANT to the suite " \
-       "(vectors frozen at specification 2.0.0)."
+       "(vectors frozen at specification 4.0.0)."
 end
 
 main if __FILE__ == $PROGRAM_NAME

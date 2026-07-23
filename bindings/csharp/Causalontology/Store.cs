@@ -21,7 +21,11 @@ public sealed class RejectedWrite : Exception
 public sealed class InMemoryStore
 {
     private static readonly HashSet<string> ContentKinds =
-        new() { "occurrent", "causal_relation_object", "continuant", "realizable" };
+        new() { "occurrent", "causal_relation_object", "continuant",
+                "realizable", "stratum", "bridge", "cross_stratal_seam",
+                "port", "conduit", "quality", "token_individual",
+                "token_occurrence", "state_assertion", "token_causal_claim",
+                "attitude", "predicted_occurrence", "prediction_error" };
     private static readonly HashSet<string> RecordKinds =
         new() { "assertion", "enrichment", "retraction", "succession" };
 
