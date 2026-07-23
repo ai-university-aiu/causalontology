@@ -22,8 +22,8 @@ namespace Causalontology;
  */
 final class Causalontology
 {
-    /** Specification 2.0.0 (whole-word re-mint; vectors re-frozen). */
-    public const VERSION = '2.0.0';
+    /** Specification 4.0.0 (attitude, predicted_occurrence, prediction_error). */
+    public const VERSION = '4.0.0';
 
     /** A namespace holder, never an instance. */
     private function __construct()

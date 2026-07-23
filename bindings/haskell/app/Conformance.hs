@@ -3,9 +3,13 @@
 -- Runs every vector in conformance\/vectors\/ against the Haskell binding.
 -- An implementation is conformant if and only if it passes every vector;
 -- this runner exits nonzero on any failure. It mirrors
--- bindings\/python\/tests\/run_conformance.py exactly, at the whole-word
--- 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in meaning,
--- V39-V107 new (17 kinds, Algorithms A-E, rules 13-21).
+-- bindings\/python\/tests\/run_conformance.py exactly. V01-V107 are the
+-- whole-word 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in
+-- meaning, V39-V107 new (17 kinds, Algorithms A-E, rules 13-21). V108-V119
+-- are the 3.0.0 additions (the ordinal tick unit, the cross_stratal_seam
+-- with Algorithm F, the conduit realized_by reference); V120-V137 are the
+-- 4.0.0 additions (the attitude, the predicted_occurrence, and the
+-- prediction_error, Rules 24 and 25).
 module Main (main) where
 
 import Causalontology.Canonical (identify)
@@ -26,8 +30,11 @@ import Causalontology.Semantics
   , hasCycle
   , hierarchyConsistent
   , isPartial
+  , predictionPairingMismatch
   , refinementValid
   , retrocausal
+  , seamHome
+  , seamWellformed
   , skipGaps
   , stateGaps
   , toSeconds
@@ -49,6 +56,7 @@ import System.Environment (lookupEnv)
 import System.Exit (exitFailure)
 import System.FilePath (dropExtension, takeDirectory, (</>))
 import System.IO (hFlush, stdout)
+import System.IO.Unsafe (unsafePerformIO)
 
 -- | A vector outcome: 'Right ()' passes, 'Left reason' fails.
 type Check = Either String ()
@@ -76,13 +84,14 @@ arrayOf v = maybe (Left "expected an array") Right (asArr v)
 -- symbolic-identifier normalization (frozen values pass through)
 -- ---------------------------------------------------------------------------
 
--- | The seventeen whole-word identifier schemes plus the ed25519 key scheme.
+-- | The twenty-one whole-word identifier schemes plus the ed25519 key scheme.
 schemes :: [String]
 schemes =
   [ "occurrent", "causal_relation_object", "continuant", "realizable"
-  , "stratum", "bridge", "port", "conduit", "quality"
+  , "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality"
   , "token_individual", "token_occurrence", "state_assertion"
   , "token_causal_claim"
+  , "attitude", "predicted_occurrence", "prediction_error"
   , "assertion", "enrichment", "retraction", "succession"
   , "ed25519"
   ]
@@ -364,6 +373,118 @@ stateFixture datatype value munit =
           (JObj [ ("start", JStr "2026-01-01T00:00:00Z")
                 , ("end", JStr "2026-01-01T01:00:00Z") ])
   in (st, q)
+
+-- ---------------------------------------------------------------------------
+-- 3.0.0 / 4.0.0 builders and fixtures
+-- ---------------------------------------------------------------------------
+
+-- | A cross-stratal seam; @mchain@ Nothing leaves the chain absent.
+seamB :: String -> String -> String -> Maybe [String] -> JValue
+seamB source target mechStatus mchain =
+  mk $ JObj $
+    [ ("type", JStr "cross_stratal_seam"), ("source", JStr source)
+    , ("target", JStr target), ("mechanism_status", JStr mechStatus) ]
+      ++ maybe [] (\ch -> [("chain", JArr (map JStr ch))]) mchain
+
+-- | A seam fixture: (seam, occurrent map, stratum map), mirroring Python's
+-- @_seam_fixture@.
+seamFixture :: Int -> Int -> String -> Maybe [Int]
+            -> (JValue, [(String, JValue)], [(String, JValue)])
+seamFixture srcOrd tgtOrd mechStatus mChainOrds =
+  let sSrc = neuro srcOrd; sTgt = neuro tgtOrd
+      src = occ "source_event" (Just (idOf sSrc))
+      tgt = occ "target_event" (Just (idOf sTgt))
+      omap0 = [(idOf src, src), (idOf tgt, tgt)]
+      smap0 = [(idOf sSrc, sSrc), (idOf sTgt, sTgt)]
+      (mchain, omapC, smapC) = case mChainOrds of
+        Nothing -> (Nothing, [], [])
+        Just ords ->
+          let built =
+                [ (occ ("chain_" ++ show i) (Just (idOf (neuro o))), neuro o)
+                | (i, o) <- zip [0 :: Int ..] ords ]
+          in ( Just [ idOf c | (c, _) <- built ]
+             , [ (idOf c, c) | (c, _) <- built ]
+             , [ (idOf s, s) | (_, s) <- built ] )
+      sm = seamB (idOf src) (idOf tgt) mechStatus mchain
+  in (sm, omap0 ++ omapC, smap0 ++ smapC)
+
+-- | A conduit with an optional identity-bearing realized_by reference,
+-- mirroring Python's @_conduit_realized@.
+conduitRealized :: Maybe String -> JValue
+conduitRealized mRealizedBy =
+  mk $ JObj $
+    [ ("type", JStr "conduit"), ("label", JStr "conn")
+    , ("from", JStr ("port:" ++ replicate 64 '1'))
+    , ("to", JStr ("port:" ++ replicate 64 '2'))
+    , ("carries", JArr [JStr ("occurrent:" ++ replicate 64 '3')]) ]
+      ++ maybe [] (\r -> [("realized_by", JStr r)]) mRealizedBy
+
+-- | An attitude (holder, attitude_type, content).
+attitudeB :: String -> String -> String -> JValue
+attitudeB holder attType content =
+  mk $ JObj [ ("type", JStr "attitude"), ("holder", JStr holder)
+            , ("attitude_type", JStr attType), ("content", JStr content) ]
+
+-- | A predicted_occurrence; @mStrength@ Nothing leaves strength absent.
+predictedB :: String -> JValue -> String -> Maybe Double -> JValue
+predictedB inst interval predictor mStrength =
+  mk $ JObj $
+    [ ("type", JStr "predicted_occurrence"), ("instantiates", JStr inst)
+    , ("interval", interval), ("predictor", JStr predictor) ]
+      ++ maybe [] (\s -> [("strength", JFloat s)]) mStrength
+
+-- | A prediction_error; @mObserved@ Nothing leaves observed absent.
+predictionErrorB :: String -> Double -> Maybe String -> JValue
+predictionErrorB predictedId discrepancy mObserved =
+  mk $ JObj $
+    [ ("type", JStr "prediction_error"), ("predicted", JStr predictedId)
+    , ("discrepancy", JFloat discrepancy) ]
+      ++ maybe [] (\o -> [("observed", JStr o)]) mObserved
+
+-- | A predicted interval carrying the ordinal (tick) dimension.
+tickWin :: Int -> Maybe Int -> JValue
+tickWin startTick mEnd =
+  JObj $
+    [("start_tick", JInt (fromIntegral startTick))]
+      ++ maybe [] (\e -> [("end_tick", JInt (fromIntegral e))]) mEnd
+
+-- | A Causal Relation Object temporal window in ordinal (tick) units.
+tickTemporal :: Int -> Int -> JValue
+tickTemporal lo hi =
+  JObj [ ("minimum_delay", JInt (fromIntegral lo)), ("maximum_delay", JInt (fromIntegral hi))
+       , ("unit", JStr "ticks") ]
+
+-- | The pinned 2.0.0 wall-clock Causal Relation Object identifier (V111\/V136),
+-- unchanged under 3.0.0 and 4.0.0.
+pinnedWallCro :: String
+pinnedWallCro =
+  "causal_relation_object:d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c"
+
+-- | The pinned 2.0.0 unbound-conduit identifier (V118\/V136), unchanged under
+-- 3.0.0 and 4.0.0.
+pinnedUnboundConduit :: String
+pinnedUnboundConduit =
+  "conduit:dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6"
+
+-- | The predictor: a modeled token individual (never a signing key).
+predictorId :: String
+predictorId =
+  idOf (individualB (idOf (cnt "forecasting_mind")) (Just "predictor_p") Nothing)
+
+-- | A believing holder: a modeled token individual with the given designator.
+believerId :: String -> String
+believerId designator =
+  idOf (individualB (idOf (cnt "believing_mind")) (Just designator) Nothing)
+
+-- | True iff @toSeconds@ REFUSES an ordinal (tick) unit (3.0.0). Mirrors the
+-- Python\/C++ @to_seconds@ raising on ticks: the pure exception is caught at
+-- the IO boundary so a passing refusal reads as a pure Bool.
+toSecondsRefusesTicks :: Bool
+toSecondsRefusesTicks = unsafePerformIO $ do
+  outcome <-
+    try (evaluate (toSeconds 1 "ticks")) :: IO (Either SomeException Double)
+  return (case outcome of Left _ -> True; Right _ -> False)
+{-# NOINLINE toSecondsRefusesTicks #-}
 
 -- ---------------------------------------------------------------------------
 -- internal sanity checks (not conformance vectors)
@@ -799,6 +920,268 @@ runVector schemas allVecs n = case n of
                      , ("causes", JArr [JStr ("occurrent:" ++ hexid)]), ("effects", JArr [JStr ("occurrent:" ++ hexid)]) ]
     (ok3, why3) <- validateSchema schemas whole (Just "causal_relation_object")
     check ok3 ("whole-word scheme must validate: " ++ unwords why3)
+
+  -- V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam,
+  -- realized_by)
+
+  -- Change One: the ordinal (tick) temporal unit
+  108 -> do
+    let p = cro [symId "occurrent:a"] [symId "occurrent:b"]
+              [ ("temporal", tickTemporal 0 5), ("modality", JStr "sufficient") ]
+    schemaOk schemas p
+    semanticsOk p
+  109 -> do
+    let p = cro [symId "occurrent:a"] [symId "occurrent:b"] [("temporal", tickTemporal 2 5)]
+    check (admissible p 3) "3 ticks must be inside [2, 5]"
+    check (admissible p 2 && admissible p 5) "the tick window is inclusive at both ends"
+    check (not (admissible p 6) && not (admissible p 1)) "ticks outside [2, 5] must not be admissible"
+  110 -> do
+    let tickWindow = tickTemporal 0 5
+        wallWindow = JObj [("minimum_delay", JInt 0), ("maximum_delay", JInt 5), ("unit", JStr "seconds")]
+    check (delayWithinWindow (JObj [("duration", JInt 3), ("unit", JStr "ticks")]) tickWindow)
+      "a tick delay must fall within a tick window"
+    check (not (delayWithinWindow (JObj [("duration", JInt 1), ("unit", JStr "ticks")]) wallWindow))
+      "a tick delay is never within a wall-clock window"
+    check (not (delayWithinWindow (JObj [("duration", JInt 1), ("unit", JStr "seconds")]) tickWindow))
+      "a wall-clock delay is never within a tick window"
+    let a = JObj [ ("causes", JArr [JStr (symId "occurrent:a")]), ("effects", JArr [JStr (symId "occurrent:b")])
+                 , ("temporal", tickWindow), ("modality", JStr "sufficient") ]
+        b = JObj [ ("causes", JArr [JStr (symId "occurrent:a")]), ("effects", JArr [JStr (symId "occurrent:b")])
+                 , ("temporal", wallWindow), ("modality", JStr "preventive") ]
+    check (not (conflicts a b)) "disjoint dimensions -> no overlap"
+    check toSecondsRefusesTicks "to_seconds accepted ticks"
+  111 -> do
+    let base = [ ("type", JStr "causal_relation_object")
+               , ("causes", JArr [JStr (symId "occurrent:a")]), ("effects", JArr [JStr (symId "occurrent:b")])
+               , ("modality", JStr "sufficient") ]
+        tick = JObj (base ++ [("temporal", tickTemporal 0 1)])
+        secs = JObj (base ++ [("temporal", JObj [("minimum_delay", JInt 0), ("maximum_delay", JInt 1), ("unit", JStr "seconds")])])
+    idTick <- identify tick Nothing
+    idSecs <- identify secs Nothing
+    check (idTick /= idSecs) "the unit is identity-bearing"
+    check (idSecs == pinnedWallCro) ("the pinned 2.0.0 identifier must hold: got " ++ idSecs)
+
+  -- Change Two: the managed cross-stratal seam (eighteenth kind)
+  112 -> do
+    let (sm, omap, smap) = seamFixture 14 4 "unmodeled" Nothing
+    schemaOk schemas sm
+    semanticsOk sm
+    let (ok, why) = seamWellformed sm omap smap
+    check ok why
+  113 -> do
+    let (a, _, _) = seamFixture 14 4 "unmodeled" Nothing
+        (b, omap, smap) = seamFixture 14 4 "absent" Nothing
+    schemaOk schemas b
+    let (ok, why) = seamWellformed b omap smap
+    check ok why
+    check (idOf a /= idOf b) "mechanism_status must be identity-bearing"
+  114 -> do
+    let (drawn, omap, smap) = seamFixture 14 4 "unmodeled" (Just [9, 7, 6, 5])
+    schemaOk schemas drawn
+    let (ok, why) = seamWellformed drawn omap smap
+    check ok why
+    let (bad, omap2, smap2) = seamFixture 14 4 "absent" (Just [9, 7, 6, 5])
+    (semOk, semWhy) <- validateSemantics bad Nothing
+    check (not semOk && any ("contradictory_seam" `isInfixOf`) semWhy)
+      ("semantics must reject the drawn 'absent' seam: " ++ unwords semWhy)
+    check (not (fst (seamWellformed bad omap2 smap2))) "the drawn 'absent' seam must be malformed"
+  115 -> do
+    let (sm, omap, smap) = seamFixture 14 4 "unmodeled" Nothing
+    check (seamHome sm omap smap == Just (idOf (neuro 14)))
+      "home must be the coarsest (max ordinal) stratum"
+  116 -> do
+    let (adj, o1, s1) = seamFixture 6 5 "unmodeled" Nothing
+    check (not (fst (seamWellformed adj o1 s1))) "adjacent endpoints must be malformed"
+    let (co, o2, s2) = seamFixture 6 6 "unmodeled" Nothing
+    check (not (fst (seamWellformed co o2 s2))) "co-stratal endpoints must be malformed"
+    let (sm, _, _) = seamFixture 14 4 "unmodeled" Nothing
+    check ("cross_stratal_seam:" `isPrefixOf` idOf sm) "a seam must mint in the new identity scheme"
+
+  -- Change Three: the realized_by reference
+  117 -> do
+    schemaOk schemas (conduitRealized (Just ("causal_relation_object:" ++ replicate 64 'a')))
+    schemaOk schemas (conduitRealized (Just "native:region_stratum_predict"))
+  118 -> do
+    let bound = conduitRealized (Just "native:region_stratum_predict")
+        unbound = conduitRealized Nothing
+    check (idOf bound /= idOf unbound) "realized_by must be identity-bearing"
+    check (idOf unbound == pinnedUnboundConduit)
+      ("the pinned 2.0.0 identifier must hold: got " ++ idOf unbound)
+  119 -> do
+    let unbound = conduitRealized Nothing
+    schemaOk schemas unbound
+    let bad = objSet "realized_by" (JStr "not-a-scheme-qualified-reference") unbound
+    (ok, _) <- validateSchema schemas bad (Just "conduit")
+    check (not ok) "a malformed realized_by reference must be rejected"
+
+  -- V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+  -- prediction_error)
+
+  -- Group X: prediction and prediction error (Section A)
+  120 -> do
+    let o = occ "rainfall_begins" Nothing
+        p = predictedB (idOf o) (tickWin 3 (Just 8)) predictorId Nothing
+    schemaOk schemas p
+    semanticsOk p
+    check ("predicted_occurrence:" `isPrefixOf` idOf p) "a forecast must mint in the new identity scheme"
+    report <-
+      identify (JObj [ ("type", JStr "token_occurrence"), ("instantiates", JStr (idOf o))
+                     , ("interval", tickWin 3 (Just 8)) ]) (Just "token_occurrence")
+    check (idOf p /= report) "a forecast is not a report"
+    check ("token_occurrence:" `isPrefixOf` report) "the report keeps its own scheme"
+  121 -> do
+    let o = occ "rainfall_begins" Nothing
+        wall = JObj [("start", JStr "2026-07-23T00:00:00Z"), ("end", JStr "2026-07-24T00:00:00Z")]
+        withStrength = predictedB (idOf o) wall predictorId (Just 0.8)
+        without = predictedB (idOf o) wall predictorId Nothing
+    mapM_ (\p -> do schemaOk schemas p; semanticsOk p) [withStrength, without]
+    check (idOf withStrength /= idOf without) "strength must be identity-bearing"
+  122 -> do
+    let o = occ "rainfall_begins" Nothing
+        bad = mk (JObj [ ("type", JStr "predicted_occurrence"), ("instantiates", JStr (idOf o))
+                       , ("interval", tickWin 3 Nothing) ])
+    schemaFailsK schemas bad "predicted_occurrence" "predictor"
+  123 -> do
+    let o = occ "rainfall_begins" Nothing
+        both = predictedB (idOf o) (JObj [("start", JStr "2026-07-23T00:00:00Z"), ("start_tick", JInt 3)]) predictorId Nothing
+    schemaOk schemas both
+    (semOk, semWhy) <- validateSemantics both Nothing
+    check (not semOk && any ("dimension_conflict" `isInfixOf`) semWhy)
+      ("semantics must reject both dimensions: " ++ unwords semWhy)
+  124 -> do
+    let o = occ "rainfall_begins" Nothing
+        p = predictedB (idOf o) (JObj [("start", JStr "2026-07-23T00:00:00Z")]) predictorId Nothing
+        t = tokenB (idOf o) (JObj [("start", JStr "2026-07-23T06:00:00Z")]) Nothing Nothing
+        err = predictionErrorB (idOf p) 0.0 (Just (idOf t))
+    schemaOk schemas err
+    semanticsOk err
+    check (not (predictionPairingMismatch err p (Just t))) "a matching observation is not a mismatch"
+  125 -> do
+    let o = occ "rainfall_begins" Nothing
+        p = predictedB (idOf o) (JObj [("start", JStr "2026-07-23T00:00:00Z")]) predictorId Nothing
+        err = predictionErrorB (idOf p) (-1.0) Nothing
+    schemaOk schemas err
+    semanticsOk err
+    check (not (objHas "observed" err)) "observed must be absent"
+    check (not (predictionPairingMismatch err p Nothing)) "an unfulfilled prediction is not a mismatch"
+  126 -> do
+    let o = occ "rainfall_begins" Nothing
+        p = predictedB (idOf o) (tickWin 0 Nothing) predictorId Nothing
+        bad = mk (JObj [("type", JStr "prediction_error"), ("predicted", JStr (idOf p))])
+    schemaFailsK schemas bad "prediction_error" "discrepancy"
+  127 -> do
+    let o = occ "rainfall_begins" Nothing
+        other = occ "snowfall_begins" Nothing
+        p = predictedB (idOf o) (JObj [("start", JStr "2026-07-23T00:00:00Z")]) predictorId Nothing
+        t = tokenB (idOf other) (JObj [("start", JStr "2026-07-23T06:00:00Z")]) Nothing Nothing
+        err = predictionErrorB (idOf p) 1.0 (Just (idOf t))
+    schemaOk schemas err
+    check (predictionPairingMismatch err p (Just t)) "must surface a pairing mismatch"
+
+  -- Group Y: attitude and theory of mind (Section B)
+  128 -> do
+    let (st, _) = stateFixture "quantity" (JObj [("quantity", JFloat 15.0), ("unit", JStr "ug/dL")]) (Just "ug/dL")
+        att = attitudeB (believerId "holder_h") "believes" (idOf st)
+    schemaOk schemas att
+    semanticsOk att
+  129 -> do
+    let a = occ "switch_pressed" Nothing
+        b = occ "light_on" Nothing
+        actual = cro [idOf a] [idOf b] [("modality", JStr "sufficient")]
+        believed = cro [idOf a] [idOf b] [("modality", JStr "preventive")]
+    check (conflicts believed actual) "the CLAIMS contradict"
+    let att = attitudeB (believerId "holder_h") "believes" (idOf believed)
+    schemaOk schemas att
+    semanticsOk att
+    let s0 = newStore True schemas
+        (ra, s1) = put a Nothing s0
+        (rb, s2) = put b Nothing s1
+        (rc, s3) = put actual Nothing s2
+        (rd, s4) = put att Nothing s3
+    _ <- ra; _ <- rb; _ <- rc; _ <- rd
+    check (null (gaps (Just "conflict") s4)) "Rule 25: NO conflict raised"
+  130 -> do
+    let o = occ "rainfall_begins" Nothing
+        att = attitudeB (believerId "holder_h") "desires" (idOf o)
+    schemaOk schemas att
+    semanticsOk att
+  131 -> do
+    let o = occ "press_button" Nothing
+        att = attitudeB (believerId "holder_h") "intends" (idOf o)
+    schemaOk schemas att
+    semanticsOk att
+  132 -> do
+    let (st, _) = stateFixture "boolean" (JObj [("boolean", JBool True)]) Nothing
+        inner = attitudeB (believerId "holder_b") "believes" (idOf st)
+        outer = attitudeB (believerId "holder_a") "believes" (idOf inner)
+    mapM_ (\att -> do schemaOk schemas att; semanticsOk att) [inner, outer]
+    check (idOf outer /= idOf inner) "ids must differ"
+    check ((objGet "content" outer >>= asStr) == Just (idOf inner))
+      "the outer content must be the inner attitude"
+  133 -> do
+    let o = occ "rainfall_begins" Nothing
+        bad = mk (JObj [ ("type", JStr "attitude"), ("holder", JStr (believerId "holder_h"))
+                       , ("attitude_type", JStr "suspects"), ("content", JStr (idOf o)) ])
+    schemaFailsK schemas bad "attitude" "attitude_type"
+  134 -> do
+    let o = occ "rainfall_begins" Nothing
+        bad = mk (JObj [ ("type", JStr "attitude"), ("holder", JStr (believerId "holder_h"))
+                       , ("attitude_type", JStr "believes"), ("content", JStr (idOf o))
+                       , ("strength", JFloat 0.9) ])
+    schemaFailsK schemas bad "attitude" "strength"
+  135 -> do
+    let o = occ "rainfall_begins" Nothing
+        att = attitudeB (believerId "holder_h") "expects" (idOf o)
+    a <-
+      signedRecord "assertion"
+        [ ("about", JStr (idOf att)), ("evidence_type", JStr "observation")
+        , ("confidence", JFloat 0.9) ] "signer" 0
+    schemaOk schemas a
+    check (verifyRecord a Nothing) "the assertion must verify"
+    holder <- memberStr att "holder"
+    check (takeWhile (/= ':') holder == "token_individual") "the holder must be a modeled agent"
+    source <- memberStr a "source"
+    check (takeWhile (/= ':') source == "ed25519") "the source must be a signing key"
+    check (holder /= source) "holder and source are different things"
+  136 -> do
+    let secs = JObj [ ("type", JStr "causal_relation_object")
+                    , ("causes", JArr [JStr (symId "occurrent:a")]), ("effects", JArr [JStr (symId "occurrent:b")])
+                    , ("modality", JStr "sufficient")
+                    , ("temporal", JObj [("minimum_delay", JInt 0), ("maximum_delay", JInt 1), ("unit", JStr "seconds")]) ]
+    idSecs <- identify secs Nothing
+    check (idSecs == pinnedWallCro) "the 3.0.0 wall-clock identifier must hold under 4.0.0"
+    let unbound = conduitRealized Nothing
+    check (idOf unbound == pinnedUnboundConduit)
+      "the 3.0.0 unbound-conduit identifier must hold under 4.0.0"
+  137 -> do
+    let hexid = replicate 64 '0'
+        attAbbr = "a" ++ "t" ++ "t"
+        prdAbbr = "p" ++ "r" ++ "d"
+        errAbbr = "e" ++ "r" ++ "r"
+        badAtt = JObj [ ("type", JStr "attitude"), ("id", JStr (attAbbr ++ ":" ++ hexid))
+                      , ("holder", JStr ("token_individual:" ++ hexid))
+                      , ("attitude_type", JStr "believes")
+                      , ("content", JStr ("state_assertion:" ++ hexid)) ]
+        badPrd = JObj [ ("type", JStr "predicted_occurrence"), ("id", JStr (prdAbbr ++ ":" ++ hexid))
+                      , ("instantiates", JStr ("occurrent:" ++ hexid))
+                      , ("interval", tickWin 0 Nothing)
+                      , ("predictor", JStr ("token_individual:" ++ hexid)) ]
+        badErr = JObj [ ("type", JStr "prediction_error"), ("id", JStr (errAbbr ++ ":" ++ hexid))
+                      , ("predicted", JStr ("predicted_occurrence:" ++ hexid))
+                      , ("discrepancy", JFloat 0.0) ]
+    (a1, _) <- validateSchema schemas badAtt (Just "attitude")
+    check (not a1) "abbreviated attitude scheme must be rejected"
+    (a2, _) <- validateSchema schemas badPrd (Just "predicted_occurrence")
+    check (not a2) "abbreviated predicted_occurrence scheme must be rejected"
+    (a3, _) <- validateSchema schemas badErr (Just "prediction_error")
+    check (not a3) "abbreviated prediction_error scheme must be rejected"
+    (w1, w1why) <- validateSchema schemas (objSet "id" (JStr ("attitude:" ++ hexid)) badAtt) (Just "attitude")
+    check w1 ("whole-word attitude must validate: " ++ unwords w1why)
+    (w2, w2why) <- validateSchema schemas (objSet "id" (JStr ("predicted_occurrence:" ++ hexid)) badPrd) (Just "predicted_occurrence")
+    check w2 ("whole-word predicted_occurrence must validate: " ++ unwords w2why)
+    (w3, w3why) <- validateSchema schemas (objSet "id" (JStr ("prediction_error:" ++ hexid)) badErr) (Just "prediction_error")
+    check w3 ("whole-word prediction_error must validate: " ++ unwords w3why)
+
   _ -> Left ("no such vector: " ++ show n)
   where
     v = fromMaybe JNull (lookup n allVecs)
@@ -1103,17 +1486,17 @@ runOne schemas loaded n = do
     Right (Right ()) -> do putStrLn ("PASS  " ++ name); return True
     Right (Left err) -> do putStrLn ("FAIL  " ++ name ++ " :: " ++ err); return False
 
--- | Internal checks, then all 107 vectors; nonzero exit on any failure.
+-- | Internal checks, then all 137 vectors; nonzero exit on any failure.
 main :: IO ()
 main = do
   root <- findRoot
   specEnv <- lookupEnv "CAUSALONTOLOGY_SPEC"
   let specDir = fromMaybe (root </> "spec") specEnv
       vecDir = root </> "conformance" </> "vectors"
-      total = 107
+      total = 137
   schemas <- loadSchemas (specDir </> "schema")
   loaded <- mapM (\n -> do (nm, jv) <- vectorFile vecDir n; return (n, (nm, jv))) [1 .. total]
-  putStrLn "causalontology-haskell conformance run (specification 2.0.0)"
+  putStrLn "causalontology-haskell conformance run (specification 4.0.0)"
   putStr "internal checks (RFC 8032, RFC 8785, fixed constants, ground-truth ids) ... "
   hFlush stdout
   case forceCheck internalChecks of
@@ -1125,4 +1508,4 @@ main = do
   putStrLn (show (total - failures) ++ "/" ++ show total ++ " vectors passed")
   if failures > 0
     then exitFailure
-    else putStrLn "causalontology-haskell is CONFORMANT to the suite (vectors frozen at specification 2.0.0)."
+    else putStrLn "causalontology-haskell is CONFORMANT to the suite (vectors frozen at specification 4.0.0)."

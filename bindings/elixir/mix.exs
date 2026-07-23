@@ -6,7 +6,7 @@ defmodule Causalontology.MixProject do
   def project do
     [
       app: :causalontology,
-      version: "2.0.0",
+      version: "4.0.0",
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
       deps: [],
@@ -26,7 +26,7 @@ defmodule Causalontology.MixProject do
     "The Elixir binding of the Causalontology standard - reified causation " <>
       "as a programming-language-neutral standard and shared commons. OTP stdlib only: " <>
       "RFC 8785 canonicalization, SHA-256 identity, Ed25519 signing, and a " <>
-      "conformant store. Passes all 107 frozen vectors."
+      "conformant store. Passes all 137 frozen vectors."
   end
 
   defp package do

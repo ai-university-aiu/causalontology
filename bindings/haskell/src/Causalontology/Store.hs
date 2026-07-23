@@ -63,9 +63,17 @@ data Store = Store
 newStore :: Bool -> Schemas -> Store
 newStore enforcing schemas = Store enforcing schemas [] [] []
 
--- | The four content-object kinds.
+-- | The content-object kinds (everything that is not a provenance record).
+-- 3.0.0 adds the cross_stratal_seam; 4.0.0 adds the attitude, the
+-- predicted_occurrence, and the prediction_error.
 contentKinds :: [String]
-contentKinds = ["occurrent", "causal_relation_object", "continuant", "realizable"]
+contentKinds =
+  [ "occurrent", "causal_relation_object", "continuant", "realizable"
+  , "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality"
+  , "token_individual", "token_occurrence", "state_assertion"
+  , "token_causal_claim"
+  , "attitude", "predicted_occurrence", "prediction_error"
+  ]
 
 -- | The four provenance-record kinds.
 recordKinds :: [String]

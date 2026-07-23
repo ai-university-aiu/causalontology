@@ -37,9 +37,14 @@ fun deepEq(a: Any?, b: Any?): Boolean = when {
 
 object Canonical {
 
-    // The identity-bearing fields of each of the seventeen kinds. "type" is
-    // always injected, so it is not listed here. Order does not matter
-    // (JCS sorts keys). Mirrors canonical.py's IDENTITY_FIELDS exactly.
+    // The identity-bearing fields of each of the twenty-one kinds (3.0.0 adds
+    // the cross_stratal_seam and the conduit's realized_by; 4.0.0 adds the
+    // attitude, the predicted_occurrence, and the prediction_error - all
+    // additive and identity-preserving: a record that omits a new field keeps
+    // its earlier identifier byte-for-byte, and the new kinds open new identity
+    // schemes that disturb no existing record). "type" is always injected, so it
+    // is not listed here. Order does not matter (JCS sorts keys). Mirrors
+    // canonical.py's IDENTITY_FIELDS exactly.
     val IDENTITY_FIELDS: Map<String, List<String>> = mapOf(
         // ---- type tier ----
         "occurrent" to listOf("label", "category", "stratum"),
@@ -49,8 +54,9 @@ object Canonical {
         "realizable" to listOf("kind", "bearer", "label"),
         "stratum" to listOf("label", "scheme", "ordinal", "unit", "governs"),
         "bridge" to listOf("coarse", "fine", "relation"),
+        "cross_stratal_seam" to listOf("source", "target", "mechanism_status", "chain"),
         "port" to listOf("bearer", "label", "direction", "accepts", "realizable"),
-        "conduit" to listOf("label", "from", "to", "carries", "transform"),
+        "conduit" to listOf("label", "from", "to", "carries", "transform", "realized_by"),
         "quality" to listOf("label", "datatype", "unit", "stratum"),
         // ---- token tier ----
         "token_individual" to listOf("instantiates", "designator", "part_of"),
@@ -59,6 +65,10 @@ object Canonical {
         "state_assertion" to listOf("subject", "quality", "value", "interval"),
         "token_causal_claim" to listOf("causes", "effects", "covering_law",
                         "actual_delay", "counterfactual"),
+        "attitude" to listOf("holder", "attitude_type", "content"),
+        "predicted_occurrence" to listOf("instantiates", "interval", "predictor",
+                        "strength"),
+        "prediction_error" to listOf("predicted", "observed", "discrepancy"),
         // ---- provenance tier ----
         "assertion" to listOf("about", "source", "evidence_type", "evidence", "strength",
                               "confidence", "timestamp", "evidenced_by"),

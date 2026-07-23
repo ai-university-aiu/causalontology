@@ -21,6 +21,25 @@ semantics.UNIT_SECONDS = {
   years = 31556952,
 }
 
+-- 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete step
+-- with NO wall-clock mapping; a tick window is ordered by integer comparison,
+-- and an ordinal window and a wall-clock window are DIFFERENT DIMENSIONS that do
+-- not compare (mixing them is never within-window and never overlapping).
+semantics.ORDINAL_UNITS = { ticks = true }
+
+-- 'ordinal' for a tick-like unit, else 'wallclock'.
+local function dimension(unit)
+  return semantics.ORDINAL_UNITS[unit] and "ordinal" or "wallclock"
+end
+
+-- A comparable magnitude within ONE dimension: raw tick count for an ordinal
+-- unit, seconds for a wall-clock unit. Never mix dimensions.
+local function magnitude(value, unit)
+  if semantics.ORDINAL_UNITS[unit] then return value end  -- dimensionless tick count
+  if unit == "instant" then return 0 end
+  return value * semantics.UNIT_SECONDS[unit]
+end
+
 -- Rule 12: enrichment field-to-kind validity and entry shapes. Two occurrent
 -- forms added in 2.0.0.
 semantics.ENRICHMENT_FIELDS = {
@@ -126,6 +145,44 @@ function semantics.validate_semantics(obj, kind)
     end
   end
 
+  -- 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain has,
+  -- by drawing it, a modelled intervening mechanism - so mechanism_status
+  -- 'absent' contradicts a present chain (the honest-ignorance distinction
+  -- must stay honest). The stratal well-formedness (non-adjacency, adjacency
+  -- of chain steps, scheme, the home rule) needs the strata map and lives in
+  -- seam_wellformed, exactly as bridge well-formedness does.
+  if kind == "cross_stratal_seam" then
+    local chain = obj["chain"]
+    if chain ~= nil and chain ~= json.null
+        and obj["mechanism_status"] == "absent" then
+      errors[#errors + 1] = "contradictory_seam: a drawn chain cannot carry " ..
+        "mechanism_status 'absent' (a drawn mechanism is not absent)"
+    end
+  end
+
+  -- 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+  -- exactly ONE temporal dimension - a wall-clock start (optional end) or an
+  -- ordinal start_tick (optional end_tick), never both and never neither.
+  -- Per Rule 23 the two dimensions never compare. The pairing check of a
+  -- prediction_error against its predicted_occurrence and its observed
+  -- token_occurrence needs those objects and lives in
+  -- prediction_pairing_mismatch, exactly as covering_law_mismatch does.
+  if kind == "predicted_occurrence" then
+    local iv = obj["interval"]
+    local has_iv = iv ~= nil and iv ~= json.null
+    local wall = has_iv and iv["start"] ~= nil
+    local tick = has_iv and iv["start_tick"] ~= nil
+    if wall and tick then
+      errors[#errors + 1] = "dimension_conflict: a predicted interval must " ..
+        "carry exactly one temporal dimension, not a wall-clock start AND an " ..
+        "ordinal start_tick"
+    end
+    if not wall and not tick then
+      errors[#errors + 1] = "missing_dimension: a predicted interval must " ..
+        "carry a wall-clock start or an ordinal start_tick"
+    end
+  end
+
   return #errors == 0, errors
 end
 
@@ -138,16 +195,18 @@ function semantics.is_partial(cro)
   return #missing > 0, missing
 end
 
--- Rule 4: temporal admissibility with the fixed constants.
-function semantics.admissible(cro, elapsed_seconds)
+-- Rule 4: temporal admissibility. For a wall-clock window `elapsed` is in
+-- seconds; for an ordinal ('ticks') window `elapsed` is a tick count. Ordering
+-- is by magnitude WITHIN the window's own dimension (3.0.0).
+function semantics.admissible(cro, elapsed)
   local t = cro["temporal"]
   if t == nil or t == json.null then
     return true  -- no window imposes no constraint
   end
-  local unit = semantics.UNIT_SECONDS[t["unit"]]
-  local lo = t["minimum_delay"] * unit
-  local hi = t["maximum_delay"] * unit
-  return lo <= elapsed_seconds and elapsed_seconds <= hi
+  local unit = t["unit"]
+  local lo = magnitude(t["minimum_delay"], unit)
+  local hi = magnitude(t["maximum_delay"], unit)
+  return lo <= elapsed and elapsed <= hi
 end
 
 local function window_overlap(a, b)
@@ -155,10 +214,11 @@ local function window_overlap(a, b)
   if ta == nil or ta == json.null or tb == nil or tb == json.null then
     return true  -- either absent counts as overlapping
   end
-  local ua = semantics.UNIT_SECONDS[ta["unit"]]
-  local ub = semantics.UNIT_SECONDS[tb["unit"]]
-  local lo_a, hi_a = ta["minimum_delay"] * ua, ta["maximum_delay"] * ua
-  local lo_b, hi_b = tb["minimum_delay"] * ub, tb["maximum_delay"] * ub
+  local ua, ub = ta["unit"], tb["unit"]
+  -- 3.0.0: an ordinal window and a wall-clock window never overlap
+  if dimension(ua) ~= dimension(ub) then return false end
+  local lo_a, hi_a = magnitude(ta["minimum_delay"], ua), magnitude(ta["maximum_delay"], ua)
+  local lo_b, hi_b = magnitude(tb["minimum_delay"], ub), magnitude(tb["maximum_delay"], ub)
   return lo_a <= hi_b and lo_b <= hi_a
 end
 
@@ -406,21 +466,34 @@ function semantics.skip_gaps(cro, classification)
 end
 
 -- ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+-- 3.0.0: an ordinal ('ticks') unit is dimensionless and has NO wall-clock
+-- mapping - converting one to seconds is a category error and is refused.
 function semantics.to_seconds(duration, unit)
+  if semantics.ORDINAL_UNITS[unit] then
+    error("'" .. tostring(unit) .. "' is an ordinal (dimensionless) unit and " ..
+          "has no wall-clock seconds mapping", 0)
+  end
   if unit == "instant" then return 0 end
   return duration * semantics.UNIT_SECONDS[unit]
 end
 
 -- ALGORITHM E (Rule 20): does an observed delay fall within a covering law's
--- temporal window? Inclusive at both ends.
+-- temporal window? Inclusive at both ends. 3.0.0: an ordinal delay compares to
+-- an ordinal window by integer tick count; an ordinal delay and a wall-clock
+-- window (or vice versa) are different dimensions and never fall within one
+-- another.
 function semantics.delay_within_window(actual_delay, temporal)
   if actual_delay == nil or actual_delay == json.null
       or temporal == nil or temporal == json.null then
     return true  -- nothing to check
   end
-  local observed = semantics.to_seconds(actual_delay["duration"], actual_delay["unit"])
-  local lo = semantics.to_seconds(temporal["minimum_delay"], temporal["unit"])
-  local hi = semantics.to_seconds(temporal["maximum_delay"], temporal["unit"])
+  local du = actual_delay["unit"]
+  local tu = temporal["unit"]
+  -- dimension mismatch: a tick delay is not within a wall-clock window
+  if dimension(du) ~= dimension(tu) then return false end
+  local observed = magnitude(actual_delay["duration"], du)
+  local lo = magnitude(temporal["minimum_delay"], tu)
+  local hi = magnitude(temporal["maximum_delay"], tu)
   return lo <= observed and observed <= hi
 end
 
@@ -451,6 +524,80 @@ function semantics.bridge_wellformed(bridge, occ_map, stratum_map)
     return false, "malformed_bridge: coarse ordinal not > fine ordinal (e)"
   end
   return true, "well-formed bridge"
+end
+
+-- 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness. (ok, reason).
+-- All of (a)-(g) must hold, else malformed_seam. A seam is a MANAGED jump across
+-- NON-ADJACENT strata; when it DRAWS a chain, the chain must be an
+-- adjacent-stratum path spanning the two endpoints' strata.
+function semantics.seam_wellformed(seam, occ_map, stratum_map)
+  local src = occ_map[seam["source"]]
+  local tgt = occ_map[seam["target"]]
+  local src_s = src and src["stratum"] or nil
+  local tgt_s = tgt and tgt["stratum"] or nil
+  if src_s == nil or tgt_s == nil then
+    return false, "malformed_seam: an endpoint has no stratum (a)"
+  end
+  if stratum_map[src_s]["scheme"] ~= stratum_map[tgt_s]["scheme"] then
+    return false, "malformed_seam: endpoints differ in scheme (b)"
+  end
+  local so, to_ = stratum_map[src_s]["ordinal"], stratum_map[tgt_s]["ordinal"]
+  if math.abs(so - to_) <= 1 then
+    return false, "malformed_seam: endpoints are adjacent or co-stratal; " ..
+      "a seam is for NON-adjacent strata (c)"
+  end
+  local chain = seam["chain"]
+  if chain ~= nil and chain ~= json.null then
+    if seam["mechanism_status"] == "absent" then
+      return false, "malformed_seam: a drawn chain contradicts " ..
+        "mechanism_status 'absent' (d)"
+    end
+    local lo, hi = math.min(so, to_), math.max(so, to_)
+    local ords = {}
+    for _, oid in ipairs(chain) do
+      local co = occ_map[oid]
+      local st = co and co["stratum"] or nil
+      if st == nil then
+        return false, "malformed_seam: a chain member has no stratum (e)"
+      end
+      if stratum_map[st]["scheme"] ~= stratum_map[src_s]["scheme"] then
+        return false, "malformed_seam: a chain member differs in scheme (e)"
+      end
+      ords[#ords + 1] = stratum_map[st]["ordinal"]
+    end
+    for _, o in ipairs(ords) do
+      if not (lo < o and o < hi) then
+        return false, "malformed_seam: a chain member is not at an " ..
+          "INTERVENING stratum, strictly between the endpoints (f)"
+      end
+    end
+    local all_pos, all_neg = true, true
+    for i = 1, #ords - 1 do
+      local d = ords[i + 1] - ords[i]
+      if d <= 0 then all_pos = false end
+      if d >= 0 then all_neg = false end
+    end
+    if #ords > 1 and not (all_pos or all_neg) then
+      return false, "malformed_seam: chain is not strictly monotone from " ..
+        "one endpoint toward the other (g)"
+    end
+  end
+  return true, "well-formed cross_stratal_seam"
+end
+
+-- THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST stratum it
+-- touches - the endpoint of the greater ordinal. Returns that stratum's
+-- identifier (nil if an endpoint is unstratified).
+function semantics.seam_home(seam, occ_map, stratum_map)
+  local src = occ_map[seam["source"]]
+  local tgt = occ_map[seam["target"]]
+  local src_s = src and src["stratum"] or nil
+  local tgt_s = tgt and tgt["stratum"] or nil
+  if src_s == nil or tgt_s == nil then return nil end
+  if stratum_map[src_s]["ordinal"] >= stratum_map[tgt_s]["ordinal"] then
+    return src_s
+  end
+  return tgt_s
 end
 
 -- Rule 17 / N4.2.1-2: Conduit well-formedness with the transform exception.
@@ -522,6 +669,19 @@ function semantics.covering_law_mismatch(tcc, token_map, law)
     if not law_effects[token_map[e]["instantiates"]] then return true end
   end
   return false
+end
+
+-- 4.0.0 Rule 24: prediction-to-observation pairing. True iff the prediction
+-- error's observed token does not instantiate the occurrent its
+-- predicted_occurrence instantiates. An ABSENT observed is never a mismatch -
+-- it means the predicted occurrence was not fulfilled by any recorded
+-- occurrence.
+function semantics.prediction_pairing_mismatch(error_obj, predicted, observed)
+  if error_obj["observed"] == nil or error_obj["observed"] == json.null
+      or observed == nil then
+    return false
+  end
+  return observed["instantiates"] ~= predicted["instantiates"]
 end
 
 -- Rule 21: temporal coherence of token causation. RFC 3339 UTC 'Z' strings

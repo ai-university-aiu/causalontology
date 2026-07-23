@@ -1,7 +1,7 @@
 name = "Causalontology"
 uuid = "3004a0c0-904b-4b23-bb2b-f3d8408c05b9"
 authors = ["AI University (AIU)"]
-version = "2.0.0"
+version = "4.0.0"
 
 [deps]
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"

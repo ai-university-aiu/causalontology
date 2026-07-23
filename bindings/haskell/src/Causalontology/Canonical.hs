@@ -27,8 +27,13 @@ import Causalontology.Json
 import Causalontology.Sha2 (hexEncode, sha256)
 import Data.Word (Word8)
 
--- | The identity-bearing fields for each kind, in serialization order
--- (the order is cosmetic: RFC 8785 sorts keys anyway).
+-- | The identity-bearing fields for each of the twenty-one kinds, in
+-- serialization order (the order is cosmetic: RFC 8785 sorts keys anyway).
+-- 3.0.0 adds the cross_stratal_seam and the conduit's realized_by; 4.0.0 adds
+-- the attitude, the predicted_occurrence, and the prediction_error - all
+-- additive and identity-preserving: a record that omits a new field keeps its
+-- earlier identifier byte-for-byte, and the new kinds open new identity
+-- schemes that disturb no existing record.
 identityFieldsTable :: [(String, [String])]
 identityFieldsTable =
   -- type tier
@@ -38,14 +43,18 @@ identityFieldsTable =
   , ("realizable", ["kind", "bearer", "label"])
   , ("stratum", ["label", "scheme", "ordinal", "unit", "governs"])
   , ("bridge", ["coarse", "fine", "relation"])
+  , ("cross_stratal_seam", ["source", "target", "mechanism_status", "chain"])
   , ("port", ["bearer", "label", "direction", "accepts", "realizable"])
-  , ("conduit", ["label", "from", "to", "carries", "transform"])
+  , ("conduit", ["label", "from", "to", "carries", "transform", "realized_by"])
   , ("quality", ["label", "datatype", "unit", "stratum"])
   -- token tier
   , ("token_individual", ["instantiates", "designator", "part_of"])
   , ("token_occurrence", ["instantiates", "interval", "participants", "locus", "observer"])
   , ("state_assertion", ["subject", "quality", "value", "interval"])
   , ("token_causal_claim", ["causes", "effects", "covering_law", "actual_delay", "counterfactual"])
+  , ("attitude", ["holder", "attitude_type", "content"])
+  , ("predicted_occurrence", ["instantiates", "interval", "predictor", "strength"])
+  , ("prediction_error", ["predicted", "observed", "discrepancy"])
   -- provenance tier
   , ("assertion", ["about", "source", "evidence_type", "evidence", "strength", "confidence", "timestamp", "evidenced_by"])
   , ("enrichment", ["about", "field", "entry", "source", "timestamp"])

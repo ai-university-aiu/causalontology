@@ -1,15 +1,16 @@
 -- | Schema validation against spec\/schema\/*.schema.json.
 --
 -- A deliberately small interpreter for exactly the JSON Schema keywords
--- the eight Causalontology schemas use: type, const, enum, pattern,
+-- the twenty-one Causalontology schemas use: type, const, enum, pattern,
 -- required, properties, additionalProperties, items, minItems, minLength,
 -- minimum, maximum, oneOf, and local $ref (#\/$defs\/...). @format@ is
 -- treated as an annotation, as the 2020-12 draft does by default.
 --
 -- The @pattern@ keyword is served by a tiny backtracking matcher
 -- ('patternMatch') covering exactly the regular-expression subset those
--- schemas use: literals, @^@ and @$@ anchors, character classes with
--- ranges, alternation groups, @*@, and @{n}@ repetition.
+-- schemas use: literals, the @.@ any-char, @^@ and @$@ anchors, character
+-- classes with ranges, alternation groups, @*@, @+@, and @{n}@ repetition
+-- (@.+@ appears in the 3.0.0 conduit realized_by reference pattern).
 module Causalontology.Schema
   ( Schemas
   , schemaFileTable
@@ -25,13 +26,14 @@ import Data.Char (isDigit)
 import Data.List (isPrefixOf, tails)
 import System.FilePath ((</>))
 
--- | The seventeen loaded schemas, keyed by their file name (so cross-file
+-- | The twenty-one loaded schemas, keyed by their file name (so cross-file
 -- @$ref@s, which name a sibling file, resolve directly).
 type Schemas = [(String, JValue)]
 
 -- | Kind to schema file name. Three token kinds keep their original
 -- 1.0.0-reserved file names (individual\/token\/state); the id scheme is
--- the whole word.
+-- the whole word. 3.0.0 adds the cross_stratal_seam; 4.0.0 adds the
+-- attitude, the predicted_occurrence, and the prediction_error.
 schemaFileTable :: [(String, String)]
 schemaFileTable =
   [ ("occurrent", "occurrent.schema.json")
@@ -40,6 +42,7 @@ schemaFileTable =
   , ("realizable", "realizable.schema.json")
   , ("stratum", "stratum.schema.json")
   , ("bridge", "bridge.schema.json")
+  , ("cross_stratal_seam", "cross_stratal_seam.schema.json")
   , ("port", "port.schema.json")
   , ("conduit", "conduit.schema.json")
   , ("quality", "quality.schema.json")
@@ -47,6 +50,9 @@ schemaFileTable =
   , ("token_occurrence", "token.schema.json")
   , ("state_assertion", "state.schema.json")
   , ("token_causal_claim", "token_causal_claim.schema.json")
+  , ("attitude", "attitude.schema.json")
+  , ("predicted_occurrence", "predicted_occurrence.schema.json")
+  , ("prediction_error", "prediction_error.schema.json")
   , ("assertion", "assertion.schema.json")
   , ("enrichment", "enrichment.schema.json")
   , ("retraction", "retraction.schema.json")
@@ -57,7 +63,7 @@ schemaFileTable =
 schemaBaseUrl :: String
 schemaBaseUrl = "https://causalontology.org/schema/"
 
--- | Load all seventeen schemas from a schema directory (spec\/schema),
+-- | Load all twenty-one schemas from a schema directory (spec\/schema),
 -- keyed by file name.
 loadSchemas :: FilePath -> IO Schemas
 loadSchemas schemaDir = mapM loadOne files
@@ -256,6 +262,7 @@ check files value schema0 root0 path =
 -- | One regex atom.
 data RxAtom
   = RxLit Char
+  | RxAny -- ^ the @.@ metacharacter: any single character
   | RxClass [(Char, Char)]
   | RxGroup [[RxItem]]
 
@@ -263,7 +270,7 @@ data RxAtom
 data RxItem = RxItem RxAtom RxQuant
 
 -- | The supported quantifiers.
-data RxQuant = QOne | QStar | QRep Int
+data RxQuant = QOne | QStar | QPlus | QRep Int
 
 -- | Python @re.search@ semantics over the schema pattern subset: does
 -- the pattern match anywhere in the string (honouring @^@ and @$@)?
@@ -318,8 +325,9 @@ parseAtom ('[' : r) = do
   (ranges, r') <- parseClass r []
   Just (RxClass ranges, r')
 parseAtom ('\\' : c : r) = Just (RxLit c, r)
+parseAtom ('.' : r) = Just (RxAny, r)
 parseAtom (c : r)
-  | c `notElem` "|)*{" = Just (RxLit c, r)
+  | c `notElem` "|)*+{" = Just (RxLit c, r)
 parseAtom _ = Nothing
 
 -- | Parse the alternatives of a group up to the closing parenthesis.
@@ -344,6 +352,7 @@ parseClass [] _ = Nothing
 -- | Parse an optional quantifier.
 parseQuant :: String -> Maybe (RxQuant, String)
 parseQuant ('*' : r) = Just (QStar, r)
+parseQuant ('+' : r) = Just (QPlus, r)
 parseQuant ('{' : r) =
   let (ds, r1) = span isDigit r
   in case r1 of
@@ -359,6 +368,7 @@ matchItems (RxItem atom quant : rest) str = case quant of
   QOne -> continue (matchAtom atom str)
   QRep n -> continue (matchTimes n str)
   QStar -> continue (matchStar str)
+  QPlus -> continue (concatMap matchStar (matchAtom atom str))
   where
     continue nexts = concatMap (matchItems rest) nexts
     matchTimes :: Int -> String -> [String]
@@ -372,6 +382,7 @@ matchItems (RxItem atom quant : rest) str = case quant of
 -- | All ways one atom can consume a prefix of the string.
 matchAtom :: RxAtom -> String -> [String]
 matchAtom (RxLit c) (x : xs) | x == c = [xs]
+matchAtom RxAny (_ : xs) = [xs]
 matchAtom (RxClass ranges) (x : xs)
   | any (\(lo, hi) -> lo <= x && x <= hi) ranges = [xs]
 matchAtom (RxGroup alts) str = concatMap (\alt -> matchItems alt str) alts

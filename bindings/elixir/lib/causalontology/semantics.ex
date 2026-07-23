@@ -20,6 +20,25 @@ defmodule Causalontology.Semantics do
     "years" => 31_556_952
   }
 
+  # 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete step
+  # with NO wall-clock mapping; a tick window is ordered by integer comparison,
+  # and an ordinal window and a wall-clock window are DIFFERENT DIMENSIONS that
+  # do not compare (mixing them is never within-window and never overlapping).
+  @ordinal_units MapSet.new(["ticks"])
+
+  # 'ordinal' for a tick-like unit, else 'wallclock'.
+  defp dimension(unit), do: if(MapSet.member?(@ordinal_units, unit), do: "ordinal", else: "wallclock")
+
+  # A comparable magnitude within ONE dimension: raw tick count for an ordinal
+  # unit, seconds for a wall-clock unit. Never mix dimensions.
+  defp magnitude(value, unit) do
+    cond do
+      MapSet.member?(@ordinal_units, unit) -> value
+      unit == "instant" -> 0
+      true -> value * Map.fetch!(@unit_seconds, unit)
+    end
+  end
+
   # Rule 12: enrichment field-to-kind validity and entry shapes. Two occurrent
   # forms added in 2.0.0.
   @enrichment_fields %{
@@ -55,10 +74,59 @@ defmodule Causalontology.Semantics do
       case kind do
         "causal_relation_object" -> cro_errors(obj)
         "enrichment" -> enrichment_errors(obj)
+        "cross_stratal_seam" -> seam_errors(obj)
+        "predicted_occurrence" -> predicted_errors(obj)
         _ -> []
       end
 
     {errors == [], errors}
+  end
+
+  # 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain has, by
+  # drawing it, a modelled intervening mechanism - so mechanism_status 'absent'
+  # contradicts a present chain (the honest-ignorance distinction must stay
+  # honest). The stratal well-formedness (non-adjacency, adjacency of chain
+  # steps, scheme, the home rule) needs the strata map and lives in
+  # seam_wellformed, exactly as bridge well-formedness does.
+  defp seam_errors(obj) do
+    if Map.get(obj, "chain") != nil and Map.get(obj, "mechanism_status") == "absent" do
+      [
+        "contradictory_seam: a drawn chain cannot carry mechanism_status " <>
+          "'absent' (a drawn mechanism is not absent)"
+      ]
+    else
+      []
+    end
+  end
+
+  # 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+  # exactly ONE temporal dimension - a wall-clock start (optional end) or an
+  # ordinal start_tick (optional end_tick), never both and never neither. Per
+  # Rule 23 the two dimensions never compare. The pairing check of a
+  # prediction_error against its predicted_occurrence and its observed
+  # token_occurrence needs those objects and lives in
+  # prediction_pairing_mismatch, exactly as covering_law_mismatch does.
+  defp predicted_errors(obj) do
+    iv = Map.get(obj, "interval") || %{}
+    wall = Map.has_key?(iv, "start")
+    tick = Map.has_key?(iv, "start_tick")
+
+    cond do
+      wall and tick ->
+        [
+          "dimension_conflict: a predicted interval must carry exactly one " <>
+            "temporal dimension, not a wall-clock start AND an ordinal start_tick"
+        ]
+
+      not wall and not tick ->
+        [
+          "missing_dimension: a predicted interval must carry a wall-clock " <>
+            "start or an ordinal start_tick"
+        ]
+
+      true ->
+        []
+    end
   end
 
   defp cro_errors(obj) do
@@ -154,18 +222,22 @@ defmodule Causalontology.Semantics do
     {missing != [], missing}
   end
 
-  @doc "Rule 4: temporal admissibility with the fixed constants."
-  def admissible(cro, elapsed_seconds) do
+  @doc """
+  Rule 4: temporal admissibility. For a wall-clock window `elapsed` is in
+  seconds; for an ordinal ('ticks') window `elapsed` is a tick count. Ordering
+  is by magnitude WITHIN the window's own dimension (3.0.0).
+  """
+  def admissible(cro, elapsed) do
     case Map.get(cro, "temporal") do
       nil ->
         # No window imposes no constraint.
         true
 
       t ->
-        unit = Map.fetch!(@unit_seconds, Map.fetch!(t, "unit"))
-        lo = Map.fetch!(t, "minimum_delay") * unit
-        hi = Map.fetch!(t, "maximum_delay") * unit
-        lo <= elapsed_seconds and elapsed_seconds <= hi
+        unit = Map.fetch!(t, "unit")
+        lo = magnitude(Map.fetch!(t, "minimum_delay"), unit)
+        hi = magnitude(Map.fetch!(t, "maximum_delay"), unit)
+        lo <= elapsed and elapsed <= hi
     end
   end
 
@@ -173,17 +245,23 @@ defmodule Causalontology.Semantics do
     ta = Map.get(a, "temporal")
     tb = Map.get(b, "temporal")
 
-    if ta == nil or tb == nil do
-      # Either absent counts as overlapping.
-      true
-    else
-      ua = Map.fetch!(@unit_seconds, Map.fetch!(ta, "unit"))
-      ub = Map.fetch!(@unit_seconds, Map.fetch!(tb, "unit"))
-      lo_a = Map.fetch!(ta, "minimum_delay") * ua
-      hi_a = Map.fetch!(ta, "maximum_delay") * ua
-      lo_b = Map.fetch!(tb, "minimum_delay") * ub
-      hi_b = Map.fetch!(tb, "maximum_delay") * ub
-      lo_a <= hi_b and lo_b <= hi_a
+    cond do
+      ta == nil or tb == nil ->
+        # Either absent counts as overlapping.
+        true
+
+      dimension(Map.fetch!(ta, "unit")) != dimension(Map.fetch!(tb, "unit")) ->
+        # 3.0.0: an ordinal window and a wall-clock window never overlap.
+        false
+
+      true ->
+        ua = Map.fetch!(ta, "unit")
+        ub = Map.fetch!(tb, "unit")
+        lo_a = magnitude(Map.fetch!(ta, "minimum_delay"), ua)
+        hi_a = magnitude(Map.fetch!(ta, "maximum_delay"), ua)
+        lo_b = magnitude(Map.fetch!(tb, "minimum_delay"), ub)
+        hi_b = magnitude(Map.fetch!(tb, "maximum_delay"), ub)
+        lo_a <= hi_b and lo_b <= hi_a
     end
   end
 
@@ -478,22 +556,47 @@ defmodule Causalontology.Semantics do
     end
   end
 
-  @doc "ALGORITHM E helper: normalize a delay to seconds by the fixed table."
+  @doc """
+  ALGORITHM E helper: normalize a delay to seconds by the fixed table. 3.0.0:
+  an ordinal ('ticks') unit is dimensionless and has NO wall-clock mapping -
+  converting one to seconds is a category error and is refused.
+  """
   def to_seconds(_duration, "instant"), do: 0
-  def to_seconds(duration, unit), do: duration * Map.fetch!(@unit_seconds, unit)
+
+  def to_seconds(duration, unit) do
+    if MapSet.member?(@ordinal_units, unit) do
+      raise ArgumentError,
+            "'#{unit}' is an ordinal (dimensionless) unit and has no " <>
+              "wall-clock seconds mapping"
+    end
+
+    duration * Map.fetch!(@unit_seconds, unit)
+  end
 
   @doc """
   ALGORITHM E (Rule 20): does an observed delay fall within a covering law's
-  temporal window? Inclusive at both ends (N12.5.2).
+  temporal window? Inclusive at both ends (N12.5.2). 3.0.0: an ordinal delay
+  compares to an ordinal window by integer tick count; an ordinal delay and a
+  wall-clock window (or vice versa) are different dimensions and never fall
+  within one another.
   """
   def delay_within_window(actual_delay, temporal) do
-    if is_nil(actual_delay) or actual_delay == %{} or is_nil(temporal) or temporal == %{} do
-      true
-    else
-      observed = to_seconds(Map.fetch!(actual_delay, "duration"), Map.fetch!(actual_delay, "unit"))
-      lo = to_seconds(Map.fetch!(temporal, "minimum_delay"), Map.fetch!(temporal, "unit"))
-      hi = to_seconds(Map.fetch!(temporal, "maximum_delay"), Map.fetch!(temporal, "unit"))
-      lo <= observed and observed <= hi
+    cond do
+      is_nil(actual_delay) or actual_delay == %{} or is_nil(temporal) or temporal == %{} ->
+        # Nothing to check.
+        true
+
+      dimension(Map.fetch!(actual_delay, "unit")) != dimension(Map.fetch!(temporal, "unit")) ->
+        # Dimension mismatch: a tick delay is not within a wall-clock window.
+        false
+
+      true ->
+        du = Map.fetch!(actual_delay, "unit")
+        tu = Map.fetch!(temporal, "unit")
+        observed = magnitude(Map.fetch!(actual_delay, "duration"), du)
+        lo = magnitude(Map.fetch!(temporal, "minimum_delay"), tu)
+        hi = magnitude(Map.fetch!(temporal, "maximum_delay"), tu)
+        lo <= observed and observed <= hi
     end
   end
 
@@ -530,6 +633,111 @@ defmodule Causalontology.Semantics do
           true ->
             {true, "well-formed bridge"}
         end
+    end
+  end
+
+  @doc """
+  3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness. All of
+  (a)-(g) must hold, else malformed_seam. Returns {ok, reason}. A seam is a
+  MANAGED jump across NON-ADJACENT strata; when it DRAWS a chain, the chain must
+  be an adjacent-stratum path spanning the two endpoints' strata.
+  """
+  def seam_wellformed(seam, occ_map, stratum_map) do
+    src_s = stratum_of(occ_map, Map.fetch!(seam, "source"))
+    tgt_s = stratum_of(occ_map, Map.fetch!(seam, "target"))
+
+    cond do
+      is_nil(src_s) or is_nil(tgt_s) ->
+        {false, "malformed_seam: an endpoint has no stratum (a)"}
+
+      Map.fetch!(Map.fetch!(stratum_map, src_s), "scheme") !=
+          Map.fetch!(Map.fetch!(stratum_map, tgt_s), "scheme") ->
+        {false, "malformed_seam: endpoints differ in scheme (b)"}
+
+      abs(ordinal(stratum_map, src_s) - ordinal(stratum_map, tgt_s)) <= 1 ->
+        {false,
+         "malformed_seam: endpoints are adjacent or co-stratal; " <>
+           "a seam is for NON-adjacent strata (c)"}
+
+      Map.get(seam, "chain") == nil ->
+        {true, "well-formed cross_stratal_seam"}
+
+      true ->
+        seam_chain_wellformed(seam, occ_map, stratum_map, src_s)
+    end
+  end
+
+  defp seam_chain_wellformed(seam, occ_map, stratum_map, src_s) do
+    so = ordinal(stratum_map, src_s)
+    to_ = ordinal(stratum_map, stratum_of(occ_map, Map.fetch!(seam, "target")))
+    lo = min(so, to_)
+    hi = max(so, to_)
+    scheme = Map.fetch!(Map.fetch!(stratum_map, src_s), "scheme")
+
+    if Map.get(seam, "mechanism_status") == "absent" do
+      {false, "malformed_seam: a drawn chain contradicts mechanism_status 'absent' (d)"}
+    else
+      collected =
+        Enum.reduce_while(Map.fetch!(seam, "chain"), {:ok, []}, fn oid, {:ok, acc} ->
+          st = stratum_of(occ_map, oid)
+
+          cond do
+            is_nil(st) ->
+              {:halt, {:error, "malformed_seam: a chain member has no stratum (e)"}}
+
+            Map.fetch!(Map.fetch!(stratum_map, st), "scheme") != scheme ->
+              {:halt, {:error, "malformed_seam: a chain member differs in scheme (e)"}}
+
+            true ->
+              {:cont, {:ok, acc ++ [ordinal(stratum_map, st)]}}
+          end
+        end)
+
+      case collected do
+        {:error, msg} ->
+          {false, msg}
+
+        {:ok, ords} ->
+          cond do
+            not Enum.all?(ords, fn o -> lo < o and o < hi end) ->
+              {false,
+               "malformed_seam: a chain member is not at an INTERVENING " <>
+                 "stratum, strictly between the endpoints (f)"}
+
+            not monotone?(ords) ->
+              {false,
+               "malformed_seam: chain is not strictly monotone from " <>
+                 "one endpoint toward the other (g)"}
+
+            true ->
+              {true, "well-formed cross_stratal_seam"}
+          end
+      end
+    end
+  end
+
+  # Strictly monotone (all steps positive, or all steps negative); one or zero
+  # elements are vacuously monotone.
+  defp monotone?(ords) when length(ords) <= 1, do: true
+
+  defp monotone?(ords) do
+    diffs = ords |> Enum.zip(tl(ords)) |> Enum.map(fn {a, b} -> b - a end)
+    Enum.all?(diffs, &(&1 > 0)) or Enum.all?(diffs, &(&1 < 0))
+  end
+
+  @doc """
+  THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST stratum it
+  touches - the endpoint of the greater ordinal. Returns that stratum's
+  identifier (nil if an endpoint is unstratified).
+  """
+  def seam_home(seam, occ_map, stratum_map) do
+    src_s = stratum_of(occ_map, Map.fetch!(seam, "source"))
+    tgt_s = stratum_of(occ_map, Map.fetch!(seam, "target"))
+
+    cond do
+      is_nil(src_s) or is_nil(tgt_s) -> nil
+      ordinal(stratum_map, src_s) >= ordinal(stratum_map, tgt_s) -> src_s
+      true -> tgt_s
     end
   end
 
@@ -629,6 +837,21 @@ defmodule Causalontology.Semantics do
         end)
 
       cause_bad or effect_bad
+    end
+  end
+
+  @doc """
+  4.0.0 Rule 24: prediction-to-observation pairing. True iff the prediction
+  error's observed token does not instantiate the occurrent its
+  predicted_occurrence instantiates (surfaces pairing_mismatch). An ABSENT
+  observed is never a mismatch - it means the predicted occurrence was not
+  fulfilled by any recorded occurrence.
+  """
+  def prediction_pairing_mismatch(error, predicted, observed) do
+    if Map.get(error, "observed") == nil or observed == nil do
+      false
+    else
+      Map.fetch!(observed, "instantiates") != Map.fetch!(predicted, "instantiates")
     end
   end
 

@@ -3,7 +3,7 @@
     // registry story: `zig fetch --save <git url>` records the dependency,
     // and `@import("causalontology")` imports the module build.zig exposes.
     .name = "causalontology",
-    .version = "2.0.0",
+    .version = "4.0.0",
     .minimum_zig_version = "0.13.0",
     .dependencies = .{},
     .paths = .{

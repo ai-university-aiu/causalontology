@@ -12,8 +12,13 @@ defmodule Causalontology.Canonical do
 
   alias Causalontology.Jcs
 
-  # The identity-bearing fields of each of the seventeen kinds. "type" is always
-  # injected, so it is not listed here. Order does not matter (JCS sorts keys).
+  # The identity-bearing fields of each of the twenty-one kinds (3.0.0 adds the
+  # cross_stratal_seam; the conduit gains realized_by; 4.0.0 adds the attitude,
+  # the predicted_occurrence, and the prediction_error - all additive and
+  # identity-preserving - a record that omits a new field keeps its earlier
+  # identifier byte-for-byte, and the new kinds open new identity schemes that
+  # disturb no existing record). "type" is always injected, so it is not listed
+  # here. Order does not matter (JCS sorts keys).
   @identity_fields %{
     # ---- type tier ----
     "occurrent" => ["label", "category", "stratum"],
@@ -31,14 +36,18 @@ defmodule Causalontology.Canonical do
     "realizable" => ["kind", "bearer", "label"],
     "stratum" => ["label", "scheme", "ordinal", "unit", "governs"],
     "bridge" => ["coarse", "fine", "relation"],
+    "cross_stratal_seam" => ["source", "target", "mechanism_status", "chain"],
     "port" => ["bearer", "label", "direction", "accepts", "realizable"],
-    "conduit" => ["label", "from", "to", "carries", "transform"],
+    "conduit" => ["label", "from", "to", "carries", "transform", "realized_by"],
     "quality" => ["label", "datatype", "unit", "stratum"],
     # ---- token tier ----
     "token_individual" => ["instantiates", "designator", "part_of"],
     "token_occurrence" => ["instantiates", "interval", "participants", "locus", "observer"],
     "state_assertion" => ["subject", "quality", "value", "interval"],
     "token_causal_claim" => ["causes", "effects", "covering_law", "actual_delay", "counterfactual"],
+    "attitude" => ["holder", "attitude_type", "content"],
+    "predicted_occurrence" => ["instantiates", "interval", "predictor", "strength"],
+    "prediction_error" => ["predicted", "observed", "discrepancy"],
     # ---- provenance tier ----
     "assertion" => [
       "about",

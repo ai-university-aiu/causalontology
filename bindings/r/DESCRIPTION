@@ -1,28 +1,30 @@
 Package: causalontology
 Type: Package
 Title: R Binding of the Causalontology Standard
-Version: 2.0.0
+Version: 4.0.0
 Authors@R: person("AI University (AIU)", email = "ai.university.aiu@gmail.com",
     role = c("aut", "cre"))
 Description: The R binding of the Causalontology standard (specification
-    2.0.0, the whole-word re-mint of Principle P7): content-addressed
-    identity over RFC 8785 (JSON Canonicalization Scheme) identity-bearing
-    bytes with SHA-256, Ed25519 record-level signing and verification
-    (RFC 8032), validation against the seventeen specification JSON Schemas
-    (including cross-file schema references), the semantic rules and the
-    five normative algorithms of Section 12 (bridge closure, bridged
-    hierarchy reachability, stratal classification, the skip decision
-    procedure, and unit normalization) plus the rule 13-21 helpers (bridge
-    and conduit well-formedness, state value and unit coherence,
-    covering-law and retrocausality checks, and graph acyclicity), and an
-    in-memory conformant store with idempotent immutable puts, signed
-    add-only provenance records with quarantine, materialized enrichment
-    views with contributors, retraction and succession lineage, the resolve
-    minimum, the deterministic cycle-breaking view rule, and the stigmergy
-    gap read. Conformance is defined by the vectors for the specification version this
-    binding declares (currently the 2.0.0 code level: the 107 vectors,
-    V01-V107; the standard itself is re-frozen at 4.0.0 with 137 vectors,
-    and this binding re-conforms per the 4.0.0 release plan); run
+    4.0.0, adding the attitude, predicted_occurrence, and prediction_error
+    kinds, semantics Rules 24 and 25, and the widened assertion
+    about-reference, over the folded-in 3.0.0 delta of the ordinal tick
+    unit, the cross_stratal_seam kind with Algorithm F, and the conduit
+    realized_by reference): content-addressed identity over RFC 8785 (JSON
+    Canonicalization Scheme) identity-bearing bytes with SHA-256, Ed25519
+    record-level signing and verification (RFC 8032), validation against the
+    twenty-one specification JSON Schemas (including cross-file schema
+    references), the semantic rules and the five normative algorithms of
+    Section 12 (bridge closure, bridged hierarchy reachability, stratal
+    classification, the skip decision procedure, and unit normalization)
+    plus the rule 13-25 helpers (bridge, conduit, and cross-stratal-seam
+    well-formedness and the seam home rule, state value and unit coherence,
+    covering-law and retrocausality checks, the prediction-to-observation
+    pairing, and graph acyclicity), and an in-memory conformant store with
+    idempotent immutable puts, signed add-only provenance records with
+    quarantine, materialized enrichment views with contributors, retraction
+    and succession lineage, the resolve minimum, the deterministic
+    cycle-breaking view rule, and the stigmergy gap read. Conformance is
+    defined by the 137 vectors (V01-V137) frozen at specification 4.0.0; run
     conformance.R against them. Crypto uses a pure-R SHA-256 plus the 'openssl' package
     for Ed25519 (RFC 8032).
 License: Apache License 2.0 | file LICENSE

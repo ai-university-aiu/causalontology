@@ -43,7 +43,11 @@ public final class Store {
     }
 
     private static final Set<String> CONTENT_KINDS =
-        Set.of("occurrent", "causal_relation_object", "continuant", "realizable");
+        Set.of("occurrent", "causal_relation_object", "continuant",
+               "realizable", "stratum", "bridge", "cross_stratal_seam",
+               "port", "conduit", "quality", "token_individual",
+               "token_occurrence", "state_assertion", "token_causal_claim",
+               "attitude", "predicted_occurrence", "prediction_error");
     private static final Set<String> RECORD_KINDS =
         Set.of("assertion", "enrichment", "retraction", "succession");
 

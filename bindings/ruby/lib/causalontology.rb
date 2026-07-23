@@ -22,7 +22,7 @@ require_relative "causalontology/semantics"
 require_relative "causalontology/store"
 
 module Causalontology
-  VERSION = "2.0.0" # specification 2.0.0 (whole-word re-mint; vectors re-frozen)
+  VERSION = "4.0.0" # specification 4.0.0 (attitude, predicted_occurrence, prediction_error)
 
   # Rule 4's fixed unit-conversion constants, re-exported at the top level.
   UNIT_SECONDS = Semantics::UNIT_SECONDS
@@ -107,6 +107,16 @@ module Causalontology
     Semantics.bridge_wellformed(bridge, occ_map, stratum_map)
   end
 
+  # -- 3.0.0 cross-stratal seam (spec/semantics.md, Rule 22 / Algorithm F) ----
+
+  def seam_wellformed(seam, occ_map, stratum_map)
+    Semantics.seam_wellformed(seam, occ_map, stratum_map)
+  end
+
+  def seam_home(seam, occ_map, stratum_map)
+    Semantics.seam_home(seam, occ_map, stratum_map)
+  end
+
   def conduit_wellformed(conduit, port_map, cro_map = nil)
     Semantics.conduit_wellformed(conduit, port_map, cro_map)
   end
@@ -117,6 +127,12 @@ module Causalontology
 
   def covering_law_mismatch(tcc, token_map, law)
     Semantics.covering_law_mismatch(tcc, token_map, law)
+  end
+
+  # -- 4.0.0 prediction-to-observation pairing (Rule 24) ---------------------
+
+  def prediction_pairing_mismatch(error, predicted, observed)
+    Semantics.prediction_pairing_mismatch(error, predicted, observed)
   end
 
   def retrocausal(tcc, token_map)

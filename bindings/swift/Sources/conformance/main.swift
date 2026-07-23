@@ -77,17 +77,19 @@ let validator = SchemaValidator(schemaDirectory: schemaDir)
 
 let symbolicSchemes = ["occurrent", "causal_relation_object", "continuant", "realizable",
                        "assertion", "enrichment", "retraction", "succession",
-                       "stratum", "bridge", "port", "conduit", "quality",
+                       "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality",
                        "token_individual", "token_occurrence", "state_assertion",
-                       "token_causal_claim", "ed25519"]
+                       "token_causal_claim",
+                       "attitude", "predicted_occurrence", "prediction_error", "ed25519"]
 
 /// The whole-word schemes (Principle P7) plus the external ed25519 scheme.
 let wholeWordSchemes: Set<String> = Set([
     "occurrent", "causal_relation_object", "continuant", "realizable",
     "assertion", "enrichment", "retraction", "succession",
-    "stratum", "bridge", "port", "conduit", "quality",
+    "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality",
     "token_individual", "token_occurrence", "state_assertion",
-    "token_causal_claim", "ed25519",
+    "token_causal_claim",
+    "attitude", "predicted_occurrence", "prediction_error", "ed25519",
 ])
 
 var keyCache: [String: (secret: Curve25519.Signing.PrivateKey, publicId: String)] = [:]
@@ -416,8 +418,8 @@ func internalChecks() throws {
     try check(try jcsString(.double(6.0)) == "6", "internal: JCS 6.0")
     try check(try jcsString(.double(0.7)) == "0.7", "internal: JCS 0.7")
     // Algorithm E fixed constants.
-    try check(toSeconds(1, "months") == 2629746, "internal: months constant")
-    try check(toSeconds(1, "years") == 31556952, "internal: years constant")
+    try check(try toSeconds(1, "months") == 2629746, "internal: months constant")
+    try check(try toSeconds(1, "years") == 31556952, "internal: years constant")
     // Ground-truth content-addressed ids (spec 2.0.0 freeze).
     let zeros = String(repeating: "0", count: 64)
     let gtStratum = try identify([
@@ -1526,6 +1528,540 @@ func v107() throws {
     try check(r.ok, "whole-word scheme must validate: \(r.reasons)")
 }
 
+// MARK: - V108 - V137: the 3.0.0 and 4.0.0 additions
+
+/// A cross_stratal_seam content object.
+func seamObj(_ source: String, _ target: String, _ mechanismStatus: String,
+             chain: [String]? = nil) throws -> [String: JsonValue] {
+    var o: [String: JsonValue] = [
+        "type": .string("cross_stratal_seam"),
+        "source": .string(source), "target": .string(target),
+        "mechanism_status": .string(mechanismStatus),
+    ]
+    if let chain = chain { o["chain"] = strings(chain) }
+    return try mk(o)
+}
+
+/// A seam plus its endpoint/chain occurrent map and stratum map.
+func seamFixture(_ srcOrd: Int, _ tgtOrd: Int, _ mechanismStatus: String,
+                 chainOrds: [Int]? = nil) throws
+    -> (seam: [String: JsonValue], omap: [String: [String: JsonValue]], smap: [String: [String: JsonValue]]) {
+    let s = try neuro()
+    let src = try occObj("source_event", oid(s[srcOrd]!))
+    let tgt = try occObj("target_event", oid(s[tgtOrd]!))
+    var omap: [String: [String: JsonValue]] = [oid(src): src, oid(tgt): tgt]
+    // Subscript assignment, not a dictionary literal: srcOrd and tgtOrd may
+    // coincide (the co-stratal fixture), and a duplicate key traps a literal.
+    var smap: [String: [String: JsonValue]] = [:]
+    smap[oid(s[srcOrd]!)] = s[srcOrd]!
+    smap[oid(s[tgtOrd]!)] = s[tgtOrd]!
+    var chain: [String]? = nil
+    if let chainOrds = chainOrds {
+        var members: [String] = []
+        for (i, ord) in chainOrds.enumerated() {
+            let c = try occObj("chain_\(i)", oid(s[ord]!))
+            omap[oid(c)] = c
+            smap[oid(s[ord]!)] = s[ord]!
+            members.append(oid(c))
+        }
+        chain = members
+    }
+    let seam = try seamObj(oid(src), oid(tgt), mechanismStatus, chain: chain)
+    return (seam, omap, smap)
+}
+
+/// A conduit with an optional realized_by reference (mirrors _conduit_realized).
+func conduitRealized(_ realizedBy: String? = nil) throws -> [String: JsonValue] {
+    let frm = "port:" + String(repeating: "1", count: 64)
+    let to = "port:" + String(repeating: "2", count: 64)
+    let x = "occurrent:" + String(repeating: "3", count: 64)
+    var o: [String: JsonValue] = [
+        "type": .string("conduit"), "label": .string("conn"),
+        "from": .string(frm), "to": .string(to), "carries": strings([x]),
+    ]
+    if let realizedBy = realizedBy { o["realized_by"] = .string(realizedBy) }
+    return try mk(o)
+}
+
+/// An attitude content object.
+func attitudeObj(_ holder: String, _ attitudeType: String, _ content: String) throws -> [String: JsonValue] {
+    return try mk([
+        "type": .string("attitude"), "holder": .string(holder),
+        "attitude_type": .string(attitudeType), "content": .string(content),
+    ])
+}
+
+/// A predicted_occurrence content object.
+func predictedObj(_ instantiates: String, _ interval: JsonValue, _ predictor: String,
+                  strength: Double? = nil) throws -> [String: JsonValue] {
+    var o: [String: JsonValue] = [
+        "type": .string("predicted_occurrence"),
+        "instantiates": .string(instantiates), "interval": interval,
+        "predictor": .string(predictor),
+    ]
+    if let strength = strength { o["strength"] = .double(strength) }
+    return try mk(o)
+}
+
+/// A prediction_error content object.
+func predictionErrorObj(_ predictedId: String, _ discrepancy: Double,
+                        observed: String? = nil) throws -> [String: JsonValue] {
+    var o: [String: JsonValue] = [
+        "type": .string("prediction_error"),
+        "predicted": .string(predictedId), "discrepancy": .double(discrepancy),
+    ]
+    if let observed = observed { o["observed"] = .string(observed) }
+    return try mk(o)
+}
+
+/// A modeled predicting agent (a token individual); mirrors _predictor.
+func predictorId() throws -> String {
+    let c = try cntObj("forecasting_mind")
+    return oid(try individualObj(oid(c), designator: "predictor_p"))
+}
+
+/// A modeled believing agent (a token individual); mirrors _believer.
+func believerId(_ designator: String = "holder_h") throws -> String {
+    let c = try cntObj("believing_mind")
+    return oid(try individualObj(oid(c), designator: designator))
+}
+
+/// An ordinal (tick) interval for a predicted_occurrence.
+func tickInterval(_ startTick: Int, _ endTick: Int? = nil) -> JsonValue {
+    var o: [String: JsonValue] = ["start_tick": .int(Int64(startTick))]
+    if let endTick = endTick { o["end_tick"] = .int(Int64(endTick)) }
+    return .object(o)
+}
+
+/// A wall-clock interval for a predicted_occurrence.
+func wallInterval(_ start: String, _ end: String? = nil) -> JsonValue {
+    var o: [String: JsonValue] = ["start": .string(start)]
+    if let end = end { o["end"] = .string(end) }
+    return .object(o)
+}
+
+// -- Change One: the ordinal (tick) temporal unit --
+
+func v108() throws {
+    let p = try croObj([try sym("occurrent:a")], [try sym("occurrent:b")], [
+        "temporal": .object(["minimum_delay": .int(0), "maximum_delay": .int(5), "unit": .string("ticks")]),
+        "modality": .string("sufficient"),
+    ])
+    let r = try validator.validate(p)
+    try check(r.ok, "schema: \(r.reasons)")
+    let sem = try validateSemantics(p)
+    try check(sem.ok, "semantics: \(sem.reasons)")
+}
+
+func v109() throws {
+    let p = try croObj([try sym("occurrent:a")], [try sym("occurrent:b")], [
+        "temporal": .object(["minimum_delay": .int(2), "maximum_delay": .int(5), "unit": .string("ticks")]),
+    ])
+    try check(admissible(p, elapsedSeconds: 3) == true, "3 ticks must be inside [2, 5]")
+    try check(admissible(p, elapsedSeconds: 2) == true && admissible(p, elapsedSeconds: 5) == true,
+              "the tick window is inclusive at both ends")
+    try check(admissible(p, elapsedSeconds: 6) == false && admissible(p, elapsedSeconds: 1) == false,
+              "ticks outside [2, 5] must not be admissible")
+}
+
+func v110() throws {
+    let tickWindow: [String: JsonValue] = ["minimum_delay": .int(0), "maximum_delay": .int(5), "unit": .string("ticks")]
+    let wallWindow: [String: JsonValue] = ["minimum_delay": .int(0), "maximum_delay": .int(5), "unit": .string("seconds")]
+    try check(delayWithinWindow(["duration": .int(3), "unit": .string("ticks")], tickWindow) == true,
+              "a tick delay must fall within a tick window")
+    try check(delayWithinWindow(["duration": .int(1), "unit": .string("ticks")], wallWindow) == false,
+              "a tick delay is never within a wall-clock window")
+    try check(delayWithinWindow(["duration": .int(1), "unit": .string("seconds")], tickWindow) == false,
+              "a wall-clock delay is never within a tick window")
+    let a: [String: JsonValue] = ["causes": strings([try sym("occurrent:a")]),
+        "effects": strings([try sym("occurrent:b")]),
+        "temporal": .object(tickWindow), "modality": .string("sufficient")]
+    let b: [String: JsonValue] = ["causes": strings([try sym("occurrent:a")]),
+        "effects": strings([try sym("occurrent:b")]),
+        "temporal": .object(wallWindow), "modality": .string("preventive")]
+    try check(conflicts(a, b) == false, "disjoint dimensions -> no overlap")
+    var refused = false
+    do {
+        _ = try toSeconds(1, "ticks")
+    } catch {
+        refused = true
+    }
+    try check(refused, "to_seconds accepted ticks")
+}
+
+func v111() throws {
+    let base: [String: JsonValue] = ["type": .string("causal_relation_object"),
+        "causes": strings([try sym("occurrent:a")]),
+        "effects": strings([try sym("occurrent:b")]),
+        "modality": .string("sufficient")]
+    var tick = base
+    tick["temporal"] = .object(["minimum_delay": .int(0), "maximum_delay": .int(1), "unit": .string("ticks")])
+    var secs = base
+    secs["temporal"] = .object(["minimum_delay": .int(0), "maximum_delay": .int(1), "unit": .string("seconds")])
+    let secsId = try identify(secs)
+    try check(try identify(tick) != secsId, "the unit is identity-bearing")
+    try check(secsId == "causal_relation_object:d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+              "the pinned 2.0.0 identifier must hold: \(secsId)")
+}
+
+// -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+
+func v112() throws {
+    let (seam, omap, smap) = try seamFixture(14, 4, "unmodeled")
+    let r = try validator.validate(seam)
+    try check(r.ok, "schema: \(r.reasons)")
+    let sem = try validateSemantics(seam)
+    try check(sem.ok, "semantics: \(sem.reasons)")
+    let wf = seamWellformed(seam, omap, smap)
+    try check(wf.ok, wf.reason)
+}
+
+func v113() throws {
+    let (a, _, _) = try seamFixture(14, 4, "unmodeled")
+    let (b, omap, smap) = try seamFixture(14, 4, "absent")
+    let r = try validator.validate(b)
+    try check(r.ok, "schema: \(r.reasons)")
+    let wf = seamWellformed(b, omap, smap)
+    try check(wf.ok, wf.reason)
+    try check(oid(a) != oid(b), "mechanism_status must be identity-bearing")
+}
+
+func v114() throws {
+    let (drawn, omap, smap) = try seamFixture(14, 4, "unmodeled", chainOrds: [9, 7, 6, 5])
+    let r = try validator.validate(drawn)
+    try check(r.ok, "schema: \(r.reasons)")
+    let wf = seamWellformed(drawn, omap, smap)
+    try check(wf.ok, wf.reason)
+    let (bad, omap2, smap2) = try seamFixture(14, 4, "absent", chainOrds: [9, 7, 6, 5])
+    let sem = try validateSemantics(bad)
+    try check(!sem.ok && sem.reasons.contains { $0.contains("contradictory_seam") },
+              "semantics must reject the drawn 'absent' seam: \(sem.reasons)")
+    try check(!seamWellformed(bad, omap2, smap2).ok, "the drawn 'absent' seam must be malformed")
+}
+
+func v115() throws {
+    let (seam, omap, smap) = try seamFixture(14, 4, "unmodeled")
+    let s = try neuro()
+    try check(seamHome(seam, omap, smap) == oid(s[14]!),
+              "home must be the coarsest (max ordinal) stratum")
+}
+
+func v116() throws {
+    let (adj, o1, s1) = try seamFixture(6, 5, "unmodeled")  // adjacent (gap 1)
+    try check(!seamWellformed(adj, o1, s1).ok, "adjacent endpoints must be malformed")
+    let (co, o2, s2) = try seamFixture(6, 6, "unmodeled")   // co-stratal (gap 0)
+    try check(!seamWellformed(co, o2, s2).ok, "co-stratal endpoints must be malformed")
+    let (seam, _, _) = try seamFixture(14, 4, "unmodeled")
+    try check(oid(seam).hasPrefix("cross_stratal_seam:"),
+              "a seam must mint in the new identity scheme")
+}
+
+// -- Change Three: the realized_by reference --
+
+func v117() throws {
+    let c = try conduitRealized("causal_relation_object:" + String(repeating: "a", count: 64))
+    let r = try validator.validate(c)
+    try check(r.ok, "schema: \(r.reasons)")
+    let c2 = try conduitRealized("native:region_stratum_predict")
+    let r2 = try validator.validate(c2)
+    try check(r2.ok, "a native scheme reference is legal: \(r2.reasons)")
+}
+
+func v118() throws {
+    let bound = try conduitRealized("native:region_stratum_predict")
+    let unbound = try conduitRealized()
+    try check(oid(bound) != oid(unbound), "realized_by must be identity-bearing")
+    try check(oid(unbound) == "conduit:dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+              "the pinned 2.0.0 identifier must hold: \(oid(unbound))")
+}
+
+func v119() throws {
+    let unbound = try conduitRealized()
+    let r = try validator.validate(unbound)
+    try check(r.ok, "unbound is legal: \(r.reasons)")
+    var bad = unbound
+    bad["realized_by"] = .string("not-a-scheme-qualified-reference")
+    try check(!(try validator.validate(bad, kind: "conduit")).ok,
+              "a malformed realized_by reference must be rejected")
+}
+
+// -- Group X: prediction and prediction error (Section A) --
+
+func v120() throws {
+    let o = try occObj("rainfall_begins")
+    let p = try predictedObj(oid(o), tickInterval(3, 8), try predictorId())
+    let r = try validator.validate(p)
+    try check(r.ok, "schema: \(r.reasons)")
+    let sem = try validateSemantics(p)
+    try check(sem.ok, "semantics: \(sem.reasons)")
+    try check(oid(p).hasPrefix("predicted_occurrence:"),
+              "a forecast must mint in the new identity scheme")
+    let report = try identify([
+        "type": .string("token_occurrence"), "instantiates": .string(oid(o)),
+        "interval": tickInterval(3, 8),
+    ], kind: "token_occurrence")
+    try check(oid(p) != report, "a forecast is not a report")
+    try check(report.hasPrefix("token_occurrence:"), "the report keeps its own scheme")
+}
+
+func v121() throws {
+    let o = try occObj("rainfall_begins")
+    let wall = wallInterval("2026-07-23T00:00:00Z", "2026-07-24T00:00:00Z")
+    let who = try predictorId()
+    let withStrength = try predictedObj(oid(o), wall, who, strength: 0.8)
+    let without = try predictedObj(oid(o), wall, who)
+    for p in [withStrength, without] {
+        let r = try validator.validate(p)
+        try check(r.ok, "schema: \(r.reasons)")
+        let sem = try validateSemantics(p)
+        try check(sem.ok, "semantics: \(sem.reasons)")
+    }
+    try check(oid(withStrength) != oid(without), "strength must be identity-bearing")
+}
+
+func v122() throws {
+    let o = try occObj("rainfall_begins")
+    let bad = try mk([
+        "type": .string("predicted_occurrence"),
+        "instantiates": .string(oid(o)),
+        "interval": tickInterval(3),
+    ])
+    let r = try validator.validate(bad, kind: "predicted_occurrence")
+    try check(!r.ok && r.reasons.contains { $0.contains("predictor") },
+              "expected predictor error: \(r.reasons)")
+}
+
+func v123() throws {
+    let o = try occObj("rainfall_begins")
+    let both = try predictedObj(oid(o),
+        .object(["start": .string("2026-07-23T00:00:00Z"), "start_tick": .int(3)]),
+        try predictorId())
+    let r = try validator.validate(both)
+    try check(r.ok, "schema: \(r.reasons)")
+    let sem = try validateSemantics(both)
+    try check(!sem.ok && sem.reasons.contains { $0.contains("dimension_conflict") },
+              "semantics must reject both dimensions: \(sem.reasons)")
+}
+
+func v124() throws {
+    let o = try occObj("rainfall_begins")
+    let p = try predictedObj(oid(o), wallInterval("2026-07-23T00:00:00Z"), try predictorId())
+    let t = try tokenObj(oid(o), wallInterval("2026-07-23T06:00:00Z"))
+    let err = try predictionErrorObj(oid(p), 0.0, observed: oid(t))
+    let r = try validator.validate(err)
+    try check(r.ok, "schema: \(r.reasons)")
+    let sem = try validateSemantics(err)
+    try check(sem.ok, "semantics: \(sem.reasons)")
+    try check(predictionPairingMismatch(err, p, t) == false,
+              "a matching observation is not a mismatch")
+}
+
+func v125() throws {
+    let o = try occObj("rainfall_begins")
+    let p = try predictedObj(oid(o), wallInterval("2026-07-23T00:00:00Z"), try predictorId())
+    let err = try predictionErrorObj(oid(p), -1.0)
+    let r = try validator.validate(err)
+    try check(r.ok, "schema: \(r.reasons)")
+    let sem = try validateSemantics(err)
+    try check(sem.ok, "semantics: \(sem.reasons)")
+    try check(err["observed"] == nil, "observed must be absent")
+    try check(predictionPairingMismatch(err, p, nil) == false,
+              "an unfulfilled prediction is not a mismatch")
+}
+
+func v126() throws {
+    let o = try occObj("rainfall_begins")
+    let p = try predictedObj(oid(o), tickInterval(0), try predictorId())
+    let bad = try mk([
+        "type": .string("prediction_error"),
+        "predicted": .string(oid(p)),
+    ])
+    let r = try validator.validate(bad, kind: "prediction_error")
+    try check(!r.ok && r.reasons.contains { $0.contains("discrepancy") },
+              "expected discrepancy error: \(r.reasons)")
+}
+
+func v127() throws {
+    let o = try occObj("rainfall_begins")
+    let other = try occObj("snowfall_begins")
+    let p = try predictedObj(oid(o), wallInterval("2026-07-23T00:00:00Z"), try predictorId())
+    let t = try tokenObj(oid(other), wallInterval("2026-07-23T06:00:00Z"))
+    let err = try predictionErrorObj(oid(p), 1.0, observed: oid(t))
+    let r = try validator.validate(err)
+    try check(r.ok, "schema: \(r.reasons)")
+    try check(predictionPairingMismatch(err, p, t) == true, "must surface a pairing mismatch")
+}
+
+// -- Group Y: attitude and theory of mind (Section B) --
+
+func v128() throws {
+    let (st, _) = try stateFixture("quantity",
+        .object(["quantity": .double(15.0), "unit": .string("ug/dL")]), unit: "ug/dL")
+    let att = try attitudeObj(try believerId(), "believes", oid(st))
+    let r = try validator.validate(att)
+    try check(r.ok, "schema: \(r.reasons)")
+    let sem = try validateSemantics(att)
+    try check(sem.ok, "semantics: \(sem.reasons)")
+}
+
+func v129() throws {
+    let a = try occObj("switch_pressed")
+    let b = try occObj("light_on")
+    let actual = try croObj([oid(a)], [oid(b)], ["modality": .string("sufficient")])
+    let believed = try croObj([oid(a)], [oid(b)], ["modality": .string("preventive")])
+    try check(conflicts(believed, actual) == true, "the CLAIMS contradict")
+    let att = try attitudeObj(try believerId(), "believes", oid(believed))
+    let r = try validator.validate(att)
+    try check(r.ok, "schema: \(r.reasons)")
+    let sem = try validateSemantics(att)
+    try check(sem.ok, "semantics: \(sem.reasons)")  // validity unaffected
+    let s = InMemoryStore(validator: validator)
+    try s.put(a)
+    try s.put(b)
+    try s.put(actual)
+    try s.put(att)
+    try check(s.gaps("conflict").isEmpty, "Rule 25: NO conflict raised")
+}
+
+func v130() throws {
+    let o = try occObj("rainfall_begins")
+    let att = try attitudeObj(try believerId(), "desires", oid(o))
+    let r = try validator.validate(att)
+    try check(r.ok, "schema: \(r.reasons)")
+    let sem = try validateSemantics(att)
+    try check(sem.ok, "semantics: \(sem.reasons)")
+}
+
+func v131() throws {
+    let o = try occObj("press_button")
+    let att = try attitudeObj(try believerId(), "intends", oid(o))
+    let r = try validator.validate(att)
+    try check(r.ok, "schema: \(r.reasons)")
+    let sem = try validateSemantics(att)
+    try check(sem.ok, "semantics: \(sem.reasons)")
+}
+
+func v132() throws {
+    let (st, _) = try stateFixture("boolean", .object(["boolean": .bool(true)]))
+    let inner = try attitudeObj(try believerId("holder_b"), "believes", oid(st))
+    let outer = try attitudeObj(try believerId("holder_a"), "believes", oid(inner))
+    for att in [inner, outer] {
+        let r = try validator.validate(att)
+        try check(r.ok, "schema: \(r.reasons)")
+        let sem = try validateSemantics(att)
+        try check(sem.ok, "semantics: \(sem.reasons)")
+    }
+    try check(oid(outer) != oid(inner), "ids must differ")
+    try check(outer["content"]?.stringValue == oid(inner),
+              "the outer content must be the inner attitude")
+}
+
+func v133() throws {
+    let o = try occObj("rainfall_begins")
+    let bad = try mk([
+        "type": .string("attitude"),
+        "holder": .string(try believerId()),
+        "attitude_type": .string("suspects"),
+        "content": .string(oid(o)),
+    ])
+    let r = try validator.validate(bad, kind: "attitude")
+    try check(!r.ok && r.reasons.contains { $0.contains("attitude_type") },
+              "expected attitude_type error: \(r.reasons)")
+}
+
+func v134() throws {
+    let o = try occObj("rainfall_begins")
+    let bad = try mk([
+        "type": .string("attitude"),
+        "holder": .string(try believerId()),
+        "attitude_type": .string("believes"),
+        "content": .string(oid(o)),
+        "strength": .double(0.9),
+    ])
+    let r = try validator.validate(bad, kind: "attitude")
+    try check(!r.ok && r.reasons.contains { $0.contains("strength") },
+              "expected strength error: \(r.reasons)")
+}
+
+func v135() throws {
+    let o = try occObj("rainfall_begins")
+    let att = try attitudeObj(try believerId(), "expects", oid(o))
+    let a = try signed("assertion", [
+        "about": .string(oid(att)),
+        "evidence_type": .string("observation"),
+        "confidence": .double(0.9),
+    ], "signer")
+    let r = try validator.validate(a)
+    try check(r.ok, "schema: \(r.reasons)")
+    try check(verifyRecord(a) == true, "the assertion must verify")
+    // the HOLDER (a modeled agent) and the SOURCE (a signing key) differ.
+    let holder = att["holder"]?.stringValue ?? ""
+    try check(holder.split(separator: ":", maxSplits: 1).first.map(String.init) == "token_individual",
+              "the holder must be a modeled agent")
+    let source = a["source"]?.stringValue ?? ""
+    try check(source.split(separator: ":", maxSplits: 1).first.map(String.init) == "ed25519",
+              "the source must be a signing key")
+    try check(holder != source, "holder and source are different things")
+}
+
+// -- Group Z: the 4.0.0 identity witnesses --
+
+func v136() throws {
+    // the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0.
+    let secs: [String: JsonValue] = ["type": .string("causal_relation_object"),
+        "causes": strings([try sym("occurrent:a")]),
+        "effects": strings([try sym("occurrent:b")]),
+        "modality": .string("sufficient"),
+        "temporal": .object(["minimum_delay": .int(0), "maximum_delay": .int(1), "unit": .string("seconds")])]
+    try check(try identify(secs) == "causal_relation_object:d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+              "the 3.0.0 wall-clock identifier must hold under 4.0.0")
+    // the V118 unbound conduit, re-pinned under 4.0.0.
+    let unbound = try conduitRealized()
+    try check(oid(unbound) == "conduit:dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+              "the 3.0.0 unbound-conduit identifier must hold under 4.0.0")
+}
+
+func v137() throws {
+    let hexid = String(repeating: "0", count: 64)
+    // The abbreviated prefixes below are intentional (the negative tests); each
+    // is assembled so it survives any whole-word re-mint pass.
+    let attAbbr = "a" + "t" + "t"
+    let prdAbbr = "p" + "r" + "d"
+    let errAbbr = "e" + "r" + "r"
+    let badAtt: [String: JsonValue] = ["type": .string("attitude"),
+        "id": .string(attAbbr + ":" + hexid),
+        "holder": .string("token_individual:" + hexid),
+        "attitude_type": .string("believes"),
+        "content": .string("state_assertion:" + hexid)]
+    try check(!(try validator.validate(badAtt, kind: "attitude")).ok,
+              "abbreviated attitude scheme must be rejected")
+    let badPrd: [String: JsonValue] = ["type": .string("predicted_occurrence"),
+        "id": .string(prdAbbr + ":" + hexid),
+        "instantiates": .string("occurrent:" + hexid),
+        "interval": tickInterval(0),
+        "predictor": .string("token_individual:" + hexid)]
+    try check(!(try validator.validate(badPrd, kind: "predicted_occurrence")).ok,
+              "abbreviated predicted_occurrence scheme must be rejected")
+    let badErr: [String: JsonValue] = ["type": .string("prediction_error"),
+        "id": .string(errAbbr + ":" + hexid),
+        "predicted": .string("predicted_occurrence:" + hexid),
+        "discrepancy": .double(0.0)]
+    try check(!(try validator.validate(badErr, kind: "prediction_error")).ok,
+              "abbreviated prediction_error scheme must be rejected")
+    var wholeAtt = badAtt
+    wholeAtt["id"] = .string("attitude:" + hexid)
+    let attR = try validator.validate(wholeAtt, kind: "attitude")
+    try check(attR.ok, "whole-word attitude must validate: \(attR.reasons)")
+    var wholePrd = badPrd
+    wholePrd["id"] = .string("predicted_occurrence:" + hexid)
+    let prdR = try validator.validate(wholePrd, kind: "predicted_occurrence")
+    try check(prdR.ok, "whole-word predicted_occurrence must validate: \(prdR.reasons)")
+    var wholeErr = badErr
+    wholeErr["id"] = .string("prediction_error:" + hexid)
+    let errR = try validator.validate(wholeErr, kind: "prediction_error")
+    try check(errR.ok, "whole-word prediction_error must validate: \(errR.reasons)")
+}
+
 // MARK: - runner
 
 let vectorFunctions: [(Int, () throws -> Void)] = [
@@ -1547,6 +2083,12 @@ let vectorFunctions: [(Int, () throws -> Void)] = [
     (93, v93), (94, v94), (95, v95), (96, v96), (97, v97), (98, v98),
     (99, v99), (100, v100), (101, v101), (102, v102), (103, v103),
     (104, v104), (105, v105), (106, v106), (107, v107),
+    (108, v108), (109, v109), (110, v110), (111, v111), (112, v112),
+    (113, v113), (114, v114), (115, v115), (116, v116), (117, v117),
+    (118, v118), (119, v119), (120, v120), (121, v121), (122, v122),
+    (123, v123), (124, v124), (125, v125), (126, v126), (127, v127),
+    (128, v128), (129, v129), (130, v130), (131, v131), (132, v132),
+    (133, v133), (134, v134), (135, v135), (136, v136), (137, v137),
 ]
 
 print("causalontology-swift conformance run")
@@ -1582,4 +2124,4 @@ if failures > 0 {
     exit(1)
 }
 print("causalontology-swift is CONFORMANT to the suite "
-      + "(vectors frozen at specification 2.0.0).")
+      + "(vectors frozen at specification 4.0.0).")

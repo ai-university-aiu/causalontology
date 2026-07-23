@@ -1,7 +1,7 @@
 -- schema.lua - validation against spec/schema/*.schema.json.
 --
 -- A deliberately small interpreter for exactly the JSON Schema keywords the
--- eight Causalontology schemas use: type, const, enum, pattern, required,
+-- twenty-one Causalontology schemas use: type, const, enum, pattern, required,
 -- properties, additionalProperties, items, minItems, minLength, minimum,
 -- maximum, oneOf, and local $ref (#/$defs/...).  "format" is treated as an
 -- annotation, as the 2020-12 draft does by default.
@@ -14,6 +14,9 @@
 --   ^(pre1|pre2|...):[0-9a-f]{64}$   an alternation of prefixes
 --   ^[a-z][a-z0-9_]*$                a lowercase snake_case label (this one
 --                                    is a valid Lua pattern verbatim)
+--   ^[a-z][a-z0-9_]*:.+$             a scheme-qualified reference of any body
+--                                    (3.0.0 conduit realized_by; also a valid
+--                                    Lua pattern verbatim)
 -- Any pattern outside these families raises, so a future schema change
 -- cannot silently pass unvalidated.
 
@@ -30,6 +33,7 @@ local SCHEMA_FILES = {
   realizable = "realizable.schema.json",
   stratum = "stratum.schema.json",
   bridge = "bridge.schema.json",
+  cross_stratal_seam = "cross_stratal_seam.schema.json",
   port = "port.schema.json",
   conduit = "conduit.schema.json",
   quality = "quality.schema.json",
@@ -37,6 +41,9 @@ local SCHEMA_FILES = {
   token_occurrence = "token.schema.json",
   state_assertion = "state.schema.json",
   token_causal_claim = "token_causal_claim.schema.json",
+  attitude = "attitude.schema.json",
+  predicted_occurrence = "predicted_occurrence.schema.json",
+  prediction_error = "prediction_error.schema.json",
   assertion = "assertion.schema.json",
   enrichment = "enrichment.schema.json",
   retraction = "retraction.schema.json",
@@ -133,6 +140,11 @@ local function pattern_matches(pattern, value)
   -- family 4: ^[a-z][a-z0-9_]*$ - a valid Lua pattern verbatim
   if pattern == "^[a-z][a-z0-9_]*$" then
     return value:match("^[a-z][a-z0-9_]*$") ~= nil
+  end
+  -- family 5: ^[a-z][a-z0-9_]*:.+$ - a scheme-qualified reference (3.0.0
+  -- conduit realized_by); a valid Lua pattern verbatim
+  if pattern == "^[a-z][a-z0-9_]*:.+$" then
+    return value:match("^[a-z][a-z0-9_]*:.+$") ~= nil
   end
   error("unsupported schema pattern: " .. pattern, 0)
 end

@@ -44,7 +44,7 @@ pub fn main() !void {
     schema.setSpecDir(A, try std.fs.path.join(A, &.{ root, "spec", "schema" }));
 
     const stdout = std.io.getStdOut().writer();
-    try stdout.print("causalontology-zig conformance run (specification 2.0.0)\n", .{});
+    try stdout.print("causalontology-zig conformance run (specification 4.0.0)\n", .{});
     try stdout.print("internal checks (RFC 8032 known-answer, RFC 8785 basics, fixed constants, ground-truth ids) ... ", .{});
     try internalChecks();
     try stdout.print("ok\n", .{});
@@ -60,7 +60,10 @@ pub fn main() !void {
         v71, v72, v73, v74, v75, v76, v77, v78, v79, v80,
         v81, v82, v83, v84, v85, v86, v87, v88, v89, v90,
         v91, v92, v93, v94, v95, v96, v97, v98, v99, v100,
-        v101, v102, v103, v104, v105, v106, v107,
+        v101, v102, v103, v104, v105, v106, v107, v108, v109, v110,
+        v111, v112, v113, v114, v115, v116, v117, v118, v119, v120,
+        v121, v122, v123, v124, v125, v126, v127, v128, v129, v130,
+        v131, v132, v133, v134, v135, v136, v137,
     };
     var failures: usize = 0;
     for (vector_fns, 1..) |f, n| {
@@ -75,7 +78,7 @@ pub fn main() !void {
     try stdout.print("------------------------------------------------------------\n", .{});
     try stdout.print("{d}/{d} vectors passed\n", .{ vector_fns.len - failures, vector_fns.len });
     if (failures != 0) std.process.exit(1);
-    try stdout.print("causalontology-zig is CONFORMANT to the suite (vectors frozen at specification 2.0.0).\n", .{});
+    try stdout.print("causalontology-zig is CONFORMANT to the suite (vectors frozen at specification 4.0.0).\n", .{});
 }
 
 /// The repository root: CAUSALONTOLOGY_ROOT when set, otherwise the nearest
@@ -135,11 +138,12 @@ fn key(name: []const u8) !signing.NamedKeypair {
 }
 
 const schemes = [_][]const u8{
-    "occurrent",       "causal_relation_object", "continuant",       "realizable",
-    "assertion",       "enrichment",             "retraction",       "succession",
-    "stratum",         "bridge",                 "port",             "conduit",
-    "quality",         "token_individual",       "token_occurrence", "state_assertion",
-    "token_causal_claim",
+    "occurrent",          "causal_relation_object", "continuant",           "realizable",
+    "assertion",          "enrichment",             "retraction",           "succession",
+    "stratum",            "bridge",                 "cross_stratal_seam",   "port",
+    "conduit",            "quality",                "token_individual",     "token_occurrence",
+    "state_assertion",    "token_causal_claim",     "attitude",             "predicted_occurrence",
+    "prediction_error",
 };
 
 /// The whole-word schemes (Principle P7), plus ed25519, for the V106 scan.
@@ -279,8 +283,8 @@ fn internalChecks() !void {
     try expect(eq(try jcs.jcs(A, flt(6.000)), "6"));
     try expect(eq(try jcs.jcs(A, flt(0.7)), "0.7"));
     // Rule 4 / Algorithm E fixed constants (mean Gregorian).
-    try expect(semantics.toSeconds(1, "months") == 2629746);
-    try expect(semantics.toSeconds(1, "years") == 31556952);
+    try expect((try semantics.toSeconds(1, "months")) == 2629746);
+    try expect((try semantics.toSeconds(1, "years")) == 31556952);
 
     // Ground-truth content-addressed ids: any drift here means the JCS or
     // identity-field logic is wrong (PORT_GUIDE 2.0.0).
@@ -1743,4 +1747,523 @@ fn v107() !void {
     try whole.put("causes", try strArr(&.{try std.fmt.allocPrint(A, "occurrent:{s}", .{hexid})}));
     try whole.put("effects", try strArr(&.{try std.fmt.allocPrint(A, "occurrent:{s}", .{hexid})}));
     try expect((try schema.validateSchema(A, .{ .object = whole }, "causal_relation_object")).ok);
+}
+
+// ---------------------------------------------------------------------------
+// V108 - V137: the folded 3.0.0 delta (tick unit, cross_stratal_seam,
+// realized_by) and the 4.0.0 delta (attitude, predicted_occurrence,
+// prediction_error). Mirrors bindings/python/tests/run_conformance.py and the
+// first-wave C++ port handler by handler.
+// ---------------------------------------------------------------------------
+
+fn schemaOk(o: ObjectMap) !void {
+    try expect((try schema.validateSchema(A, .{ .object = o }, null)).ok);
+}
+
+fn semOk(o: ObjectMap) !void {
+    try expect((try semantics.validateSemantics(A, .{ .object = o }, null)).ok);
+}
+
+/// A 64-character run of one character (for the pinned/negative fixtures).
+fn repeatChar(c: u8, n: usize) ![]u8 {
+    const buf = try A.alloc(u8, n);
+    @memset(buf, c);
+    return buf;
+}
+
+/// A CRO temporal window (minimum_delay, maximum_delay, unit). Whole numbers
+/// are emitted as integers, so a wall-clock window keeps its 2.0.0 identifier
+/// byte-for-byte under the widened (ticks-bearing) unit enum.
+fn temporalObj(min: i64, max: i64, unit: []const u8) !ObjectMap {
+    var t = newObj();
+    try t.put("minimum_delay", .{ .integer = min });
+    try t.put("maximum_delay", .{ .integer = max });
+    try t.put("unit", str(unit));
+    return t;
+}
+
+fn delayObj(duration: i64, unit: []const u8) !ObjectMap {
+    var d = newObj();
+    try d.put("duration", .{ .integer = duration });
+    try d.put("unit", str(unit));
+    return d;
+}
+
+/// A bare causes/effects/modality pair for the conflict test (no identity).
+fn modalityPair(modality: []const u8) !ObjectMap {
+    var o = newObj();
+    try o.put("type", str("causal_relation_object"));
+    try o.put("causes", try strArr(&.{try sym("occurrent:a")}));
+    try o.put("effects", try strArr(&.{try sym("occurrent:b")}));
+    try o.put("modality", str(modality));
+    return o;
+}
+
+// -- Change One: the ordinal (tick) temporal unit --
+fn v108() !void {
+    const P = try cro(&.{try sym("occurrent:a")}, &.{try sym("occurrent:b")}, .{
+        .temporal = try temporalObj(0, 5, "ticks"),
+        .modality = "sufficient",
+    });
+    try schemaOk(P);
+    try semOk(P);
+}
+
+fn v109() !void {
+    const P = try cro(&.{try sym("occurrent:a")}, &.{try sym("occurrent:b")}, .{
+        .temporal = try temporalObj(2, 5, "ticks"),
+    });
+    try expect(semantics.admissible(P, 3)); // 3 ticks inside [2, 5]
+    try expect(semantics.admissible(P, 2) and semantics.admissible(P, 5)); // inclusive
+    try expect(!semantics.admissible(P, 6) and !semantics.admissible(P, 1));
+}
+
+fn v110() !void {
+    const tick_window = try temporalObj(0, 5, "ticks");
+    const wall_window = try temporalObj(0, 5, "seconds");
+    try expect(semantics.delayWithinWindow(try delayObj(3, "ticks"), tick_window));
+    try expect(!semantics.delayWithinWindow(try delayObj(1, "ticks"), wall_window));
+    try expect(!semantics.delayWithinWindow(try delayObj(1, "seconds"), tick_window));
+    var a = try modalityPair("sufficient");
+    try a.put("temporal", .{ .object = tick_window });
+    var b = try modalityPair("preventive");
+    try b.put("temporal", .{ .object = wall_window });
+    try expect(!semantics.conflicts(a, b)); // disjoint dimensions -> no overlap
+    // to_seconds refuses ticks (a category error).
+    const refused = if (semantics.toSeconds(1, "ticks")) |_| false else |_| true;
+    try expect(refused);
+}
+
+fn v111() !void {
+    const tick = try cro(&.{try sym("occurrent:a")}, &.{try sym("occurrent:b")}, .{
+        .temporal = try temporalObj(0, 1, "ticks"),
+        .modality = "sufficient",
+    });
+    const secs = try cro(&.{try sym("occurrent:a")}, &.{try sym("occurrent:b")}, .{
+        .temporal = try temporalObj(0, 1, "seconds"),
+        .modality = "sufficient",
+    });
+    try expect(!eq(oid(tick), oid(secs))); // the unit is identity-bearing
+    // a wall-clock record's identity is UNCHANGED (pinned 2.0.0 value).
+    try expect(eq(oid(secs), "causal_relation_object:d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c"));
+}
+
+// -- Change Two: the managed cross-stratal seam --
+fn seam(source: []const u8, target: []const u8, mechanism_status: []const u8, chain: ?[]const []const u8) !ObjectMap {
+    var o = newObj();
+    try o.put("type", str("cross_stratal_seam"));
+    try o.put("source", str(source));
+    try o.put("target", str(target));
+    try o.put("mechanism_status", str(mechanism_status));
+    if (chain) |c| try o.put("chain", try strArr(c));
+    return mk(o);
+}
+
+const SeamFixture = struct { seam: ObjectMap, omap: ObjMap, smap: ObjMap };
+
+fn seamFixture(src_ord: usize, tgt_ord: usize, mechanism_status: []const u8, chain_ords: []const usize) !SeamFixture {
+    const nu = try neuro();
+    const src = try occ("source_event", oid(neuroStratum(nu, src_ord)));
+    const tgt = try occ("target_event", oid(neuroStratum(nu, tgt_ord)));
+    var omap = ObjMap.init(A);
+    try omap.put(oid(src), src);
+    try omap.put(oid(tgt), tgt);
+    var smap = ObjMap.init(A);
+    try smap.put(oid(neuroStratum(nu, src_ord)), neuroStratum(nu, src_ord));
+    try smap.put(oid(neuroStratum(nu, tgt_ord)), neuroStratum(nu, tgt_ord));
+    var chain = std.ArrayList([]const u8).init(A);
+    for (chain_ords, 0..) |ord, i| {
+        const c = try occ(try std.fmt.allocPrint(A, "chain_{d}", .{i}), oid(neuroStratum(nu, ord)));
+        try omap.put(oid(c), c);
+        try smap.put(oid(neuroStratum(nu, ord)), neuroStratum(nu, ord));
+        try chain.append(oid(c));
+    }
+    const chain_opt: ?[]const []const u8 = if (chain_ords.len > 0) chain.items else null;
+    const sm = try seam(oid(src), oid(tgt), mechanism_status, chain_opt);
+    return .{ .seam = sm, .omap = omap, .smap = smap };
+}
+
+fn v112() !void {
+    const f = try seamFixture(14, 4, "unmodeled", &[_]usize{});
+    try schemaOk(f.seam);
+    try semOk(f.seam);
+    try expect(semantics.seamWellformed(f.seam, &f.omap, &f.smap).ok);
+}
+
+fn v113() !void {
+    const a = try seamFixture(14, 4, "unmodeled", &[_]usize{});
+    const b = try seamFixture(14, 4, "absent", &[_]usize{});
+    try schemaOk(b.seam);
+    try expect(semantics.seamWellformed(b.seam, &b.omap, &b.smap).ok);
+    try expect(!eq(oid(a.seam), oid(b.seam))); // mechanism_status is identity-bearing
+}
+
+fn v114() !void {
+    const drawn = try seamFixture(14, 4, "unmodeled", &[_]usize{ 9, 7, 6, 5 });
+    try schemaOk(drawn.seam);
+    try expect(semantics.seamWellformed(drawn.seam, &drawn.omap, &drawn.smap).ok);
+    const bad = try seamFixture(14, 4, "absent", &[_]usize{ 9, 7, 6, 5 });
+    const sem = try semantics.validateSemantics(A, .{ .object = bad.seam }, null);
+    try expect(!sem.ok);
+    try expectContains(sem.errors, "contradictory_seam");
+    try expect(!semantics.seamWellformed(bad.seam, &bad.omap, &bad.smap).ok);
+}
+
+fn v115() !void {
+    const f = try seamFixture(14, 4, "unmodeled", &[_]usize{});
+    const nu = try neuro();
+    const home = semantics.seamHome(f.seam, &f.omap, &f.smap);
+    try expect(home != null and eq(home.?, oid(nu.s14))); // coarsest (max ordinal)
+}
+
+fn v116() !void {
+    const adj = try seamFixture(6, 5, "unmodeled", &[_]usize{}); // adjacent (gap 1)
+    try expect(!semantics.seamWellformed(adj.seam, &adj.omap, &adj.smap).ok);
+    const co = try seamFixture(6, 6, "unmodeled", &[_]usize{}); // co-stratal (gap 0)
+    try expect(!semantics.seamWellformed(co.seam, &co.omap, &co.smap).ok);
+    const f = try seamFixture(14, 4, "unmodeled", &[_]usize{});
+    try expect(std.mem.startsWith(u8, oid(f.seam), "cross_stratal_seam:"));
+}
+
+// -- Change Three: the realized_by reference --
+fn conduitRealized(realized_by: ?[]const u8) !ObjectMap {
+    var o = newObj();
+    try o.put("type", str("conduit"));
+    try o.put("label", str("conn"));
+    try o.put("from", str(try std.fmt.allocPrint(A, "port:{s}", .{try repeatChar('1', 64)})));
+    try o.put("to", str(try std.fmt.allocPrint(A, "port:{s}", .{try repeatChar('2', 64)})));
+    try o.put("carries", try strArr(&.{try std.fmt.allocPrint(A, "occurrent:{s}", .{try repeatChar('3', 64)})}));
+    if (realized_by) |r| try o.put("realized_by", str(r));
+    return mk(o);
+}
+
+fn v117() !void {
+    const c = try conduitRealized(try std.fmt.allocPrint(A, "causal_relation_object:{s}", .{try repeatChar('a', 64)}));
+    try schemaOk(c);
+    const c2 = try conduitRealized("native:region_stratum_predict");
+    try schemaOk(c2); // a native scheme reference is legal
+}
+
+fn v118() !void {
+    const bound = try conduitRealized("native:region_stratum_predict");
+    const unbound = try conduitRealized(null);
+    try expect(!eq(oid(bound), oid(unbound))); // realized_by is identity-bearing
+    // an unbound conduit's identity is UNCHANGED (pinned 2.0.0 value).
+    try expect(eq(oid(unbound), "conduit:dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6"));
+}
+
+fn v119() !void {
+    const unbound = try conduitRealized(null);
+    try schemaOk(unbound); // unbound is legal
+    var bad = try jcs.cloneObject(A, unbound);
+    try bad.put("realized_by", str("not-a-scheme-qualified-reference"));
+    try expect(!(try schema.validateSchema(A, .{ .object = bad }, "conduit")).ok);
+}
+
+// ---- V120 - V137: attitude, predicted_occurrence, prediction_error --------
+
+fn attitude(holder: []const u8, attitude_type: []const u8, content: []const u8) !ObjectMap {
+    var o = newObj();
+    try o.put("type", str("attitude"));
+    try o.put("holder", str(holder));
+    try o.put("attitude_type", str(attitude_type));
+    try o.put("content", str(content));
+    return mk(o);
+}
+
+fn predicted(instantiates: []const u8, iv: ObjectMap, predictor: []const u8, strength: ?f64) !ObjectMap {
+    var o = newObj();
+    try o.put("type", str("predicted_occurrence"));
+    try o.put("instantiates", str(instantiates));
+    try o.put("interval", .{ .object = iv });
+    try o.put("predictor", str(predictor));
+    if (strength) |s| try o.put("strength", flt(s));
+    return mk(o);
+}
+
+fn predictionError(predicted_id: []const u8, discrepancy: f64, observed: ?[]const u8) !ObjectMap {
+    var o = newObj();
+    try o.put("type", str("prediction_error"));
+    try o.put("predicted", str(predicted_id));
+    try o.put("discrepancy", flt(discrepancy));
+    if (observed) |ob| try o.put("observed", str(ob));
+    return mk(o);
+}
+
+fn tickWindow(start_tick: i64, end_tick: ?i64) !ObjectMap {
+    var iv = newObj();
+    try iv.put("start_tick", .{ .integer = start_tick });
+    if (end_tick) |e| try iv.put("end_tick", .{ .integer = e });
+    return iv;
+}
+
+fn wallInterval(start: []const u8, end: ?[]const u8) !ObjectMap {
+    var iv = newObj();
+    try iv.put("start", str(start));
+    if (end) |e| try iv.put("end", str(e));
+    return iv;
+}
+
+/// A modeled predicting agent's identifier (a token individual, never a key).
+fn predictorId() ![]const u8 {
+    const c = try cnt("forecasting_mind");
+    return oid(try individual(oid(c), "predictor_p", null));
+}
+
+/// A modeled believing agent's identifier (a token individual, never a key).
+fn believerId(designator: []const u8) ![]const u8 {
+    const c = try cnt("believing_mind");
+    return oid(try individual(oid(c), designator, null));
+}
+
+// -- Group X: prediction and prediction error (Section A) --
+fn v120() !void {
+    const o = try occ("rainfall_begins", null);
+    const p = try predicted(oid(o), try tickWindow(3, 8), try predictorId(), null);
+    try schemaOk(p);
+    try semOk(p);
+    try expect(std.mem.startsWith(u8, oid(p), "predicted_occurrence:"));
+    var report_obj = newObj();
+    try report_obj.put("type", str("token_occurrence"));
+    try report_obj.put("instantiates", str(oid(o)));
+    try report_obj.put("interval", .{ .object = try tickWindow(3, 8) });
+    const report = try canonical.identify(A, report_obj, "token_occurrence");
+    try expect(!eq(oid(p), report)); // a forecast is not a report
+    try expect(std.mem.startsWith(u8, report, "token_occurrence:"));
+}
+
+fn v121() !void {
+    const o = try occ("rainfall_begins", null);
+    const who = try predictorId();
+    const with_strength = try predicted(oid(o), try wallInterval("2026-07-23T00:00:00Z", "2026-07-24T00:00:00Z"), who, 0.8);
+    const without = try predicted(oid(o), try wallInterval("2026-07-23T00:00:00Z", "2026-07-24T00:00:00Z"), who, null);
+    for ([_]ObjectMap{ with_strength, without }) |p| {
+        try schemaOk(p);
+        try semOk(p);
+    }
+    try expect(!eq(oid(with_strength), oid(without))); // strength is identity-bearing
+}
+
+fn v122() !void {
+    const o = try occ("rainfall_begins", null);
+    var bad = newObj();
+    try bad.put("type", str("predicted_occurrence"));
+    try bad.put("instantiates", str(oid(o)));
+    try bad.put("interval", .{ .object = try tickWindow(3, null) });
+    bad = try mk(bad);
+    const r = try schema.validateSchema(A, .{ .object = bad }, "predicted_occurrence");
+    try expect(!r.ok);
+    try expectContains(r.errors, "predictor");
+}
+
+fn v123() !void {
+    const o = try occ("rainfall_begins", null);
+    var iv = newObj();
+    try iv.put("start", str("2026-07-23T00:00:00Z"));
+    try iv.put("start_tick", .{ .integer = 3 });
+    const both = try predicted(oid(o), iv, try predictorId(), null);
+    try schemaOk(both);
+    const r = try semantics.validateSemantics(A, .{ .object = both }, null);
+    try expect(!r.ok);
+    try expectContains(r.errors, "dimension_conflict");
+}
+
+fn v124() !void {
+    const o = try occ("rainfall_begins", null);
+    const p = try predicted(oid(o), try wallInterval("2026-07-23T00:00:00Z", null), try predictorId(), null);
+    const t = try token(oid(o), try wallInterval("2026-07-23T06:00:00Z", null), null, null);
+    const err = try predictionError(oid(p), 0.0, oid(t));
+    try schemaOk(err);
+    try semOk(err);
+    try expect(!semantics.predictionPairingMismatch(err, p, t));
+}
+
+fn v125() !void {
+    const o = try occ("rainfall_begins", null);
+    const p = try predicted(oid(o), try wallInterval("2026-07-23T00:00:00Z", null), try predictorId(), null);
+    const err = try predictionError(oid(p), -1.0, null);
+    try schemaOk(err);
+    try semOk(err);
+    try expect(!err.contains("observed"));
+    try expect(!semantics.predictionPairingMismatch(err, p, null));
+}
+
+fn v126() !void {
+    const o = try occ("rainfall_begins", null);
+    const p = try predicted(oid(o), try tickWindow(0, null), try predictorId(), null);
+    var bad = newObj();
+    try bad.put("type", str("prediction_error"));
+    try bad.put("predicted", str(oid(p)));
+    bad = try mk(bad);
+    const r = try schema.validateSchema(A, .{ .object = bad }, "prediction_error");
+    try expect(!r.ok);
+    try expectContains(r.errors, "discrepancy");
+}
+
+fn v127() !void {
+    const o = try occ("rainfall_begins", null);
+    const other = try occ("snowfall_begins", null);
+    const p = try predicted(oid(o), try wallInterval("2026-07-23T00:00:00Z", null), try predictorId(), null);
+    const t = try token(oid(other), try wallInterval("2026-07-23T06:00:00Z", null), null, null);
+    const err = try predictionError(oid(p), 1.0, oid(t));
+    try schemaOk(err);
+    try expect(semantics.predictionPairingMismatch(err, p, t)); // pairing mismatch
+}
+
+// -- Group Y: attitude and theory of mind (Section B) --
+fn v128() !void {
+    const value = try interval2(&.{
+        .{ .k = "quantity", .v = flt(15.0) },
+        .{ .k = "unit", .v = str("ug/dL") },
+    });
+    const fx = try stateFixture("quantity", .{ .object = value }, "ug/dL");
+    const att = try attitude(try believerId("holder_h"), "believes", oid(fx.st));
+    try schemaOk(att);
+    try semOk(att);
+}
+
+fn v129() !void {
+    const a = try occ("switch_pressed", null);
+    const b = try occ("light_on", null);
+    const actual = try cro(&.{oid(a)}, &.{oid(b)}, .{ .modality = "sufficient" });
+    const believed = try cro(&.{oid(a)}, &.{oid(b)}, .{ .modality = "preventive" });
+    try expect(semantics.conflicts(believed, actual)); // the CLAIMS contradict
+    const att = try attitude(try believerId("holder_h"), "believes", oid(believed));
+    try schemaOk(att);
+    try semOk(att); // validity unaffected
+    var s = Store.init(A, true);
+    _ = try s.put(a, null);
+    _ = try s.put(b, null);
+    _ = try s.put(actual, null);
+    _ = try s.put(att, null);
+    try expect((try s.gaps("conflict")).items.len == 0); // Rule 25: NO conflict raised
+}
+
+fn v130() !void {
+    const o = try occ("rainfall_begins", null);
+    const att = try attitude(try believerId("holder_h"), "desires", oid(o));
+    try schemaOk(att);
+    try semOk(att);
+}
+
+fn v131() !void {
+    const o = try occ("press_button", null);
+    const att = try attitude(try believerId("holder_h"), "intends", oid(o));
+    try schemaOk(att);
+    try semOk(att);
+}
+
+fn v132() !void {
+    const value = try interval2(&.{.{ .k = "boolean", .v = .{ .bool = true } }});
+    const fx = try stateFixture("boolean", .{ .object = value }, null);
+    const inner = try attitude(try believerId("holder_b"), "believes", oid(fx.st));
+    const outer = try attitude(try believerId("holder_a"), "believes", oid(inner));
+    for ([_]ObjectMap{ inner, outer }) |att| {
+        try schemaOk(att);
+        try semOk(att);
+    }
+    try expect(!eq(oid(outer), oid(inner)));
+    try expect(eq(jcs.getString(outer, "content").?, oid(inner))); // outer content IS the inner attitude
+}
+
+fn v133() !void {
+    const o = try occ("rainfall_begins", null);
+    var bad = newObj();
+    try bad.put("type", str("attitude"));
+    try bad.put("holder", str(try believerId("holder_h")));
+    try bad.put("attitude_type", str("suspects"));
+    try bad.put("content", str(oid(o)));
+    bad = try mk(bad);
+    const r = try schema.validateSchema(A, .{ .object = bad }, "attitude");
+    try expect(!r.ok);
+    try expectContains(r.errors, "attitude_type");
+}
+
+fn v134() !void {
+    const o = try occ("rainfall_begins", null);
+    var bad = newObj();
+    try bad.put("type", str("attitude"));
+    try bad.put("holder", str(try believerId("holder_h")));
+    try bad.put("attitude_type", str("believes"));
+    try bad.put("content", str(oid(o)));
+    try bad.put("strength", flt(0.9));
+    bad = try mk(bad);
+    const r = try schema.validateSchema(A, .{ .object = bad }, "attitude");
+    try expect(!r.ok);
+    try expectContains(r.errors, "strength");
+}
+
+fn v135() !void {
+    const o = try occ("rainfall_begins", null);
+    const att = try attitude(try believerId("holder_h"), "expects", oid(o));
+    var body = newObj();
+    try body.put("about", str(oid(att)));
+    try body.put("evidence_type", str("observation"));
+    try body.put("confidence", flt(0.9));
+    const a = try signed("assertion", body, "signer", 0);
+    try schemaOk(a);
+    try expect(signing.verifyRecord(A, a, null));
+    // the HOLDER (a modeled agent) and the SOURCE (a signing key) differ.
+    const holder = jcs.getString(att, "holder").?;
+    const source = jcs.getString(a, "source").?;
+    try expect(eq(holder[0..std.mem.indexOfScalar(u8, holder, ':').?], "token_individual"));
+    try expect(eq(source[0..std.mem.indexOfScalar(u8, source, ':').?], "ed25519"));
+    try expect(!eq(holder, source));
+}
+
+// -- Group Z: the 4.0.0 identity witnesses --
+fn v136() !void {
+    // the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+    const secs = try cro(&.{try sym("occurrent:a")}, &.{try sym("occurrent:b")}, .{
+        .temporal = try temporalObj(0, 1, "seconds"),
+        .modality = "sufficient",
+    });
+    try expect(eq(oid(secs), "causal_relation_object:d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c"));
+    // the V118 unbound conduit, re-pinned under 4.0.0
+    const unbound = try conduitRealized(null);
+    try expect(eq(oid(unbound), "conduit:dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6"));
+}
+
+fn v137() !void {
+    const hexid = try repeatChar('0', 64);
+    // The abbreviated prefixes here are the deliberate negative tests; each is
+    // assembled from letters so a whole-word re-mint pass cannot rewrite it.
+    const att_abbr = "a" ++ "t" ++ "t";
+    const prd_abbr = "p" ++ "r" ++ "d";
+    const err_abbr = "e" ++ "r" ++ "r";
+
+    var bad_att = newObj();
+    try bad_att.put("type", str("attitude"));
+    try bad_att.put("id", str(try std.fmt.allocPrint(A, "{s}:{s}", .{ att_abbr, hexid })));
+    try bad_att.put("holder", str(try std.fmt.allocPrint(A, "token_individual:{s}", .{hexid})));
+    try bad_att.put("attitude_type", str("believes"));
+    try bad_att.put("content", str(try std.fmt.allocPrint(A, "state_assertion:{s}", .{hexid})));
+    try expect(!(try schema.validateSchema(A, .{ .object = bad_att }, "attitude")).ok);
+
+    var bad_prd = newObj();
+    try bad_prd.put("type", str("predicted_occurrence"));
+    try bad_prd.put("id", str(try std.fmt.allocPrint(A, "{s}:{s}", .{ prd_abbr, hexid })));
+    try bad_prd.put("instantiates", str(try std.fmt.allocPrint(A, "occurrent:{s}", .{hexid})));
+    try bad_prd.put("interval", .{ .object = try tickWindow(0, null) });
+    try bad_prd.put("predictor", str(try std.fmt.allocPrint(A, "token_individual:{s}", .{hexid})));
+    try expect(!(try schema.validateSchema(A, .{ .object = bad_prd }, "predicted_occurrence")).ok);
+
+    var bad_err = newObj();
+    try bad_err.put("type", str("prediction_error"));
+    try bad_err.put("id", str(try std.fmt.allocPrint(A, "{s}:{s}", .{ err_abbr, hexid })));
+    try bad_err.put("predicted", str(try std.fmt.allocPrint(A, "predicted_occurrence:{s}", .{hexid})));
+    try bad_err.put("discrepancy", flt(0.0));
+    try expect(!(try schema.validateSchema(A, .{ .object = bad_err }, "prediction_error")).ok);
+
+    var whole_att = try jcs.cloneObject(A, bad_att);
+    try whole_att.put("id", str(try std.fmt.allocPrint(A, "attitude:{s}", .{hexid})));
+    try expect((try schema.validateSchema(A, .{ .object = whole_att }, "attitude")).ok);
+
+    var whole_prd = try jcs.cloneObject(A, bad_prd);
+    try whole_prd.put("id", str(try std.fmt.allocPrint(A, "predicted_occurrence:{s}", .{hexid})));
+    try expect((try schema.validateSchema(A, .{ .object = whole_prd }, "predicted_occurrence")).ok);
+
+    var whole_err = try jcs.cloneObject(A, bad_err);
+    try whole_err.put("id", str(try std.fmt.allocPrint(A, "prediction_error:{s}", .{hexid})));
+    try expect((try schema.validateSchema(A, .{ .object = whole_err }, "prediction_error")).ok);
 }

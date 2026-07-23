@@ -21,10 +21,10 @@ newer** with cabal.
 | `src/Causalontology/Ed25519.hs` | Ed25519 (RFC 8032), ported from the Python binding's `ed25519.py` over `Integer` (Haskell's floored `mod` matches Python's `%` for these positive moduli) |
 | `src/Causalontology/Canonical.hs` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify` (spec/identity.md) |
 | `src/Causalontology/Signing.hs` | record-level `signRecord` / `verifyRecord` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `src/Causalontology/Schema.hs` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use, with a tiny matcher for their regular-expression subset) |
-| `src/Causalontology/Semantics.hs` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
+| `src/Causalontology/Schema.hs` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use, with a tiny matcher for their regular-expression subset, including the `.` any-char and `+` quantifier of the 3.0.0 conduit realized_by pattern) |
+| `src/Causalontology/Semantics.hs` | the 25 semantic rules: temporal admissibility with the fixed unit constants and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `src/Causalontology/Store.hs` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps` read — the Python store's state modeled as a `Store` record threaded through pure functions, with association-list tables so dict insertion order is preserved exactly |
-| `app/Conformance.hs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `app/Conformance.hs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
@@ -32,8 +32,8 @@ newer** with cabal.
 $ cd bindings/haskell
 $ cabal run -v0 conformance
 ...
-107/107 vectors passed
-causalontology-haskell is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
+137/137 vectors passed
+causalontology-haskell is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
@@ -42,11 +42,11 @@ directory until it finds `conformance/vectors`; the schemas are read from
 `spec/schema` under the same root (overridable with `CAUSALONTOLOGY_SPEC`,
 which names the `spec/` directory).
 
-The vectors are frozen at specification 2.0.0 (2026-07-13): they carry
-concrete identifiers, real keys, and a real verifying signature. The
-harness's old normalization now simply passes frozen values through;
-records built at run time still use deterministic keypairs seeded from
-`sha256("key:" ++ name)`, as the Python harness does.
+The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
+V01–V137): they carry concrete identifiers, real keys, and a real verifying
+signature. The harness's old normalization now simply passes frozen values
+through; records built at run time still use deterministic keypairs seeded
+from `sha256("key:" ++ name)`, as the Python harness does.
 
 ## Thirty-second taste
 

@@ -27,10 +27,11 @@ const Array = jcs.Array;
 const Allocator = jcs.Allocator;
 
 const content_kinds = [_][]const u8{
-    "occurrent",        "causal_relation_object", "continuant",       "realizable",
-    "stratum",          "bridge",                 "port",             "conduit",
-    "quality",          "token_individual",       "token_occurrence", "state_assertion",
-    "token_causal_claim",
+    "occurrent",           "causal_relation_object", "continuant",           "realizable",
+    "stratum",             "bridge",                 "cross_stratal_seam",   "port",
+    "conduit",             "quality",                "token_individual",     "token_occurrence",
+    "state_assertion",     "token_causal_claim",     "attitude",             "predicted_occurrence",
+    "prediction_error",
 };
 const record_kinds = [_][]const u8{ "assertion", "enrichment", "retraction", "succession" };
 

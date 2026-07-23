@@ -17,19 +17,19 @@ answer). Everything else uses `dart:convert`, `dart:io`, and
 | `lib/ed25519.dart` | Ed25519 (RFC 8032) over `BigInt`, whose Euclidean `%` gives the non-negative mod-p normalization the reference relies on; deterministic signing, public-key derivation from a 32-byte seed |
 | `lib/canonical.dart` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
 | `lib/signing.dart` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `lib/schema.dart` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
-| `lib/semantics.dart` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
+| `lib/schema.dart` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `lib/semantics.dart` | the semantic rules: temporal admissibility with the fixed unit constants and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule, enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check, and the prediction-to-observation pairing |
 | `lib/store.dart` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read — over `LinkedHashMap`s, deliberately mirroring the Python reference's insertion-order iteration |
 | `lib/causalontology.dart` | the public application programming interface (API) surface (exports) |
-| `bin/conformance.dart` | the conformance runner: internal known-answer checks (SHA-2 empty-string digests, RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `bin/conformance.dart` | the conformance runner: internal known-answer checks (SHA-2 empty-string digests, RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ dart bindings/dart/bin/conformance.dart
 ...
-107/107 vectors passed
-causalontology-dart is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
+137/137 vectors passed
+causalontology-dart is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
@@ -38,7 +38,7 @@ location (then the working directory) until it finds `conformance/vectors`;
 the schemas are read from `spec/schema` under the same root (overridable
 with `CAUSALONTOLOGY_SPEC` naming the `spec/` directory).
 
-The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The V01–V107 vectors are the whole-word 2.0.0 baseline (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature, and the harness's normalization now simply passes those frozen values through. The V108–V119 (3.0.0: the `ticks` unit, the cross_stratal_seam, the conduit `realized_by`) and V120–V137 (4.0.0: the attitude, the predicted_occurrence, the prediction_error) fixtures are built in the runner, mirroring the Python reference exactly.
 
 Ed25519 is deterministic (RFC 8032), and the canonical bytes are pinned by
 RFC 8785, so identifiers and signatures are byte-compatible across the
@@ -69,7 +69,7 @@ void main() {
 
 Source complete and ported line-for-line from the Python binding; **verified
 locally**: `dart bindings/dart/bin/conformance.dart` prints
-`107/107 vectors passed` with the Dart VM, the analyzer reports no issues, and
+`137/137 vectors passed` with the Dart VM, the analyzer reports no issues, and
 a cross-check against causalontology-py confirmed identical public keys,
 identifiers, and signatures for the same seed and record. Also executed by
 GitHub Actions CI (`dart bindings/dart/bin/conformance.dart`), as for every

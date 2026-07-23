@@ -12,9 +12,14 @@ namespace Causalontology;
 
 public static class Canonical
 {
-    // The identity-bearing fields of each of the seventeen kinds. "type" is
-    // always injected, so it is not listed here. Order does not matter (JCS
-    // sorts keys). 2.0.0: whole-word re-mint (Principle P7).
+    // The identity-bearing fields of each of the twenty-one kinds (3.0.0 adds
+    // the cross_stratal_seam; the conduit gains realized_by; 4.0.0 adds the
+    // attitude, the predicted_occurrence, and the prediction_error - all
+    // additive and identity-preserving: a record that omits a new field keeps
+    // its earlier identifier byte-for-byte, and the new kinds open new identity
+    // schemes that disturb no existing record). "type" is always injected, so
+    // it is not listed here. Order does not matter (JCS sorts keys). 2.0.0:
+    // whole-word re-mint (Principle P7).
     public static readonly IReadOnlyDictionary<string, string[]> IdentityFields =
         new Dictionary<string, string[]>
         {
@@ -28,10 +33,12 @@ public static class Canonical
             ["stratum"] = new[] { "label", "scheme", "ordinal", "unit",
                 "governs" },
             ["bridge"] = new[] { "coarse", "fine", "relation" },
+            ["cross_stratal_seam"] = new[] { "source", "target",
+                "mechanism_status", "chain" },
             ["port"] = new[] { "bearer", "label", "direction", "accepts",
                 "realizable" },
             ["conduit"] = new[] { "label", "from", "to", "carries",
-                "transform" },
+                "transform", "realized_by" },
             ["quality"] = new[] { "label", "datatype", "unit", "stratum" },
             // ---- token tier ----
             ["token_individual"] = new[] { "instantiates", "designator",
@@ -42,6 +49,11 @@ public static class Canonical
                 "interval" },
             ["token_causal_claim"] = new[] { "causes", "effects",
                 "covering_law", "actual_delay", "counterfactual" },
+            ["attitude"] = new[] { "holder", "attitude_type", "content" },
+            ["predicted_occurrence"] = new[] { "instantiates", "interval",
+                "predictor", "strength" },
+            ["prediction_error"] = new[] { "predicted", "observed",
+                "discrepancy" },
             // ---- provenance tier ----
             ["assertion"] = new[] { "about", "source", "evidence_type",
                 "evidence", "strength", "confidence", "timestamp",

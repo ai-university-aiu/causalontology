@@ -21,6 +21,25 @@ co_unit_seconds <- c(
   years   = 31556952     # NORMATIVE: mean Gregorian year (365.2425 days)
 )
 
+# 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete step
+# with NO wall-clock mapping; a tick window is ordered by integer comparison,
+# and an ordinal window and a wall-clock window are DIFFERENT DIMENSIONS that do
+# not compare (mixing them is never within-window and never overlapping).
+co_ordinal_units <- c(ticks = 1)
+
+# "ordinal" for a tick-like unit, else "wallclock".
+co_dimension <- function(unit) {
+  if (unit %in% names(co_ordinal_units)) "ordinal" else "wallclock"
+}
+
+# A comparable magnitude within ONE dimension: raw tick count for an ordinal
+# unit, seconds for a wall-clock unit. Never mix dimensions.
+co_magnitude <- function(value, unit) {
+  if (unit %in% names(co_ordinal_units)) return(as.numeric(value))  # tick count
+  if (identical(unit, "instant")) return(0)
+  as.numeric(value) * co_unit_seconds[[unit]]
+}
+
 # Rule 12: enrichment field-to-kind validity and entry shapes. Two occurrent
 # forms added in 2.0.0.
 co_enrichment_fields <- list(
@@ -106,6 +125,45 @@ co_validate_semantics <- function(obj, kind = NULL) {
     }
   }
 
+  # 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain has,
+  # by drawing it, a modelled intervening mechanism - so mechanism_status
+  # 'absent' contradicts a present chain (the honest-ignorance distinction must
+  # stay honest). The stratal well-formedness (non-adjacency, adjacency of
+  # chain steps, scheme, the home rule) needs the strata map and lives in
+  # co_seam_wellformed, exactly as bridge well-formedness does.
+  if (identical(kind, "cross_stratal_seam")) {
+    chain <- co_get(obj, "chain")
+    if (!is.null(chain) && !co_is_null(chain) &&
+        identical(co_get(obj, "mechanism_status"), "absent")) {
+      errors <- c(errors, paste0(
+        "contradictory_seam: a drawn chain cannot carry mechanism_status ",
+        "'absent' (a drawn mechanism is not absent)"))
+    }
+  }
+
+  # 4.0.0 Rule 24, local clause: a predicted_occurrence's interval carries
+  # exactly ONE temporal dimension - a wall-clock start (optional end) or an
+  # ordinal start_tick (optional end_tick), never both and never neither. Per
+  # Rule 23 the two dimensions never compare. The pairing check of a
+  # prediction_error against its predicted_occurrence and its observed
+  # token_occurrence needs those objects and lives in
+  # co_prediction_pairing_mismatch, exactly as covering_law_mismatch does.
+  if (identical(kind, "predicted_occurrence")) {
+    iv <- co_get(obj, "interval")
+    wall <- co_is_obj(iv) && co_has(iv, "start")
+    tick <- co_is_obj(iv) && co_has(iv, "start_tick")
+    if (isTRUE(wall) && isTRUE(tick)) {
+      errors <- c(errors, paste0(
+        "dimension_conflict: a predicted interval must carry exactly one ",
+        "temporal dimension, not a wall-clock start AND an ordinal start_tick"))
+    }
+    if (!isTRUE(wall) && !isTRUE(tick)) {
+      errors <- c(errors, paste0(
+        "missing_dimension: a predicted interval must carry a wall-clock ",
+        "start or an ordinal start_tick"))
+    }
+  }
+
   list(ok = length(errors) == 0L, errors = errors)
 }
 
@@ -118,30 +176,35 @@ co_is_partial <- function(cro) {
   list(partial = length(missing) > 0L, missing = missing)
 }
 
-# Rule 4: temporal admissibility with the fixed constants.
-co_admissible <- function(cro, elapsed_seconds) {
+# Rule 4: temporal admissibility. For a wall-clock window `elapsed` is in
+# seconds; for an ordinal ('ticks') window `elapsed` is a tick count. Ordering
+# is by magnitude WITHIN the window's own dimension (3.0.0).
+co_admissible <- function(cro, elapsed) {
   t <- co_get(cro, "temporal")
   if (is.null(t) || co_is_null(t)) return(TRUE)  # no window, no constraint
-  unit <- co_unit_seconds[[t[["unit"]]]]
-  lo <- as.numeric(t[["minimum_delay"]]) * unit
-  hi <- as.numeric(t[["maximum_delay"]]) * unit
-  elapsed <- as.numeric(elapsed_seconds)
+  unit <- as.character(t[["unit"]])
+  lo <- co_magnitude(t[["minimum_delay"]], unit)
+  hi <- co_magnitude(t[["maximum_delay"]], unit)
+  elapsed <- as.numeric(elapsed)
   isTRUE(lo <= elapsed) && isTRUE(elapsed <= hi)
 }
 
 # Do the temporal windows of two CROs overlap (absent = overlapping)?
+# 3.0.0: an ordinal window and a wall-clock window are different dimensions and
+# never overlap.
 co_window_overlap <- function(a, b) {
   ta <- co_get(a, "temporal")
   tb <- co_get(b, "temporal")
   if (is.null(ta) || co_is_null(ta) || is.null(tb) || co_is_null(tb)) {
     return(TRUE)
   }
-  ua <- co_unit_seconds[[ta[["unit"]]]]
-  ub <- co_unit_seconds[[tb[["unit"]]]]
-  lo_a <- as.numeric(ta[["minimum_delay"]]) * ua
-  hi_a <- as.numeric(ta[["maximum_delay"]]) * ua
-  lo_b <- as.numeric(tb[["minimum_delay"]]) * ub
-  hi_b <- as.numeric(tb[["maximum_delay"]]) * ub
+  ua <- as.character(ta[["unit"]])
+  ub <- as.character(tb[["unit"]])
+  if (!identical(co_dimension(ua), co_dimension(ub))) return(FALSE)
+  lo_a <- co_magnitude(ta[["minimum_delay"]], ua)
+  hi_a <- co_magnitude(ta[["maximum_delay"]], ua)
+  lo_b <- co_magnitude(tb[["minimum_delay"]], ub)
+  hi_b <- co_magnitude(tb[["maximum_delay"]], ub)
   isTRUE(lo_a <= hi_b) && isTRUE(lo_b <= hi_a)
 }
 
@@ -372,21 +435,33 @@ co_skip_gaps <- function(cro, classification) {
 }
 
 # ALGORITHM E helper: normalize a delay to seconds by the fixed table.
+# 3.0.0: an ordinal ('ticks') unit is dimensionless and has NO wall-clock
+# mapping - converting one to seconds is a category error and is refused.
 co_to_seconds <- function(duration, unit) {
+  if (unit %in% names(co_ordinal_units)) {
+    stop(sprintf(paste0("'%s' is an ordinal (dimensionless) unit and has no ",
+                        "wall-clock seconds mapping"), unit), call. = FALSE)
+  }
   if (identical(unit, "instant")) return(0)
   as.numeric(duration) * co_unit_seconds[[unit]]
 }
 
 # ALGORITHM E (Rule 20): does an observed delay fall within a covering law's
-# temporal window? Inclusive at both ends (N12.5.2).
+# temporal window? Inclusive at both ends (N12.5.2). 3.0.0: an ordinal delay
+# compares to an ordinal window by integer tick count; an ordinal delay and a
+# wall-clock window (or vice versa) are different dimensions and never fall
+# within one another.
 co_delay_within_window <- function(actual_delay, temporal) {
   if (is.null(actual_delay) || co_is_null(actual_delay) ||
       is.null(temporal) || co_is_null(temporal)) {
     return(TRUE)
   }
-  observed <- co_to_seconds(actual_delay[["duration"]], actual_delay[["unit"]])
-  lo <- co_to_seconds(temporal[["minimum_delay"]], temporal[["unit"]])
-  hi <- co_to_seconds(temporal[["maximum_delay"]], temporal[["unit"]])
+  du <- as.character(actual_delay[["unit"]])
+  tu <- as.character(temporal[["unit"]])
+  if (!identical(co_dimension(du), co_dimension(tu))) return(FALSE)
+  observed <- co_magnitude(actual_delay[["duration"]], du)
+  lo <- co_magnitude(temporal[["minimum_delay"]], tu)
+  hi <- co_magnitude(temporal[["maximum_delay"]], tu)
   isTRUE(lo <= observed) && isTRUE(observed <= hi)
 }
 
@@ -421,6 +496,83 @@ co_bridge_wellformed <- function(bridge, occ_map, stratum_map) {
                 reason = "malformed_bridge: coarse ordinal not > fine ordinal (e)"))
   }
   list(ok = TRUE, reason = "well-formed bridge")
+}
+
+# 3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam well-formedness. list(ok,
+# reason). All of (a)-(g) must hold, else malformed_seam. A seam is a MANAGED
+# jump across NON-ADJACENT strata; when it DRAWS a chain, the chain must be an
+# adjacent-stratum path spanning the two endpoints' strata.
+co_seam_wellformed <- function(seam, occ_map, stratum_map) {
+  src_s <- .co_stratum_of(occ_map, as.character(seam[["source"]]))
+  tgt_s <- .co_stratum_of(occ_map, as.character(seam[["target"]]))
+  if (is.null(src_s) || is.null(tgt_s)) {
+    return(list(ok = FALSE,
+                reason = "malformed_seam: an endpoint has no stratum (a)"))
+  }
+  if (!identical(stratum_map[[src_s]][["scheme"]],
+                 stratum_map[[tgt_s]][["scheme"]])) {
+    return(list(ok = FALSE,
+                reason = "malformed_seam: endpoints differ in scheme (b)"))
+  }
+  so <- as.numeric(stratum_map[[src_s]][["ordinal"]])
+  to_ <- as.numeric(stratum_map[[tgt_s]][["ordinal"]])
+  if (abs(so - to_) <= 1) {
+    return(list(ok = FALSE, reason = paste0(
+      "malformed_seam: endpoints are adjacent or co-stratal; ",
+      "a seam is for NON-adjacent strata (c)")))
+  }
+  chain <- co_get(seam, "chain")
+  if (!is.null(chain) && !co_is_null(chain)) {
+    if (identical(co_get(seam, "mechanism_status"), "absent")) {
+      return(list(ok = FALSE, reason = paste0(
+        "malformed_seam: a drawn chain contradicts mechanism_status ",
+        "'absent' (d)")))
+    }
+    lo <- min(so, to_); hi <- max(so, to_)
+    ords <- numeric(0)
+    for (oid in co_strings(chain)) {
+      st <- .co_stratum_of(occ_map, oid)
+      if (is.null(st)) {
+        return(list(ok = FALSE,
+                    reason = "malformed_seam: a chain member has no stratum (e)"))
+      }
+      if (!identical(stratum_map[[st]][["scheme"]],
+                     stratum_map[[src_s]][["scheme"]])) {
+        return(list(ok = FALSE,
+                    reason = "malformed_seam: a chain member differs in scheme (e)"))
+      }
+      ords <- c(ords, as.numeric(stratum_map[[st]][["ordinal"]]))
+    }
+    if (!all(lo < ords & ords < hi)) {
+      return(list(ok = FALSE, reason = paste0(
+        "malformed_seam: a chain member is not at an INTERVENING stratum, ",
+        "strictly between the endpoints (f)")))
+    }
+    if (length(ords) >= 2L) {
+      diffs <- diff(ords)
+      if (!(all(diffs > 0) || all(diffs < 0))) {
+        return(list(ok = FALSE, reason = paste0(
+          "malformed_seam: chain is not strictly monotone from one endpoint ",
+          "toward the other (g)")))
+      }
+    }
+  }
+  list(ok = TRUE, reason = "well-formed cross_stratal_seam")
+}
+
+# THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the COARSEST stratum it
+# touches - the endpoint of the greater ordinal. Returns that stratum's
+# identifier (NULL if an endpoint is unstratified).
+co_seam_home <- function(seam, occ_map, stratum_map) {
+  src_s <- .co_stratum_of(occ_map, as.character(seam[["source"]]))
+  tgt_s <- .co_stratum_of(occ_map, as.character(seam[["target"]]))
+  if (is.null(src_s) || is.null(tgt_s)) return(NULL)
+  if (as.numeric(stratum_map[[src_s]][["ordinal"]]) >=
+      as.numeric(stratum_map[[tgt_s]][["ordinal"]])) {
+    src_s
+  } else {
+    tgt_s
+  }
 }
 
 # Rule 17 / N4.2.1-2: Conduit well-formedness. list(ok, reason).
@@ -495,6 +647,18 @@ co_covering_law_mismatch <- function(tcc, token_map, law) {
     if (!(token_map[[e_id]][["instantiates"]] %in% law_effects)) return(TRUE)
   }
   FALSE
+}
+
+# 4.0.0 Rule 24: prediction-to-observation pairing. TRUE iff the prediction
+# error's observed token does not instantiate the occurrent its
+# predicted_occurrence instantiates. An ABSENT observed is never a mismatch - it
+# means the predicted occurrence was not fulfilled by any recorded occurrence.
+co_prediction_pairing_mismatch <- function(error, predicted, observed) {
+  if (!co_has(error, "observed") || is.null(observed) || co_is_null(observed)) {
+    return(FALSE)
+  }
+  !identical(as.character(observed[["instantiates"]]),
+             as.character(predicted[["instantiates"]]))
 }
 
 # Rule 21: temporal coherence of token causation. TRUE iff retrocausal.

@@ -5,8 +5,11 @@
 /// runner exits nonzero on any failure. It mirrors
 /// bindings/python/tests/run_conformance.py exactly.
 ///
-/// The vectors are the whole-word 2.0.0 baseline (Principle P7): V01-V38
-/// re-frozen unaltered in meaning, V39-V107 new.
+/// Vectors V01-V107 are the whole-word 2.0.0 baseline (Principle P7): V01-V38
+/// re-frozen unaltered in meaning, V39-V107 new. V108-V119 are the 3.0.0
+/// additions (the ticks unit, the cross_stratal_seam, the conduit realized_by);
+/// V120-V137 are the 4.0.0 additions (attitude, predicted_occurrence,
+/// prediction_error).
 library;
 
 import 'dart:convert';
@@ -54,9 +57,10 @@ late final Directory vecDir =
 const List<String> _schemes = [
   'occurrent', 'causal_relation_object', 'continuant', 'realizable',
   'assertion', 'enrichment', 'retraction', 'succession',
-  'stratum', 'bridge', 'port', 'conduit', 'quality',
+  'stratum', 'bridge', 'cross_stratal_seam', 'port', 'conduit', 'quality',
   'token_individual', 'token_occurrence', 'state_assertion',
   'token_causal_claim',
+  'attitude', 'predicted_occurrence', 'prediction_error',
 ];
 final Set<String> wholeWord = {..._schemes, 'ed25519'};
 
@@ -1411,9 +1415,560 @@ void v107() {
 }
 
 // ---------------------------------------------------------------------------
+// V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam, realized_by)
+// ---------------------------------------------------------------------------
+
+/// A temporal window (a Causal Relation Object's delay bounds and unit).
+Map<String, dynamic> temporal(num min, num max, String unit) => {
+      'minimum_delay': min, 'maximum_delay': max, 'unit': unit,
+    };
+
+/// An observed delay (a duration and its unit).
+Map<String, dynamic> duration(num dur, String unit) =>
+    {'duration': dur, 'unit': unit};
+
+/// A cross_stratal_seam content object completed with its id.
+Map<String, dynamic> seam(String source, String target, String mechanismStatus,
+    [List<String>? chain]) {
+  final o = <String, dynamic>{
+    'type': 'cross_stratal_seam', 'source': source, 'target': target,
+    'mechanism_status': mechanismStatus,
+  };
+  if (chain != null && chain.isNotEmpty) o['chain'] = chain;
+  return mk(o);
+}
+
+/// Build a seam over the neuro fixture: (seam, occMap, stratumMap).
+(Map<String, dynamic>, Map<String, Map<String, dynamic>>,
+        Map<String, Map<String, dynamic>>)
+    seamFixture(int srcOrd, int tgtOrd, String mechanismStatus,
+        [List<int>? chainOrds]) {
+  final s = neuro();
+  final src = occ('source_event', s[srcOrd]!['id'] as String);
+  final tgt = occ('target_event', s[tgtOrd]!['id'] as String);
+  final omap = <String, Map<String, dynamic>>{
+    src['id'] as String: src, tgt['id'] as String: tgt,
+  };
+  final smap = <String, Map<String, dynamic>>{
+    s[srcOrd]!['id'] as String: s[srcOrd]!,
+    s[tgtOrd]!['id'] as String: s[tgtOrd]!,
+  };
+  List<String>? chain;
+  if (chainOrds != null) {
+    chain = [];
+    var i = 0;
+    for (final o in chainOrds) {
+      final c = occ('chain_$i', s[o]!['id'] as String);
+      omap[c['id'] as String] = c;
+      smap[s[o]!['id'] as String] = s[o]!;
+      chain.add(c['id'] as String);
+      i++;
+    }
+  }
+  return (
+    seam(src['id'] as String, tgt['id'] as String, mechanismStatus, chain),
+    omap,
+    smap,
+  );
+}
+
+/// A conduit with an optional realized_by reference, completed with its id.
+Map<String, dynamic> conduitRealized([String? realizedBy]) {
+  final o = <String, dynamic>{
+    'type': 'conduit', 'label': 'conn',
+    'from': 'port:${'1' * 64}', 'to': 'port:${'2' * 64}',
+    'carries': ['occurrent:${'3' * 64}'],
+  };
+  if (realizedBy != null) o['realized_by'] = realizedBy;
+  return mk(o);
+}
+
+// -- Change One: the ordinal (tick) temporal unit --
+void v108() {
+  final p = cro([sym('occurrent:a')], [sym('occurrent:b')], {
+    'temporal': temporal(0, 5, 'ticks'), 'modality': 'sufficient',
+  });
+  var (ok, why) = validateSchema(p);
+  check(ok, why);
+  (ok, why) = validateSemantics(p);
+  check(ok, why);
+}
+
+void v109() {
+  final p = cro([sym('occurrent:a')], [sym('occurrent:b')], {
+    'temporal': temporal(2, 5, 'ticks'),
+  });
+  check(admissible(p, 3), '3 ticks inside [2, 5]');
+  check(admissible(p, 2) && admissible(p, 5), 'endpoints are admissible');
+  check(!admissible(p, 6) && !admissible(p, 1),
+      'outside the tick window is not admissible');
+}
+
+void v110() {
+  final tickWindow = temporal(0, 5, 'ticks');
+  final wallWindow = temporal(0, 5, 'seconds');
+  check(delayWithinWindow(duration(3, 'ticks'), tickWindow),
+      '3 ticks within the tick window');
+  check(!delayWithinWindow(duration(1, 'ticks'), wallWindow),
+      'a tick delay is not within a wall-clock window');
+  check(!delayWithinWindow(duration(1, 'seconds'), tickWindow),
+      'a seconds delay is not within a tick window');
+  final a = <String, dynamic>{
+    'causes': [sym('occurrent:a')], 'effects': [sym('occurrent:b')],
+    'temporal': tickWindow, 'modality': 'sufficient',
+  };
+  final b = <String, dynamic>{
+    'causes': [sym('occurrent:a')], 'effects': [sym('occurrent:b')],
+    'temporal': wallWindow, 'modality': 'preventive',
+  };
+  check(!conflicts(a, b), 'disjoint dimensions do not overlap');
+  var refused = false;
+  try {
+    toSeconds(1, 'ticks');
+  } catch (_) {
+    refused = true;
+  }
+  check(refused, 'toSeconds must refuse an ordinal unit');
+}
+
+void v111() {
+  Map<String, dynamic> base() => {
+        'type': 'causal_relation_object',
+        'causes': [sym('occurrent:a')], 'effects': [sym('occurrent:b')],
+        'modality': 'sufficient',
+      };
+  final tick = base()..['temporal'] = temporal(0, 1, 'ticks');
+  final secs = base()..['temporal'] = temporal(0, 1, 'seconds');
+  check(identify(tick) != identify(secs), 'the unit is identity-bearing');
+  // a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+  check(
+      identify(secs) ==
+          'causal_relation_object:'
+              'd8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c',
+      'the wall-clock CRO identity is pinned');
+}
+
+// -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+void v112() {
+  final (sm, omap, smap) = seamFixture(14, 4, 'unmodeled');
+  var (ok, why) = validateSchema(sm);
+  check(ok, why);
+  (ok, why) = validateSemantics(sm);
+  check(ok, why);
+  final (ok2, why2) = seamWellformed(sm, omap, smap);
+  check(ok2, why2);
+}
+
+void v113() {
+  final (a, _, _) = seamFixture(14, 4, 'unmodeled');
+  final (b, omap, smap) = seamFixture(14, 4, 'absent');
+  final (ok, why) = validateSchema(b);
+  check(ok, why);
+  final (ok2, why2) = seamWellformed(b, omap, smap);
+  check(ok2, why2);
+  check(a['id'] != b['id'], 'mechanism_status is identity-bearing');
+}
+
+void v114() {
+  final (drawn, omap, smap) = seamFixture(14, 4, 'unmodeled', [9, 7, 6, 5]);
+  final (ok, why) = validateSchema(drawn);
+  check(ok, why);
+  final (ok2, why2) = seamWellformed(drawn, omap, smap);
+  check(ok2, why2);
+  final (bad, omap2, smap2) = seamFixture(14, 4, 'absent', [9, 7, 6, 5]);
+  final (okBad, whyBad) = validateSemantics(bad);
+  check(!okBad && whyBad.any((w) => w.contains('contradictory_seam')),
+      'contradictory_seam: ${whyBad.join('; ')}');
+  final (ok3, _) = seamWellformed(bad, omap2, smap2);
+  check(!ok3, 'a drawn chain with absent status is malformed');
+}
+
+void v115() {
+  final (sm, omap, smap) = seamFixture(14, 4, 'unmodeled');
+  final s = neuro();
+  check(seamHome(sm, omap, smap) == s[14]!['id'],
+      'the home is the coarsest (max ordinal) stratum');
+}
+
+void v116() {
+  final (adj, o1, s1) = seamFixture(6, 5, 'unmodeled'); // adjacent (gap 1)
+  final (ok1, _) = seamWellformed(adj, o1, s1);
+  check(!ok1, 'an adjacent seam is malformed');
+  final (co, o2, s2) = seamFixture(6, 6, 'unmodeled'); // co-stratal (gap 0)
+  final (ok2, _) = seamWellformed(co, o2, s2);
+  check(!ok2, 'a co-stratal seam is malformed');
+  final (sm, _, _) = seamFixture(14, 4, 'unmodeled');
+  check((sm['id'] as String).startsWith('cross_stratal_seam:'),
+      'a new identity scheme');
+}
+
+// -- Change Three: the realized_by reference --
+void v117() {
+  final c = conduitRealized('causal_relation_object:${'a' * 64}');
+  var (ok, why) = validateSchema(c);
+  check(ok, why);
+  final c2 = conduitRealized('native:region_stratum_predict');
+  (ok, why) = validateSchema(c2);
+  check(ok, why); // a native scheme reference is legal
+}
+
+void v118() {
+  final bound = conduitRealized('native:region_stratum_predict');
+  final unbound = conduitRealized();
+  check(bound['id'] != unbound['id'], 'realized_by is identity-bearing');
+  // an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+  check(
+      unbound['id'] ==
+          'conduit:'
+              'dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6',
+      'the unbound conduit identity is pinned');
+}
+
+void v119() {
+  final unbound = conduitRealized();
+  final (ok, why) = validateSchema(unbound);
+  check(ok, why); // unbound is legal
+  final bad = Map<String, dynamic>.from(unbound);
+  bad['realized_by'] = 'not-a-scheme-qualified-reference';
+  final (okBad, _) = validateSchema(bad, 'conduit');
+  check(!okBad, 'a malformed realized_by reference is rejected');
+}
+
+// ---------------------------------------------------------------------------
+// V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+// prediction_error)
+// ---------------------------------------------------------------------------
+
+/// An attitude content object completed with its id.
+Map<String, dynamic> attitude(
+        String holder, String attitudeType, String content) =>
+    mk({
+      'type': 'attitude', 'holder': holder,
+      'attitude_type': attitudeType, 'content': content,
+    });
+
+/// A predicted_occurrence content object completed with its id.
+Map<String, dynamic> predicted(String instantiates,
+    Map<String, dynamic> interval, String predictor,
+    [num? strength]) {
+  final o = <String, dynamic>{
+    'type': 'predicted_occurrence', 'instantiates': instantiates,
+    'interval': interval, 'predictor': predictor,
+  };
+  if (strength != null) o['strength'] = strength;
+  return mk(o);
+}
+
+/// A prediction_error content object completed with its id.
+Map<String, dynamic> predictionError(String predictedId, num discrepancy,
+    [String? observed]) {
+  final o = <String, dynamic>{
+    'type': 'prediction_error', 'predicted': predictedId,
+    'discrepancy': discrepancy,
+  };
+  if (observed != null) o['observed'] = observed;
+  return mk(o);
+}
+
+/// An interval carrying the ordinal (tick) dimension.
+Map<String, dynamic> tickInterval(int startTick, [int? endTick]) {
+  final o = <String, dynamic>{'start_tick': startTick};
+  if (endTick != null) o['end_tick'] = endTick;
+  return o;
+}
+
+/// A modeled predicting agent (a token individual), by identity.
+String predictorId() {
+  final c = cnt('forecasting_mind');
+  return individual(c['id'] as String, designator: 'predictor_p')['id']
+      as String;
+}
+
+/// A modeled believing agent (a token individual), by identity.
+String believerId([String designator = 'holder_h']) {
+  final c = cnt('believing_mind');
+  return individual(c['id'] as String, designator: designator)['id'] as String;
+}
+
+// -- Group X: prediction and prediction error (Section A) --
+void v120() {
+  final o = occ('rainfall_begins');
+  final p = predicted(o['id'] as String, tickInterval(3, 8), predictorId());
+  var (ok, why) = validateSchema(p);
+  check(ok, why);
+  (ok, why) = validateSemantics(p);
+  check(ok, why);
+  check((p['id'] as String).startsWith('predicted_occurrence:'),
+      'a new identity scheme');
+  final report = identify({
+    'type': 'token_occurrence', 'instantiates': o['id'],
+    'interval': tickInterval(3, 8),
+  }, 'token_occurrence');
+  check(p['id'] != report, 'a forecast is not a report');
+  check(report.startsWith('token_occurrence:'),
+      'the report is a token_occurrence');
+}
+
+void v121() {
+  final o = occ('rainfall_begins');
+  final wall = <String, dynamic>{
+    'start': '2026-07-23T00:00:00Z', 'end': '2026-07-24T00:00:00Z',
+  };
+  final who = predictorId();
+  final withStrength = predicted(o['id'] as String, wall, who, 0.8);
+  final without = predicted(o['id'] as String, wall, who);
+  for (final p in [withStrength, without]) {
+    var (ok, why) = validateSchema(p);
+    check(ok, why);
+    (ok, why) = validateSemantics(p);
+    check(ok, why);
+  }
+  check(withStrength['id'] != without['id'], 'strength is identity-bearing');
+}
+
+void v122() {
+  final o = occ('rainfall_begins');
+  final bad = mk({
+    'type': 'predicted_occurrence', 'instantiates': o['id'],
+    'interval': tickInterval(3),
+  });
+  final (ok, why) = validateSchema(bad, 'predicted_occurrence');
+  check(!ok && why.any((w) => w.contains('predictor')),
+      'predictor is required: ${why.join('; ')}');
+}
+
+void v123() {
+  final o = occ('rainfall_begins');
+  final iv = <String, dynamic>{
+    'start': '2026-07-23T00:00:00Z', 'start_tick': 3,
+  };
+  final both = predicted(o['id'] as String, iv, predictorId());
+  var (ok, why) = validateSchema(both);
+  check(ok, why);
+  (ok, why) = validateSemantics(both);
+  check(!ok && why.any((w) => w.contains('dimension_conflict')),
+      'dimension_conflict: ${why.join('; ')}');
+}
+
+void v124() {
+  final o = occ('rainfall_begins');
+  final p = predicted(
+      o['id'] as String, {'start': '2026-07-23T00:00:00Z'}, predictorId());
+  final t = token(o['id'] as String, {'start': '2026-07-23T06:00:00Z'});
+  final err = predictionError(p['id'] as String, 0.0, t['id'] as String);
+  var (ok, why) = validateSchema(err);
+  check(ok, why);
+  (ok, why) = validateSemantics(err);
+  check(ok, why);
+  check(!predictionPairingMismatch(err, p, t), 'no pairing mismatch');
+}
+
+void v125() {
+  final o = occ('rainfall_begins');
+  final p = predicted(
+      o['id'] as String, {'start': '2026-07-23T00:00:00Z'}, predictorId());
+  final err = predictionError(p['id'] as String, -1.0);
+  var (ok, why) = validateSchema(err);
+  check(ok, why);
+  (ok, why) = validateSemantics(err);
+  check(ok, why);
+  check(!err.containsKey('observed'), 'observed is absent');
+  check(!predictionPairingMismatch(err, p, null),
+      'an absent observed is never a mismatch');
+}
+
+void v126() {
+  final o = occ('rainfall_begins');
+  final p = predicted(o['id'] as String, tickInterval(0), predictorId());
+  final bad = mk({'type': 'prediction_error', 'predicted': p['id']});
+  final (ok, why) = validateSchema(bad, 'prediction_error');
+  check(!ok && why.any((w) => w.contains('discrepancy')),
+      'discrepancy is required: ${why.join('; ')}');
+}
+
+void v127() {
+  final o = occ('rainfall_begins');
+  final other = occ('snowfall_begins');
+  final p = predicted(
+      o['id'] as String, {'start': '2026-07-23T00:00:00Z'}, predictorId());
+  final t = token(other['id'] as String, {'start': '2026-07-23T06:00:00Z'});
+  final err = predictionError(p['id'] as String, 1.0, t['id'] as String);
+  final (ok, why) = validateSchema(err);
+  check(ok, why);
+  check(predictionPairingMismatch(err, p, t), 'pairing mismatch');
+}
+
+// -- Group Y: attitude and theory of mind (Section B) --
+void v128() {
+  final (st, _) =
+      stateFixture('quantity', {'quantity': 15.0, 'unit': 'ug/dL'}, 'ug/dL');
+  final att = attitude(believerId(), 'believes', st['id'] as String);
+  var (ok, why) = validateSchema(att);
+  check(ok, why);
+  (ok, why) = validateSemantics(att);
+  check(ok, why);
+}
+
+void v129() {
+  final a = occ('switch_pressed');
+  final b = occ('light_on');
+  final actual = cro([a['id']], [b['id']], {'modality': 'sufficient'});
+  final believed = cro([a['id']], [b['id']], {'modality': 'preventive'});
+  check(conflicts(believed, actual), 'the claims contradict');
+  final att = attitude(believerId(), 'believes', believed['id'] as String);
+  var (ok, why) = validateSchema(att);
+  check(ok, why);
+  (ok, why) = validateSemantics(att);
+  check(ok, why); // validity unaffected
+  final s = InMemoryStore();
+  s.put(a);
+  s.put(b);
+  s.put(actual);
+  s.put(att);
+  check(s.gaps('conflict').isEmpty,
+      'Rule 25: no conflict raised for a quarantined belief');
+}
+
+void v130() {
+  final o = occ('rainfall_begins');
+  final att = attitude(believerId(), 'desires', o['id'] as String);
+  var (ok, why) = validateSchema(att);
+  check(ok, why);
+  (ok, why) = validateSemantics(att);
+  check(ok, why);
+}
+
+void v131() {
+  final o = occ('press_button');
+  final att = attitude(believerId(), 'intends', o['id'] as String);
+  var (ok, why) = validateSchema(att);
+  check(ok, why);
+  (ok, why) = validateSemantics(att);
+  check(ok, why);
+}
+
+void v132() {
+  final (st, _) = stateFixture('boolean', {'boolean': true});
+  final inner =
+      attitude(believerId('holder_b'), 'believes', st['id'] as String);
+  final outer =
+      attitude(believerId('holder_a'), 'believes', inner['id'] as String);
+  for (final att in [inner, outer]) {
+    var (ok, why) = validateSchema(att);
+    check(ok, why);
+    (ok, why) = validateSemantics(att);
+    check(ok, why);
+  }
+  check(outer['id'] != inner['id'], 'distinct ids');
+  check(outer['content'] == inner['id'], 'nested content');
+}
+
+void v133() {
+  final o = occ('rainfall_begins');
+  final bad = mk({
+    'type': 'attitude', 'holder': believerId(),
+    'attitude_type': 'suspects', 'content': o['id'],
+  });
+  final (ok, why) = validateSchema(bad, 'attitude');
+  check(!ok && why.any((w) => w.contains('attitude_type')),
+      'attitude_type is a closed enumeration: ${why.join('; ')}');
+}
+
+void v134() {
+  final o = occ('rainfall_begins');
+  final bad = mk({
+    'type': 'attitude', 'holder': believerId(),
+    'attitude_type': 'believes', 'content': o['id'], 'strength': 0.9,
+  });
+  final (ok, why) = validateSchema(bad, 'attitude');
+  check(!ok && why.any((w) => w.contains('strength')),
+      'an attitude carries no strength: ${why.join('; ')}');
+}
+
+void v135() {
+  final o = occ('rainfall_begins');
+  final att = attitude(believerId(), 'expects', o['id'] as String);
+  final a = signed('assertion', {
+    'about': att['id'], 'evidence_type': 'observation', 'confidence': 0.9,
+  }, 'signer');
+  final (ok, why) = validateSchema(a);
+  check(ok, why);
+  check(verifyRecord(a), 'the assertion verifies');
+  // the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+  check((att['holder'] as String).split(':').first == 'token_individual',
+      'the holder is a modeled agent');
+  check((a['source'] as String).split(':').first == 'ed25519',
+      'the source is a signing key');
+  check(att['holder'] != a['source'], 'the holder and the source differ');
+}
+
+void v136() {
+  // the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+  final secs = <String, dynamic>{
+    'type': 'causal_relation_object', 'causes': [sym('occurrent:a')],
+    'effects': [sym('occurrent:b')], 'modality': 'sufficient',
+    'temporal': temporal(0, 1, 'seconds'),
+  };
+  check(
+      identify(secs) ==
+          'causal_relation_object:'
+              'd8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c',
+      'the wall-clock CRO identity holds under 4.0.0');
+  // the V118 unbound conduit, re-pinned under 4.0.0
+  final unbound = conduitRealized();
+  check(
+      unbound['id'] ==
+          'conduit:'
+              'dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6',
+      'the unbound conduit identity holds under 4.0.0');
+}
+
+void v137() {
+  final hexid = '0' * 64;
+  // NOTE: the abbreviated prefixes are intentional (the negative test); they
+  // must NOT be re-minted. Each is assembled to survive re-mint tools.
+  final attAbbr = 'a' 't' 't';
+  final prdAbbr = 'p' 'r' 'd';
+  final errAbbr = 'e' 'r' 'r';
+  final badAtt = <String, dynamic>{
+    'type': 'attitude', 'id': '$attAbbr:$hexid',
+    'holder': 'token_individual:$hexid', 'attitude_type': 'believes',
+    'content': 'state_assertion:$hexid',
+  };
+  var (ok, _) = validateSchema(badAtt, 'attitude');
+  check(!ok, 'the abbreviated attitude scheme must be rejected');
+  final badPrd = <String, dynamic>{
+    'type': 'predicted_occurrence', 'id': '$prdAbbr:$hexid',
+    'instantiates': 'occurrent:$hexid', 'interval': tickInterval(0),
+    'predictor': 'token_individual:$hexid',
+  };
+  (ok, _) = validateSchema(badPrd, 'predicted_occurrence');
+  check(!ok, 'the abbreviated predicted_occurrence scheme must be rejected');
+  final badErr = <String, dynamic>{
+    'type': 'prediction_error', 'id': '$errAbbr:$hexid',
+    'predicted': 'predicted_occurrence:$hexid', 'discrepancy': 0.0,
+  };
+  (ok, _) = validateSchema(badErr, 'prediction_error');
+  check(!ok, 'the abbreviated prediction_error scheme must be rejected');
+  final wholeAtt = Map<String, dynamic>.from(badAtt)
+    ..['id'] = 'attitude:$hexid';
+  var (ok2, why2) = validateSchema(wholeAtt, 'attitude');
+  check(ok2, 'the whole-word attitude validates: ${why2.join('; ')}');
+  final wholePrd = Map<String, dynamic>.from(badPrd)
+    ..['id'] = 'predicted_occurrence:$hexid';
+  (ok2, why2) = validateSchema(wholePrd, 'predicted_occurrence');
+  check(ok2,
+      'the whole-word predicted_occurrence validates: ${why2.join('; ')}');
+  final wholeErr = Map<String, dynamic>.from(badErr)
+    ..['id'] = 'prediction_error:$hexid';
+  (ok2, why2) = validateSchema(wholeErr, 'prediction_error');
+  check(ok2, 'the whole-word prediction_error validates: ${why2.join('; ')}');
+}
+
+// ---------------------------------------------------------------------------
 
 void main() {
-  print('causalontology-dart conformance run (specification 2.0.0)');
+  print('causalontology-dart conformance run (specification 4.0.0)');
   stdout.write(
       'internal checks (RFC 8032, RFC 8785, fixed constants) ... ');
   internalChecks();
@@ -1429,9 +1984,12 @@ void main() {
     v71, v72, v73, v74, v75, v76, v77, v78, v79, v80,
     v81, v82, v83, v84, v85, v86, v87, v88, v89, v90,
     v91, v92, v93, v94, v95, v96, v97, v98, v99, v100,
-    v101, v102, v103, v104, v105, v106, v107,
+    v101, v102, v103, v104, v105, v106, v107, v108, v109, v110,
+    v111, v112, v113, v114, v115, v116, v117, v118, v119, v120,
+    v121, v122, v123, v124, v125, v126, v127, v128, v129, v130,
+    v131, v132, v133, v134, v135, v136, v137,
   ];
-  const total = 107;
+  const total = 137;
   var failures = 0;
   for (var n = 1; n <= total; n++) {
     final name = vecFile(n)
@@ -1453,5 +2011,5 @@ void main() {
     exit(1);
   }
   print('causalontology-dart is CONFORMANT to the suite '
-      '(vectors frozen at specification 2.0.0).');
+      '(vectors frozen at specification 4.0.0).');
 }

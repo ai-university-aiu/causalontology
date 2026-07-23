@@ -1,12 +1,15 @@
 <?php
 
-/* The Causalontology conformance runner for causalontology-php (spec 2.0.0).
+/* The Causalontology conformance runner for causalontology-php (spec 4.0.0).
  *
  * Runs every vector in conformance/vectors/ against the PHP binding. An
  * implementation is conformant if and only if it passes every vector; this
- * runner exits nonzero on any failure. Vectors are the whole-word 2.0.0
- * baseline (Principle P7): V01-V38 re-frozen unaltered in meaning, V39-V107
- * new. This runner reproduces every vNN assertion of the Python reference
+ * runner exits nonzero on any failure. Vectors V01-V107 are the whole-word
+ * 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in meaning,
+ * V39-V107 new. V108-V119 are the 3.0.0 additions (the ordinal ticks unit, the
+ * cross_stratal_seam, the conduit realized_by); V120-V137 are the 4.0.0
+ * additions (the attitude, the predicted_occurrence, the prediction_error).
+ * This runner reproduces every vNN assertion of the Python reference
  * (bindings/python/tests/run_conformance.py) with the same fixtures.
  *
  * Usage: php bindings/php/conformance.php
@@ -46,11 +49,12 @@ if (PHP_VERSION_ID < 80200) {
 // bindings/php/conformance.php -> two levels below the repository root.
 define('CO_VECDIR', __DIR__ . '/../../conformance/vectors');
 
-// The seventeen whole-word schemes (Principle P7), plus ed25519 for keys.
+// The twenty-one whole-word schemes (Principle P7), plus ed25519 for keys.
 const CO_SCHEMES = ['occurrent', 'causal_relation_object', 'continuant', 'realizable',
     'assertion', 'enrichment', 'retraction', 'succession', 'stratum', 'bridge',
-    'port', 'conduit', 'quality', 'token_individual', 'token_occurrence',
-    'state_assertion', 'token_causal_claim'];
+    'cross_stratal_seam', 'port', 'conduit', 'quality', 'token_individual',
+    'token_occurrence', 'state_assertion', 'token_causal_claim',
+    'attitude', 'predicted_occurrence', 'prediction_error'];
 
 // ---------------------------------------------------------------------------
 // small assertion helper
@@ -421,6 +425,102 @@ function stateFixture(string $datatype, array $value, ?string $unit = null): arr
     $st = state($subj, $q['id'], $value,
                 ['start' => '2026-01-01T00:00:00Z', 'end' => '2026-01-01T01:00:00Z']);
     return [$st, $q];
+}
+
+// ---------------------------------------------------------------------------
+// 3.0.0 / 4.0.0 content builders (mirroring the Python reference)
+// ---------------------------------------------------------------------------
+
+/** A cross_stratal_seam content object completed with its id. */
+function seam(string $source, string $target, string $mechanismStatus, ?array $chain = null): array
+{
+    $o = ['type' => 'cross_stratal_seam', 'source' => $source, 'target' => $target,
+          'mechanism_status' => $mechanismStatus];
+    if ($chain !== null && $chain !== []) {
+        $o['chain'] = $chain;
+    }
+    return mk($o);
+}
+
+/** @return array{0: array, 1: array, 2: array} [seam, occMap, stratumMap] */
+function seamFixture(int $srcOrd, int $tgtOrd, string $mechanismStatus,
+                     ?array $chainOrds = null): array
+{
+    $s = neuro();
+    $src = occ('source_event', $s[$srcOrd]['id']);
+    $tgt = occ('target_event', $s[$tgtOrd]['id']);
+    $omap = [$src['id'] => $src, $tgt['id'] => $tgt];
+    $smap = [$s[$srcOrd]['id'] => $s[$srcOrd], $s[$tgtOrd]['id'] => $s[$tgtOrd]];
+    $chain = null;
+    if ($chainOrds !== null) {
+        $chain = [];
+        foreach ($chainOrds as $i => $o) {
+            $c = occ('chain_' . $i, $s[$o]['id']);
+            $omap[$c['id']] = $c;
+            $smap[$s[$o]['id']] = $s[$o];
+            $chain[] = $c['id'];
+        }
+    }
+    return [seam($src['id'], $tgt['id'], $mechanismStatus, $chain), $omap, $smap];
+}
+
+/** A conduit with an optional realized_by reference, completed with its id. */
+function conduitRealized(?string $realizedBy = null): array
+{
+    $frm = 'port:' . str_repeat('1', 64);
+    $to = 'port:' . str_repeat('2', 64);
+    $x = 'occurrent:' . str_repeat('3', 64);
+    $o = ['type' => 'conduit', 'label' => 'conn', 'from' => $frm, 'to' => $to,
+          'carries' => [$x]];
+    if ($realizedBy !== null) {
+        $o['realized_by'] = $realizedBy;
+    }
+    return mk($o);
+}
+
+/** An attitude content object completed with its id. */
+function attitude(string $holder, string $attitudeType, string $content): array
+{
+    return mk(['type' => 'attitude', 'holder' => $holder,
+               'attitude_type' => $attitudeType, 'content' => $content]);
+}
+
+/** A predicted_occurrence completed with its id (strength optional). */
+function predicted(string $instantiates, array $interval, string $predictor,
+                   int|float|null $strength = null): array
+{
+    $o = ['type' => 'predicted_occurrence', 'instantiates' => $instantiates,
+          'interval' => $interval, 'predictor' => $predictor];
+    if ($strength !== null) {
+        $o['strength'] = $strength;
+    }
+    return mk($o);
+}
+
+/** A prediction_error completed with its id (observed optional). */
+function predictionError(string $predictedId, int|float $discrepancy,
+                         ?string $observed = null): array
+{
+    $o = ['type' => 'prediction_error', 'predicted' => $predictedId,
+          'discrepancy' => $discrepancy];
+    if ($observed !== null) {
+        $o['observed'] = $observed;
+    }
+    return mk($o);
+}
+
+/** A modeled predicting agent (a token individual), by identity. */
+function predictorId(): string
+{
+    $c = cnt('forecasting_mind');
+    return individual($c['id'], 'predictor_p')['id'];
+}
+
+/** A modeled believing agent (a token individual), by identity. */
+function believerId(string $designator = 'holder_h'): string
+{
+    $c = cnt('believing_mind');
+    return individual($c['id'], $designator)['id'];
 }
 
 // ---------------------------------------------------------------------------
@@ -1252,6 +1352,409 @@ function vectorSuite(): array
         assertTrue($ok, implode('; ', $why));
     };
 
+    // --- V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam,
+    //     conduit realized_by) ---
+
+    // -- Change One: the ordinal (tick) temporal unit --
+    $v['v108'] = function (): void {
+        $P = cro([sym('occurrent:a')], [sym('occurrent:b')],
+                 ['temporal' => ['minimum_delay' => 0, 'maximum_delay' => 5, 'unit' => 'ticks'],
+                  'modality' => 'sufficient']);
+        [$ok, $why] = SchemaValidator::validateSchema($P);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::validateSemantics($P);
+        assertTrue($ok, implode('; ', $why));
+    };
+    $v['v109'] = function (): void {
+        $P = cro([sym('occurrent:a')], [sym('occurrent:b')],
+                 ['temporal' => ['minimum_delay' => 2, 'maximum_delay' => 5, 'unit' => 'ticks']]);
+        assertTrue(Semantics::admissible($P, 3) === true, '3 ticks inside [2, 5]');
+        assertTrue(Semantics::admissible($P, 2) === true && Semantics::admissible($P, 5) === true,
+            'endpoints are admissible');
+        assertTrue(Semantics::admissible($P, 6) === false && Semantics::admissible($P, 1) === false,
+            'outside the tick window is not admissible');
+    };
+    $v['v110'] = function (): void {
+        $tickWindow = ['minimum_delay' => 0, 'maximum_delay' => 5, 'unit' => 'ticks'];
+        $wallWindow = ['minimum_delay' => 0, 'maximum_delay' => 5, 'unit' => 'seconds'];
+        assertTrue(Semantics::delayWithinWindow(['duration' => 3, 'unit' => 'ticks'], $tickWindow) === true,
+            '3 ticks within the tick window');
+        assertTrue(Semantics::delayWithinWindow(['duration' => 1, 'unit' => 'ticks'], $wallWindow) === false,
+            'a tick delay is not within a wall-clock window');
+        assertTrue(Semantics::delayWithinWindow(['duration' => 1, 'unit' => 'seconds'], $tickWindow) === false,
+            'a seconds delay is not within a tick window');
+        $a = ['causes' => [sym('occurrent:a')], 'effects' => [sym('occurrent:b')],
+              'temporal' => $tickWindow, 'modality' => 'sufficient'];
+        $b = ['causes' => [sym('occurrent:a')], 'effects' => [sym('occurrent:b')],
+              'temporal' => $wallWindow, 'modality' => 'preventive'];
+        assertTrue(Semantics::conflicts($a, $b) === false, 'disjoint dimensions do not overlap');
+        $refused = false;
+        try {
+            Semantics::toSeconds(1, 'ticks');
+        } catch (Throwable $e) {
+            $refused = true;
+        }
+        assertTrue($refused, 'to_seconds must refuse an ordinal unit');
+    };
+    $v['v111'] = function (): void {
+        $base = ['type' => 'causal_relation_object', 'causes' => [sym('occurrent:a')],
+                 'effects' => [sym('occurrent:b')], 'modality' => 'sufficient'];
+        $tick = $base;
+        $tick['temporal'] = ['minimum_delay' => 0, 'maximum_delay' => 1, 'unit' => 'ticks'];
+        $secs = $base;
+        $secs['temporal'] = ['minimum_delay' => 0, 'maximum_delay' => 1, 'unit' => 'seconds'];
+        assertTrue(Canonical::identify($tick) !== Canonical::identify($secs),
+            'the unit is identity-bearing');
+        // a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+        assertTrue(Canonical::identify($secs) === 'causal_relation_object:'
+            . 'd8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c',
+            'the wall-clock CRO identity is pinned');
+    };
+
+    // -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+    $v['v112'] = function (): void {
+        [$sm, $omap, $smap] = seamFixture(14, 4, 'unmodeled');
+        [$ok, $why] = SchemaValidator::validateSchema($sm);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::validateSemantics($sm);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::seamWellformed($sm, $omap, $smap);
+        assertTrue($ok, $why);
+    };
+    $v['v113'] = function (): void {
+        [$a] = seamFixture(14, 4, 'unmodeled');
+        [$b, $omap, $smap] = seamFixture(14, 4, 'absent');
+        [$ok, $why] = SchemaValidator::validateSchema($b);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::seamWellformed($b, $omap, $smap);
+        assertTrue($ok, $why);
+        assertTrue($a['id'] !== $b['id'], 'mechanism_status is identity-bearing');
+    };
+    $v['v114'] = function (): void {
+        [$drawn, $omap, $smap] = seamFixture(14, 4, 'unmodeled', [9, 7, 6, 5]);
+        [$ok, $why] = SchemaValidator::validateSchema($drawn);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::seamWellformed($drawn, $omap, $smap);
+        assertTrue($ok, $why);
+        [$bad, $omap2, $smap2] = seamFixture(14, 4, 'absent', [9, 7, 6, 5]);
+        [$ok, $why] = Semantics::validateSemantics($bad);
+        $found = false;
+        foreach ($why as $reason) {
+            if (str_contains($reason, 'contradictory_seam')) {
+                $found = true;
+                break;
+            }
+        }
+        assertTrue(!$ok && $found, implode('; ', $why));
+        [$ok2] = Semantics::seamWellformed($bad, $omap2, $smap2);
+        assertTrue(!$ok2, 'a drawn chain with absent status is malformed');
+    };
+    $v['v115'] = function (): void {
+        [$sm, $omap, $smap] = seamFixture(14, 4, 'unmodeled');
+        $s = neuro();
+        assertTrue(Semantics::seamHome($sm, $omap, $smap) === $s[14]['id'],
+            'the home is the coarsest (max ordinal) stratum');
+    };
+    $v['v116'] = function (): void {
+        [$adj, $o1, $s1] = seamFixture(6, 5, 'unmodeled');       // adjacent (gap 1)
+        [$ok] = Semantics::seamWellformed($adj, $o1, $s1);
+        assertTrue(!$ok, 'an adjacent seam is malformed');
+        [$co, $o2, $s2] = seamFixture(6, 6, 'unmodeled');        // co-stratal (gap 0)
+        [$ok] = Semantics::seamWellformed($co, $o2, $s2);
+        assertTrue(!$ok, 'a co-stratal seam is malformed');
+        [$sm] = seamFixture(14, 4, 'unmodeled');
+        assertTrue(str_starts_with($sm['id'], 'cross_stratal_seam:'), 'a new identity scheme');
+    };
+
+    // -- Change Three: the realized_by reference --
+    $v['v117'] = function (): void {
+        $c = conduitRealized('causal_relation_object:' . str_repeat('a', 64));
+        [$ok, $why] = SchemaValidator::validateSchema($c);
+        assertTrue($ok, implode('; ', $why));
+        $c2 = conduitRealized('native:region_stratum_predict');
+        [$ok, $why] = SchemaValidator::validateSchema($c2);
+        assertTrue($ok, implode('; ', $why));      // a native scheme reference is legal
+    };
+    $v['v118'] = function (): void {
+        $bound = conduitRealized('native:region_stratum_predict');
+        $unbound = conduitRealized();
+        assertTrue($bound['id'] !== $unbound['id'], 'realized_by is identity-bearing');
+        // an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0)
+        assertTrue($unbound['id'] === 'conduit:'
+            . 'dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6',
+            'the unbound conduit identity is pinned');
+    };
+    $v['v119'] = function (): void {
+        $unbound = conduitRealized();
+        [$ok, $why] = SchemaValidator::validateSchema($unbound);
+        assertTrue($ok, implode('; ', $why));      // unbound is legal
+        $bad = $unbound;
+        $bad['realized_by'] = 'not-a-scheme-qualified-reference';
+        assertTrue(!SchemaValidator::validateSchema($bad, 'conduit')[0],
+            'a malformed realized_by reference is rejected');
+    };
+
+    // --- V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+    //     prediction_error) ---
+
+    // -- Group X: prediction and prediction error (Section A) --
+    $v['v120'] = function (): void {
+        $o = occ('rainfall_begins');
+        $p = predicted($o['id'], ['start_tick' => 3, 'end_tick' => 8], predictorId());
+        [$ok, $why] = SchemaValidator::validateSchema($p);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::validateSemantics($p);
+        assertTrue($ok, implode('; ', $why));
+        assertTrue(str_starts_with($p['id'], 'predicted_occurrence:'), 'a new identity scheme');
+        $report = Canonical::identify(['type' => 'token_occurrence', 'instantiates' => $o['id'],
+                                       'interval' => ['start_tick' => 3, 'end_tick' => 8]],
+                                      'token_occurrence');
+        assertTrue($p['id'] !== $report, 'a forecast is not a report');
+        assertTrue(str_starts_with($report, 'token_occurrence:'), 'the report is a token_occurrence');
+    };
+    $v['v121'] = function (): void {
+        $o = occ('rainfall_begins');
+        $wall = ['start' => '2026-07-23T00:00:00Z', 'end' => '2026-07-24T00:00:00Z'];
+        $who = predictorId();
+        $withStrength = predicted($o['id'], $wall, $who, 0.8);
+        $without = predicted($o['id'], $wall, $who);
+        foreach ([$withStrength, $without] as $p) {
+            [$ok, $why] = SchemaValidator::validateSchema($p);
+            assertTrue($ok, implode('; ', $why));
+            [$ok, $why] = Semantics::validateSemantics($p);
+            assertTrue($ok, implode('; ', $why));
+        }
+        assertTrue($withStrength['id'] !== $without['id'], 'strength is identity-bearing');
+    };
+    $v['v122'] = function (): void {
+        $o = occ('rainfall_begins');
+        $bad = mk(['type' => 'predicted_occurrence', 'instantiates' => $o['id'],
+                   'interval' => ['start_tick' => 3]]);
+        [$ok, $why] = SchemaValidator::validateSchema($bad, 'predicted_occurrence');
+        $found = false;
+        foreach ($why as $reason) {
+            if (str_contains($reason, 'predictor')) {
+                $found = true;
+                break;
+            }
+        }
+        assertTrue(!$ok && $found, implode('; ', $why));
+    };
+    $v['v123'] = function (): void {
+        $o = occ('rainfall_begins');
+        $both = predicted($o['id'], ['start' => '2026-07-23T00:00:00Z', 'start_tick' => 3],
+                          predictorId());
+        [$ok, $why] = SchemaValidator::validateSchema($both);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::validateSemantics($both);
+        $found = false;
+        foreach ($why as $reason) {
+            if (str_contains($reason, 'dimension_conflict')) {
+                $found = true;
+                break;
+            }
+        }
+        assertTrue(!$ok && $found, implode('; ', $why));
+    };
+    $v['v124'] = function (): void {
+        $o = occ('rainfall_begins');
+        $p = predicted($o['id'], ['start' => '2026-07-23T00:00:00Z'], predictorId());
+        $t = token($o['id'], ['start' => '2026-07-23T06:00:00Z']);
+        $err = predictionError($p['id'], 0.0, $t['id']);
+        [$ok, $why] = SchemaValidator::validateSchema($err);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::validateSemantics($err);
+        assertTrue($ok, implode('; ', $why));
+        assertTrue(Semantics::predictionPairingMismatch($err, $p, $t) === false, 'no pairing mismatch');
+    };
+    $v['v125'] = function (): void {
+        $o = occ('rainfall_begins');
+        $p = predicted($o['id'], ['start' => '2026-07-23T00:00:00Z'], predictorId());
+        $err = predictionError($p['id'], -1.0);
+        [$ok, $why] = SchemaValidator::validateSchema($err);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::validateSemantics($err);
+        assertTrue($ok, implode('; ', $why));
+        assertTrue(!array_key_exists('observed', $err), 'observed is absent');
+        assertTrue(Semantics::predictionPairingMismatch($err, $p, null) === false,
+            'an absent observed is never a mismatch');
+    };
+    $v['v126'] = function (): void {
+        $o = occ('rainfall_begins');
+        $p = predicted($o['id'], ['start_tick' => 0], predictorId());
+        $bad = mk(['type' => 'prediction_error', 'predicted' => $p['id']]);
+        [$ok, $why] = SchemaValidator::validateSchema($bad, 'prediction_error');
+        $found = false;
+        foreach ($why as $reason) {
+            if (str_contains($reason, 'discrepancy')) {
+                $found = true;
+                break;
+            }
+        }
+        assertTrue(!$ok && $found, implode('; ', $why));
+    };
+    $v['v127'] = function (): void {
+        $o = occ('rainfall_begins');
+        $other = occ('snowfall_begins');
+        $p = predicted($o['id'], ['start' => '2026-07-23T00:00:00Z'], predictorId());
+        $t = token($other['id'], ['start' => '2026-07-23T06:00:00Z']);
+        $err = predictionError($p['id'], 1.0, $t['id']);
+        [$ok, $why] = SchemaValidator::validateSchema($err);
+        assertTrue($ok, implode('; ', $why));
+        assertTrue(Semantics::predictionPairingMismatch($err, $p, $t) === true, 'pairing mismatch');
+    };
+
+    // -- Group Y: attitude and theory of mind (Section B) --
+    $v['v128'] = function (): void {
+        [$st] = stateFixture('quantity', ['quantity' => 15.0, 'unit' => 'ug/dL'], 'ug/dL');
+        $att = attitude(believerId(), 'believes', $st['id']);
+        [$ok, $why] = SchemaValidator::validateSchema($att);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::validateSemantics($att);
+        assertTrue($ok, implode('; ', $why));
+    };
+    $v['v129'] = function (): void {
+        $a = occ('switch_pressed');
+        $b = occ('light_on');
+        $actual = cro([$a['id']], [$b['id']], ['modality' => 'sufficient']);
+        $believed = cro([$a['id']], [$b['id']], ['modality' => 'preventive']);
+        assertTrue(Semantics::conflicts($believed, $actual) === true, 'the claims contradict');
+        $att = attitude(believerId(), 'believes', $believed['id']);
+        [$ok, $why] = SchemaValidator::validateSchema($att);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::validateSemantics($att);
+        assertTrue($ok, implode('; ', $why));           // validity unaffected
+        $s = new Store(true);
+        $s->put($a);
+        $s->put($b);
+        $s->put($actual);
+        $s->put($att);
+        assertTrue($s->gaps('conflict') === [],
+            'Rule 25: no conflict raised for a quarantined belief');
+    };
+    $v['v130'] = function (): void {
+        $o = occ('rainfall_begins');
+        $att = attitude(believerId(), 'desires', $o['id']);
+        [$ok, $why] = SchemaValidator::validateSchema($att);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::validateSemantics($att);
+        assertTrue($ok, implode('; ', $why));
+    };
+    $v['v131'] = function (): void {
+        $o = occ('press_button');
+        $att = attitude(believerId(), 'intends', $o['id']);
+        [$ok, $why] = SchemaValidator::validateSchema($att);
+        assertTrue($ok, implode('; ', $why));
+        [$ok, $why] = Semantics::validateSemantics($att);
+        assertTrue($ok, implode('; ', $why));
+    };
+    $v['v132'] = function (): void {
+        [$st] = stateFixture('boolean', ['boolean' => true]);
+        $inner = attitude(believerId('holder_b'), 'believes', $st['id']);
+        $outer = attitude(believerId('holder_a'), 'believes', $inner['id']);
+        foreach ([$inner, $outer] as $att) {
+            [$ok, $why] = SchemaValidator::validateSchema($att);
+            assertTrue($ok, implode('; ', $why));
+            [$ok, $why] = Semantics::validateSemantics($att);
+            assertTrue($ok, implode('; ', $why));
+        }
+        assertTrue($outer['id'] !== $inner['id'], 'distinct ids');
+        assertTrue($outer['content'] === $inner['id'], 'nested content');
+    };
+    $v['v133'] = function (): void {
+        $o = occ('rainfall_begins');
+        $bad = mk(['type' => 'attitude', 'holder' => believerId(),
+                   'attitude_type' => 'suspects', 'content' => $o['id']]);
+        [$ok, $why] = SchemaValidator::validateSchema($bad, 'attitude');
+        $found = false;
+        foreach ($why as $reason) {
+            if (str_contains($reason, 'attitude_type')) {
+                $found = true;
+                break;
+            }
+        }
+        assertTrue(!$ok && $found, implode('; ', $why));
+    };
+    $v['v134'] = function (): void {
+        $o = occ('rainfall_begins');
+        $bad = mk(['type' => 'attitude', 'holder' => believerId(),
+                   'attitude_type' => 'believes', 'content' => $o['id'],
+                   'strength' => 0.9]);
+        [$ok, $why] = SchemaValidator::validateSchema($bad, 'attitude');
+        $found = false;
+        foreach ($why as $reason) {
+            if (str_contains($reason, 'strength')) {
+                $found = true;
+                break;
+            }
+        }
+        assertTrue(!$ok && $found, implode('; ', $why));
+    };
+    $v['v135'] = function (): void {
+        $o = occ('rainfall_begins');
+        $att = attitude(believerId(), 'expects', $o['id']);
+        $a = signed('assertion', ['about' => $att['id'],
+                                  'evidence_type' => 'observation', 'confidence' => 0.9], 'signer');
+        [$ok, $why] = SchemaValidator::validateSchema($a);
+        assertTrue($ok, implode('; ', $why));
+        assertTrue(Signing::verifyRecord($a) === true, 'the assertion verifies');
+        // the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+        assertTrue(explode(':', $att['holder'], 2)[0] === 'token_individual',
+            'the holder is a modeled agent');
+        assertTrue(explode(':', $a['source'], 2)[0] === 'ed25519',
+            'the source is a signing key');
+        assertTrue($att['holder'] !== $a['source'], 'the holder and the source differ');
+    };
+    $v['v136'] = function (): void {
+        // the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+        $secs = ['type' => 'causal_relation_object', 'causes' => [sym('occurrent:a')],
+                 'effects' => [sym('occurrent:b')], 'modality' => 'sufficient',
+                 'temporal' => ['minimum_delay' => 0, 'maximum_delay' => 1, 'unit' => 'seconds']];
+        assertTrue(Canonical::identify($secs) === 'causal_relation_object:'
+            . 'd8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c',
+            'the wall-clock CRO identity holds under 4.0.0');
+        // the V118 unbound conduit, re-pinned under 4.0.0
+        $unbound = conduitRealized();
+        assertTrue($unbound['id'] === 'conduit:'
+            . 'dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6',
+            'the unbound conduit identity holds under 4.0.0');
+    };
+    $v['v137'] = function (): void {
+        $hexid = str_repeat('0', 64);
+        // The abbreviated prefixes below are intentional (the negative test);
+        // they must NOT be re-minted. Each is assembled to survive re-mint tools.
+        $attAbbr = 'a' . 't' . 't';
+        $prdAbbr = 'p' . 'r' . 'd';
+        $errAbbr = 'e' . 'r' . 'r';
+        $badAtt = ['type' => 'attitude', 'id' => $attAbbr . ':' . $hexid,
+                   'holder' => 'token_individual:' . $hexid,
+                   'attitude_type' => 'believes', 'content' => 'state_assertion:' . $hexid];
+        assertTrue(!SchemaValidator::validateSchema($badAtt, 'attitude')[0],
+            'the abbreviated attitude scheme must be rejected');
+        $badPrd = ['type' => 'predicted_occurrence', 'id' => $prdAbbr . ':' . $hexid,
+                   'instantiates' => 'occurrent:' . $hexid,
+                   'interval' => ['start_tick' => 0],
+                   'predictor' => 'token_individual:' . $hexid];
+        assertTrue(!SchemaValidator::validateSchema($badPrd, 'predicted_occurrence')[0],
+            'the abbreviated predicted_occurrence scheme must be rejected');
+        $badErr = ['type' => 'prediction_error', 'id' => $errAbbr . ':' . $hexid,
+                   'predicted' => 'predicted_occurrence:' . $hexid, 'discrepancy' => 0.0];
+        assertTrue(!SchemaValidator::validateSchema($badErr, 'prediction_error')[0],
+            'the abbreviated prediction_error scheme must be rejected');
+        $wholeAtt = $badAtt;
+        $wholeAtt['id'] = 'attitude:' . $hexid;
+        [$ok, $why] = SchemaValidator::validateSchema($wholeAtt, 'attitude');
+        assertTrue($ok, implode('; ', $why));
+        $wholePrd = $badPrd;
+        $wholePrd['id'] = 'predicted_occurrence:' . $hexid;
+        [$ok, $why] = SchemaValidator::validateSchema($wholePrd, 'predicted_occurrence');
+        assertTrue($ok, implode('; ', $why));
+        $wholeErr = $badErr;
+        $wholeErr['id'] = 'prediction_error:' . $hexid;
+        [$ok, $why] = SchemaValidator::validateSchema($wholeErr, 'prediction_error');
+        assertTrue($ok, implode('; ', $why));
+    };
+
     return $v;
 }
 
@@ -1259,13 +1762,13 @@ function vectorSuite(): array
 
 function main(): void
 {
-    echo "causalontology-php conformance run (specification 2.0.0)\n";
+    echo "causalontology-php conformance run (specification 4.0.0)\n";
     echo 'internal checks (RFC 8032, RFC 8785, fixed constants) ... ';
     internalChecks();
     echo "ok\n";
     $vectors = vectorSuite();
     $failures = 0;
-    $total = 107;
+    $total = 137;
     for ($n = 1; $n <= $total; $n++) {
         $key = sprintf('v%02d', $n);
         $name = vecName($n);
@@ -1283,7 +1786,7 @@ function main(): void
         exit(1);
     }
     echo "causalontology-php is CONFORMANT to the suite "
-       . "(vectors frozen at specification 2.0.0).\n";
+       . "(vectors frozen at specification 4.0.0).\n";
 }
 
 main();

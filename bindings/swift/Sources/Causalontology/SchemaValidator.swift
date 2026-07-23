@@ -3,14 +3,14 @@
 // Schema validation against spec/schema/*.schema.json.
 //
 // A deliberately small interpreter for exactly the JSON Schema keywords the
-// eight Causalontology schemas use: type, const, enum, pattern, required,
+// twenty-one Causalontology schemas use: type, const, enum, pattern, required,
 // properties, additionalProperties, items, minItems, minLength, minimum,
 // maximum, oneOf, and local $ref (#/$defs/...). "format" is treated as an
 // annotation, as the 2020-12 draft does by default.
 
 import Foundation
 
-/// Loads the eight schemas from a spec/schema directory and validates
+/// Loads the twenty-one schemas from a spec/schema directory and validates
 /// objects against them. Not thread-safe (the schema cache is unlocked);
 /// the conformance harness is single-threaded.
 public final class SchemaValidator {
@@ -24,6 +24,7 @@ public final class SchemaValidator {
         "realizable": "realizable.schema.json",
         "stratum": "stratum.schema.json",
         "bridge": "bridge.schema.json",
+        "cross_stratal_seam": "cross_stratal_seam.schema.json",
         "port": "port.schema.json",
         "conduit": "conduit.schema.json",
         "quality": "quality.schema.json",
@@ -31,6 +32,9 @@ public final class SchemaValidator {
         "token_occurrence": "token.schema.json",
         "state_assertion": "state.schema.json",
         "token_causal_claim": "token_causal_claim.schema.json",
+        "attitude": "attitude.schema.json",
+        "predicted_occurrence": "predicted_occurrence.schema.json",
+        "prediction_error": "prediction_error.schema.json",
         "assertion": "assertion.schema.json",
         "enrichment": "enrichment.schema.json",
         "retraction": "retraction.schema.json",

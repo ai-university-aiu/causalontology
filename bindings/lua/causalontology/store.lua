@@ -25,9 +25,10 @@ local store = {}
 
 local CONTENT_KINDS = {
   occurrent = true, causal_relation_object = true, continuant = true,
-  realizable = true, stratum = true, bridge = true, port = true,
-  conduit = true, quality = true, token_individual = true,
+  realizable = true, stratum = true, bridge = true, cross_stratal_seam = true,
+  port = true, conduit = true, quality = true, token_individual = true,
   token_occurrence = true, state_assertion = true, token_causal_claim = true,
+  attitude = true, predicted_occurrence = true, prediction_error = true,
 }
 local RECORD_KINDS = {
   assertion = true, enrichment = true, retraction = true, succession = true,

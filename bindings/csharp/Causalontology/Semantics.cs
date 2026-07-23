@@ -22,6 +22,28 @@ public static class Semantics
             ["years"] = 31556952,
         };
 
+    // 3.0.0: the ordinal (dimensionless) temporal units. A tick is a discrete
+    // step with NO wall-clock mapping; a tick window is ordered by integer
+    // comparison, and an ordinal window and a wall-clock window are DIFFERENT
+    // DIMENSIONS that do not compare (mixing them is never within-window and
+    // never overlapping).
+    private static readonly HashSet<string> OrdinalUnits = new() { "ticks" };
+
+    // "ordinal" for a tick-like unit, else "wallclock".
+    private static string Dimension(string unit)
+        => OrdinalUnits.Contains(unit) ? "ordinal" : "wallclock";
+
+    // A comparable magnitude within ONE dimension: raw tick count for an
+    // ordinal unit, seconds for a wall-clock unit. Never mix dimensions.
+    private static double Magnitude(double value, string unit)
+    {
+        if (OrdinalUnits.Contains(unit))
+            return value; // a dimensionless tick count
+        if (unit == "instant")
+            return 0;
+        return value * UnitSeconds[unit];
+    }
+
     /// <summary>Rule 12: enrichment field-to-kind validity and entry shapes.</summary>
     public static readonly IReadOnlyDictionary<string, (string[] LegalKinds, string Shape)>
         EnrichmentFields = new Dictionary<string, (string[], string)>
@@ -105,6 +127,43 @@ public static class Semantics
             }
         }
 
+        // 3.0.0 Rule 22, local clause: a Cross Stratal Seam that DRAWS a chain
+        // has, by drawing it, a modelled intervening mechanism - so
+        // mechanism_status 'absent' contradicts a present chain (the honest-
+        // ignorance distinction must stay honest). The stratal well-formedness
+        // (non-adjacency, adjacency of chain steps, scheme, the home rule)
+        // needs the strata map and lives in SeamWellformed, exactly as bridge
+        // well-formedness does.
+        if (kind == "cross_stratal_seam")
+        {
+            if (obj.Get("chain") is not null
+                && obj.GetString("mechanism_status") == "absent")
+                errors.Add("contradictory_seam: a drawn chain cannot carry "
+                           + "mechanism_status 'absent' (a drawn mechanism is "
+                           + "not absent)");
+        }
+
+        // 4.0.0 Rule 24, local clause: a predicted_occurrence's interval
+        // carries exactly ONE temporal dimension - a wall-clock start (optional
+        // end) or an ordinal start_tick (optional end_tick), never both and
+        // never neither. Per Rule 23 the two dimensions never compare. The
+        // pairing check of a prediction_error against its predicted_occurrence
+        // and its observed token_occurrence needs those objects and lives in
+        // PredictionPairingMismatch, exactly as CoveringLawMismatch does.
+        if (kind == "predicted_occurrence")
+        {
+            var iv = obj.Get("interval") as JsonMap ?? new JsonMap();
+            var wall = iv.ContainsKey("start");
+            var tick = iv.ContainsKey("start_tick");
+            if (wall && tick)
+                errors.Add("dimension_conflict: a predicted interval must "
+                           + "carry exactly one temporal dimension, not a "
+                           + "wall-clock start AND an ordinal start_tick");
+            if (!wall && !tick)
+                errors.Add("missing_dimension: a predicted interval must "
+                           + "carry a wall-clock start or an ordinal start_tick");
+        }
+
         return (errors.Count == 0, errors);
     }
 
@@ -115,15 +174,17 @@ public static class Semantics
         return (missing.Count > 0, missing);
     }
 
-    /// <summary>Rule 4: temporal admissibility with the fixed constants.</summary>
-    public static bool Admissible(JsonMap cro, double elapsedSeconds)
+    /// <summary>Rule 4: temporal admissibility. For a wall-clock window elapsed
+    /// is in seconds; for an ordinal ('ticks') window elapsed is a tick count
+    /// (3.0.0). Ordering is by magnitude WITHIN the window's own dimension.</summary>
+    public static bool Admissible(JsonMap cro, double elapsed)
     {
         if (cro.Get("temporal") is not JsonMap temporal)
             return true; // no window imposes no constraint
-        var unit = UnitSeconds[(string)temporal["unit"]!];
-        var lo = Json.ToDouble(temporal["minimum_delay"]) * unit;
-        var hi = Json.ToDouble(temporal["maximum_delay"]) * unit;
-        return lo <= elapsedSeconds && elapsedSeconds <= hi;
+        var unit = (string)temporal["unit"]!;
+        var lo = Magnitude(Json.ToDouble(temporal["minimum_delay"]), unit);
+        var hi = Magnitude(Json.ToDouble(temporal["maximum_delay"]), unit);
+        return lo <= elapsed && elapsed <= hi;
     }
 
     private static bool WindowOverlap(JsonMap a, JsonMap b)
@@ -131,12 +192,15 @@ public static class Semantics
         if (a.Get("temporal") is not JsonMap ta
             || b.Get("temporal") is not JsonMap tb)
             return true; // either absent counts as overlapping
-        var ua = UnitSeconds[(string)ta["unit"]!];
-        var ub = UnitSeconds[(string)tb["unit"]!];
-        var loA = Json.ToDouble(ta["minimum_delay"]) * ua;
-        var hiA = Json.ToDouble(ta["maximum_delay"]) * ua;
-        var loB = Json.ToDouble(tb["minimum_delay"]) * ub;
-        var hiB = Json.ToDouble(tb["maximum_delay"]) * ub;
+        var unitA = (string)ta["unit"]!;
+        var unitB = (string)tb["unit"]!;
+        // 3.0.0: an ordinal window and a wall-clock window never overlap.
+        if (Dimension(unitA) != Dimension(unitB))
+            return false;
+        var loA = Magnitude(Json.ToDouble(ta["minimum_delay"]), unitA);
+        var hiA = Magnitude(Json.ToDouble(ta["maximum_delay"]), unitA);
+        var loB = Magnitude(Json.ToDouble(tb["minimum_delay"]), unitB);
+        var hiB = Magnitude(Json.ToDouble(tb["maximum_delay"]), unitB);
         return loA <= hiB && loB <= hiA;
     }
 
@@ -395,25 +459,35 @@ public static class Semantics
         return gaps;
     }
 
-    /// <summary>ALGORITHM E helper: normalize a delay to seconds.</summary>
+    /// <summary>ALGORITHM E helper: normalize a delay to seconds. 3.0.0: an
+    /// ordinal ('ticks') unit is dimensionless and has NO wall-clock mapping -
+    /// converting one to seconds is a category error and is refused.</summary>
     public static long ToSeconds(long duration, string unit)
-        => unit == "instant" ? 0 : duration * UnitSeconds[unit];
+    {
+        if (OrdinalUnits.Contains(unit))
+            throw new ArgumentException(
+                $"'{unit}' is an ordinal (dimensionless) unit and has no "
+                + "wall-clock seconds mapping");
+        return unit == "instant" ? 0 : duration * UnitSeconds[unit];
+    }
 
     /// <summary>ALGORITHM E (Rule 20): does an observed delay fall within a
-    /// covering law's temporal window? Inclusive at both ends.</summary>
+    /// covering law's temporal window? Inclusive at both ends. 3.0.0: an
+    /// ordinal delay compares to an ordinal window by integer tick count; an
+    /// ordinal delay and a wall-clock window (or vice versa) are different
+    /// dimensions and never fall within one another.</summary>
     public static bool DelayWithinWindow(JsonMap? actualDelay, JsonMap? temporal)
     {
         if (actualDelay is null || temporal is null)
             return true; // nothing to check
-        var observed = ToSeconds(
-            (long)Json.ToDouble(actualDelay["duration"]),
-            (string)actualDelay["unit"]!);
-        var lo = ToSeconds(
-            (long)Json.ToDouble(temporal["minimum_delay"]),
-            (string)temporal["unit"]!);
-        var hi = ToSeconds(
-            (long)Json.ToDouble(temporal["maximum_delay"]),
-            (string)temporal["unit"]!);
+        var delayUnit = (string)actualDelay["unit"]!;
+        var windowUnit = (string)temporal["unit"]!;
+        // dimension mismatch: a tick delay is not within a wall-clock window
+        if (Dimension(delayUnit) != Dimension(windowUnit))
+            return false;
+        var observed = Magnitude(Json.ToDouble(actualDelay["duration"]), delayUnit);
+        var lo = Magnitude(Json.ToDouble(temporal["minimum_delay"]), windowUnit);
+        var hi = Magnitude(Json.ToDouble(temporal["maximum_delay"]), windowUnit);
         return lo <= observed && observed <= hi;
     }
 
@@ -438,6 +512,79 @@ public static class Semantics
               > Json.ToDouble(stratumMap[fs]["ordinal"])))
             return (false, "malformed_bridge: coarse ordinal not > fine ordinal (e)");
         return (true, "well-formed bridge");
+    }
+
+    /// <summary>3.0.0 Rule 22 / Algorithm F: Cross Stratal Seam
+    /// well-formedness. All of (a)-(g) must hold, else malformed_seam. A seam
+    /// is a MANAGED jump across NON-ADJACENT strata; when it DRAWS a chain, the
+    /// chain must be an adjacent-stratum path spanning the two endpoints'
+    /// strata.</summary>
+    public static (bool Ok, string Reason) SeamWellformed(
+        JsonMap seam, IReadOnlyDictionary<string, JsonMap> occMap,
+        IReadOnlyDictionary<string, JsonMap> stratumMap)
+    {
+        var srcS = StratumOf((string)seam["source"]!, occMap);
+        var tgtS = StratumOf((string)seam["target"]!, occMap);
+        if (srcS is null || tgtS is null)
+            return (false, "malformed_seam: an endpoint has no stratum (a)");
+        if (stratumMap[srcS].GetString("scheme")
+            != stratumMap[tgtS].GetString("scheme"))
+            return (false, "malformed_seam: endpoints differ in scheme (b)");
+        var so = (long)Json.ToDouble(stratumMap[srcS]["ordinal"]);
+        var to = (long)Json.ToDouble(stratumMap[tgtS]["ordinal"]);
+        if (Math.Abs(so - to) <= 1)
+            return (false, "malformed_seam: endpoints are adjacent or "
+                           + "co-stratal; a seam is for NON-adjacent strata (c)");
+        if (seam.Get("chain") is List<object?>)
+        {
+            if (seam.GetString("mechanism_status") == "absent")
+                return (false, "malformed_seam: a drawn chain contradicts "
+                               + "mechanism_status 'absent' (d)");
+            var lo = Math.Min(so, to);
+            var hi = Math.Max(so, to);
+            var ords = new List<long>();
+            foreach (var oid in StringList(seam["chain"]))
+            {
+                var st = StratumOf(oid, occMap);
+                if (st is null)
+                    return (false, "malformed_seam: a chain member has no "
+                                   + "stratum (e)");
+                if (stratumMap[st].GetString("scheme")
+                    != stratumMap[srcS].GetString("scheme"))
+                    return (false, "malformed_seam: a chain member differs in "
+                                   + "scheme (e)");
+                ords.Add((long)Json.ToDouble(stratumMap[st]["ordinal"]));
+            }
+            if (!ords.All(o => lo < o && o < hi))
+                return (false, "malformed_seam: a chain member is not at an "
+                               + "INTERVENING stratum, strictly between the "
+                               + "endpoints (f)");
+            var diffs = new List<long>();
+            for (var i = 0; i + 1 < ords.Count; i++)
+                diffs.Add(ords[i + 1] - ords[i]);
+            if (diffs.Count > 0
+                && !(diffs.All(d => d > 0) || diffs.All(d => d < 0)))
+                return (false, "malformed_seam: chain is not strictly monotone "
+                               + "from one endpoint toward the other (g)");
+        }
+        return (true, "well-formed cross_stratal_seam");
+    }
+
+    /// <summary>THE HOME RULE (3.0.0): a Cross Stratal Seam belongs to the
+    /// COARSEST stratum it touches - the endpoint of the greater ordinal.
+    /// Returns that stratum's identifier (null if an endpoint is
+    /// unstratified).</summary>
+    public static string? SeamHome(
+        JsonMap seam, IReadOnlyDictionary<string, JsonMap> occMap,
+        IReadOnlyDictionary<string, JsonMap> stratumMap)
+    {
+        var srcS = StratumOf((string)seam["source"]!, occMap);
+        var tgtS = StratumOf((string)seam["target"]!, occMap);
+        if (srcS is null || tgtS is null)
+            return null;
+        return Json.ToDouble(stratumMap[srcS]["ordinal"])
+               >= Json.ToDouble(stratumMap[tgtS]["ordinal"])
+            ? srcS : tgtS;
     }
 
     /// <summary>Rule 17 / N4.2.1-2: Conduit well-formedness.</summary>
@@ -509,6 +656,19 @@ public static class Semantics
             if (!lawEffects.Contains((string)tokenMap[e]["instantiates"]!))
                 return true;
         return false;
+    }
+
+    /// <summary>4.0.0 Rule 24: prediction-to-observation pairing. True iff the
+    /// prediction error's observed token does not instantiate the occurrent its
+    /// predicted_occurrence instantiates (surfaces pairing_mismatch). An ABSENT
+    /// observed is never a mismatch - it means the predicted occurrence was not
+    /// fulfilled by any recorded occurrence. observed may be null.</summary>
+    public static bool PredictionPairingMismatch(
+        JsonMap error, JsonMap predicted, JsonMap? observed)
+    {
+        if (error.Get("observed") is null || observed is null)
+            return false;
+        return (string)observed["instantiates"]! != (string)predicted["instantiates"]!;
     }
 
     /// <summary>Rule 21: true iff any cause token starts after any effect token

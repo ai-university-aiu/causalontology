@@ -8,8 +8,12 @@
 //! Causalontology is a verb-first noun-hosting ontology: reality is what
 //! happens, and things are its participants.
 
-/// Specification 2.0.0 (vectors frozen 2026-07-13).
-pub const version = "2.0.0";
+/// Specification 4.0.0 (vectors frozen 2026-07-22; 137 vectors, twenty-one
+/// kinds). Adds, over 2.0.0, the folded 3.0.0 delta (the ordinal ticks unit,
+/// the cross_stratal_seam kind with Algorithm F, the conduit realized_by
+/// reference) and the 4.0.0 delta (the attitude, predicted_occurrence, and
+/// prediction_error kinds; Rules 24 and 25; the widened assertion about-ref).
+pub const version = "4.0.0";
 
 pub const jcs = @import("jcs.zig");
 pub const canonical = @import("canonical.zig");
@@ -29,6 +33,10 @@ pub const admissible = semantics.admissible;
 pub const conflicts = semantics.conflicts;
 pub const refinementValid = semantics.refinementValid;
 pub const hierarchyConsistent = semantics.hierarchyConsistent;
+// 3.0.0 / 4.0.0 additions.
+pub const seamWellformed = semantics.seamWellformed;
+pub const seamHome = semantics.seamHome;
+pub const predictionPairingMismatch = semantics.predictionPairingMismatch;
 pub const keypairFromSeed = signing.keypairFromSeed;
 pub const signRecord = signing.signRecord;
 pub const verifyRecord = signing.verifyRecord;

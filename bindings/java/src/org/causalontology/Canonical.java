@@ -40,10 +40,12 @@ public final class Canonical {
         fields.put("stratum", List.of("label", "scheme", "ordinal", "unit",
                                       "governs"));
         fields.put("bridge", List.of("coarse", "fine", "relation"));
+        fields.put("cross_stratal_seam", List.of("source", "target",
+                                  "mechanism_status", "chain"));
         fields.put("port", List.of("bearer", "label", "direction", "accepts",
                                    "realizable"));
         fields.put("conduit", List.of("label", "from", "to", "carries",
-                                      "transform"));
+                                      "transform", "realized_by"));
         fields.put("quality", List.of("label", "datatype", "unit", "stratum"));
         // ---- token tier ----
         fields.put("token_individual", List.of("instantiates", "designator",
@@ -56,6 +58,11 @@ public final class Canonical {
         fields.put("token_causal_claim", List.of("causes", "effects",
                                   "covering_law", "actual_delay",
                                   "counterfactual"));
+        fields.put("attitude", List.of("holder", "attitude_type", "content"));
+        fields.put("predicted_occurrence", List.of("instantiates", "interval",
+                                  "predictor", "strength"));
+        fields.put("prediction_error", List.of("predicted", "observed",
+                                  "discrepancy"));
         // ---- provenance tier ----
         fields.put("assertion", List.of("about", "source", "evidence_type",
                                         "evidence", "strength", "confidence",

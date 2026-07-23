@@ -6,7 +6,7 @@
 
 Gem::Specification.new do |spec|
   spec.name = "causalontology"
-  spec.version = "2.0.0"
+  spec.version = "4.0.0"
   spec.authors = ["AI University (AIU)"]
   spec.email = ["ai.university.aiu@gmail.com"]
 

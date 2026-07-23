@@ -5,8 +5,11 @@
 // conformant if and only if it passes every vector; this runner exits nonzero
 // on any failure.
 //
-// The vectors are the whole-word 2.0.0 baseline (Principle P7): V01-V38
-// re-frozen unaltered in meaning, V39-V107 new. Symbolic identifiers
+// The vectors are frozen at specification 4.0.0: V01-V107 are the whole-word
+// 2.0.0 baseline (Principle P7, V01-V38 re-frozen unaltered in meaning,
+// V39-V107 new); V108-V119 are the 3.0.0 additions (tick unit,
+// cross_stratal_seam, realized_by); V120-V137 are the 4.0.0 additions
+// (attitude, predicted_occurrence, prediction_error). Symbolic identifiers
 // ("occurrent:press_button", "ed25519:alice") normalize deterministically:
 // symbolic object ids become scheme:sha256(name), and symbolic key names
 // become real Ed25519 keypairs seeded from sha256("key:" + name), exactly as
@@ -23,9 +26,10 @@ import kotlin.system.exitProcess
 private val SCHEMES = listOf(
     "occurrent", "causal_relation_object", "continuant", "realizable",
     "assertion", "enrichment", "retraction", "succession",
-    "stratum", "bridge", "port", "conduit", "quality",
+    "stratum", "bridge", "cross_stratal_seam", "port", "conduit", "quality",
     "token_individual", "token_occurrence", "state_assertion",
-    "token_causal_claim")
+    "token_causal_claim",
+    "attitude", "predicted_occurrence", "prediction_error")
 private val WHOLE_WORD: Set<String> = SCHEMES.toSet() + "ed25519"
 private val KEYS = HashMap<String, Pair<ByteArray, String>>()
 
@@ -1099,9 +1103,445 @@ private fun v107() {
     val (ok, why) = Schema.validateSchema(whole, "causal_relation_object"); assertTrue(ok, why.toString())
 }
 
+// ===========================================================================
+// V108 - V119: the 3.0.0 additions (tick unit, cross_stratal_seam, realized_by)
+// ===========================================================================
+private fun seam(source: String, target: String, mechanismStatus: String,
+                 chain: List<String>? = null): JObj {
+    val o = linkedMapOf<String, Any?>(
+        "type" to "cross_stratal_seam", "source" to source, "target" to target,
+        "mechanism_status" to mechanismStatus)
+    if (chain != null && chain.isNotEmpty()) o["chain"] = chain
+    return mk(o)
+}
+
+private fun seamFixture(srcOrd: Int, tgtOrd: Int, mechanismStatus: String,
+                        chainOrds: List<Int>? = null): Triple<JObj, Map<String, JObj>, Map<String, JObj>> {
+    val s = neuro()
+    val src = occ("source_event", s[srcOrd]!!["id"] as String)
+    val tgt = occ("target_event", s[tgtOrd]!!["id"] as String)
+    val omap = HashMap<String, JObj>()
+    omap[src["id"] as String] = src
+    omap[tgt["id"] as String] = tgt
+    val smap = HashMap<String, JObj>()
+    smap[s[srcOrd]!!["id"] as String] = s[srcOrd]!!
+    smap[s[tgtOrd]!!["id"] as String] = s[tgtOrd]!!
+    var chain: List<String>? = null
+    if (chainOrds != null) {
+        val ch = mutableListOf<String>()
+        for ((i, o) in chainOrds.withIndex()) {
+            val c = occ("chain_$i", s[o]!!["id"] as String)
+            omap[c["id"] as String] = c
+            smap[s[o]!!["id"] as String] = s[o]!!
+            ch.add(c["id"] as String)
+        }
+        chain = ch
+    }
+    return Triple(seam(src["id"] as String, tgt["id"] as String, mechanismStatus, chain), omap, smap)
+}
+
+private fun conduitRealized(realizedBy: String? = null): JObj {
+    val o = linkedMapOf<String, Any?>(
+        "type" to "conduit", "label" to "conn",
+        "from" to "port:" + "1".repeat(64),
+        "to" to "port:" + "2".repeat(64),
+        "carries" to listOf("occurrent:" + "3".repeat(64)))
+    if (realizedBy != null) o["realized_by"] = realizedBy
+    return mk(o)
+}
+
+// -- Change One: the ordinal (tick) temporal unit --
+private fun v108() {
+    val P = cro(listOf(sym("occurrent:a")), listOf(sym("occurrent:b")),
+        "temporal" to linkedMapOf<String, Any?>(
+            "minimum_delay" to 0L, "maximum_delay" to 5L, "unit" to "ticks"),
+        "modality" to "sufficient")
+    val (okS, whyS) = Schema.validateSchema(P); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(P); assertTrue(okM, whyM.toString())
+}
+
+private fun v109() {
+    val P = cro(listOf(sym("occurrent:a")), listOf(sym("occurrent:b")),
+        "temporal" to linkedMapOf<String, Any?>(
+            "minimum_delay" to 2L, "maximum_delay" to 5L, "unit" to "ticks"))
+    assertTrue(Semantics.admissible(P, 3.0), "3 ticks must be inside [2, 5]")
+    assertTrue(Semantics.admissible(P, 2.0) && Semantics.admissible(P, 5.0),
+        "the tick window is inclusive at both ends")
+    assertTrue(!Semantics.admissible(P, 6.0) && !Semantics.admissible(P, 1.0),
+        "ticks outside [2, 5] must not be admissible")
+}
+
+private fun v110() {
+    val tickWin = linkedMapOf<String, Any?>(
+        "minimum_delay" to 0L, "maximum_delay" to 5L, "unit" to "ticks")
+    val wallWin = linkedMapOf<String, Any?>(
+        "minimum_delay" to 0L, "maximum_delay" to 5L, "unit" to "seconds")
+    assertTrue(Semantics.delayWithinWindow(
+        linkedMapOf("duration" to 3L, "unit" to "ticks"), tickWin),
+        "a tick delay must fall within a tick window")
+    assertTrue(!Semantics.delayWithinWindow(
+        linkedMapOf("duration" to 1L, "unit" to "ticks"), wallWin),
+        "a tick delay is never within a wall-clock window")
+    assertTrue(!Semantics.delayWithinWindow(
+        linkedMapOf("duration" to 1L, "unit" to "seconds"), tickWin),
+        "a wall-clock delay is never within a tick window")
+    val a = linkedMapOf<String, Any?>(
+        "causes" to listOf(sym("occurrent:a")), "effects" to listOf(sym("occurrent:b")),
+        "temporal" to tickWin, "modality" to "sufficient")
+    val b = linkedMapOf<String, Any?>(
+        "causes" to listOf(sym("occurrent:a")), "effects" to listOf(sym("occurrent:b")),
+        "temporal" to wallWin, "modality" to "preventive")
+    assertTrue(!Semantics.conflicts(a, b), "disjoint dimensions -> no overlap")
+    var refused = false
+    try { Semantics.toSeconds(1, "ticks") } catch (e: Exception) { refused = true }
+    assertTrue(refused, "to_seconds accepted ticks")
+}
+
+private fun v111() {
+    fun croWith(temporal: JObj): JObj = linkedMapOf(
+        "type" to "causal_relation_object", "causes" to listOf(sym("occurrent:a")),
+        "effects" to listOf(sym("occurrent:b")), "modality" to "sufficient",
+        "temporal" to temporal)
+    val tick = croWith(linkedMapOf("minimum_delay" to 0L, "maximum_delay" to 1L, "unit" to "ticks"))
+    val secs = croWith(linkedMapOf("minimum_delay" to 0L, "maximum_delay" to 1L, "unit" to "seconds"))
+    assertTrue(Canonical.identify(tick) != Canonical.identify(secs), "the unit is identity-bearing")
+    // a wall-clock record's identity is UNCHANGED under 3.0.0 (pinned 2.0.0 value)
+    assertTrue(Canonical.identify(secs) ==
+        "causal_relation_object:d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+        "the pinned 2.0.0 identifier must hold: got ${Canonical.identify(secs)}")
+}
+
+// -- Change Two: the managed cross-stratal seam (eighteenth kind) --
+private fun v112() {
+    val (sm, omap, smap) = seamFixture(14, 4, "unmodeled")
+    val (okS, whyS) = Schema.validateSchema(sm); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(sm); assertTrue(okM, whyM.toString())
+    val (okW, whyW) = Semantics.seamWellformed(sm, omap, smap); assertTrue(okW, whyW)
+}
+
+private fun v113() {
+    val (a, _, _) = seamFixture(14, 4, "unmodeled")
+    val (b, omap, smap) = seamFixture(14, 4, "absent")
+    val (okS, whyS) = Schema.validateSchema(b); assertTrue(okS, whyS.toString())
+    val (okW, whyW) = Semantics.seamWellformed(b, omap, smap); assertTrue(okW, whyW)
+    assertTrue(a["id"] != b["id"], "mechanism_status must be identity-bearing")
+}
+
+private fun v114() {
+    val (drawn, omap, smap) = seamFixture(14, 4, "unmodeled", listOf(9, 7, 6, 5))
+    val (okS, whyS) = Schema.validateSchema(drawn); assertTrue(okS, whyS.toString())
+    val (okW, whyW) = Semantics.seamWellformed(drawn, omap, smap); assertTrue(okW, whyW)
+    val (bad, omap2, smap2) = seamFixture(14, 4, "absent", listOf(9, 7, 6, 5))
+    val (okM, whyM) = Semantics.validateSemantics(bad)
+    assertTrue(!okM && whyM.any { it.contains("contradictory_seam") },
+        "semantics must reject the drawn 'absent' seam: ${whyM}")
+    assertTrue(!Semantics.seamWellformed(bad, omap2, smap2).first,
+        "the drawn 'absent' seam must be malformed")
+}
+
+private fun v115() {
+    val (sm, omap, smap) = seamFixture(14, 4, "unmodeled")
+    val s = neuro()
+    assertTrue(Semantics.seamHome(sm, omap, smap) == s[14]!!["id"],
+        "home must be the coarsest (max ordinal) stratum")
+}
+
+private fun v116() {
+    val (adj, o1, s1) = seamFixture(6, 5, "unmodeled")   // adjacent (gap 1)
+    assertTrue(!Semantics.seamWellformed(adj, o1, s1).first,
+        "adjacent endpoints must be malformed")
+    val (co, o2, s2) = seamFixture(6, 6, "unmodeled")    // co-stratal (gap 0)
+    assertTrue(!Semantics.seamWellformed(co, o2, s2).first,
+        "co-stratal endpoints must be malformed")
+    val (sm, _, _) = seamFixture(14, 4, "unmodeled")
+    assertTrue((sm["id"] as String).startsWith("cross_stratal_seam:"),
+        "a seam must mint in the new identity scheme")
+}
+
+// -- Change Three: the realized_by reference --
+private fun v117() {
+    val c = conduitRealized("causal_relation_object:" + "a".repeat(64))
+    val (okS, whyS) = Schema.validateSchema(c); assertTrue(okS, whyS.toString())
+    val c2 = conduitRealized("native:region_stratum_predict")
+    val (okS2, whyS2) = Schema.validateSchema(c2); assertTrue(okS2, whyS2.toString())  // native scheme legal
+}
+
+private fun v118() {
+    val bound = conduitRealized("native:region_stratum_predict")
+    val unbound = conduitRealized()
+    assertTrue(bound["id"] != unbound["id"], "realized_by must be identity-bearing")
+    // an unbound conduit's identity is UNCHANGED under 3.0.0 (pinned 2.0.0 value)
+    assertTrue(unbound["id"] ==
+        "conduit:dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+        "the pinned 2.0.0 identifier must hold: got ${unbound["id"]}")
+}
+
+private fun v119() {
+    val unbound = conduitRealized()
+    val (okS, whyS) = Schema.validateSchema(unbound); assertTrue(okS, whyS.toString())  // unbound is legal
+    val bad = LinkedHashMap(unbound)
+    bad["realized_by"] = "not-a-scheme-qualified-reference"
+    assertTrue(!Schema.validateSchema(bad, "conduit").first,
+        "a malformed realized_by reference must be rejected")
+}
+
+// ===========================================================================
+// V120 - V137: the 4.0.0 additions (attitude, predicted_occurrence,
+// prediction_error)
+// ===========================================================================
+private fun attitude(holder: String, attitudeType: String, content: String): JObj =
+    mk(linkedMapOf("type" to "attitude", "holder" to holder,
+        "attitude_type" to attitudeType, "content" to content))
+
+private fun predicted(instantiates: String, interval: JObj, predictor: String,
+                      strength: Double? = null): JObj {
+    val o = linkedMapOf<String, Any?>(
+        "type" to "predicted_occurrence", "instantiates" to instantiates,
+        "interval" to interval, "predictor" to predictor)
+    if (strength != null) o["strength"] = strength
+    return mk(o)
+}
+
+private fun predictionError(predictedId: String, discrepancy: Double,
+                            observed: String? = null): JObj {
+    val o = linkedMapOf<String, Any?>(
+        "type" to "prediction_error", "predicted" to predictedId,
+        "discrepancy" to discrepancy)
+    if (observed != null) o["observed"] = observed
+    return mk(o)
+}
+
+private fun tickWindow(startTick: Int, endTick: Int? = null): JObj {
+    val iv = linkedMapOf<String, Any?>("start_tick" to startTick.toLong())
+    if (endTick != null) iv["end_tick"] = endTick.toLong()
+    return iv
+}
+
+private fun predictorId(): String {
+    val c = cnt("forecasting_mind")
+    return individual(c["id"] as String, designator = "predictor_p")["id"] as String
+}
+
+private fun believerId(designator: String = "holder_h"): String {
+    val c = cnt("believing_mind")
+    return individual(c["id"] as String, designator = designator)["id"] as String
+}
+
+// -- Group X: prediction and prediction error (Section A) --
+private fun v120() {
+    val o = occ("rainfall_begins")
+    val p = predicted(o["id"] as String, tickWindow(3, 8), predictorId())
+    val (okS, whyS) = Schema.validateSchema(p); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(p); assertTrue(okM, whyM.toString())
+    assertTrue((p["id"] as String).startsWith("predicted_occurrence:"),
+        "a forecast must mint in the new identity scheme")
+    val report = Canonical.identify(linkedMapOf(
+        "type" to "token_occurrence", "instantiates" to o["id"],
+        "interval" to tickWindow(3, 8)), "token_occurrence")
+    assertTrue(p["id"] != report, "a forecast is not a report")
+    assertTrue(report.startsWith("token_occurrence:"), "the report keeps its own scheme")
+}
+
+private fun v121() {
+    val o = occ("rainfall_begins")
+    val wall = linkedMapOf<String, Any?>(
+        "start" to "2026-07-23T00:00:00Z", "end" to "2026-07-24T00:00:00Z")
+    val who = predictorId()
+    val withStrength = predicted(o["id"] as String, wall, who, strength = 0.8)
+    val without = predicted(o["id"] as String, wall, who)
+    for (p in listOf(withStrength, without)) {
+        val (okS, whyS) = Schema.validateSchema(p); assertTrue(okS, whyS.toString())
+        val (okM, whyM) = Semantics.validateSemantics(p); assertTrue(okM, whyM.toString())
+    }
+    assertTrue(withStrength["id"] != without["id"], "strength must be identity-bearing")
+}
+
+private fun v122() {
+    val o = occ("rainfall_begins")
+    val bad = mk(linkedMapOf("type" to "predicted_occurrence", "instantiates" to o["id"],
+        "interval" to tickWindow(3)))
+    val (ok, why) = Schema.validateSchema(bad, "predicted_occurrence")
+    assertTrue(!ok && why.any { it.contains("predictor") }, "expected predictor error: ${why}")
+}
+
+private fun v123() {
+    val o = occ("rainfall_begins")
+    val iv = linkedMapOf<String, Any?>("start" to "2026-07-23T00:00:00Z", "start_tick" to 3L)
+    val both = predicted(o["id"] as String, iv, predictorId())
+    val (okS, whyS) = Schema.validateSchema(both); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(both)
+    assertTrue(!okM && whyM.any { it.contains("dimension_conflict") },
+        "semantics must reject both dimensions: ${whyM}")
+}
+
+private fun v124() {
+    val o = occ("rainfall_begins")
+    val p = predicted(o["id"] as String, linkedMapOf("start" to "2026-07-23T00:00:00Z"), predictorId())
+    val t = token(o["id"] as String, linkedMapOf("start" to "2026-07-23T06:00:00Z"))
+    val err = predictionError(p["id"] as String, 0.0, observed = t["id"] as String)
+    val (okS, whyS) = Schema.validateSchema(err); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(err); assertTrue(okM, whyM.toString())
+    assertTrue(!Semantics.predictionPairingMismatch(err, p, t),
+        "a matching observation is not a mismatch")
+}
+
+private fun v125() {
+    val o = occ("rainfall_begins")
+    val p = predicted(o["id"] as String, linkedMapOf("start" to "2026-07-23T00:00:00Z"), predictorId())
+    val err = predictionError(p["id"] as String, -1.0)
+    val (okS, whyS) = Schema.validateSchema(err); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(err); assertTrue(okM, whyM.toString())
+    assertTrue(!err.containsKey("observed"), "observed must be absent")
+    assertTrue(!Semantics.predictionPairingMismatch(err, p, null),
+        "an unfulfilled prediction is not a mismatch")
+}
+
+private fun v126() {
+    val o = occ("rainfall_begins")
+    val p = predicted(o["id"] as String, tickWindow(0), predictorId())
+    val bad = mk(linkedMapOf("type" to "prediction_error", "predicted" to p["id"]))
+    val (ok, why) = Schema.validateSchema(bad, "prediction_error")
+    assertTrue(!ok && why.any { it.contains("discrepancy") }, "expected discrepancy error: ${why}")
+}
+
+private fun v127() {
+    val o = occ("rainfall_begins"); val other = occ("snowfall_begins")
+    val p = predicted(o["id"] as String, linkedMapOf("start" to "2026-07-23T00:00:00Z"), predictorId())
+    val t = token(other["id"] as String, linkedMapOf("start" to "2026-07-23T06:00:00Z"))
+    val err = predictionError(p["id"] as String, 1.0, observed = t["id"] as String)
+    val (okS, whyS) = Schema.validateSchema(err); assertTrue(okS, whyS.toString())
+    assertTrue(Semantics.predictionPairingMismatch(err, p, t), "must surface a pairing mismatch")
+}
+
+// -- Group Y: attitude and theory of mind (Section B) --
+private fun v128() {
+    val (st, _) = stateFixture("quantity", linkedMapOf("quantity" to 15.0, "unit" to "ug/dL"), "ug/dL")
+    val att = attitude(believerId(), "believes", st["id"] as String)
+    val (okS, whyS) = Schema.validateSchema(att); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(att); assertTrue(okM, whyM.toString())
+}
+
+private fun v129() {
+    val a = occ("switch_pressed"); val b = occ("light_on")
+    val actual = cro(listOf(a["id"] as String), listOf(b["id"] as String), "modality" to "sufficient")
+    val believed = cro(listOf(a["id"] as String), listOf(b["id"] as String), "modality" to "preventive")
+    assertTrue(Semantics.conflicts(believed, actual), "the CLAIMS contradict")
+    val att = attitude(believerId(), "believes", believed["id"] as String)
+    val (okS, whyS) = Schema.validateSchema(att); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(att); assertTrue(okM, whyM.toString())  // validity unaffected
+    val s = InMemoryStore()
+    s.put(a); s.put(b); s.put(actual); s.put(att)
+    assertTrue(s.gaps("conflict").isEmpty(), "Rule 25: NO conflict raised")
+}
+
+private fun v130() {
+    val o = occ("rainfall_begins")
+    val att = attitude(believerId(), "desires", o["id"] as String)
+    val (okS, whyS) = Schema.validateSchema(att); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(att); assertTrue(okM, whyM.toString())
+}
+
+private fun v131() {
+    val o = occ("press_button")
+    val att = attitude(believerId(), "intends", o["id"] as String)
+    val (okS, whyS) = Schema.validateSchema(att); assertTrue(okS, whyS.toString())
+    val (okM, whyM) = Semantics.validateSemantics(att); assertTrue(okM, whyM.toString())
+}
+
+private fun v132() {
+    val (st, _) = stateFixture("boolean", linkedMapOf("boolean" to true))
+    val inner = attitude(believerId("holder_b"), "believes", st["id"] as String)
+    val outer = attitude(believerId("holder_a"), "believes", inner["id"] as String)
+    for (att in listOf(inner, outer)) {
+        val (okS, whyS) = Schema.validateSchema(att); assertTrue(okS, whyS.toString())
+        val (okM, whyM) = Semantics.validateSemantics(att); assertTrue(okM, whyM.toString())
+    }
+    assertTrue(outer["id"] != inner["id"], "ids must differ")
+    assertTrue(outer["content"] == inner["id"], "the outer content must be the inner attitude")
+}
+
+private fun v133() {
+    val o = occ("rainfall_begins")
+    val bad = mk(linkedMapOf("type" to "attitude", "holder" to believerId(),
+        "attitude_type" to "suspects", "content" to o["id"]))
+    val (ok, why) = Schema.validateSchema(bad, "attitude")
+    assertTrue(!ok && why.any { it.contains("attitude_type") }, "expected attitude_type error: ${why}")
+}
+
+private fun v134() {
+    val o = occ("rainfall_begins")
+    val bad = mk(linkedMapOf("type" to "attitude", "holder" to believerId(),
+        "attitude_type" to "believes", "content" to o["id"], "strength" to 0.9))
+    val (ok, why) = Schema.validateSchema(bad, "attitude")
+    assertTrue(!ok && why.any { it.contains("strength") }, "expected strength error: ${why}")
+}
+
+private fun v135() {
+    val o = occ("rainfall_begins")
+    val att = attitude(believerId(), "expects", o["id"] as String)
+    val a = signed("assertion", linkedMapOf("about" to att["id"],
+        "evidence_type" to "observation", "confidence" to 0.9), "signer")
+    val (okS, whyS) = Schema.validateSchema(a); assertTrue(okS, whyS.toString())
+    assertTrue(Signing.verifyRecord(a), "the assertion must verify")
+    // the HOLDER (a modeled agent) and the SOURCE (a signing key) differ
+    val holder = att["holder"] as String
+    assertTrue(holder.substringBefore(":") == "token_individual", "the holder must be a modeled agent")
+    val source = a["source"] as String
+    assertTrue(source.substringBefore(":") == "ed25519", "the source must be a signing key")
+    assertTrue(holder != source, "holder and source are different things")
+}
+
+private fun v136() {
+    // the V111 wall-clock Causal Relation Object, re-pinned under 4.0.0
+    val secs = linkedMapOf<String, Any?>(
+        "type" to "causal_relation_object", "causes" to listOf(sym("occurrent:a")),
+        "effects" to listOf(sym("occurrent:b")), "modality" to "sufficient",
+        "temporal" to linkedMapOf("minimum_delay" to 0L, "maximum_delay" to 1L, "unit" to "seconds"))
+    assertTrue(Canonical.identify(secs) ==
+        "causal_relation_object:d8daf899daa3ee03caa6b1425cc6d4d33cef20d951e1203ffd35df29857aa43c",
+        "the 3.0.0 wall-clock identifier must hold under 4.0.0")
+    // the V118 unbound conduit, re-pinned under 4.0.0
+    val unbound = conduitRealized()
+    assertTrue(unbound["id"] ==
+        "conduit:dc4af3b1a24f0560d5ebcee488779f06ab3c78301cfb9d0c7edff80bc62e27a6",
+        "the 3.0.0 unbound-conduit identifier must hold under 4.0.0")
+}
+
+private fun v137() {
+    val hexid = "0".repeat(64)
+    // The abbreviated prefixes here are the deliberate negative tests; each is
+    // assembled so it survives any whole-word re-mint pass.
+    val attAbbr = "a" + "t" + "t"
+    val prdAbbr = "p" + "r" + "d"
+    val errAbbr = "e" + "r" + "r"
+    val badAtt = linkedMapOf<String, Any?>(
+        "type" to "attitude", "id" to "$attAbbr:$hexid",
+        "holder" to "token_individual:$hexid", "attitude_type" to "believes",
+        "content" to "state_assertion:$hexid")
+    assertTrue(!Schema.validateSchema(badAtt, "attitude").first,
+        "abbreviated attitude scheme must be rejected")
+    val badPrd = linkedMapOf<String, Any?>(
+        "type" to "predicted_occurrence", "id" to "$prdAbbr:$hexid",
+        "instantiates" to "occurrent:$hexid", "interval" to tickWindow(0),
+        "predictor" to "token_individual:$hexid")
+    assertTrue(!Schema.validateSchema(badPrd, "predicted_occurrence").first,
+        "abbreviated predicted_occurrence scheme must be rejected")
+    val badErr = linkedMapOf<String, Any?>(
+        "type" to "prediction_error", "id" to "$errAbbr:$hexid",
+        "predicted" to "predicted_occurrence:$hexid", "discrepancy" to 0.0)
+    assertTrue(!Schema.validateSchema(badErr, "prediction_error").first,
+        "abbreviated prediction_error scheme must be rejected")
+    val wholeAtt = LinkedHashMap(badAtt); wholeAtt["id"] = "attitude:$hexid"
+    val (attOk, attWhy) = Schema.validateSchema(wholeAtt, "attitude"); assertTrue(attOk, attWhy.toString())
+    val wholePrd = LinkedHashMap(badPrd); wholePrd["id"] = "predicted_occurrence:$hexid"
+    val (prdOk, prdWhy) = Schema.validateSchema(wholePrd, "predicted_occurrence"); assertTrue(prdOk, prdWhy.toString())
+    val wholeErr = LinkedHashMap(badErr); wholeErr["id"] = "prediction_error:$hexid"
+    val (errOk, errWhy) = Schema.validateSchema(wholeErr, "prediction_error"); assertTrue(errOk, errWhy.toString())
+}
+
 // ---------------------------------------------------------------------------
 fun main() {
-    println("causalontology-kotlin conformance run (specification 2.0.0)")
+    println("causalontology-kotlin conformance run (specification 4.0.0)")
     print("internal checks (RFC 8032, RFC 8785, fixed constants) ... ")
     internalChecks()
     println("ok")
@@ -1123,7 +1563,13 @@ fun main() {
         85 to ::v85, 86 to ::v86, 87 to ::v87, 88 to ::v88, 89 to ::v89, 90 to ::v90,
         91 to ::v91, 92 to ::v92, 93 to ::v93, 94 to ::v94, 95 to ::v95, 96 to ::v96,
         97 to ::v97, 98 to ::v98, 99 to ::v99, 100 to ::v100, 101 to ::v101, 102 to ::v102,
-        103 to ::v103, 104 to ::v104, 105 to ::v105, 106 to ::v106, 107 to ::v107)
+        103 to ::v103, 104 to ::v104, 105 to ::v105, 106 to ::v106, 107 to ::v107,
+        108 to ::v108, 109 to ::v109, 110 to ::v110, 111 to ::v111, 112 to ::v112,
+        113 to ::v113, 114 to ::v114, 115 to ::v115, 116 to ::v116, 117 to ::v117,
+        118 to ::v118, 119 to ::v119, 120 to ::v120, 121 to ::v121, 122 to ::v122,
+        123 to ::v123, 124 to ::v124, 125 to ::v125, 126 to ::v126, 127 to ::v127,
+        128 to ::v128, 129 to ::v129, 130 to ::v130, 131 to ::v131, 132 to ::v132,
+        133 to ::v133, 134 to ::v134, 135 to ::v135, 136 to ::v136, 137 to ::v137)
     var failures = 0
     for ((n, fn) in vectors) {
         val name = vecFileName(n).removeSuffix(".json")
@@ -1135,10 +1581,10 @@ fun main() {
             println("FAIL  $name :: $e")
         }
     }
-    val total = 107
+    val total = 137
     println("-".repeat(60))
     println("${total - failures}/$total vectors passed")
     if (failures > 0) exitProcess(1)
     println("causalontology-kotlin is CONFORMANT to the suite " +
-            "(vectors frozen at specification 2.0.0).")
+            "(vectors frozen at specification 4.0.0).")
 }

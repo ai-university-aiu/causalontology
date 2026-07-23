@@ -2,9 +2,9 @@ name: conformance
 
 # Every implementation passes the canonical conformance vectors for the
 # specification version it declares - 137 (V01-V137) at 4.0.0 - or it is not
-# Causalontology. Eighteen bindings remain at the 107-vector 2.0.0 code level
-# pending their folded 3.0.0-plus-4.0.0 delta per the 4.0.0 release plan. Python and JavaScript are also verified on the authoring
-# machine; Java and Swift are verified here (no local toolchain).
+# Causalontology. All nineteen bindings now implement the folded
+# 3.0.0-plus-4.0.0 delta and are gated at 137 vectors here (registry
+# publication is a separate, credential-gated step per the 4.0.0 release plan).
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "20"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: node bindings/javascript/tests/run_conformance.js
 
   java:
@@ -50,7 +50,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: bash bindings/java/run_conformance.sh
 
   swift:
@@ -60,7 +60,7 @@ jobs:
       - uses: swift-actions/setup-swift@v2
         with:
           swift-version: "5.10"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: cd bindings/swift && swift run conformance
 
   gardener:
@@ -82,7 +82,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "20"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: cd bindings/rust && cargo run --bin conformance
       - name: WebAssembly core build
         run: cd bindings/rust && cargo build --lib --release --target wasm32-unknown-unknown
@@ -96,8 +96,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
-        run: cd bindings/go && go run ./conformance
+      # The 4.0.0 code is the new /v4 module (Go versions the import path); the
+      # /v2 module stays live at the 2.0.0 level. Gate on /v4.
+      - name: conformance (137 vectors)
+        run: cd bindings/go/v4 && go run ./conformance
 
   typescript:
     runs-on: ubuntu-latest
@@ -116,7 +118,7 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "8.0.x"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: dotnet run --project bindings/csharp/conformance
 
   ruby:
@@ -126,7 +128,7 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: ruby bindings/ruby/conformance.rb
 
   php:
@@ -137,7 +139,7 @@ jobs:
         with:
           php-version: "8.3"
           extensions: sodium
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: php bindings/php/conformance.php
 
   dart:
@@ -145,7 +147,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: dart bindings/dart/bin/conformance.dart
 
   elixir:
@@ -156,7 +158,7 @@ jobs:
         with:
           otp-version: "26"
           elixir-version: "1.16"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: cd bindings/elixir && elixir conformance.exs
 
   haskell:
@@ -166,14 +168,14 @@ jobs:
       - uses: haskell-actions/setup@v2
         with:
           ghc-version: "9.6"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: cd bindings/haskell && cabal update && cabal run -v0 conformance
 
   perl:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: perl bindings/perl/conformance.pl
 
   r:
@@ -185,7 +187,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y libsodium-dev libssl-dev
           Rscript -e "install.packages(c('sodium','openssl'), repos='https://cloud.r-project.org')"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: Rscript bindings/r/conformance.R
 
   lua:
@@ -194,21 +196,21 @@ jobs:
       - uses: actions/checkout@v4
       - name: install Lua 5.4
         run: sudo apt-get update && sudo apt-get install -y lua5.4
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: lua5.4 bindings/lua/conformance.lua
 
   cpp:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: bash bindings/cpp/run_conformance.sh
 
   zig:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: bash bindings/zig/run_conformance.sh
 
   julia:
@@ -218,7 +220,7 @@ jobs:
       - uses: julia-actions/setup-julia@v3
         with:
           version: "1.10"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: julia bindings/julia/conformance.jl
 
   kotlin:
@@ -229,19 +231,19 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: conformance (107 vectors; 4.0.0 re-baseline pending per the release plan)
+      - name: conformance (137 vectors)
         run: bash bindings/kotlin/run_conformance.sh
 
   # The reference implementation gates itself. Prolog is listed first among the
   # bindings and PrologAI is named the reference implementation, so its
   # conformance must be gated here, not merely asserted in prose. PrologAI is
-  # checked out beside the standard and run through its own 107-vector
+  # checked out beside the standard and run through its own canonical
   # conformance harness (built in PrologAI Work Package 425 / WP-425) against
-  # THIS repository's canonical conformance/vectors/. Both repositories thus
-  # stay in lockstep on one vector set: the reference implementation cannot
-  # silently drift from the specification. This job is distinct from the
-  # `gardener` job, which also installs SWI-Prolog but runs the Mentova gardener
-  # demo rather than the 107 conformance vectors.
+  # THIS repository's canonical conformance/vectors/ (137 at 4.0.0). Both
+  # repositories thus stay in lockstep on one vector set: the reference
+  # implementation cannot silently drift from the specification. This job is
+  # distinct from the `gardener` job, which also installs SWI-Prolog but runs
+  # the Mentova gardener demo rather than the 137 conformance vectors.
   prolog:
     runs-on: ubuntu-latest
     steps:
