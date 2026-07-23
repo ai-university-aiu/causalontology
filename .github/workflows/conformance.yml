@@ -165,11 +165,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The binding uses only GHC boot packages (base, bytestring, containers,
+      # filepath, directory), so it needs no Hackage index at all. Skip the
+      # setup action's internal `cabal update` (it fetches a Hackage mirror that
+      # has 404'd, failing the job in setup before conformance can run) and run
+      # the vectors directly with runghc - no cabal, no network, boot packages
+      # only. Verified locally: 137/137.
       - uses: haskell-actions/setup@v2
         with:
           ghc-version: "9.6"
+          cabal-update: false
       - name: conformance (137 vectors)
-        run: cd bindings/haskell && cabal update && cabal run -v0 conformance
+        run: cd bindings/haskell && runghc -isrc -iapp app/Conformance.hs
 
   perl:
     runs-on: ubuntu-latest
