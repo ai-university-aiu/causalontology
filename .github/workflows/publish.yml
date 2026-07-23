@@ -18,7 +18,7 @@ jobs:
     if: inputs.registry == 'rubygems'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
@@ -36,7 +36,7 @@ jobs:
     if: inputs.registry == 'hex'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: erlef/setup-beam@v1
         with:
           otp-version: "26"
@@ -54,7 +54,7 @@ jobs:
     if: inputs.registry == 'luarocks'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: install Lua + LuaRocks (+ the JSON lib luarocks-upload itself needs)
         run: |
           sudo apt-get update && sudo apt-get install -y lua5.4 luarocks
@@ -68,7 +68,7 @@ jobs:
     if: inputs.registry == 'hackage'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: haskell-actions/setup@v2
         with:
           ghc-version: "9.6"
