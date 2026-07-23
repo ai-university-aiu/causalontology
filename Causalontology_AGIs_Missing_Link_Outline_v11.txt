@@ -1,0 +1,373 @@
+CAUSALONTOLOGY: AGI'S MISSING LINK
+
+THE MANIFESTO - OUTLINE (v11)
+
+For THE AGI 2026 conference, San Francisco.
+
+D. R. Dison, Founder of AIU, Creator and Owner of PrologAI and Mentova, ORCID 0009-0001-9246-5758, linkedin.com/in/d-r-dison/
+
+Working thesis, held as the frame of every chapter: Causalontology is important to achieve Artificial General Intelligence (AGI) - not as one more model, but as the missing DATA STRUCTURE: causation itself, reified into signed, mergeable, inspectable objects that any mind, human or synthetic, can read, write, and verify. It is described here as it IS - one integrated standard, specification 4.0.0, frozen, git tag v4.0.0 - not as a stack of versions.
+
+Three arguments braided through the whole book:
+
+• Causalontology is important TO AGI: the faculties AGI needs - planning, imagination, transfer, explanation, agency, theory of mind, prediction - are all operations OVER causal structure, and today's systems have nowhere to keep it.
+
+• Causalontology is an ENABLER of AGI: it does not compete with neural networks or language models; it gives them the missing organ - a shared, verifiable world model layer - and it climbs Pearl's ladder by data structure rather than by hope.
+
+• Causalontology is important IN GENERAL: signed, provenance-first causal knowledge is what science, medicine, engineering, and a misinformation-soaked civilization need, with or without AGI.
+
+FRONT MATTER
+
+• Title page, byline, epigraph - the child at the light switch, asking the universe a question with her own hand.
+
+• THE CLAIM - one page, five angles: the world-first synthesis of reified causal representation, temporal-mechanistic modeling, and interventional learning in one glass-box unified ontology - stated up front and defended for the rest of the book.
+
+• The receipts, stated once and precisely: a shipped, frozen standard with twenty-one kinds of object, 137 public conformance vectors, twenty independent implementations agreeing byte for byte, a running shared store, and a synthetic mind already contributing signed causal knowledge to it.
+
+PART ONE - THE WALL (why the current road does not reach AGI)
+
+Chapter 1. The Age of Miracles That Cannot Reason.
+
+• The paradox of 2026: systems that write sonnets and pass bar exams, yet fail at cause and effect a child masters at a light switch.
+
+• Grounding from the current literature: state-of-the-art Large Language Models (LLMs) score an average F1 of roughly 0.535 at inferring causal relationships from real-world text; performance collapses as causal information becomes implicit.
+
+• Next-token prediction captures statistical patterns, not mechanisms - the correlation engine at civilization's center.
+
+Chapter 2. The Ladder They Cannot Climb.
+
+• Judea Pearl's Ladder of Causation: association, intervention, counterfactual.
+
+• The verdict from the causal-inference community: machine learning remains at rung one; LLMs are sophisticated statistical approximators stuck at the bottom.
+
+• Why scale does not climb ladders: more association is still association; a rung needs somewhere for the climbing to LIVE.
+
+Chapter 3. The Billion-Dollar Admission.
+
+• The field's own pivot: world-model startups with billion-dollar seeds; deep-learning pioneers conceding that symbol manipulation is necessary; the neurosymbolic turn now mainstream.
+
+• The concession read honestly: everyone now agrees SOMETHING is missing - the fight is over what.
+
+• Our answer: what is missing is not another model; it is a missing DATA STRUCTURE - AGI's HyperText Markup Language (HTML) moment.
+
+Chapter 4. The Black Box Crisis.
+
+• You cannot align what you cannot read: interpretability as the bottleneck of safety.
+
+• Explanations bolted on after the fact versus explanations that ARE the representation.
+
+• The stakes: minds we can audit versus minds we can only hope about - the two walls, one silhouette of the missing piece.
+
+INTERLUDE ONE - A Short History of the Arrow.
+
+• Twenty-four centuries picking the lock: Aristotle names the arrow, Hume doubts it, Wright draws it, Pearl calculates it.
+
+• The gap that remains: Pearl gave the calculus, not the INFRASTRUCTURE - no agreed unit, no common format, no signature scheme, no merge rule, no shared table. Causalontology is the missing third act, the engineering: it gives the arrow an address.
+
+PART TWO - THE MISSING LINK (what Causalontology is)
+
+Chapter 5. What If Causation Were a Thing?
+
+• Reification, explained for everyone: turning "A causes B" from a sentence into an OBJECT with fields.
+
+• The Causal Relation Object - the atom of understanding - and its fields, all present design:
+
+◦ causes and effects - references to defined occurrent (process) types, never free text.
+
+◦ mechanism - the finer causal objects that explain HOW, each a Causal Relation Object in its own right.
+
+◦ temporal - the window, with fixed units down to a month defined as exactly 2,629,746 seconds; and the ordinal TICK as a separate, dimensionless dimension for processes lived in steps rather than seconds, never converted to the wall clock.
+
+◦ modality - the flavor of the claim: necessary, sufficient, contributory, enabling (the cause makes the effect possible without bringing it about), or preventive.
+
+◦ context, stratum (the level of description the claim is pitched at), and refines (lineage - so knowledge matures, not churns).
+
+◦ skips - a flag declaring the cause reaches across NON-ADJACENT levels with no intervening mechanism claimed.
+
+• Almost everything is optional: a degenerate claim ("pressing causes lighting") is perfectly legal - a partial claim is a standing invitation.
+
+• The four things the reified claim cannot say on its own, answered by the object model:
+
+◦ at what LEVEL a claim sits - the stratum.
+
+◦ that two claims at different levels are the SAME HAPPENING - the bridge (identity, not correlation).
+
+◦ that two things are CONNECTED - ports and conduits, decided pipe-versus-computer by the Perfect Wire Test.
+
+◦ that something ACTUALLY OCCURRED - the token tier.
+
+• The skip made honest: absence of a mechanism recorded as a positive FINDING (Principle P5), and the managed cross_stratal_seam its first-class form - mechanism_status "unmodeled" (exists, not drawn here) versus "absent" (there is none), an optional drawn chain, a home rule placing it at the coarsest level it touches. Rule 7 makes reachability BRIDGED, so a causal chain is checked for consistency across scales without pretending every skip is a staircase.
+
+Chapter 6. A Verb-First, Noun-Hosting Ontology.
+
+• Reality is what happens; things are its participants - the inversion of the entire noun-first history of computing (databases, objects, knowledge graphs).
+
+• The atomic building block is the occurrent - the happening, the verb; the fundamental unit reifies the master verb, causation itself.
+
+• Governing the verbs, hosting the nouns: a thin continuant backbone that defers domain depth to the specialist ontologies.
+
+• The realizable hinge - dispositions, functions, and roles that inhere in things and discharge in happenings; fragility is only fully itself in the shattering. Each realizable carries an identity-bearing label, so one bearer may hold many distinguishable dispositions - fragile, catalytic, and soluble at once - without collapsing into one blur.
+
+• Knowing is verb-first: knowledge enters by ACTING and by active watching, which the evidence ladder makes enforceable rather than merely poetic.
+
+Chapter 7. Twenty-One Kinds of Thing.
+
+• The entire universe of Causalontology contains exactly twenty-one kinds - a vocabulary you can learn before lunch and build a civilization's knowledge on after it: ten type-tier content, seven token-tier content, and four provenance.
+
+• Ten TYPE-TIER content kinds - pure, immutable, content-addressed - the laws and furniture of the world:
+
+◦ occurrent - a process or event TYPE (press_button, light_on); may be pitched at a named stratum.
+
+◦ causal_relation_object - the reified causing, the atom of understanding; may carry a skips flag.
+
+◦ continuant - a thing that endures (button, lamp, patient) - the hosted nouns.
+
+◦ realizable - a disposition, function, or role, borne by a continuant, realized in occurrents; carries an identity-bearing label.
+
+◦ stratum - a single level of description within a named scheme (molecular, cellular, social).
+
+◦ bridge - a cross-stratal identity map: one coarse occurrent IS a set of finer ones, the same happening seen at two levels.
+
+◦ cross_stratal_seam - a managed jump across NON-ADJACENT levels, recording in mechanism_status whether the intervening mechanism is unmodeled or absent, with an optional drawn chain and a home rule; the honest, first-class form of the skips flag.
+
+◦ port - a typed interface borne by a continuant.
+
+◦ conduit - a typed connection, port to port; a PIPE if it conveys unchanged, a COMPUTER if it transforms; may carry a realized_by reference by identity to the native law or signal that actually realizes the transform.
+
+◦ quality - a property TYPE (mass, colour, temperature, charge).
+
+• Seven TOKEN-TIER content kinds - LOCAL BY DEFAULT - not the law but the record of what particular things did, what a mind expects, and what one mind believes of another:
+
+◦ token_individual - a single particular thing: THIS patient, this button.
+
+◦ token_occurrence - a particular happening at an absolute time.
+
+◦ state_assertion - a value holding over an interval.
+
+◦ token_causal_claim - a particular causing under a covering law, carrying its own but-for counterfactual.
+
+◦ attitude - what a modeled mind CONTAINS: a holder (a continuant or token_individual, never a signing key), a closed attitude_type (believes, desires, intends, knows, expects, fears), and content (a reference to ANY content object, including another attitude, which is how attributions nest). The content may be FALSE; it carries no strength of its own.
+
+◦ predicted_occurrence - a happening a stated predictor EXPECTS: the occurrent type predicted, a window in exactly one dimension of time (wall clock or tick, never both, never neither), and an optional identity-bearing strength (the predicted probability). A prediction is not a report.
+
+◦ prediction_error - pairs a predicted_occurrence with the token_occurrence that did or did not fulfil it, carrying the signed discrepancy (actual minus expected: positive exceeded, negative fell short, zero fulfilled); observed may be absent - the surprise of nothing arriving.
+
+• Four PROVENANCE kinds - signed, add-only:
+
+◦ assertion - who claims a content object is true, on what evidence, with what strength and confidence, when; may cite token evidence via evidenced_by.
+
+◦ enrichment - who added one alias, participant, or taxonomy link; also occurrent_subsumes and occurrent_part_of.
+
+◦ retraction - a source's honest withdrawal of its OWN earlier record.
+
+◦ succession - a cryptographic change of guard: this new key continues that old key's identity and responsibilities.
+
+• The load-bearing separation, uniform at every tier: content versus provenance. One immutable claim; a thousand signatures around it, growing it stronger; disagreement lives in provenance, never in contested cells - there is nothing to fight over.
+
+• Three seams join symbolic structure to native dynamics, all current design: the tick lets lived time in; the cross_stratal_seam makes the leap between levels an honest managed record; and realized_by clasps a conduit to the living law that realizes it - structure and dynamics joined by one fingerprint, neither pretending to be the other.
+
+Chapter 8. The Token Tier: A History, an Expected World, and Other Minds.
+
+• Type tier tells you what CAN happen; the token tier records what DID happen, what a mind EXPECTS, and what one mind BELIEVES of another - a general mind needs all three.
+
+• History: token_occurrence, state_assertion, token_causal_claim, token_individual - episodic memory as signed objects, with the token counterfactual that asks "what if THIS particular thing had not happened?"
+
+• The clinical case: a single patient's history as token occurrences and state assertions over intervals, each token causal claim tied to a covering law yet particular to this life.
+
+• Native time: a timing-critical process kept in TICKS - a discrete, dimensionless ordinal step, never distorted into wall-clock seconds it never owned; ticks and seconds are disjoint dimensions and never convert.
+
+• Other minds, made data: the attitude records what a holder's mind contains, not what is true. Rule 25, the doxastic quarantine - content that contradicts the actual record raises NO conflict, because that mismatch IS a false belief, first-class and shareable; the holder stays forever distinct from the signing source. Theory of mind becomes a mind that can be WRONG about another mind, on the record.
+
+• The expected world: the predicted_occurrence gives forecasts a home, and the prediction_error gives the comparator's signed surprise a home. Rule 24 - a prediction is NOT a report: a forecast gets a different identifier from a token_occurrence of comparable content, and a paired observation must instantiate the same occurrent.
+
+• Local by default: the token tier is private unless deliberately published - privacy built into the data structure, not bolted on; the attitude doubly so, an attribution of a mental state among the most sensitive records the standard can carry.
+
+Chapter 9. Identity Without a Committee.
+
+• Content addressing: an object's name is the Secure Hash Algorithm 256-bit (SHA-256) fingerprint of its identity-bearing fields in canonical form (RFC 8785) - the same claim minted anywhere on Earth gets the same identifier.
+
+• The digest is taken over fields PRESENT and nothing else, so every optional field is identity-preserving: a record keeps its exact name across the life of the standard.
+
+• Merge is set union; the commons is a Conflict-free Replicated Data Type (CRDT) by construction; no coordinator, no gatekeeper, no vote. Tamper-evidence is free: alter one byte and identity no longer matches content.
+
+Chapter 10. Every Word Has an Author.
+
+• Ed25519 signatures on every mutable datum, down to a single alias in a single language - every author checkable arithmetic; no anonymous edit, no framing.
+
+• Retraction as the honest exit; succession as institutional memory.
+
+• Acting beats watching: the evidence ladder with intervention on top - intervention over observation over simulation, then derivation, human hint, and imported - and assertions cite the very token evidence they rest on via evidenced_by.
+
+PART THREE - THE ENABLER (how Causalontology powers AGI)
+
+Chapter 11. Climbing the Ladder by Data Structure.
+
+• Rung one lives in the assertion's evidence grades; rung two lives in intervention-graded Causal Relation Objects; rung three lives in refinement, context, quarantined imagined realities, and the token counterfactual.
+
+• The ladder is not climbed by bigger models but by a representation in which every rung is a first-class object.
+
+Chapter 12. The Faculties of a General Mind.
+
+• Planning is search over causal chains; imagination is counterfactual composition of Causal Relation Objects; transfer is analogy over relation structure; explanation is reading the mechanism field aloud; agency is choosing interventions; memory consolidation is refinement lineage; episodic recall is reading the token tier.
+
+• Theory of mind is reading and writing attitudes - modeling, and being wrong about, another mind; prediction is minting predicted_occurrences and grading them with prediction_errors - the active-inference loop given a shareable substrate.
+
+• Each faculty, shown as an OPERATION over the same twenty-one kinds - one substrate, many faculties - including reasoning up and down the strata through bridges and along conduits.
+
+Chapter 13. The Glass Box Mind.
+
+• Alignment transformed: a mind whose beliefs are signed, inspectable causal objects can be audited claim by claim.
+
+• "Why?" always has a readable answer - a lookup, not a performance.
+
+• The learning signal made inspectable: the prediction_error is a first-class object, not a transient number - the predictive loop leaves an auditable trail, and a mind can be right, on the public record, about another mind being wrong.
+
+Chapter 14. The Commons: A World Model for Everyone.
+
+• One shared, provenance-first store of causal knowledge - Wikidata's lesson, specialized to causation.
+
+• Federation and offline replication; convergence without consensus machinery; the type tier shared, the token tier local by default.
+
+Chapter 15. Commons Storage and Federation Design.
+
+• The commons is a network, not a server - no single machine holds it, and by design none must; built on the Tier A / Tier B / Tier C store.
+
+• Why the data wants to be a network: content-addressed identity plus merge-by-set-union is the same math as the InterPlanetary File System (IPFS), Git, and Dat - a peer-to-peer federation converging with no coordinator.
+
+• Tiers of participation: full nodes (hold everything), partial nodes (hold a hash-prefix slice; sharding is trivial because identity is a hash), light clients (hold almost nothing, verify locally, trust no one because every record is signed and self-certifying).
+
+• What bounds the size: the commons federates LAWS (type tier), not diaries (token tier, local by default) - nearer Wikidata-scale than "every experience of every mind."
+
+• The storage engine: immutable content-addressed objects give free deduplication, free integrity (the hash is the checksum), and permanent caching; a node is a blob store (SQLite / RocksDB / LMDB, or S3-compatible MinIO / Garage) plus a locally rebuilt index; hot/cold tiering guided by the stigmergy demand signal.
+
+• Distribution and durability: signed snapshot dumps, shipped over IPFS, BitTorrent, or Hypertext Transfer Protocol Secure (HTTPS), every byte verifiable by hash - global redundancy before a single live peer is recruited; a natural fit for the Internet Archive and Software Heritage.
+
+• Reads and writes at scale: reads infinitely cacheable behind mirrors and a content-delivery network (CDN); writes are mint-and-gossip with union merge and anti-entropy sync, no global lock.
+
+• Trust and safety: signatures make trust a consumer policy, not forced consensus; token tier local-by-default preserves privacy; retraction without erasure; tamper-evidence from hashes and signatures alone.
+
+• The phased build, delivered: (1) a persistent content-addressed node - durable (SQLite in write-ahead logging (WAL) mode), idempotent by content address, integrity-checked on write; (2) a genesis full node plus signed snapshot dumps - a deterministic snapshot committed by a Merkle root and signed with an Ed25519 key, verifiable byte for byte, token tier excluded by default; (3) Tier B federation - gossip and background anti-entropy that compares Merkle roots and ships only the delta, every inbound item verified by hash and signature before merge, add-only, no coordinator; (4) light clients, immutable-cache CDN headers with an entity tag (ETag) equal to the identifier, and hash-prefix sharding for sideways scale. ALL FOUR PHASES ARE DELIVERED.
+
+• What remains is not architecture but adoption: standing up genesis and partner nodes and growing the commons - free and open by construction, cheap to mirror and impossible to quietly corrupt.
+
+Chapter 16. Stigmergy: The Wall That Teaches.
+
+• The half-built wall shows the next worker where the next brick goes.
+
+• A value-ranked gap taxonomy; the store announces its own most valuable next contribution (uncovered_causation the most valuable); demand measured from real readership.
+
+Chapter 17. The First Gardener.
+
+• The receipts from the reference implementation: perfect public-training-set scores on the first two Abstraction and Reasoning Corpus benchmarks - ARC-AGI-1: 400 of 400; ARC-AGI-2: 120 of 120 - by pure symbolic induction, no LLM, stated precisely, never inflated.
+
+• The live demonstration: a glass-box synthetic mind (Mentova, on PrologAI) reads the gap list, intervenes a hundred times with its own hand on the switch, induces the missing fields, signs an intervention-grade assertion, and the gap closes on everyone's frontier.
+
+• The first brick laid in the shared wall by a machine - and every step of it narrated.
+
+PART FOUR - THE PROOF (why you can believe any of this)
+
+Chapter 18. The Freeze.
+
+• 137 conformance vectors with concrete bytes (V01-V137); a deterministic, idempotent freeze; the locked decisions; specification 4.0.0, git tag v4.0.0 - green in the Python reference and all nineteen bindings.
+
+Chapter 19. Twenty Languages, Zero Shared Code.
+
+• Twenty independent implementations - Prolog, Python, JavaScript, Rust, Java, Swift, Go, C#, Ruby, PHP, Dart, Elixir, Haskell, Perl, R, Lua, C++, Zig, Julia, Kotlin/Native - agreeing byte for byte, down to the length of a month and the bytes of a signature.
+
+• Programming-language-neutrality is not a claim; it is a table.
+
+Chapter 20. Install It Before Breakfast.
+
+• Thirteen live distribution channels; one-line installs; twenty-one Continuous Integration gates re-proving everything on every change; every claim in this book checkable in public.
+
+PART FIVE - THE WORLD (why this matters beyond AGI)
+
+Chapter 21. Science, Medicine, Engineering.
+
+• Fields that run on causation but store it as prose; what signed, mergeable causal claims do for reproducibility, drug interactions, and failure analysis - and what strata, bridges, ports, conduits, and a local-by-default token tier do for multi-scale models and private patient histories.
+
+Chapter 22. Truth in the Age of Noise.
+
+• Provenance-first knowledge against misinformation: no anonymous edits, honest retraction, disagreement surfaced rather than averaged away - and the attitude that records who believes what a mind can be wrong about.
+
+Chapter 23. The Child at the Light Switch.
+
+• Education and human understanding: the same structure that teaches machines teaches us; curiosity as gap-reading.
+
+PART SIX - THE INVITATION
+
+Chapter 24. Monday Morning.
+
+• The one-line installs, the quickstart, the first gap you can close this week.
+
+Chapter 25. To the Builders, the Researchers, the Leaders.
+
+• Three letters: what each audience can do, concretely, starting now.
+
+Chapter 26. The Road Ahead.
+
+• The token tier is DELIVERED, not deferred - history, episodic memory, expectation, theory of mind, and the clinical case all ship in the current standard.
+
+• The discipline of growth: no construct enters unless a recorded, specific failure forces it (Principle P6); every addition is additive, identity-preserving, whole-word, and released through a public gate. Candidate extensions stand held, each awaiting the real wall that proves it.
+
+• The reserved future, genuinely short: the bounty layer as the one remaining reserved item, the federation of minds, and the labeled, falsifiable bet on the third benchmark (ARC-AGI-3).
+
+THE MANIFESTO - the declarations, numbered, one page of thunder.
+
+CODA - the closing image: the wall, the door, the bricks, the hands - human and synthetic - building together.
+
+APPENDIX 1 - THE SPECIFICATION, COMPLETE AND TERSE.
+
+• Specification 4.0.0, frozen, git tag v4.0.0 - a programming-language-neutral standard, a data structure and its rules, not a program.
+
+• The twenty-one kinds: ten type-tier content (occurrent, causal_relation_object, continuant, realizable, stratum, bridge, cross_stratal_seam, port, conduit, quality), seven token-tier content and LOCAL BY DEFAULT (token_individual, token_occurrence, state_assertion, token_causal_claim, attitude, predicted_occurrence, prediction_error), and four provenance and signed (assertion, enrichment, retraction, succession).
+
+• The identity procedure: an identifier is scheme:localpart, the localpart the lowercase hexadecimal SHA-256 digest of the identity-bearing fields present, canonicalized under RFC 8785 - two authors anywhere who state the same content mint the same identifier and merge with no coordinator.
+
+• The seven principles P1 through P7: no free-floating tokens; tokens local by default; levels scheme-relative; content bears no provenance (the one recorded exception being a predicted_occurrence's strength, predicted content, not a provenance evaluation); absence made positive; every addition forced by a recorded failure; whole words, never abbreviations.
+
+• The five modalities: necessary, sufficient, contributory, enabling, preventive.
+
+• Time: eight wall-clock units with fixed conversion constants (a month is exactly 2,629,746 seconds, a year 31,556,952), plus the ordinal TICK - a dimensionless step, held as a dimension disjoint from the wall clock, never converted.
+
+• The twenty-five semantic rules, including Rule 7 (bridged reachability), Rule 22 (cross-stratal seam well-formedness), Rule 23 (ordinal units are a separate dimension), Rule 24 (a prediction is not a report), and Rule 25 (the doxastic quarantine); plus the one store rule for deterministic cycle-breaking under replication.
+
+• The six normative algorithms A through F; the evidence grades (intervention over observation over simulation, then derivation, human hint, imported); the gap taxonomy (hard failures versus stigmergic invitations); the complete abstract store operation set and the Hypertext Transfer Protocol (HTTP) reference binding; thirty locked decisions; and conformance against all 137 vectors, V01 through V137.
+
+• The token-tier safety rules R1 through R6 - laws, not diaries - and the honest limits: an unforgetting store, key recovery a governance act, takedown stated in advance by tier.
+
+• WORKED EXAMPLES - three sketches that exercise the full power of 4.0.0, each a one-line description and a compact JavaScript Object Notation (JSON) skeleton:
+
+◦ (a) The classic causal claim, signed and intervention-graded: pressing the button is a sufficient cause of the light within a second, asserted on intervention-grade evidence by a source nobody else can forge.
+{ "type": "occurrent", "label": "press_button", "category": "action" }
+{ "type": "occurrent", "label": "light_on", "category": "state_change" }
+{ "type": "causal_relation_object", "causes": ["occurrent:press_button"], "effects": ["occurrent:light_on"], "temporal": { "minimum_delay": 0, "maximum_delay": 1, "unit": "seconds" }, "modality": "sufficient" }
+{ "type": "assertion", "about": "causal_relation_object:...", "evidence_type": "intervention", "strength": 0.98, "confidence": 0.95, "source": "ed25519:...", "timestamp": "2026-07-13T00:00:00Z" }
+
+◦ (b) A false, NESTED attitude - theory of mind: agent A believes that agent B believes the box is empty, when the record says it holds a ball. The holder (a modeled agent) is distinct from the signer (a key); Rule 25's doxastic quarantine raises NO conflict - the mismatch IS B's false belief, and A is right, on the record, that B is wrong.
+{ "type": "state_assertion", "subject": "token_individual:box_7", "quality": "quality:contents", "value": "ball", "interval": { "start": "2026-07-22T09:00:00Z" } }
+{ "type": "attitude", "holder": "token_individual:agent_B", "attitude_type": "believes", "content": "state_assertion:box_empty" }
+{ "type": "attitude", "holder": "token_individual:agent_A", "attitude_type": "believes", "content": "attitude:...(the inner B-attitude)" }
+{ "type": "assertion", "about": "attitude:...(the outer A-attitude)", "source": "ed25519:...(A's own key)", "evidence_type": "observation", "confidence": 0.9, "timestamp": "2026-07-22T09:05:00Z" }
+
+◦ (c) A predicted_occurrence paired with its prediction_error - the prediction loop: a modeled mind expects a reward over a tick window at strength 0.8; nothing arrives, so observed is absent and the signed discrepancy is negative - the surprise of nothing. A forecast is not a report: the predicted_occurrence gets a different identifier from any token_occurrence of comparable content (Rule 24).
+{ "type": "predicted_occurrence", "instantiates": "occurrent:reward_delivered", "interval": { "start_tick": 5, "end_tick": 8 }, "predictor": "token_individual:agent_M", "strength": 0.8 }
+{ "type": "prediction_error", "predicted": "predicted_occurrence:...", "observed": null, "discrepancy": -0.8 }
+
+APPENDIX 2 - THE REPOSITORY AND THE RECEIPTS: github.com/ai-university-aiu/causalontology; every install line; the release, the dashboard, the gardener; how to verify every claim made in this book.
+
+APPENDIX: VERSION HISTORY.
+
+• The only enumeration of versions in this book. The body describes Causalontology as one integrated whole at 4.0.0; this appendix records how the standard GREW to it. The discipline held at every step: every version additive and identity-preserving (content addressing hashes only the fields present, so an earlier record keeps its exact identifier under a later specification - witness vector V136), whole-word (Principle P7), and gate-released (Principle P6 - no construct enters unless a recorded, specific failure forced it). Each release is frozen and permanently reachable by its git tag.
+
+• 1.0.0 - eight kinds, thirty-eight vectors (V01-V38). The founding move: reified causation, content-addressed identity, and signed provenance.
+
+• 2.0.0 - the whole-word re-mint. Seventeen kinds, 107 vectors, five normative algorithms. It added the strata, the bridges, the ports and conduits, the token tier, the enabling modality, bridged reachability (Rule 7), the skip semantics, and Principle P7 (whole words, never abbreviations).
+
+• 3.0.0 - eighteen kinds, 119 vectors, six normative algorithms. It added the ordinal TICK temporal unit; the managed cross_stratal_seam (the eighteenth kind) with its honest-ignorance mechanism_status and Algorithm F; and the conduit realized_by reference. Every addition additive and identity-preserving, witnessed by vectors V106, V111, and V118.
+
+• 4.0.0 - twenty-one kinds, 137 vectors (V01-V137). It added the attitude (the nineteenth kind), the predicted_occurrence (the twentieth), and the prediction_error (the twenty-first), governed by Rules 24 and 25. RELEASED BY A GATE, not from the armchair: real konnectome build findings Wall-1 (the doxastic wall - a false, nested belief that could be held but not shared) and Wall-2 (the predictive wall - a forecast byte-identical to a report of fact), both recorded on 2026-07-22; both passing the consumer-versus-ontology test (the capability must travel BETWEEN minds as shared, signed data, not merely live inside one runtime); and the owner's written authorization of 2026-07-22. Sections C, D, and E of the same change order - imagination quarantine, quantitative sensitivity, multi-language expression - remain HELD, each awaiting its own finding. Frozen, git tag v4.0.0; every 3.0.0 identifier preserved byte for byte, witnessed by vector V136.
+
+SOURCES - the contemporary literature grounding Part One, listed plainly.
+
+COLOPHON.
