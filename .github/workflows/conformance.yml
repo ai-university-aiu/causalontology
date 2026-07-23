@@ -15,7 +15,7 @@ jobs:
   python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -35,7 +35,7 @@ jobs:
   javascript:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "20"
@@ -45,7 +45,7 @@ jobs:
   java:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -56,7 +56,7 @@ jobs:
   swift:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: swift-actions/setup-swift@v2
         with:
           swift-version: "5.10"
@@ -66,7 +66,7 @@ jobs:
   gardener:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: install SWI-Prolog
         run: sudo apt-get update && sudo apt-get install -y swi-prolog
       - name: the synthetic mind gardens the commons
@@ -75,7 +75,7 @@ jobs:
   rust:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -92,7 +92,7 @@ jobs:
   go:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
@@ -104,7 +104,7 @@ jobs:
   typescript:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "20"
@@ -114,7 +114,7 @@ jobs:
   csharp:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "8.0.x"
@@ -124,7 +124,7 @@ jobs:
   ruby:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
@@ -134,7 +134,7 @@ jobs:
   php:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
@@ -145,7 +145,7 @@ jobs:
   dart:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
       - name: conformance (137 vectors)
         run: dart bindings/dart/bin/conformance.dart
@@ -153,7 +153,7 @@ jobs:
   elixir:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: erlef/setup-beam@v1
         with:
           otp-version: "26"
@@ -164,7 +164,7 @@ jobs:
   haskell:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # The binding uses only GHC boot packages (base, bytestring, containers,
       # filepath, directory), so it needs no Hackage index at all. Skip the
       # setup action's internal `cabal update` (it fetches a Hackage mirror that
@@ -181,14 +181,14 @@ jobs:
   perl:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: conformance (137 vectors)
         run: perl bindings/perl/conformance.pl
 
   r:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: r-lib/actions/setup-r@v2
       - name: crypto libraries + R packages
         run: |
@@ -200,7 +200,7 @@ jobs:
   lua:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: install Lua 5.4
         run: sudo apt-get update && sudo apt-get install -y lua5.4
       - name: conformance (137 vectors)
@@ -209,21 +209,21 @@ jobs:
   cpp:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: conformance (137 vectors)
         run: bash bindings/cpp/run_conformance.sh
 
   zig:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: conformance (137 vectors)
         run: bash bindings/zig/run_conformance.sh
 
   julia:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
         with:
           version: "1.10"
@@ -233,7 +233,7 @@ jobs:
   kotlin:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -257,7 +257,7 @@ jobs:
       # The standard: this repository's canonical conformance/vectors/ frozen at
       # specification 4.0.0 (137 vectors).
       - name: check out the standard (causalontology)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: causalontology
       # The reference implementation, tracked at its MOVING main branch, not a
@@ -279,7 +279,7 @@ jobs:
       # That trades drift-detection latency for reproducibility. Not adopted:
       # freshness is the point of this gate.
       - name: check out the reference implementation (PrologAI)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ai-university-aiu/PrologAI
           ref: main
