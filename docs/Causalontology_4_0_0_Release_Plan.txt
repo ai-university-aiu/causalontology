@@ -632,11 +632,11 @@ consulted and remains harmless.
                    clean project required causalontology/causalontology 4.0.1
                    from Packagist (resolved v4.0.1), and the conformance suite
                    passed 137/137 from the installed vendor tree.
-  [ ] Python     - published to PyPI; fresh install 137/137.
-                   STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
-                   passes 137/137 and its manifests read 4.0.0; PyPI still
-                   carries 2.0.0; only publication and the fresh-install check
-                   remain.
+  [x] Python     - published to PyPI; fresh install 137/137.
+                   STATUS: COMPLETE (2026-07-26) - 4.0.0 published to PyPI
+                   with the owner's explicitly named go-ahead; a brand-new
+                   virtual environment installed 4.0.0 fresh from PyPI and
+                   passed 137/137.
   [ ] R          - submitted to and accepted by CRAN; fresh install 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
                    (second wave); passes 137/137 locally, DESCRIPTION reads
