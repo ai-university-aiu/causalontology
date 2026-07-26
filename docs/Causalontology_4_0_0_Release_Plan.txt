@@ -127,7 +127,9 @@ its own language. For every binding, in order:
  4. BUMP THE VERSION to 4.0.0 in the binding's package manifest.
 
  5. TAG THE RELEASE in Git (v4.0.0, or the language-specific tag noted below;
-    Go's is bindings/go/v4/v4.0.0).
+    Go's is bindings/go/v4.0.0 - corrected 2026-07-26: the module lives in the
+    major-version subdirectory bindings/go/v4, and for that layout Go drops
+    the folder's /v4 suffix from the tag prefix).
 
  6. PUBLISH, then run the post-publish verification: install the PUBLISHED
     4.0.0 package fresh, from the registry, into a clean environment, and run
@@ -228,9 +230,9 @@ use the Hex-published Elixir package).
       Go versions the import path, so a skipped major leaves no gap to fill.
     Build and publish tool: the Git tag plus the module proxy (no manual push).
     Version bump: the /v4 module path (above); the code version is the tag.
-    Tag: bindings/go/v4/v4.0.0 (the module-path-scoped semantic-version tag Go
-      requires for a subdirectory module), i.e. tag name
-      "bindings/go/v4/v4.0.0".
+    Tag: bindings/go/v4.0.0 (corrected 2026-07-26: for a module in the
+      major-version subdirectory bindings/go/v4, the tag prefix drops the
+      folder's /v4 suffix), i.e. tag name "bindings/go/v4.0.0".
     Publish:
       cd bindings/go/v4 && go run ./conformance    -> 137/137
       push the tag; then prime the proxy:
@@ -550,6 +552,18 @@ NOT pushed: the execution environment requires each public tag to be
 explicitly named by the owner, and this third name was not in the
 authorization. Go therefore stays PENDING on one sentence from the owner.
 
+GO CHANNEL CLOSED (2026-07-26, later still the same date). The owner gave
+exactly that sentence - "Push the tag bindings/go/v4.0.0 on causalontology" -
+and the act executed exactly that, no more: the tag bindings/go/v4.0.0 pushed
+at the same commit the v4.0.1 channels share (43d58a6), the module proxy
+primed (GOPROXY=proxy.golang.org go list -m resolved v4.0.0 on the first
+ask), and the post-publish verification run the strong way: the conformance
+runner itself fetched FRESH from proxy.golang.org (go run
+github.com/ai-university-aiu/causalontology/bindings/go/v4/conformance@v4.0.0
+in a clean directory) and passed 137/137. The /v2 module stays live for
+2.0.x; no /v3 was ever cut; the earlier bindings/go/v4/v4.0.0 tag is never
+consulted and remains harmless.
+
   [x] C++ (source tarball) - the v4.0.1 tag tarball is out and a freshly
                    downloaded copy passed 137/137 (2026-07-26). The vcpkg and
                    Conan ports remain unticked besides: both await their CLA
@@ -568,16 +582,15 @@ authorization. Go therefore stays PENDING on one sentence from the owner.
                    (second wave); passes 137/137 locally and mix.exs reads
                    4.0.0; Hex still carries 2.0.0; only publication and the
                    fresh-install check remain.
-  [ ] Go         - /v4 module tag pushed and proxied; fresh get 137/137.
-                   STATUS: PENDING ON ONE EXPLICITLY NAMED TAG (2026-07-26) -
-                   the first wave discovered the tag-name rule: for a module
-                   in the major-version subdirectory bindings/go/v4, the Go
-                   toolchain resolves the tag bindings/go/v4.0.0, not the
-                   bindings/go/v4/v4.0.0 this plan had recorded (the pushed
-                   tag of that older name is harmless but never consulted).
-                   Remaining: the owner explicitly authorizes pushing tag
-                   bindings/go/v4.0.0; then the proxy prime and the fresh-get
-                   137/137 check. The /v2 module stays live; no /v3 ever cut.
+  [x] Go         - /v4 module tag pushed and proxied; fresh get 137/137.
+                   STATUS: COMPLETE (2026-07-26) - the owner explicitly
+                   authorized the correctly named tag in their own words
+                   ("Push the tag bindings/go/v4.0.0 on causalontology");
+                   the tag was pushed at the v4.0.1 commit, the module proxy
+                   resolved v4.0.0 on the prime, and the conformance runner
+                   fetched fresh from proxy.golang.org passed 137/137.
+                   The /v2 module stays live; no /v3 ever cut; the earlier
+                   bindings/go/v4/v4.0.0 tag is never consulted, harmless.
   [ ] Haskell    - published to Hackage; fresh consume 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
                    (second wave); passes 137/137 locally and the .cabal reads
