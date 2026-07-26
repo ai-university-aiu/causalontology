@@ -24,7 +24,7 @@ Status here is re-verified against the live registries, not self-reported.
 | crates.io | `cargo add causalontology` | 4.0.0 published; a clean `cargo new` project added the crate from the registry and passed 137/137 (2026-07-26). 2.0.0 remains; 1.0.0 stays yanked |
 | pub.dev | `dart pub add causalontology` | 4.0.0 published; a clean package resolved 4.0.0 from the registry and passed 137/137 (2026-07-26). 2.0.0 remains; 1.0.0 stays retracted |
 
-## Live at 4.0.x — git-tag channels (tag `v4.0.1`, pushed 2026-07-26)
+## Live at 4.0.x — git-tag channels (tags `v4.0.1` and `bindings/go/v4.0.0`, pushed 2026-07-26)
 
 | Channel | Consume with | Fresh proof |
 |---|---|---|
@@ -32,6 +32,7 @@ Status here is re-verified against the live registries, not self-reported.
 | Zig | `zig fetch --save https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.1.tar.gz`, then `dep.module("causalontology")` | pinned package hash `12207a70aedf8b9c39e929a0ce2b34dbd04a334ece6590b70fdd3fb34c7dcfe98d6f` (printed by `zig fetch`, 2026-07-26); the tag tree passed 137/137 fresh |
 | Packagist (PHP) | `composer require causalontology/causalontology:^4.0` | the Packagist webhook mirrored `v4.0.1` automatically on the tag push (verified on the live index, 2026-07-26); the tag tarball passed 137/137 fresh, and the literal `composer require` spot-check closed the same day: a freshly fetched `composer.phar` installed `causalontology/causalontology` 4.0.1 from Packagist into a clean project and the vendor tree passed 137/137 |
 | C++ source tarball | the [`v4.0.1` archive](https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.1.tar.gz) | `bindings/cpp/run_conformance.sh` from the freshly downloaded tarball passed 137/137 (2026-07-26). The vcpkg and Conan ports stay CLA-gated below |
+| Go modules / pkg.go.dev | `go get github.com/ai-university-aiu/causalontology/bindings/go/v4@v4.0.0`, then import `.../bindings/go/v4/causalontology` | the correctly named tag `bindings/go/v4.0.0` pushed 2026-07-26 with the owner's explicitly named go-ahead (the module lives in the major-version subdirectory `bindings/go/v4`, so the tag prefix drops the folder's `/v4` suffix); the module proxy resolved `v4.0.0` on the prime, and the conformance runner fetched **fresh from proxy.golang.org** (`go run .../bindings/go/v4/conformance@v4.0.0` in a clean directory) passed 137/137. The `/v2` module stays live for 2.0.x; the v1 line remains deprecated and self-retracted at `bindings/go/v1.0.1`; the earlier `bindings/go/v4/v4.0.0` tag is never consulted and remains harmless |
 
 The `v4.0.1` tag push also triggered the release workflow, which built and
 attached the GitHub Release artifacts automatically.
@@ -48,12 +49,6 @@ attached the GitHub Release artifacts automatically.
 | RubyGems | `gem install causalontology` | 1.0.0 yanked |
 | Hex | `{:causalontology, "~> 2.0"}` | 1.0.0 retired (deprecated) |
 | LuaRocks | `luarocks install causalontology` | no yank; 1.0.0-1 remains listed |
-
-## Live at 2.0.x — git-tag channels awaiting their 4.0.0 step
-
-| Channel | Consume with | Notes |
-|---|---|---|
-| Go modules / pkg.go.dev | `go get github.com/ai-university-aiu/causalontology/bindings/go/v2@v2.0.0` | the `/v2` module (Go major-version rule); import `.../bindings/go/v2/causalontology`. The v1 line is deprecated and self-retracted at `bindings/go/v1.0.1`. pkg.go.dev has indexed the `/v2` module. **The 4.0.0 step (discovered 2026-07-26):** the `/v4` module lives in the major-version subdirectory `bindings/go/v4`, so the tag name the Go toolchain actually resolves is **`bindings/go/v4.0.0`** — the pushed `bindings/go/v4/v4.0.0` tag is never consulted (the module proxy reported `unknown revision bindings/go/v4.0.0`, naming the tag it wants). The correctly-named tag push awaits the owner's explicitly named go-ahead, then the proxy prime and the fresh-get 137/137 check |
 
 ## Still pending — accounts, registrars, or human review
 
