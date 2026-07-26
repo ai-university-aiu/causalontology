@@ -508,6 +508,28 @@ every remaining language to 4.0.0 green locally. No box is ticked yet: every
 language is GREEN LOCALLY but UNPUBLISHED, because publication needs the owner's
 registry credentials and, for several languages, a standing human gate):
 
+READINESS NOTE (2026-07-26). A publication-readiness pass was run on the build
+machine, and everything short of the outward act itself is verified. Rust:
+137/137 re-measured at today's head, cargo publish --dry-run packages and
+verifies cleanly, and the WebAssembly cross-check - previously listed as still
+to be run - was built fresh (wasm32-unknown-unknown, release) and passes 6/6:
+the WASM core agrees with the JavaScript binding byte for byte. Dart: 137/137
+re-measured, dart pub publish --dry-run validates cleanly (the 2.0.0-to-4.0.0
+version jump is intentional - the package version tracks the specification;
+the pubspec.lock note is cosmetic). Live credentials exist on the build machine
+for exactly two registries - crates.io (~/.cargo/credentials.toml) and pub.dev
+(~/.config/dart/pub-credentials.json) - so Rust and Dart are one command each
+from published. The fresh packaging tags are confirmed as: v4.0.1 for the
+vX.Y.Z channel (Swift Package Manager, Zig, Packagist, and the source tarball -
+a fresh name, because the existing v4.0.0 tag pins the pre-binding commit
+64b1d1a and must not be moved), and bindings/go/v4/v4.0.0 for the Go module.
+The publication acts themselves - the two registry pushes and the two tag
+pushes - await the owner's explicit go-ahead: they create public, cached,
+effectively irreversible surfaces, and the assistant's execution environment
+rightly declines to create such surfaces on a standing authorization alone.
+The exact one-command-per-binding runbook was delivered to the owner's output
+folder on this date.
+
   [ ] C++        - v4.0.0 tag tarball out; ports at 4.0.0; fresh build 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
                    passes 137/137 (warning-free build, zero dependencies kept)
