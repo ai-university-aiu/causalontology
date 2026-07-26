@@ -9,7 +9,7 @@ Status here is re-verified against the live registries, not self-reported.
 > **Specification 4.0.0 note (updated 2026-07-26).** The specification in this
 > repository is **4.0.0** — twenty-one object kinds, 137 conformance vectors —
 > and **4.0.0 publication began on 2026-07-26 with the owner's explicit,
-> per-act go-ahead**: crates.io and pub.dev now carry 4.0.0, and the fresh
+> per-act go-ahead**: crates.io, pub.dev, and PyPI now carry 4.0.0, and the fresh
 > tags `v4.0.1` and `bindings/go/v4/v4.0.0` are pushed (the original `v4.0.0`
 > tag still pins the specification-freeze commit `64b1d1a` and was not moved).
 > A binding moves into a "Live at 4.0.x" table below only after a fresh
@@ -23,6 +23,7 @@ Status here is re-verified against the live registries, not self-reported.
 |---|---|---|
 | crates.io | `cargo add causalontology` | 4.0.0 published; a clean `cargo new` project added the crate from the registry and passed 137/137 (2026-07-26). 2.0.0 remains; 1.0.0 stays yanked |
 | pub.dev | `dart pub add causalontology` | 4.0.0 published; a clean package resolved 4.0.0 from the registry and passed 137/137 (2026-07-26). 2.0.0 remains; 1.0.0 stays retracted |
+| PyPI | `pip install causalontology` | 4.0.0 published with the owner's explicitly named go-ahead; a brand-new virtual environment installed 4.0.0 fresh from PyPI and passed 137/137 (2026-07-26). 2.0.0 remains; 1.0.0 stays yanked |
 
 ## Live at 4.0.x — git-tag channels (tags `v4.0.1` and `bindings/go/v4.0.0`, pushed 2026-07-26)
 
@@ -41,7 +42,6 @@ attached the GitHub Release artifacts automatically.
 
 | Registry | Consume with | 1.0.0 disposition |
 |---|---|---|
-| PyPI | `pip install causalontology` | 1.0.0 yanked |
 | npm | `npm install causalontology` | 1.0.0 deprecated |
 | Maven Central (Java) | `io.github.ai-university-aiu:causalontology:2.0.0` | immutable; 1.0.0 remains |
 | Maven Central (Kotlin/Native klib) | `io.github.ai-university-aiu:causalontology-kotlin:2.0.0` (linuxX64) | immutable; 1.0.0 remains |
