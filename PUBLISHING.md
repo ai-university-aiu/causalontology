@@ -1,47 +1,59 @@
-# Publishing Causalontology 2.0.0
+# Publishing Causalontology
 
-The 107 vectors of that release are frozen; every artifact below was built from
-the frozen tree and verified by the conformance suite. This page records,
-honestly, what is live at 2.0.0 and what still awaits an account, a registrar,
-or a human review. No registry credential is stored on the build machine, by
-design.
+This page records, honestly, what is live at which version and what still
+awaits an account, a registrar, or a human review. No registry credential
+beyond the two named below is stored on the build machine, by design.
 
 Status here is re-verified against the live registries, not self-reported.
 
-> **Specification 4.0.0 note (2026-07-22).** The specification in this
-> repository is now **4.0.0** — twenty-one object kinds, 137 conformance
-> vectors — but **no 4.0.0 (or 3.0.0) package has been published**: every
-> registry and git-tag channel below still carries the 2.0.0-era artifacts,
-> exactly as the tables record. 4.0.0 publication proceeds per
-> [`docs/Causalontology_4_0_0_Release_Plan.txt`](docs/Causalontology_4_0_0_Release_Plan.txt)
-> (which folds each binding's never-published 3.0.0 delta into its 4.0.0 work):
-> a binding publishes 4.0.0 only after it passes the full 137-vector suite in
-> its own language, and today only the Python reference in this repository
-> does. Until then, the tables below keep describing the live 2.0.0 state.
+> **Specification 4.0.0 note (updated 2026-07-26).** The specification in this
+> repository is **4.0.0** — twenty-one object kinds, 137 conformance vectors —
+> and **4.0.0 publication began on 2026-07-26 with the owner's explicit,
+> per-act go-ahead**: crates.io and pub.dev now carry 4.0.0, and the fresh
+> tags `v4.0.1` and `bindings/go/v4/v4.0.0` are pushed (the original `v4.0.0`
+> tag still pins the specification-freeze commit `64b1d1a` and was not moved).
+> A binding moves into a "Live at 4.0.x" table below only after a fresh
+> install from its own channel passes all 137 vectors. The remaining
+> registries proceed per
+> [`docs/Causalontology_4_0_0_Release_Plan.txt`](docs/Causalontology_4_0_0_Release_Plan.txt).
 
-## Live at 2.0.0 — package registries
+## Live at 4.0.0 — package registries (published 2026-07-26)
+
+| Registry | Consume with | Fresh-install proof |
+|---|---|---|
+| crates.io | `cargo add causalontology` | 4.0.0 published; a clean `cargo new` project added the crate from the registry and passed 137/137 (2026-07-26). 2.0.0 remains; 1.0.0 stays yanked |
+| pub.dev | `dart pub add causalontology` | 4.0.0 published; a clean package resolved 4.0.0 from the registry and passed 137/137 (2026-07-26). 2.0.0 remains; 1.0.0 stays retracted |
+
+## Live at 4.0.x — git-tag channels (tag `v4.0.1`, pushed 2026-07-26)
+
+| Channel | Consume with | Fresh proof |
+|---|---|---|
+| Swift Package Manager | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "4.0.1")` | a fresh clone at `v4.0.1` built and passed 137/137 (2026-07-26). Swift Package Index listing: [PackageList PR #14440](https://github.com/SwiftPackageIndex/PackageList/pull/14440) (merge pending) |
+| Zig | `zig fetch --save https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.1.tar.gz`, then `dep.module("causalontology")` | pinned package hash `12207a70aedf8b9c39e929a0ce2b34dbd04a334ece6590b70fdd3fb34c7dcfe98d6f` (printed by `zig fetch`, 2026-07-26); the tag tree passed 137/137 fresh |
+| Packagist (PHP) | `composer require causalontology/causalontology:^4.0` | the Packagist webhook mirrored `v4.0.1` automatically on the tag push (verified on the live index, 2026-07-26); the tag tarball passed 137/137 fresh. A literal `composer require` spot-check awaits a machine with Composer installed |
+| C++ source tarball | the [`v4.0.1` archive](https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.1.tar.gz) | `bindings/cpp/run_conformance.sh` from the freshly downloaded tarball passed 137/137 (2026-07-26). The vcpkg and Conan ports stay CLA-gated below |
+
+The `v4.0.1` tag push also triggered the release workflow, which built and
+attached the GitHub Release artifacts automatically.
+
+## Live at 2.0.0 — package registries awaiting their 4.0.0 publication
 
 | Registry | Consume with | 1.0.0 disposition |
 |---|---|---|
 | PyPI | `pip install causalontology` | 1.0.0 yanked |
 | npm | `npm install causalontology` | 1.0.0 deprecated |
-| crates.io | `cargo add causalontology` | 1.0.0 yanked |
 | Maven Central (Java) | `io.github.ai-university-aiu:causalontology:2.0.0` | immutable; 1.0.0 remains |
 | Maven Central (Kotlin/Native klib) | `io.github.ai-university-aiu:causalontology-kotlin:2.0.0` (linuxX64) | immutable; 1.0.0 remains |
 | NuGet | `dotnet add package causalontology` | 1.0.0 unlisted |
 | RubyGems | `gem install causalontology` | 1.0.0 yanked |
 | Hex | `{:causalontology, "~> 2.0"}` | 1.0.0 retired (deprecated) |
 | LuaRocks | `luarocks install causalontology` | no yank; 1.0.0-1 remains listed |
-| Packagist | `composer require causalontology/causalontology` | mirrors git tags; v1.x remain |
-| pub.dev | `dart pub add causalontology` | 1.0.0 retracted |
 
-## Live at 2.0.x — git-tag channels (no registry)
+## Live at 2.0.x — git-tag channels awaiting their 4.0.0 step
 
 | Channel | Consume with | Notes |
 |---|---|---|
-| Swift Package Manager | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "2.0.0")` | resolves to `v2.0.1`; `Package.swift` is valid at the tag. Swift Package Index listing: [PackageList PR #14440](https://github.com/SwiftPackageIndex/PackageList/pull/14440) (merge pending) |
-| Go modules / pkg.go.dev | `go get github.com/ai-university-aiu/causalontology/bindings/go/v2@v2.0.0` | the `/v2` module (Go major-version rule); import `.../bindings/go/v2/causalontology`. The v1 line is deprecated and self-retracted at `bindings/go/v1.0.1`. pkg.go.dev has indexed the `/v2` module |
-| Zig | `zig fetch --save https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v2.0.1.tar.gz`, then `dep.module("causalontology")` | the repository-root `build.zig.zon` at `v2.0.1` enables the clean flow; the pin hash reproduces via `zig fetch` |
+| Go modules / pkg.go.dev | `go get github.com/ai-university-aiu/causalontology/bindings/go/v2@v2.0.0` | the `/v2` module (Go major-version rule); import `.../bindings/go/v2/causalontology`. The v1 line is deprecated and self-retracted at `bindings/go/v1.0.1`. pkg.go.dev has indexed the `/v2` module. **The 4.0.0 step (discovered 2026-07-26):** the `/v4` module lives in the major-version subdirectory `bindings/go/v4`, so the tag name the Go toolchain actually resolves is **`bindings/go/v4.0.0`** — the pushed `bindings/go/v4/v4.0.0` tag is never consulted (the module proxy reported `unknown revision bindings/go/v4.0.0`, naming the tag it wants). The correctly-named tag push awaits the owner's explicitly named go-ahead, then the proxy prime and the fresh-get 137/137 check |
 
 ## Still pending — accounts, registrars, or human review
 
