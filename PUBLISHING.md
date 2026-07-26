@@ -28,9 +28,9 @@ Status here is re-verified against the live registries, not self-reported.
 
 | Channel | Consume with | Fresh proof |
 |---|---|---|
-| Swift Package Manager | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "4.0.1")` | a fresh clone at `v4.0.1` built and passed 137/137 (2026-07-26). Swift Package Index listing: [PackageList PR #14440](https://github.com/SwiftPackageIndex/PackageList/pull/14440) (merge pending) |
+| Swift Package Manager | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "4.0.1")` | a fresh clone at `v4.0.1` built and passed 137/137, and a stub package resolved the dependency at exactly `4.0.1` through Swift Package Manager itself, built, and imported the library (2026-07-26). Swift Package Index listing: [PackageList PR #14440](https://github.com/SwiftPackageIndex/PackageList/pull/14440) (merge pending) |
 | Zig | `zig fetch --save https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.1.tar.gz`, then `dep.module("causalontology")` | pinned package hash `12207a70aedf8b9c39e929a0ce2b34dbd04a334ece6590b70fdd3fb34c7dcfe98d6f` (printed by `zig fetch`, 2026-07-26); the tag tree passed 137/137 fresh |
-| Packagist (PHP) | `composer require causalontology/causalontology:^4.0` | the Packagist webhook mirrored `v4.0.1` automatically on the tag push (verified on the live index, 2026-07-26); the tag tarball passed 137/137 fresh. A literal `composer require` spot-check awaits a machine with Composer installed |
+| Packagist (PHP) | `composer require causalontology/causalontology:^4.0` | the Packagist webhook mirrored `v4.0.1` automatically on the tag push (verified on the live index, 2026-07-26); the tag tarball passed 137/137 fresh, and the literal `composer require` spot-check closed the same day: a freshly fetched `composer.phar` installed `causalontology/causalontology` 4.0.1 from Packagist into a clean project and the vendor tree passed 137/137 |
 | C++ source tarball | the [`v4.0.1` archive](https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.1.tar.gz) | `bindings/cpp/run_conformance.sh` from the freshly downloaded tarball passed 137/137 (2026-07-26). The vcpkg and Conan ports stay CLA-gated below |
 
 The `v4.0.1` tag push also triggered the release workflow, which built and

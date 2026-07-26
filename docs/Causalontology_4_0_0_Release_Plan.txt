@@ -612,13 +612,13 @@ authorization. Go therefore stays PENDING on one sentence from the owner.
                    the PAUSE web-form upload stands besides, then the
                    fresh-install check.
   [x] PHP        - v4.0.1 tag registered on Packagist; fresh 137/137.
-                   STATUS: PUBLISHED AND VERIFIED AT THE TARBALL (2026-07-26) -
-                   the Packagist webhook mirrored v4.0.1 automatically on the
-                   tag push (confirmed on the live Packagist index), and the
-                   tag tarball - the very artifact Packagist serves - passed
-                   137/137 fresh. Honest residue: Composer is not installed on
-                   this machine, so the literal composer-require spot-check in
-                   a clean project remains open; it exercises the same tarball.
+                   STATUS: COMPLETE (2026-07-26) - the Packagist webhook
+                   mirrored v4.0.1 automatically on the tag push (confirmed on
+                   the live Packagist index), and the composer-require residue
+                   closed the same day: composer.phar was fetched fresh, a
+                   clean project required causalontology/causalontology 4.0.1
+                   from Packagist (resolved v4.0.1), and the conformance suite
+                   passed 137/137 from the installed vendor tree.
   [ ] Python     - published to PyPI; fresh install 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
                    passes 137/137 and its manifests read 4.0.0; PyPI still
@@ -642,9 +642,12 @@ authorization. Go therefore stays PENDING on one sentence from the owner.
   [x] Swift      - v4.0.1 tag pushed; fresh 137/137 at the tag.
                    STATUS: COMPLETE (2026-07-26) - Swift Package Manager is
                    tag-resolved and the v4.0.1 tag is pushed; a fresh clone
-                   checked out at the tag built and passed 137/137. The Swift
-                   Package Index listing (PackageList pull request) remains
-                   pending on that index's side, as before.
+                   checked out at the tag built and passed 137/137, and a
+                   separate stub package resolved the dependency at exactly
+                   4.0.1 through Swift Package Manager itself, built it, and
+                   imported the library. The Swift Package Index listing
+                   (PackageList pull request) remains pending on that index's
+                   side, as before.
   [x] Zig        - v4.0.1 tarball published and hash recorded; fresh fetch
                    137/137.
                    STATUS: COMPLETE (2026-07-26) - the v4.0.1 tag tarball is
