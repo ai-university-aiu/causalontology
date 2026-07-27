@@ -927,11 +927,26 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    being read. Nothing is vendored into bindings/cpp; the
                    installed copy is written at install time from
                    spec/schema, so it cannot drift.
-  [ ] C#         - published to NuGet; fresh install 137/137.
-                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
-                   (second wave); passes 137/137 locally and the csproj reads
-                   4.0.0; NuGet still carries 2.0.0; only publication and the
-                   fresh-install check remain.
+  [x] C#         - published to NuGet; fresh install 137/137.
+                   STATUS: COMPLETE (2026-07-27). 4.0.0 is live on nuget.org.
+                   Proven the strong way: a consumer project with an EMPTY
+                   package cache restored 4.0.0 from api.nuget.org, and
+                   SchemaSource() reported 'bundled:' - the package's own copy,
+                   not a repository path - with CAUSALONTOLOGY_SPEC poisoned and
+                   then stripped, from outside any checkout. 137/137.
+                   The .nupkg carries 42 schema entries: the 21 twice over,
+                   embedded in the assembly AND as content files beside it, so
+                   either path alone would serve a consumer.
+                   TWO NOTES. (1) NuGet validates before publishing - the push
+                   returned success immediately but the version took about five
+                   minutes to become restorable. No other registry in this
+                   release behaves that way; do not assume a failed push.
+                   (2) NuGet is the least forgiving registry here: strictly
+                   append-only, a version can be unlisted but never deleted and
+                   never replaced. There is no yank, no retract, and no
+                   one-hour window like Hex. The artifact was therefore packed
+                   from a git-archive of the TRACKED files and fully proven
+                   before the key was ever used.
   [ ] Dart       - published to pub.dev; fresh add 137/137.
                    STATUS: PUBLISHED BUT DEFECTIVE (2026-07-26) - 4.0.0 was
                    published to pub.dev with the owner's go-ahead, and the
