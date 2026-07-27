@@ -1,0 +1,29 @@
+# causalontologyConfig.cmake - the installed package's entry point.
+#
+# find_package(causalontology CONFIG REQUIRED) gives you the imported target
+# causalontology::causalontology and the variable causalontology_SCHEMA_DIR,
+# which names the directory holding the twenty-one *.schema.json documents
+# the library validates against at run time.
+@PACKAGE_INIT@
+
+# set_and_check() aborts with the path if the directory is not there, so a
+# package installed without its schemas cannot be found silently.
+set_and_check(causalontology_SCHEMA_DIR "@PACKAGE_CAUSALONTOLOGY_INSTALL_SCHEMADIR@")
+
+file(GLOB _causalontology_schemas "${causalontology_SCHEMA_DIR}/*.schema.json")
+list(LENGTH _causalontology_schemas _causalontology_schema_count)
+if(NOT _causalontology_schema_count EQUAL 21)
+    message(FATAL_ERROR
+        "causalontology: '${causalontology_SCHEMA_DIR}' holds "
+        "${_causalontology_schema_count} *.schema.json files, expected 21. "
+        "This installation is incomplete - validation would throw at first "
+        "use. Reinstall the package, or point the CAUSALONTOLOGY_SPEC "
+        "environment variable at a directory whose schema/ subdirectory "
+        "holds a complete set when running.")
+endif()
+unset(_causalontology_schemas)
+unset(_causalontology_schema_count)
+
+include("${CMAKE_CURRENT_LIST_DIR}/causalontologyTargets.cmake")
+
+check_required_components(causalontology)

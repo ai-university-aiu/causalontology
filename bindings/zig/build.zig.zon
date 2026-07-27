@@ -6,12 +6,19 @@
     .version = "4.0.0",
     .minimum_zig_version = "0.13.0",
     .dependencies = .{},
+    // Zig prunes a fetched package down to exactly these paths. "src" carries
+    // src/spec_schema/ — the twenty-one JSON Schemas the library @embedFiles —
+    // so a package fetched from here validates with no files on disk at all.
+    // The repository-root build.zig.zon is the manifest consumers normally
+    // fetch; it additionally ships spec/ and the 137 vectors, which is what
+    // makes a fetched package self-verifying.
     .paths = .{
         "build.zig",
         "build.zig.zon",
         "src",
         "conformance.zig",
         "run_conformance.sh",
+        "tools",
         "README.md",
         "LICENSE",
     },

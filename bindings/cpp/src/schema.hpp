@@ -16,9 +16,23 @@
 
 namespace co {
 
-// Tell the schema loader where the spec/schema directory lives. When never
-// called, the CAUSALONTOLOGY_SPEC environment variable (naming the spec/
-// directory) is honored, mirroring the Python binding.
+// Tell the schema loader where the directory holding the twenty-one
+// *.schema.json files lives.
+//
+// The loader consults, in this order:
+//
+//   1. $CAUSALONTOLOGY_SPEC/schema, when that variable is set and non-empty.
+//      It is the operator's override and it wins even over this call,
+//      mirroring the Python and JavaScript bindings.
+//   2. the directory passed to this function.
+//   3. the copy `cmake --install` ships at
+//      <prefix>/share/causalontology/spec/schema, whose absolute path
+//      CMakeLists.txt compiles in as CAUSALONTOLOGY_SCHEMA_DIR.
+//
+// If no candidate is a directory, validation throws a std::runtime_error
+// naming every place that was tried. Nothing is ever resolved relative to a
+// repository checkout, so an installed copy never depends on the tree that
+// built it.
 void schema_set_spec_dir(const std::string& schema_dir);
 
 // (ok, reasons) - structural validity against the kind's JSON Schema.

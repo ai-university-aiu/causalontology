@@ -13,7 +13,7 @@ RFC 8032 — deterministic signatures, seed-derived keypairs), `ext-hash`
 | `src/Jcs.php` | RFC 8785 (JSON Canonicalization Scheme) serialization: bytewise key ordering (equals UTF-16 code-unit order for ASCII keys), minimal string escapes, ECMAScript-style canonical numbers (`1.0` → `1`, `0.7` stays `0.7`, `e-7` not `e-07`) |
 | `src/Canonical.php` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
 | `src/Signing.php` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key; Ed25519 via libsodium, gated on the RFC 8032 TEST 1 known answer |
-| `src/SchemaValidator.php` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `src/SchemaValidator.php` | validation against the twenty-one JSON Schemas vendored at `bindings/php/spec/schema/`, a byte-for-byte copy of the repository's `spec/schema/` that ships inside the Composer package (a small interpreter for exactly the keywords those schemas use) |
 | `src/Semantics.php` | the semantic rules: temporal admissibility with the fixed unit constants and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule, enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check (Rule 24), and the prediction-to-observation pairing |
 | `src/Store.php` | an in-memory conformant store (the Python binding's `InMemoryStore`): idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
 | `src/RejectedWrite.php` | the exception an enforcing store raises when it refuses a write |
@@ -29,10 +29,64 @@ $ php bindings/php/conformance.php
 causalontology-php is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The runner reads the vectors from `../../conformance/vectors` and the
-schemas from `../../spec/schema` relative to its own location; the schema
-location can be overridden with the environment variable
-`CAUSALONTOLOGY_SPEC` (naming the `spec/` directory).
+The runner reads the vectors from `../../conformance/vectors` relative to its
+own location.
+
+### Where the schemas come from
+
+`SchemaValidator` resolves the twenty-one JSON Schemas in strict precedence:
+
+1. `$CAUSALONTOLOGY_SPEC/schema`, when that variable is set (it names the
+   `spec/` directory, not the `schema/` directory);
+2. the copy vendored at `bindings/php/spec/schema`, which travels inside the
+   Composer package and is what an installed consumer validates against;
+3. the repository-relative `../../spec/schema`, a last resort for a checkout
+   in which the vendored copy has not been made yet.
+
+Step 2 is the one that makes an installed copy safe on its own. Before it
+existed, the binding validated only because Packagist serves an archive of the
+whole repository, so `spec/schema` happened to arrive alongside
+`bindings/php/src` and the repository-relative climb happened to land on it.
+Any deployment step that prunes non-source files out of `vendor/` deleted
+those schemas and the binding stopped validating at first use. The vendored
+copy removes that dependence on an accident of packaging: the schemas now sit
+inside the binding's own directory and travel with `bindings/php/src`
+unconditionally.
+
+Because the vendored schemas are data rather than PSR-4 source, no autoloader
+entry points at them. Keep `archive.exclude` empty in `composer.json` and add
+no `.gitattributes` `export-ignore` rule covering `spec/`, or the published
+package silently loses the ability to validate.
+
+Before running the vectors, the runner checks that the vendored copy is
+present and complete, and — when the repository is present — that every file
+is byte-for-byte identical to `spec/schema`, aborting on any drift. A
+published package can therefore never quietly enforce a different standard
+than the repository states, and can never be built without its schemas.
+
+### Proving an installed copy really is self-sufficient
+
+Lay out the package the way Composer does and delete the repository's own
+`spec/` directory from it, which is exactly the pruning that used to break the
+binding:
+
+```
+$ mkdir -p /tmp/app/vendor/causalontology/causalontology
+$ git archive HEAD | tar -x -C /tmp/app/vendor/causalontology/causalontology
+$ rm -rf /tmp/app/vendor/causalontology/causalontology/spec
+$ cd /tmp && env -u CAUSALONTOLOGY_SPEC \
+      php /tmp/app/vendor/causalontology/causalontology/bindings/php/conformance.php
+...
+schemas under test: /tmp/app/vendor/causalontology/causalontology/bindings/php/spec/schema
+137/137 vectors passed
+```
+
+The runner prints the source file and the schema directory it actually used,
+so a "fresh install" check cannot silently report a pass while exercising
+repository source through a relative path. Adding
+`-d open_basedir=/tmp` forbids PHP from opening any path outside `/tmp` at
+all, which makes the repository unreachable rather than merely unused; the run
+still passes 137/137.
 
 The V01-V107 vectors are the whole-word 2.0.0 baseline (2026-07-13): they
 carry concrete identifiers, real keys, and a real verifying signature, and
@@ -91,8 +145,11 @@ locally** (PHP 8.3 with `ext-sodium`, specification 4.0.0), with
 content-addressed identifiers byte-for-byte identical to the Python
 reference (the V136 witnesses re-pinned). Also executed by GitHub Actions CI
 (`shivammathur/setup-php` with PHP 8.3 and `ext-sodium`, then
-`php bindings/php/conformance.php`). Registry publication (a tagged Git
-release picked up by the Packagist webhook) still pending.
+`php bindings/php/conformance.php`). Also green at 137/137 from a
+Composer-shaped `vendor/causalontology/causalontology/` tree unpacked from
+`git archive HEAD` with the repository's `spec/` directory deleted, run from a
+working directory outside the repository with `CAUSALONTOLOGY_SPEC` stripped —
+the binding's validation no longer depends on the repository being present.
 
 License: "The attribution always; no profit, no problem license." — see the
 repository `LICENSE` and `NOTICE`.

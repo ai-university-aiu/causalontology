@@ -4,10 +4,22 @@ Per-language implementations of the Causalontology specification. Each binding
 is thin: types can be generated from `../spec/schema/`; only identity
 (RFC 8785 + SHA-256), the semantic rules, and Ed25519 signing are hand-written.
 
+> **What `137/137` actually measures (measured 2026-07-27).** It counts
+> **checks, not vector files**. 38 of the 137 are driven by the frozen shared
+> files in `../conformance/vectors/` — exactly V01–V38. The other 99 are
+> hand-written per binding and share no data with any other implementation:
+> V39–V137 carry no executable payload at all, their `operation` field reads
+> literally `"see bindings/*/conformance runner"`. So cross-binding agreement is
+> enforced by shared data for V01–V38, and by nineteen separate readings of the
+> same prose for the rest. Quote it as `137/137 conformance checks (38 driven by
+> the frozen shared vectors; 99 implemented per binding)`. Full measurement in
+> [`../PUBLISHING.md`](../PUBLISHING.md) and
+> [`../conformance/README.md`](../conformance/README.md).
+
 > **Honest status at specification 4.0.0 (2026-07-22).** The specification is
 > now 4.0.0 (twenty-one kinds, 137 vectors), and **all nineteen bindings — the
 > Python reference plus every port — now implement the folded
-> 3.0.0-plus-4.0.0 delta and pass the full 137-vector suite locally**
+> 3.0.0-plus-4.0.0 delta and pass the full 137-check suite locally**
 > (C#, Dart, Elixir, Go, Haskell, Java, Julia, Kotlin, Lua, PHP, R, Ruby,
 > Swift, and Zig completed their re-baseline in the second wave; JavaScript,
 > Rust, Perl, and C++ in the first). Code-green is not published: **the public

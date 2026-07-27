@@ -1,6 +1,11 @@
 [package]
 name = "causalontology"
-version = "4.0.0"
+# 4.0.1: the library was always sound (the twenty-one schemas are compiled in
+# with include_str!), but the `conformance` binary in 4.0.0 hardcoded the
+# vector directory to a repository-relative path with no override, so an
+# installed copy panicked on first run. A crates.io version is immutable, so
+# the corrected binary and README can only reach consumers as a new version.
+version = "4.0.1"
 edition = "2021"
 description = "The Rust binding of the Causalontology standard - a verb-first noun-hosting ontology; reified causation as a programming-language-neutral standard and shared commons."
 license-file = "LICENSE"

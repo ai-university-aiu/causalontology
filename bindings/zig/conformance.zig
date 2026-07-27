@@ -41,12 +41,55 @@ pub fn main() !void {
 
     const root = try findRoot();
     vectors_dir = try std.fs.path.join(A, &.{ root, "conformance", "vectors" });
-    schema.setSpecDir(A, try std.fs.path.join(A, &.{ root, "spec", "schema" }));
 
     const stdout = std.io.getStdOut().writer();
     try stdout.print("causalontology-zig conformance run (specification 4.0.0)\n", .{});
-    try stdout.print("internal checks (RFC 8032 known-answer, RFC 8785 basics, fixed constants, ground-truth ids) ... ", .{});
+    try stdout.print("vectors:  {s}\n", .{vectors_dir});
+
+    // The schemas are NOT pointed at the repository. The runner validates
+    // with whatever a consumer of this build would get - the compiled-in
+    // copy - unless CAUSALONTOLOGY_SPEC deliberately says otherwise. Reading
+    // them from a checkout by default is exactly what once hid a published
+    // package that carried no schemas at all.
+    schema.init(A);
+    const src = schema.currentSource();
+    switch (src.source) {
+        .compiled_in => try stdout.print(
+            "schemas:  compiled into this build ({d} schemas, no filesystem)\n",
+            .{schema.compiledInCount},
+        ),
+        .environment => try stdout.print(
+            "schemas:  {s} (from CAUSALONTOLOGY_SPEC)\n",
+            .{src.dir.?},
+        ),
+        .explicit_dir => try stdout.print("schemas:  {s} (explicit)\n", .{src.dir.?}),
+    }
+    // Fail fast and legibly if that source cannot actually be read.
+    _ = schema.loadFile("continuant.schema.json") catch |err| {
+        try stdout.print(
+            "\nFATAL: cannot read the schemas from {s}: {s}\n",
+            .{ src.dir orelse "the compiled-in copy", @errorName(err) },
+        );
+        std.process.exit(1);
+    };
+
+    try stdout.print("internal checks (RFC 8032 known-answer, RFC 8785 basics, fixed constants, ground-truth ids", .{});
+    // When a copy of the specification is reachable - inside the repository,
+    // or inside a fetched package, which carries spec/ - the compiled-in
+    // schemas are compared against it byte-for-byte, in both directions.
+    const spec_dir = try std.fs.path.join(A, &.{ root, "spec", "schema" });
+    const have_spec = if (std.fs.accessAbsolute(spec_dir, .{})) |_| true else |_| false;
+    if (have_spec) {
+        try stdout.print(", compiled-in schema drift vs {s}", .{spec_dir});
+    }
+    try stdout.print(") ... ", .{});
     try internalChecks();
+    if (have_spec) {
+        schema.checkCompiledInDrift(A, spec_dir, stdout) catch |err| {
+            try stdout.print("FAILED: {s}\n", .{@errorName(err)});
+            std.process.exit(1);
+        };
+    }
     try stdout.print("ok\n", .{});
 
     const vector_fns = [_]*const fn () anyerror!void{
@@ -81,19 +124,36 @@ pub fn main() !void {
     try stdout.print("causalontology-zig is CONFORMANT to the suite (vectors frozen at specification 4.0.0).\n", .{});
 }
 
-/// The repository root: CAUSALONTOLOGY_ROOT when set, otherwise the nearest
-/// ancestor of the working directory holding conformance/vectors.
+/// The tree holding conformance/vectors - the repository when run from a
+/// checkout, the fetched package when run from one (the package carries the
+/// vectors and the specification). CAUSALONTOLOGY_ROOT wins; otherwise the
+/// nearest ancestor of the working directory; otherwise the nearest ancestor
+/// of this executable, which is what lets the runner inside a fetched
+/// package find that package's own vectors from any working directory.
 fn findRoot() ![]const u8 {
     if (std.process.getEnvVarOwned(A, "CAUSALONTOLOGY_ROOT")) |r| {
-        return r;
+        if (r.len != 0) return r;
     } else |_| {}
-    var dir: []const u8 = try std.fs.cwd().realpathAlloc(A, ".");
+    if (std.fs.cwd().realpathAlloc(A, ".")) |cwd| {
+        if (walkUpForVectors(cwd)) |found| return found;
+    } else |_| {}
+    if (std.fs.selfExePathAlloc(A)) |exe| {
+        if (std.fs.path.dirname(exe)) |exe_dir| {
+            if (walkUpForVectors(exe_dir)) |found| return found;
+        }
+    } else |_| {}
+    return error.RepoRootNotFound;
+}
+
+/// The nearest ancestor of `start` (inclusive) that holds conformance/vectors.
+fn walkUpForVectors(start: []const u8) ?[]const u8 {
+    var dir: []const u8 = start;
     while (true) {
-        const probe = try std.fs.path.join(A, &.{ dir, "conformance", "vectors" });
+        const probe = std.fs.path.join(A, &.{ dir, "conformance", "vectors" }) catch return null;
         if (std.fs.accessAbsolute(probe, .{})) |_| {
             return dir;
         } else |_| {}
-        dir = std.fs.path.dirname(dir) orelse return error.RepoRootNotFound;
+        dir = std.fs.path.dirname(dir) orelse return null;
     }
 }
 

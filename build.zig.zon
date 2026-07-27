@@ -8,10 +8,36 @@
     .version = "4.0.0",
     .minimum_zig_version = "0.13.0",
     .dependencies = .{},
+    // Zig's package manager PRUNES the downloaded tarball to exactly these
+    // paths before hashing and caching it: whatever is missing here does not
+    // exist for a consumer, however plainly it sits in the repository. This
+    // list once held only build.zig, build.zig.zon, bindings/zig/src and
+    // LICENSE — ten files, zero schemas — so a fetched package could not
+    // validate anything. What is here now, and why:
+    //
+    //   bindings/zig         the library, the conformance runner, its script,
+    //                        and the binding README. src/spec_schema/ holds
+    //                        the twenty-one schemas the library @embedFiles,
+    //                        so validation needs no files on disk at all.
+    //   spec                 the normative specification and spec/schema/, so
+    //                        a consumer can read what they validate against,
+    //                        point CAUSALONTOLOGY_SPEC at it, and let the
+    //                        runner re-check the compiled-in copies
+    //                        byte-for-byte.
+    //   conformance/vectors  the 137 frozen vectors, so the fetched package
+    //                        is self-verifying: run
+    //                        bindings/zig/run_conformance.sh inside the
+    //                        fetched copy and it proves the bytes you
+    //                        received, never a checkout.
+    //   LICENSE, NOTICE      the attribution the licence requires,
+    //                        travelling with the code.
     .paths = .{
         "build.zig",
         "build.zig.zon",
-        "bindings/zig/src",
+        "bindings/zig",
+        "spec",
+        "conformance/vectors",
         "LICENSE",
+        "NOTICE",
     },
 }

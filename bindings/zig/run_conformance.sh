@@ -4,6 +4,11 @@
 # Usable locally and in CI from any working directory:
 #   bash bindings/zig/run_conformance.sh
 #
+# It behaves identically inside a package fetched with `zig fetch`: that tree
+# carries the 137 vectors and the specification, and the schemas are compiled
+# into the library, so a run there proves the bytes the consumer received and
+# never reaches for a checkout.
+#
 # If no zig is on PATH, the pinned Zig 0.13.0 release tarball is downloaded
 # to a temp-dir cache (no root required) and used directly.
 set -euo pipefail
@@ -28,7 +33,10 @@ else
     fi
 fi
 
-# The runner locates conformance/vectors and spec/schema by walking up from
-# the working directory, so run it from the repository root.
+# The runner locates conformance/vectors by walking up from the working
+# directory, so run it from the root of this tree. The schemas are not read
+# from this tree at all - they are compiled into the library - but the runner
+# does compare the compiled-in copies against ROOT/spec/schema when that
+# directory exists, and fails on any drift.
 cd "$ROOT"
 exec "$ZIG" run bindings/zig/conformance.zig

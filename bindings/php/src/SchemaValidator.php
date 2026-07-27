@@ -55,12 +55,34 @@ final class SchemaValidator
     {
     }
 
-    /** The spec/schema directory: env override, else the repository's. */
-    private static function schemaDir(): string
+    /**
+     * Where the twenty-one *.schema.json files live, in strict precedence:
+     *
+     *   (a) $CAUSALONTOLOGY_SPEC/schema - an explicit override, always wins;
+     *   (b) the copy vendored inside this package at bindings/php/spec/schema
+     *       - what an installed consumer validates against, so validation
+     *       works standalone with no repository spec/ directory present;
+     *   (c) the repository-relative climb - a last resort, for working in a
+     *       checkout in which (b) has not been vendored yet.
+     *
+     * Before (b) existed this went straight from (a) to (c), and the binding
+     * validated only because Packagist ships an archive of the whole
+     * repository, so the climb happened to land on a spec/schema that arrived
+     * alongside src/ by accident. Any deployment step that prunes non-source
+     * files out of vendor/ deleted those schemas and the binding stopped
+     * validating at first use.
+     */
+    public static function schemaDir(): string
     {
         $env = getenv('CAUSALONTOLOGY_SPEC');
         if (is_string($env) && $env !== '') {
             return $env . '/schema';
+        }
+        // src/SchemaValidator.php -> bindings/php/src; the vendored copy sits
+        // one level up, at the binding root, and travels with the package.
+        $bundled = dirname(__DIR__) . '/spec/schema';
+        if (is_dir($bundled)) {
+            return $bundled;
         }
         // src/SchemaValidator.php -> bindings/php/src, three levels below root.
         return dirname(__DIR__, 3) . '/spec/schema';

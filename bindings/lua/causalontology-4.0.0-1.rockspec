@@ -7,14 +7,17 @@ version = "4.0.0-1"
 
 source = {
   url = "git+https://github.com/ai-university-aiu/causalontology.git",
-  -- v4.0.2, not v4.0.0. LuaRocks uploads this file, not the code: a consumer
+  -- v4.0.3, not v4.0.0. LuaRocks uploads this file, not the code: a consumer
   -- running `luarocks install causalontology` fetches whatever tag is named
   -- here. Tag v4.0.0 carries the specification-2.0.0 Lua binding, so naming it
-  -- would ship two-major-versions-old code under a 4.0.0 label. v4.0.2 is the
-  -- tag on the tree that vendors the twenty-one schemas under
-  -- causalontology/spec. The publish workflow refuses to upload unless the tag
-  -- named here really carries them.
-  tag = "v4.0.2",
+  -- would ship two-major-versions-old code under a 4.0.0 label. v4.0.3 is the
+  -- current tag on the tree that vendors the twenty-one schemas under
+  -- causalontology/spec; it supersedes v4.0.2, which is left where it is
+  -- because a pushed tag may already be pinned by a consumer. A rockspec that
+  -- travels with a tag has to name that tag or it is not self-consistent. The
+  -- publish workflow refuses to upload unless the tag named here really
+  -- carries the schemas.
+  tag = "v4.0.3",
   -- Every path in build.modules and build.install below is relative to this
   -- directory, and this directory is relative to whatever the fetch left
   -- behind.  LuaRocks clones a git source into a directory named after the
