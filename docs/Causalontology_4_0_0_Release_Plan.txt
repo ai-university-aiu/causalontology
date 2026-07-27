@@ -950,11 +950,19 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    - passed 137/137 consumed from outside the repository.
                    Remaining: publish 4.0.1 and retract 4.0.0, each needing
                    the owner's separately named go-ahead.
-  [ ] Elixir     - published to Hex; fresh consume 137/137.
-                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
-                   (second wave); passes 137/137 locally and mix.exs reads
-                   4.0.0; Hex still carries 2.0.0; only publication and the
-                   fresh-install check remain.
+  [x] Elixir     - published to Hex; fresh consume 137/137.
+                   STATUS: COMPLETE (2026-07-27). 4.0.0 is live on hex.pm,
+                   release checksum ba3e87a8947505c2. Proven the strong way: a
+                   throwaway project declaring {:causalontology, "~> 4.0"}
+                   resolved 4.0.0 from the registry, received all 21 schemas
+                   under priv/schema, and scored 137/137 from outside any
+                   checkout with CAUSALONTOLOGY_SPEC poisoned and then stripped.
+                   TWO TRAPS RECORDED. (1) The key Hex shows you is prefixed
+                   'hex.pm:' - that prefix is a label, not part of the secret,
+                   and HEX_API_KEY rejects it. Strip it. (2) A bare
+                   'mix hex.publish' fails: it runs a docs stage needing ex_doc,
+                   which this zero-dependency binding does not carry. Use
+                   'mix hex.publish package --yes'.
   [ ] Go         - /v4 module tag pushed and proxied; fresh get 137/137.
                    STATUS: PUBLISHED BUT DEFECTIVE (2026-07-26) - the tag
                    bindings/go/v4.0.0 was pushed with the owner's explicitly
