@@ -20,7 +20,7 @@ newer**.
 | `causalontology/embed.go` | the twenty-one JSON Schemas compiled into the module with `//go:embed`, plus the drift guard that compares them byte for byte against `spec/schema` |
 | `causalontology/semantics.go` | the 25 semantic rules: temporal admissibility with the fixed unit constants and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `causalontology/store.go` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `Gaps()` read — with explicit insertion-order bookkeeping, since Go maps iterate in random order where Python dicts do not |
-| `conformance/main.go` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance/main.go` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 checks — 38 driven by the frozen shared vector files, 99 hand-written here — mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 The object model is the twenty-one kinds of specification 4.0.0: the 2.0.0
 whole-word kinds, the 3.0.0 `cross_stratal_seam`, and the 4.0.0 `attitude`,
@@ -32,7 +32,7 @@ whole-word kinds, the 3.0.0 `cross_stratal_seam`, and the 4.0.0 `attitude`,
 $ cd bindings/go/v4
 $ go run ./conformance
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-go is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -77,7 +77,7 @@ module under test: github.com/ai-university-aiu/causalontology/bindings/go/v4 v4
 embedded schemas: 21
 schema source: compiled into the module (embed.FS)
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 ```
 
 `CAUSALONTOLOGY_ROOT` still points at a checkout in installed mode, because the
@@ -85,11 +85,13 @@ vectors themselves live in the repository and are not part of the module. Build
 the command without `-trimpath`, or the binding path cannot be reported and
 installed mode refuses to run.
 
-The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
-V01–V137): they carry concrete identifiers, real keys, and a real verifying
-signature. The harness's old normalization now simply passes frozen values
-through. V01–V107 are the whole-word 2.0.0 baseline; V108–V119 are the 3.0.0
-additions (the tick unit, the `cross_stratal_seam`, the conduit `realized_by`);
+The shared vector files are frozen at specification 4.0.0 (2026-07-22; 137
+files, V01–V137). The 38 that carry an executable payload — V01–V38 — hold
+concrete identifiers, real keys, and a real verifying signature, and the
+harness's old normalization now simply passes those frozen values through;
+V39–V137 name their check but delegate it to this runner. V01–V107 are the
+whole-word 2.0.0 baseline; V108–V119 are the 3.0.0 additions (the tick unit,
+the `cross_stratal_seam`, the conduit `realized_by`);
 V120–V137 are the 4.0.0 additions (`attitude`, `predicted_occurrence`,
 `prediction_error`).
 
@@ -124,7 +126,7 @@ fmt.Println(claim, store.Gaps("missing_field")) // the degenerate claim is a vis
 ## Status
 
 Source complete and ported line-for-line from the Python binding, at
-specification 4.0.0 (twenty-one kinds, 137 vectors); verified locally with
+specification 4.0.0 (twenty-one kinds, 137 checks); verified locally with
 `cd bindings/go/v4 && go run ./conformance` at 137/137, and also executed by
 GitHub Actions CI.
 

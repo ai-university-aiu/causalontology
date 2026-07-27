@@ -18,19 +18,19 @@ RFC 8032 — deterministic signatures, seed-derived keypairs), `ext-hash`
 | `src/Store.php` | an in-memory conformant store (the Python binding's `InMemoryStore`): idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
 | `src/RejectedWrite.php` | the exception an enforcing store raises when it refuses a write |
 | `src/Causalontology.php` | the facade holding the declared specification version |
-| `conformance.php` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.php` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 conformance checks — 38 driven by the frozen shared files in `conformance/vectors/`, 99 hand-written here — mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ php bindings/php/conformance.php
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-php is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The runner reads the vectors from `../../conformance/vectors` relative to its
-own location.
+The runner reads the shared vectors from `../../conformance/vectors` relative
+to its own location.
 
 ### Where the schemas come from
 
@@ -58,7 +58,7 @@ entry points at them. Keep `archive.exclude` empty in `composer.json` and add
 no `.gitattributes` `export-ignore` rule covering `spec/`, or the published
 package silently loses the ability to validate.
 
-Before running the vectors, the runner checks that the vendored copy is
+Before running the checks, the runner verifies that the vendored copy is
 present and complete, and — when the repository is present — that every file
 is byte-for-byte identical to `spec/schema`, aborting on any drift. A
 published package can therefore never quietly enforce a different standard
@@ -78,7 +78,7 @@ $ cd /tmp && env -u CAUSALONTOLOGY_SPEC \
       php /tmp/app/vendor/causalontology/causalontology/bindings/php/conformance.php
 ...
 schemas under test: /tmp/app/vendor/causalontology/causalontology/bindings/php/spec/schema
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 ```
 
 The runner prints the source file and the schema directory it actually used,
@@ -86,15 +86,19 @@ so a "fresh install" check cannot silently report a pass while exercising
 repository source through a relative path. Adding
 `-d open_basedir=/tmp` forbids PHP from opening any path outside `/tmp` at
 all, which makes the repository unreachable rather than merely unused; the run
-still passes 137/137.
+still passes 137/137 checks.
 
-The V01-V107 vectors are the whole-word 2.0.0 baseline (2026-07-13): they
-carry concrete identifiers, real keys, and a real verifying signature, and
-the harness's normalization now simply passes those frozen values through.
-The V108-V119 (3.0.0: the `ticks` unit, the cross_stratal_seam, the conduit
-`realized_by`) and V120-V137 (4.0.0: the attitude, the predicted_occurrence,
-the prediction_error) fixtures are built in the runner, mirroring the Python
-reference exactly.
+Only V01-V38 are actually driven by the frozen shared files in
+`conformance/vectors/`: those carry concrete identifiers, real keys, and a
+real verifying signature as data, and the harness's normalization now simply
+passes those frozen values through. The remaining files, V39-V137, are labels
+only — their `operation` field reads `see bindings/*/conformance runner` — so
+those 99 checks are hand-written here and share no data with any other
+implementation: the 2.0.0 additions (V39-V107, the whole-word re-mint of
+2026-07-13), the 3.0.0 additions (V108-V119: the `ticks` unit, the
+cross_stratal_seam, the conduit `realized_by`), and the 4.0.0 additions
+(V120-V137: the attitude, the predicted_occurrence, the prediction_error).
+All of them mirror the Python reference exactly.
 
 ## PHP-specific decisions
 
@@ -140,12 +144,12 @@ var_dump($store->gaps('missing_field')); // the degenerate claim is a visible in
 
 ## Status
 
-Ported line-for-line from the Python binding and **green at 137/137
+Ported line-for-line from the Python binding and **green at 137/137 checks
 locally** (PHP 8.3 with `ext-sodium`, specification 4.0.0), with
 content-addressed identifiers byte-for-byte identical to the Python
 reference (the V136 witnesses re-pinned). Also executed by GitHub Actions CI
 (`shivammathur/setup-php` with PHP 8.3 and `ext-sodium`, then
-`php bindings/php/conformance.php`). Also green at 137/137 from a
+`php bindings/php/conformance.php`). Also green at 137/137 checks from a
 Composer-shaped `vendor/causalontology/causalontology/` tree unpacked from
 `git archive HEAD` with the repository's `spec/` directory deleted, run from a
 working directory outside the repository with `CAUSALONTOLOGY_SPEC` stripped —

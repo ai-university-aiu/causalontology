@@ -2,13 +2,14 @@
 //!
 //! Standard library only: std.crypto.hash.sha2.Sha256 for identity,
 //! std.crypto.sign.Ed25519 for provenance, std.json for the lossless value
-//! layer. Conformant when it passes every vector in conformance/vectors/
+//! layer. Conformant when it passes all 137 checks - 38 driven by the shared
+//! files in conformance/vectors/, 99 implemented here
 //! (run bindings/zig/run_conformance.sh from the repository root).
 //!
 //! Causalontology is a verb-first noun-hosting ontology: reality is what
 //! happens, and things are its participants.
 
-/// Specification 4.0.0 (vectors frozen 2026-07-22; 137 vectors, twenty-one
+/// Specification 4.0.0 (shared vectors frozen 2026-07-22; 137 checks, twenty-one
 /// kinds). Adds, over 2.0.0, the folded 3.0.0 delta (the ordinal ticks unit,
 /// the cross_stratal_seam kind with Algorithm F, the conduit realized_by
 /// reference) and the 4.0.0 delta (the attitude, predicted_occurrence, and

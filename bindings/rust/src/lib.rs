@@ -5,8 +5,9 @@
 //! full abstract operation set - RFC 8785 canonicalization, SHA-256
 //! content-addressed identity, Ed25519 record signing, the twenty-one
 //! embedded JSON Schemas, the semantic rules, and an in-memory conformant
-//! store - and is conformant when it passes every vector in
-//! conformance/vectors/ (cargo run --bin conformance).
+//! store - and is conformant when it passes all 137 checks, of which 38 are
+//! driven by the shared files in conformance/vectors/ and 99 are implemented
+//! here (cargo run --bin conformance).
 //!
 //! The schemas are embedded at compile time, so the library does no
 //! filesystem access at run time and compiles unchanged to WebAssembly

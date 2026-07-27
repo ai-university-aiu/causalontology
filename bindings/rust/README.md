@@ -5,7 +5,7 @@ and the WebAssembly core.**
 
 Dependencies are the ecosystem-vetted primitives only (`sha2`,
 `ed25519-dalek`, `serde_json`, `regex`) — the standard's rule is *passes all
-137 vectors*, and hand-rolled curve math in a systems language is a
+137 checks*, and hand-rolled curve math in a systems language is a
 vulnerability, not a virtue.
 
 ## The library carries its own schemas
@@ -20,10 +20,12 @@ other bindings at a checkout) is simply ignored here.
 
 ## Conformance
 
-The 137 conformance vectors are the standard's shared test data. They live in
-this repository under `conformance/vectors/` and are deliberately **not**
-shipped inside any published package, in any language, so the `conformance`
-runner has to be pointed at them. Inside a checkout it finds them by itself:
+The suite is **137 checks**. Thirty-eight of them (V01–V38) are driven by the
+standard's shared vector files; the other 99 are hand-written in this binding
+and share no data with any other implementation. The shared files live in this
+repository under `conformance/vectors/` and are deliberately **not** shipped
+inside any published package, in any language, so the `conformance` runner has
+to be pointed at them. Inside a checkout it finds them by itself:
 
 ```
 $ cd bindings/rust
@@ -31,7 +33,7 @@ $ cargo run --bin conformance
 causalontology-rust conformance run (specification 4.0.0)
 vectors: /path/to/causalontology/conformance/vectors (from a checkout above the working directory)
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-rust is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -51,7 +53,7 @@ causalontology-rust conformance run (specification 4.0.0)
 vectors: /path/to/causalontology/conformance/vectors (from the command line)
 internal checks (RFC 8032 known-answer, RFC 8785 basics) ... ok
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-rust is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -73,10 +75,12 @@ accepted no argument and no environment override. The 4.0.0 *library* is
 unaffected and sound — the defect is confined to the test runner. Use 4.0.1 or
 newer.
 
-The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
-V01–V137): they carry concrete identifiers, real keys, and a real verifying
-signature. V01–V107 are the whole-word 2.0.0 baseline; V108–V119 are the 3.0.0
-additions (the tick unit, the `cross_stratal_seam`, the conduit `realized_by`);
+The shared vector files are frozen at specification 4.0.0 (2026-07-22; 137
+files, V01–V137). The 38 that carry an executable payload — V01–V38 — hold
+concrete identifiers, real keys, and a real verifying signature; V39–V137 name
+their check but delegate it to this runner. V01–V107 are the whole-word 2.0.0
+baseline; V108–V119 are the 3.0.0 additions (the tick unit, the
+`cross_stratal_seam`, the conduit `realized_by`);
 V120–V137 are the 4.0.0 additions (`attitude`, `predicted_occurrence`,
 `prediction_error`).
 

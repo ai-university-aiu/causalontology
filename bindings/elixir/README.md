@@ -19,7 +19,7 @@ the JavaScript Object Notation (JSON) layer — is hand-written from the specifi
 | `lib/causalontology/schema.ex` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
 | `lib/causalontology/semantics.ex` | the semantic rules: temporal admissibility with the fixed unit constants and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule, enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check, and the prediction-to-observation pairing |
 | `lib/causalontology/store.ex` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps/2` read — immutable-functional (`{:ok, store, id}` tuples thread the store through), with explicit insertion-order bookkeeping, since Elixir maps are unordered where Python dicts are not |
-| `conformance.exs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly; a standalone script that `Code.require_file`'s the lib modules, so no mix compile is needed |
+| `conformance.exs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 conformance checks (38 driven by the frozen shared vectors, 99 implemented per binding), mirroring `bindings/python/tests/run_conformance.py` exactly; a standalone script that `Code.require_file`'s the lib modules, so no mix compile is needed |
 
 ## Conformance
 
@@ -27,7 +27,7 @@ the JavaScript Object Notation (JSON) layer — is hand-written from the specifi
 $ cd bindings/elixir
 $ elixir conformance.exs
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-elixir is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -55,7 +55,7 @@ $ CAUSALONTOLOGY_TEST_INSTALLED=1 CAUSALONTOLOGY_ROOT=/path/to/checkout \
     mix run deps/causalontology/conformance.exs
 ```
 
-The V01-V107 vectors are the whole-word 2.0.0 baseline (2026-07-13): they carry
+Only V01-V38 are driven by the shared vector files; those carry
 concrete identifiers, real keys, and a real verifying signature, and the
 harness's normalization now simply passes those frozen values through. The
 V108-V119 (3.0.0: the `ticks` unit, the cross_stratal_seam, the conduit

@@ -3,7 +3,7 @@
 # A faithful port of causalontology-py (bindings/python/causalontology/),
 # standard library only: the SHA stdlib for hashing, native BigInt for the
 # pure-Julia Ed25519, an own order-preserving JSON layer for everything else.
-# Conformant when it passes every vector in conformance/vectors/
+# Conformant when it passes all 137 checks (38 shared-file driven, 99 implemented here)
 # (run bindings/julia/conformance.jl).
 #
 # Causalontology is a verb-first noun-hosting ontology: reality is what

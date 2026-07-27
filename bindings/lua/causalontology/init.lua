@@ -1,7 +1,8 @@
 -- causalontology - the Lua binding of the Causalontology standard.
 --
 -- A faithful port of causalontology-py: pure Lua 5.4, zero dependencies,
--- conformant when it passes every vector in conformance/vectors/ (run
+-- conformant when it passes all 137 checks - 38 driven by the shared files in
+-- conformance/vectors/, 99 implemented here (run
 -- bindings/lua/conformance.lua).
 --
 -- Causalontology is a verb-first noun-hosting ontology: reality is what

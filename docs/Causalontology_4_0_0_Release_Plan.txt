@@ -947,8 +947,35 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    one-hour window like Hex. The artifact was therefore packed
                    from a git-archive of the TRACKED files and fully proven
                    before the key was ever used.
-  [ ] Dart       - published to pub.dev; fresh add 137/137.
-                   STATUS: PUBLISHED BUT DEFECTIVE (2026-07-26) - 4.0.0 was
+  [x] Dart       - published to pub.dev; fresh add 137/137.
+                   STATUS: COMPLETE (2026-07-27) at 4.0.1, with 4.0.0 retracted.
+                   Proven against the live registry: a consumer with an EMPTY
+                   pub cache resolved 4.0.1, and the validateSchema call that
+                   previously threw now returns (true, []) from outside any
+                   checkout with CAUSALONTOLOGY_SPEC poisoned and then
+                   stripped - 137/137. After retraction, a consumer asking for
+                   ^4.0.0 resolves to 4.0.1. pub.dev retraction is reversible
+                   and deletes nothing: anyone already pinned to 4.0.0 keeps
+                   working; new installs stop choosing it.
+                   A PROCESS FAILURE ON MY PART, RECORDED RATHER THAN
+                   RECONCILED. The 4.0.1 archive was published from the WORKING
+                   TREE while a documentation sweep was editing that tree in
+                   the background, so it contains two files that were not
+                   committed at the time: bin/conformance.dart and README.md,
+                   both differing only in the corrected "137 checks" wording.
+                   Every file under lib/ - the entire library a consumer uses -
+                   plus pubspec.yaml, LICENSE, CHANGELOG.md and the generated
+                   spec_schema.g.dart are byte-identical to the commit. So what
+                   shipped is functionally identical to the commit and
+                   textually more accurate than it, which is luck rather than
+                   process. pub.dev is immutable; 4.0.1 cannot be replaced.
+                   THE LESSON: check git status before PUBLISHING, not only
+                   before committing and tagging. Publishing is the more
+                   irreversible of the two. Do not run a working-tree workflow
+                   concurrently with a publish or with git branch operations -
+                   one sweep agent independently reported its branch changing
+                   underneath it mid-task.
+                   THE ORIGINAL DEFECT, kept on the record - 4.0.0 was
                    published to pub.dev with the owner's go-ahead, and the
                    137/137 reported that day was WRONG: bin/conformance.dart
                    imported ../lib/*.dart directly, so the resolved package

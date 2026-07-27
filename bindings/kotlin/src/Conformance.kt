@@ -2,7 +2,7 @@
 //
 // Runs every vector in conformance/vectors/ against this binding, mirroring
 // bindings/python/tests/run_conformance.py exactly. An implementation is
-// conformant if and only if it passes every vector; this runner exits nonzero
+// conformant if and only if it passes all 137 checks; this runner exits nonzero
 // on any failure.
 //
 // The vectors are frozen at specification 4.0.0: V01-V107 are the whole-word
@@ -1645,7 +1645,8 @@ fun main() {
     }
     val total = 137
     println("-".repeat(60))
-    println("${total - failures}/$total vectors passed")
+    println("${total - failures}/$total checks passed " +
+            "(38 from the frozen shared vectors, 99 per-binding)")
     if (failures > 0) exitProcess(1)
     println("causalontology-kotlin is CONFORMANT to the suite " +
             "(vectors frozen at specification 4.0.0).")

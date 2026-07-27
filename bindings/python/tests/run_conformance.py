@@ -2,7 +2,8 @@
 """The Causalontology conformance runner for causalontology-py (spec 4.0.0).
 
 Runs every vector in conformance/vectors/ against the Python binding. An
-implementation is conformant if and only if it passes every vector; this
+implementation is conformant iff it passes all 137 checks (38 driven by the
+# shared vector files, 99 implemented here); this
 runner exits nonzero on any failure. Vectors V01-V107 are the whole-word
 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in meaning,
 V39-V107 new. V108-V119 are the 3.0.0 additions; V120-V137 are the 4.0.0
@@ -1377,7 +1378,9 @@ def main():
             failures += 1
             print("FAIL  %s :: %r" % (name, e))
     print("-" * 60)
-    print("%d/%d vectors passed" % (total - failures, total))
+    print("%d/%d checks passed "
+          "(38 from the frozen shared vectors, 99 per-binding)"
+          % (total - failures, total))
     if failures:
         sys.exit(1)
     print("causalontology-py is CONFORMANT to the suite "

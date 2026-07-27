@@ -23,7 +23,8 @@ import java.util.regex.Pattern;
  *
  * Runs every vector in conformance/vectors/ against this binding, exactly
  * mirroring the Python harness (bindings/python/tests/run_conformance.py).
- * An implementation is conformant if and only if it passes every vector;
+ * An implementation is conformant iff it passes all 137 checks (38 driven by the
+ * shared vector files, 99 implemented here);
  * this runner exits nonzero on any failure.
  *
  * Pre-freeze note (see conformance/README.md): the vectors carry symbolic
@@ -2750,8 +2751,9 @@ public final class Conformance {
             }
         }
         System.out.println("-".repeat(60));
-        System.out.println((total - failures) + "/" + total
-                           + " vectors passed");
+        System.out.println((total - failures) + "/" + total + " checks passed "
+                           + "(38 from the frozen shared vectors, 99 "
+                           + "per-binding)");
         if (failures > 0) {
             System.exit(1);
         }

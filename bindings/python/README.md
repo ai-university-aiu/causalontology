@@ -19,11 +19,11 @@ Zero dependencies — Python standard library only:
 ```
 $ python3 tests/run_conformance.py
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-py is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors, V01–V137): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+That count is **checks, not vector files**. Of the 137, exactly 38 are driven by the frozen shared vector files in `conformance/vectors/` (V01–V38); the other 99 are hand-written in this binding and share no data with any other implementation. The shared vectors are frozen at specification 4.0.0 (2026-07-22): they carry concrete identifiers, real keys, and a real verifying signature, and the harness's old normalization now simply passes frozen values through. See `conformance/README.md` for the full measurement.
 
 ## Thirty-second taste
 

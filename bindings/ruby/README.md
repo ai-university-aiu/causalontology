@@ -19,14 +19,14 @@ Requires **Ruby 3.0 or newer** (CI runs 3.3).
 | `lib/causalontology/schema.rb` | validation against the twenty-one JSON Schemas vendored at `lib/causalontology/spec/schema/`, a byte-for-byte copy of `spec/schema/` that ships inside the gem (a small interpreter for exactly the keywords those schemas use) |
 | `lib/causalontology/semantics.rb` | the semantic rules: temporal admissibility with the fixed unit constants (months 2629746 s, years 31556952 s) and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule, enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check, and the prediction-to-observation pairing |
 | `lib/causalontology/store.rb` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps` read — Ruby Hashes preserve insertion order, and the iteration order deliberately mirrors the reference store's |
-| `conformance.rb` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.rb` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 checks (38 driven by the frozen shared vectors, 99 implemented here), mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ ruby bindings/ruby/conformance.rb
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-ruby is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -66,21 +66,24 @@ $ cd /tmp && env -u CAUSALONTOLOGY_SPEC GEM_HOME=/tmp/gemhome GEM_PATH=/tmp/gemh
     ruby /tmp/gemhome/gems/causalontology-4.0.0/conformance.rb
 binding under test: /tmp/gemhome/gems/causalontology-4.0.0/lib/causalontology.rb
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 ```
 
 The gemspec itself refuses to build if the vendored schemas are absent,
 incomplete, or byte-different from `spec/schema`, so a gem that cannot
 validate can never be produced in the first place.
 
-The V01–V107 vectors are the whole-word 2.0.0 baseline (2026-07-13): they
-carry concrete identifiers, real keys, and a real verifying signature, and
-the harness's normalization now simply passes those frozen values through.
-The V108–V119 (3.0.0: the `ticks` unit, the cross_stratal_seam, the conduit
+That 137 counts **checks, not vector files**. Exactly 38 of them, V01–V38,
+are driven by the frozen shared files in `conformance/vectors/`: those carry
+concrete identifiers, real keys, and a real verifying signature, and the
+harness's normalization now simply passes those frozen values through. The
+other 99 are hand-written here in the runner and share no data with any other
+implementation: V39–V107 (the rest of the 2.0.0 baseline, 2026-07-13),
+V108–V119 (3.0.0: the `ticks` unit, the cross_stratal_seam, the conduit
 `realized_by`) and V120–V137 (4.0.0: the attitude, the predicted_occurrence,
-the prediction_error) fixtures are built in the runner, mirroring the Python
-reference exactly. Twenty-one object kinds; 137 vectors, frozen at
-specification 4.0.0 (2026-07-22).
+the prediction_error), each mirroring the Python reference exactly.
+Twenty-one object kinds; the shared vectors frozen at specification 4.0.0
+(2026-07-22). See `conformance/README.md` for the full measurement.
 
 ## Thirty-second taste
 

@@ -19,7 +19,7 @@ from CPAN; any stock Perl 5.16+ runs the suite as-is.
 | `share/schema/*.schema.json` | the twenty-one JSON Schemas, vendored byte-for-byte from the repository's `spec/schema/` and shipped inside the distribution, so an installed copy validates with no checkout present |
 | `lib/Causalontology/Semantics.pm` | the semantic rules: temporal admissibility with the fixed unit constants (months 2629746 s, years 31556952 s) and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule, enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check, and the prediction-to-observation pairing |
 | `lib/Causalontology/Store.pm` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read — with explicit insertion-order bookkeeping everywhere the Python reference iterates dicts |
-| `conformance.pl` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.pl` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 checks (38 driven by the frozen shared vectors, 99 implemented here), mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
@@ -28,7 +28,7 @@ Verified locally (Perl 5.38, pure-Perl `Math::BigInt::Calc` backend):
 ```
 $ perl bindings/perl/conformance.pl
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-perl is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -57,7 +57,7 @@ $ env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
     PERL5LIB=<prefix>/lib/site_perl perl <repo>/bindings/perl/conformance.pl
 binding under test: <prefix>/lib/site_perl/Causalontology.pm
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 ```
 
 With the variable unset — the default — nothing changes.
@@ -70,18 +70,22 @@ Perl carries every module used:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: perl bindings/perl/conformance.pl
 ```
 
-The V01-V107 vectors are the whole-word 2.0.0 baseline (2026-07-13):
-they carry concrete identifiers, real keys, and a real verifying
-signature, and the harness's normalization now simply passes those
-frozen values through; behavioral vectors derive deterministic keypairs
-from the seed `sha256("key:" + name)`. The V108-V119 (3.0.0: the `ticks`
-unit, the cross_stratal_seam, the conduit `realized_by`) and V120-V137
-(4.0.0: the attitude, the predicted_occurrence, the prediction_error)
-fixtures are built in the runner, mirroring the Python reference exactly.
+That 137 counts **checks, not vector files**. Exactly 38 of them, V01-V38,
+are driven by the frozen shared files in `conformance/vectors/`: those carry
+concrete identifiers, real keys, and a real verifying signature, and the
+harness's normalization now simply passes those frozen values through;
+behavioral checks derive deterministic keypairs from the seed
+`sha256("key:" + name)`. The other 99 are hand-written here in the runner
+and share no data with any other implementation: V39-V107 (the rest of the
+2.0.0 baseline, 2026-07-13), V108-V119 (3.0.0: the `ticks` unit, the
+cross_stratal_seam, the conduit `realized_by`) and V120-V137 (4.0.0: the
+attitude, the predicted_occurrence, the prediction_error), each mirroring
+the Python reference exactly. See `conformance/README.md` for the full
+measurement.
 
 ## Thirty-second taste
 

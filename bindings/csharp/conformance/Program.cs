@@ -1,7 +1,8 @@
 // The Causalontology conformance runner for causalontology-csharp.
 //
 // Runs every vector in conformance/vectors/ against the C# binding. An
-// implementation is conformant if and only if it passes every vector;
+// implementation is conformant iff it passes all 137 checks (38 driven by the
+// shared vector files, 99 implemented here);
 // this runner exits nonzero on any failure.
 //
 // The vectors are frozen at specification 4.0.0: V01-V107 are the
@@ -2312,7 +2313,8 @@ internal static class Program
         }
         Console.WriteLine(new string('-', 60));
         Console.WriteLine($"{vectors.Length - failures}/{vectors.Length} "
-                          + "vectors passed");
+                          + "checks passed "
+                          + "(38 from the frozen shared vectors, 99 per-binding)");
         if (failures > 0)
             return 1;
         Console.WriteLine("causalontology-csharp is CONFORMANT to the suite "

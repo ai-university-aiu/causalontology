@@ -2,7 +2,8 @@
 #
 # A faithful port of causalontology-py (bindings/python/causalontology/),
 # core modules only (Digest::SHA, Math::BigInt, strict, warnings):
-# conformant when it passes every vector in conformance/vectors/
+# conformant when it passes all 137 checks - 38 driven by the shared files in
+# conformance/vectors/, 99 implemented here
 # (run bindings/perl/conformance.pl).
 #
 # Causalontology is a verb-first noun-hosting ontology: reality is what

@@ -1,11 +1,12 @@
 //! The Causalontology conformance runner for causalontology-zig.
 //!
-//! Runs every vector in conformance/vectors/ against the Zig binding,
-//! mirroring bindings/python/tests/run_conformance.py exactly. An
-//! implementation is conformant if and only if it passes every vector; this
-//! runner exits nonzero on any failure.
+//! Runs the full conformance suite against the Zig binding, mirroring
+//! bindings/python/tests/run_conformance.py exactly: 137 checks, of which 38
+//! are driven by the shared files in conformance/vectors/ and 99 are
+//! implemented here. Conformant iff it passes all 137; this runner exits
+//! nonzero on any failure.
 //!
-//! The vectors are frozen at specification 2.0.0: they carry concrete 64-hex
+//! The shared vector files are frozen at specification 4.0.0: they carry concrete 64-hex
 //! identifiers, real Ed25519 keys, and a real verifying signature, which the
 //! normalizer passes through unchanged. The remaining symbolic names used by
 //! the behavioral vectors ("continuant:dog", key "alice") normalize
@@ -119,7 +120,7 @@ pub fn main() !void {
         }
     }
     try stdout.print("------------------------------------------------------------\n", .{});
-    try stdout.print("{d}/{d} vectors passed\n", .{ vector_fns.len - failures, vector_fns.len });
+    try stdout.print("{d}/{d} checks passed (38 from the frozen shared vectors, 99 per-binding)\n", .{ vector_fns.len - failures, vector_fns.len });
     if (failures != 0) std.process.exit(1);
     try stdout.print("causalontology-zig is CONFORMANT to the suite (vectors frozen at specification 4.0.0).\n", .{});
 }

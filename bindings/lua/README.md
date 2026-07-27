@@ -22,14 +22,14 @@ division, and bitwise operators; no LuaJIT, no C modules, no rocks).
 | `causalontology/semantics.lua` | the semantic rules: temporal admissibility with the fixed unit constants and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule (Algorithm F), enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check, and the prediction-to-observation pairing |
 | `causalontology/signing.lua` | record-level `sign_record()` / `verify_record()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
 | `causalontology/store.lua` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read - with explicit insertion-order arrays everywhere the Python iterates dicts, since Lua tables have no key order |
-| `conformance.lua` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.lua` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 checks (38 driven by the frozen shared vectors, 99 implemented here), mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ lua bindings/lua/conformance.lua
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-lua is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -70,17 +70,19 @@ $ env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
 binding under test: /usr/local/share/lua/5.4/causalontology/schema.lua
 schemas under test: /usr/local/share/lua/5.4/causalontology/spec/schema
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 ```
 
-The V01-V107 vectors are the whole-word 2.0.0 baseline (2026-07-13):
-they carry concrete identifiers, real keys, and a real verifying
-signature, and the harness's normalization now simply passes those
-frozen values through. The V108-V119 (3.0.0: the `ticks` unit, the
-cross_stratal_seam with Algorithm F, the conduit `realized_by`) and
-V120-V137 (4.0.0: the attitude, the predicted_occurrence, the
-prediction_error) fixtures are built in the runner, mirroring the Python
-reference exactly.
+That 137 counts **checks, not vector files**. Exactly 38 of them, V01-V38,
+are driven by the frozen shared files in `conformance/vectors/`: those carry
+concrete identifiers, real keys, and a real verifying signature, and the
+harness's normalization now simply passes those frozen values through. The
+other 99 are hand-written here in the runner and share no data with any
+other implementation: V39-V107 (the rest of the 2.0.0 baseline, 2026-07-13),
+V108-V119 (3.0.0: the `ticks` unit, the cross_stratal_seam with Algorithm F,
+the conduit `realized_by`) and V120-V137 (4.0.0: the attitude, the
+predicted_occurrence, the prediction_error), each mirroring the Python
+reference exactly. See `conformance/README.md` for the full measurement.
 
 ## Thirty-second taste
 

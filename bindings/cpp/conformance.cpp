@@ -1,9 +1,10 @@
 // conformance.cpp - the Causalontology conformance runner for
 // causalontology-cpp.
 //
-// Runs every vector in conformance/vectors/ against the C++ binding. An
-// implementation is conformant if and only if it passes every vector; this
-// runner exits nonzero on any failure. It mirrors
+// Runs the full conformance suite against the C++ binding: 137 checks, of
+// which 38 are driven by the shared files in conformance/vectors/ and 99 are
+// implemented here. Conformant iff it passes all 137; this runner exits
+// nonzero on any failure. It mirrors
 // bindings/python/tests/run_conformance.py exactly.
 //
 // The vectors are frozen at specification 4.0.0: V01-V107 are the
@@ -2246,7 +2247,10 @@ int main() {
         }
     }
     for (int i = 0; i < 60; ++i) std::printf("-");
-    std::printf("\n%d/%d vectors passed\n", total - failures, total);
+    std::printf(
+        "\n%d/%d checks passed (38 from the frozen shared vectors, "
+        "99 per-binding)\n",
+        total - failures, total);
     if (failures) return 1;
     std::printf(
         "causalontology-cpp is CONFORMANT to the suite "

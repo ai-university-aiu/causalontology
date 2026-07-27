@@ -8,7 +8,7 @@
   <version>4.0.0</version>
   <packaging>jar</packaging>
   <name>causalontology</name>
-  <description>The Java binding of the Causalontology standard - a verb-first noun-hosting ontology; reified causation as a programming-language-neutral standard and shared commons. JDK standard library only; conformant against the 137 frozen vectors.</description>
+  <description>The Java binding of the Causalontology standard - a verb-first noun-hosting ontology; reified causation as a programming-language-neutral standard and shared commons. JDK standard library only; passes all 137 conformance checks (38 driven by the frozen shared vectors, 99 implemented per binding).</description>
   <url>https://github.com/ai-university-aiu/causalontology</url>
   <licenses>
     <license>

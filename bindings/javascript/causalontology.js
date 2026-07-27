@@ -2,7 +2,7 @@
  *
  * The third implementation (after the PrologAI reference and the Python
  * binding), proving language independence: Node.js builtins only
- * (node:crypto, node:fs, node:path), conformant when it passes every vector
+ * (node:crypto, node:fs, node:path), conformant when it passes all 137 checks
  * in conformance/vectors/ (run tests/run_conformance.js).
  *
  * Causalontology is a verb-first noun-hosting ontology: reality is what

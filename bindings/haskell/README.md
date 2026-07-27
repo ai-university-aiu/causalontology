@@ -24,7 +24,7 @@ newer** with cabal.
 | `src/Causalontology/Schema.hs` | validation against the twenty-one JSON Schemas, resolved from `CAUSALONTOLOGY_SPEC`, then the copy bundled in the package at `spec_schema/`, then a repository checkout (a small interpreter for exactly the keywords those schemas use, with a tiny matcher for their regular-expression subset, including the `.` any-char and `+` quantifier of the 3.0.0 conduit realized_by pattern) |
 | `src/Causalontology/Semantics.hs` | the 25 semantic rules: temporal admissibility with the fixed unit constants and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `src/Causalontology/Store.hs` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps` read — the Python store's state modeled as a `Store` record threaded through pure functions, with association-list tables so dict insertion order is preserved exactly |
-| `app/Conformance.hs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `app/Conformance.hs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 conformance checks — 38 driven by the frozen shared files in `conformance/vectors/`, 99 hand-written here — mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
@@ -32,7 +32,7 @@ newer** with cabal.
 $ cd bindings/haskell
 $ cabal run -v0 conformance
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-haskell is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -47,7 +47,7 @@ Setting `CAUSALONTOLOGY_TEST_INSTALLED` puts the runner in installed mode:
 it prints the copy of the binding it resolved and hard-fails if that copy,
 the conformance binary, or the schemas still come from the repository tree.
 That is what stops a "fresh install" test from silently exercising the
-source checkout and reporting a false 137/137.
+source checkout and reporting a false 137/137 checks passed.
 
 ```
 $ cabal install exe:conformance --install-method=copy --installdir=/tmp/co/bin
@@ -55,7 +55,7 @@ $ cd /tmp && env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
     CAUSALONTOLOGY_ROOT=/path/to/causalontology /tmp/co/bin/conformance
 binding under test: ~/.local/state/cabal/store/ghc-9.6.6/causalontology-4.0.0-.../share
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 ```
 
 The runner also compares the bundled schemas against `spec/schema`
@@ -80,11 +80,15 @@ checkout anywhere. `Causalontology.Schema` resolves them in this order:
 `loadDefaultSchemas` applies that order; `loadSchemas dir` still reads an
 explicit directory. `schemaDirWithOrigin` reports which of the three won.
 
-The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
-V01–V137): they carry concrete identifiers, real keys, and a real verifying
-signature. The harness's old normalization now simply passes frozen values
-through; records built at run time still use deterministic keypairs seeded
-from `sha256("key:" ++ name)`, as the Python harness does.
+The shared vectors are frozen at specification 4.0.0 (2026-07-22). Of the 137
+files V01–V137, only V01–V38 carry executable data — concrete identifiers,
+real keys, and a real verifying signature — and the harness's old
+normalization now simply passes those frozen values through. V39–V137 are
+labels only (their `operation` field reads `see bindings/*/conformance
+runner`), so those 99 checks are hand-written in this binding and share no
+data with any other implementation; records built at run time use
+deterministic keypairs seeded from `sha256("key:" ++ name)`, as the Python
+harness does.
 
 ## Thirty-second taste
 

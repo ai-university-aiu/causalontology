@@ -1,7 +1,8 @@
 # The Causalontology conformance runner for causalontology-elixir (spec 4.0.0).
 #
 # Runs every vector in conformance/vectors/ against the Elixir binding. An
-# implementation is conformant if and only if it passes every vector; this
+# implementation is conformant iff it passes all 137 checks (38 driven by the
+# shared vector files, 99 implemented here); this
 # runner exits nonzero on any failure. Mirrors
 # bindings/python/tests/run_conformance.py exactly.
 #
@@ -2058,7 +2059,10 @@ defmodule Conformance do
       end)
 
     IO.puts(String.duplicate("-", 60))
-    IO.puts("#{total - failures}/#{total} vectors passed")
+    IO.puts(
+      "#{total - failures}/#{total} checks passed " <>
+        "(38 from the frozen shared vectors, 99 per-binding)"
+    )
 
     if failures > 0 do
       System.halt(1)

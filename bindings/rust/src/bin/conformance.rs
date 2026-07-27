@@ -1,7 +1,8 @@
 //! The Causalontology conformance runner for the Rust binding (spec 4.0.0).
 //! Mirrors bindings/python/tests/run_conformance.py exactly, including the
 //! pre-freeze symbolic-identifier normalization and the whole-word re-mint.
-//! An implementation is conformant iff it passes every one of the 137 vectors:
+//! An implementation is conformant iff it passes all 137 checks - 38 driven by
+//! the shared vector files (V01-V38), 99 hand-written here:
 //! V01-V107 are the whole-word 2.0.0 baseline, V108-V119 the 3.0.0 additions,
 //! V120-V137 the 4.0.0 additions (attitude, predicted_occurrence,
 //! prediction_error).
@@ -146,7 +147,8 @@ fn vectors_dir() -> &'static Path {
     &vectors().1
 }
 
-/// The suite is frozen at 137 vectors. A directory holding only some of them
+/// The suite is 137 checks; 38 of them read the shared vector files. A
+/// directory holding only some of those files
 /// is a stale or partial copy, and a partial run must never be mistaken for a
 /// pass.
 fn check_vector_set() -> Result<(), String> {
@@ -2201,7 +2203,8 @@ fn main() {
         }
     }
     println!("{}", "-".repeat(60));
-    println!("{}/{} vectors passed", total - failures, total);
+    println!("{}/{} checks passed (38 from the frozen shared vectors, \
+              99 per-binding)", total - failures, total);
     if failures > 0 {
         std::process::exit(1);
     }

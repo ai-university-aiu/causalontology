@@ -3,7 +3,7 @@
  *
  * These types describe the existing CommonJS implementation exactly as it
  * behaves at runtime; the JavaScript module remains the single source of
- * logic (it passes all 137 conformance vectors). The module is consumed as
+ * logic (it passes all 137 conformance checks). The module is consumed as
  * `const co = require("./causalontology.js")` (or, from TypeScript,
  * `import co = require("./causalontology")`), so the declarations use the
  * CommonJS `export =` namespace pattern.

@@ -23,7 +23,7 @@ Pinned toolchain: **Zig 0.13.0**.
 | `src/semantics.zig` | the 25 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s; year = 31,556,952 s) and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `src/store.zig` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read — every map is an insertion-ordered `StringArrayHashMap`, never a `StringHashMap` (whose iteration order is undefined), because where the Python reference iterates dicts, insertion order is normative |
 | `src/causalontology.zig` | the module root re-exporting the public application programming interface (API) |
-| `conformance.zig` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.zig` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 checks — 38 driven by the frozen shared vector files, 99 hand-written here — mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
@@ -33,7 +33,7 @@ entry point:
 ```
 $ bash bindings/zig/run_conformance.sh
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-zig is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -54,10 +54,12 @@ disk instead. Whenever `spec/schema` is reachable under the root, the runner
 also compares the compiled-in schemas against it byte-for-byte, in both
 directions, and fails on any drift.
 
-The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
-V01–V137, across twenty-one object kinds): they carry concrete identifiers,
-real keys, and a real verifying signature. The harness's old normalization
-now simply passes frozen values through.
+The shared vector files are frozen at specification 4.0.0 (2026-07-22; 137
+files, V01–V137, across twenty-one object kinds). The 38 that carry an
+executable payload — V01–V38 — hold concrete identifiers, real keys, and a
+real verifying signature, and the harness's old normalization now simply
+passes those frozen values through; V39–V137 name their check but delegate it
+to this runner.
 
 ## Consuming the package
 
@@ -142,7 +144,7 @@ $ zig fetch --global-cache-dir /tmp/gc \
 $ bash /tmp/gc/p/1220.../bindings/zig/run_conformance.sh
 schemas:  compiled into this build (21 schemas, no filesystem)
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-zig is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -174,14 +176,14 @@ _ = light_id;
 ## Status
 
 Source complete, ported line-for-line from the Python binding, and verified
-locally: 137/137 vectors passed with Zig 0.13.0, with content-addressed
+locally: 137/137 checks passed with Zig 0.13.0, with content-addressed
 identifiers byte-identical to the Python binding's (the V136 witnesses
 re-pin two frozen 3.0.0 identifiers byte-for-byte under 4.0.0). CI runs the
 same `run_conformance.sh` gate.
 
 Verified the way a consumer meets it, too: the tarball fetched with `zig
 fetch`, extracted outside any checkout, run with the repository hidden behind
-a mount namespace — 21 schemas present, 137/137 vectors passed, and a
+a mount namespace — 21 schemas present, 137/137 checks passed, and a
 consumer program that imports the module and calls `validateSchema` with no
 `setSpecDir` succeeds. With `CAUSALONTOLOGY_SPEC` pointed at a nonexistent
 directory the same runs fail loudly, which is what proves the environment
