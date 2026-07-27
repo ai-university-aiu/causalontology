@@ -978,8 +978,24 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    'mix hex.publish' fails: it runs a docs stage needing ex_doc,
                    which this zero-dependency binding does not carry. Use
                    'mix hex.publish package --yes'.
-  [ ] Go         - /v4 module tag pushed and proxied; fresh get 137/137.
-                   STATUS: PUBLISHED BUT DEFECTIVE (2026-07-26) - the tag
+  [x] Go         - /v4 module tag pushed and proxied; fresh get 137/137.
+                   STATUS: COMPLETE (2026-07-27) at v4.0.1, after a defective
+                   v4.0.0 the day before.
+                   THE PROOF, run against the live proxy: a consumer with an
+                   EMPTY module cache resolved v4.0.1 from proxy.golang.org
+                   with checksum verification against sum.golang.org ON, got
+                   all 21 schemas, and ValidateSchema returned true from
+                   outside any checkout with CAUSALONTOLOGY_SPEC poisoned and
+                   then stripped. The conformance program fetched fresh from
+                   the proxy - go run .../conformance@v4.0.1 - scored 137/137.
+                   THE RETRACTION WORKS: go list -m -versions now offers only
+                   v4.0.1, and a consumer still on v4.0.0 is shown the reason
+                   text from go.mod.
+                   NOTE: the first sum.golang.org lookup returned HTTP 500.
+                   That was notarisation still in flight, not a failure - it
+                   answered 200 about a minute later. Do not re-tag on seeing
+                   it.
+                   THE ORIGINAL DEFECT, kept on the record - the tag
                    bindings/go/v4.0.0 was pushed with the owner's explicitly
                    named go-ahead, and it resolves; but the 137/137 reported
                    that day was WRONG in the strongest way of all: the runner
@@ -997,8 +1013,7 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    is what hid this), a drift guard, and "retract v4.0.0" in
                    go.mod. Verified with the module tree copied OUTSIDE the
                    repository, schemas served from embed.FS: 137/137.
-                   Remaining: push tag bindings/go/v4.0.1, needing the
-                   owner's separately named go-ahead. The /v2 module stays
+                   The /v2 module stays
                    live; no /v3 ever cut; the earlier bindings/go/v4/v4.0.0
                    tag is never consulted, harmless.
   [ ] Haskell    - published to Hackage; fresh consume 137/137.
