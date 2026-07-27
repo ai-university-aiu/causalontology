@@ -1168,10 +1168,27 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    build emits the burned filename and PyPI will reject it. See
                    the comment at the top of bindings/python/pyproject.toml.
   [ ] R          - submitted to and accepted by CRAN; fresh install 137/137.
-                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
-                   (second wave); passes 137/137 locally, DESCRIPTION reads
-                   4.0.0, and inst/schema is refreshed to the twenty-one 4.0.0
-                   schemas; the CRAN human review stands besides.
+                   STATUS: SUBMITTED 2026-07-27, AWAITING REVIEW. The box stays
+                   unticked deliberately: submitted is not accepted, and CRAN
+                   is the only channel in this release with a human in the
+                   loop. Tick it when a reviewer accepts.
+                   The tarball was built with R CMD build from a clean export
+                   of the tracked files, so nothing from a working directory
+                   leaked in. sha256
+                   95195ab72c6230d3f1666258b637cd1921d5855bdbab7ecdfafba6e006085185
+                   R CMD check --as-cran on R 4.5.3: no ERRORs, no WARNINGs,
+                   two NOTEs - the standard 'New submission', and 'unable to
+                   verify current time', which is the build machine's network
+                   and will not appear on CRAN's own machines. An earlier run
+                   also showed an ERROR and a WARNING; both were local, from a
+                   missing LaTeX font package that stopped the PDF manual
+                   rendering. CRAN's machines carry a full LaTeX.
+                   Proven to the same standard as every other channel: the
+                   TARBALL was installed into an empty library and the suite
+                   run from outside the checkout with CAUSALONTOLOGY_SPEC
+                   poisoned and then stripped - 21/21 schemas, 137/137.
+                   The confirmation email was clicked, which is the step that
+                   silently kills a CRAN submission when it is missed.
   [x] Ruby       - published to RubyGems; fresh install 137/137.
                    STATUS: COMPLETE (2026-07-27). 4.0.0 is live on rubygems.org,
                    registry checksum e0a0e35eb4f07a73, 32 files of which 21 are
