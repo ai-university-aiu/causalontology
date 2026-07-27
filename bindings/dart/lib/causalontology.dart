@@ -1,7 +1,7 @@
 /// causalontology - the Dart binding of the Causalontology standard.
 ///
 /// A faithful port of causalontology-py, sharing the same conformance
-/// suite: zero dependencies, conformant when it passes every vector in
+/// suite: zero dependencies, conformant when it passes all 137 checks in
 /// conformance/vectors/ (run bin/conformance.dart).
 ///
 /// Causalontology is a verb-first noun-hosting ontology: reality is what

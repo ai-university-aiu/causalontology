@@ -3,7 +3,8 @@
 -- causalontology-lua (specification 4.0.0).
 --
 -- Runs every vector in conformance/vectors/ against the Lua binding.  An
--- implementation is conformant if and only if it passes every vector; this
+-- implementation is conformant iff it passes all 137 checks (38 driven by the
+-- shared vector files, 99 implemented here); this
 -- runner exits nonzero on any failure.  It mirrors
 -- bindings/python/tests/run_conformance.py exactly: V01-V38 re-frozen unaltered
 -- in meaning (whole-word re-mint, Principle P7), V39-V107 new in 2.0.0,
@@ -1747,7 +1748,9 @@ local function main()
     end
   end
   print(string.rep("-", 60))
-  print(string.format("%d/%d vectors passed", total - failures, total))
+  print(string.format("%d/%d checks passed " ..
+                      "(38 from the frozen shared vectors, 99 per-binding)",
+                      total - failures, total))
   if failures > 0 then
     os.exit(1)
   end

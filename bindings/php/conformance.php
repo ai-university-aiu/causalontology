@@ -3,7 +3,8 @@
 /* The Causalontology conformance runner for causalontology-php (spec 4.0.0).
  *
  * Runs every vector in conformance/vectors/ against the PHP binding. An
- * implementation is conformant if and only if it passes every vector; this
+ * implementation is conformant iff it passes all 137 checks (38 driven by the
+ * shared vector files, 99 implemented here); this
  * runner exits nonzero on any failure. Vectors V01-V107 are the whole-word
  * 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in meaning,
  * V39-V107 new. V108-V119 are the 3.0.0 additions (the ordinal ticks unit, the
@@ -657,10 +658,10 @@ function scanIds(mixed $node, array &$ids): void
 }
 
 // ---------------------------------------------------------------------------
-// the 107 vectors
+// the 137 checks (38 driven by the shared vector files, 99 hand-written here)
 // ---------------------------------------------------------------------------
 
-/** @return array<string, callable(): void> the vector suite, v01..v107 */
+/** @return array<string, callable(): void> the suite: 137 checks, v01..v137 */
 function vectorSuite(): array
 {
     $v = [];
@@ -1832,7 +1833,8 @@ function main(): void
         }
     }
     echo str_repeat('-', 60) . "\n";
-    echo ($total - $failures) . '/' . $total . " vectors passed\n";
+    echo ($total - $failures) . '/' . $total
+       . " checks passed (38 from the frozen shared vectors, 99 per-binding)\n";
     if ($failures > 0) {
         exit(1);
     }

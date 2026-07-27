@@ -18,7 +18,7 @@ specification.
 | `Sources/Causalontology/SchemaValidator.swift` | validation against the twenty-one JSON Schemas in `spec/schema/` |
 | `Sources/Causalontology/Semantics.swift` | the 25 semantic rules: temporal admissibility with the fixed constants and the dimension-disjoint ordinal tick unit, formal conflict, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `Sources/Causalontology/Store.swift` | an in-memory conformant store: idempotent immutable puts, signed add-only records, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
-| `Sources/conformance/main.swift` | the conformance runner: internal known-answer checks, then all 137 vectors from `conformance/vectors/` |
+| `Sources/conformance/main.swift` | the conformance runner: internal known-answer checks, then all 137 conformance checks — 38 driven by the frozen shared files in `conformance/vectors/`, 99 hand-written here |
 
 The object model is twenty-one kinds: the eighteen of 2.0.0 plus the 3.0.0 `cross_stratal_seam` and the 4.0.0 `attitude`, `predicted_occurrence`, and `prediction_error`.
 
@@ -28,11 +28,11 @@ The object model is twenty-one kinds: the eighteen of 2.0.0 plus the 3.0.0 `cros
 $ cd bindings/swift
 $ swift run conformance
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-swift is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors, V01–V137): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The shared vectors are frozen at specification 4.0.0 (2026-07-22). Of the 137 files V01–V137, only V01–V38 carry executable data — concrete identifiers, real keys, and a real verifying signature — and the harness's old normalization now simply passes those frozen values through. V39–V137 are labels only (their `operation` field reads `see bindings/*/conformance runner`), so those 99 checks are hand-written in this binding and share no data with any other implementation.
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
 environment variable when set, otherwise from its own source location inside

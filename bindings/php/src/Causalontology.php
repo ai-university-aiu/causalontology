@@ -5,7 +5,7 @@
  * A faithful port of causalontology-py (bindings/python/), sharing the same
  * conformance suite: bundled extensions only (sodium for Ed25519, hash for
  * SHA-256, json for parsing), zero Composer dependencies, conformant when it
- * passes every vector in conformance/vectors/ (run conformance.php).
+ * passes all 137 checks (38 shared-file driven, 99 implemented here) (run conformance.php).
  *
  * Causalontology is a verb-first noun-hosting ontology: reality is what
  * happens, and things are its participants.

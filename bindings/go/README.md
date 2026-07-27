@@ -19,15 +19,20 @@ newer**.
 | `causalontology/schema.go` | validation against the seventeen JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
 | `causalontology/semantics.go` | the 21 semantic rules: temporal admissibility with the fixed unit constants, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, enrichment field/shape rules, and the token-tier coherence checks |
 | `causalontology/store.go` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `Gaps()` read — with explicit insertion-order bookkeeping, since Go maps iterate in random order where Python dicts do not |
-| `conformance/main.go` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance/main.go` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 107 checks of the 2.0.0 suite — 38 driven by the frozen shared vector files, 69 hand-written here — mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
+
+> **This directory is the frozen 2.0.0 (`/v2`) module**, kept because
+> `.../bindings/go/v2@v2.0.0` is published and live. Its suite is the 107
+> checks of specification 2.0.0. The current Go binding is **`/v4`** in
+> [`v4/`](v4/), at 137 checks — see [`v4/README.md`](v4/README.md).
 
 ```
 $ cd bindings/go
 $ go run ./conformance
 ...
-107/107 vectors passed
+107/107 checks passed (38 from the frozen shared vectors, 69 per-binding)
 causalontology-go is CONFORMANT to the suite (vectors frozen at specification 2.0.0).
 ```
 
@@ -36,7 +41,7 @@ environment variable when set, otherwise by walking up from the working
 directory until it finds `conformance/vectors`; the schemas are read from
 `spec/schema` under the same root.
 
-The vectors are frozen at specification 2.0.0 (2026-07-13): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The shared vector files are frozen at specification 2.0.0 (2026-07-13). The 38 that carry an executable payload — V01–V38 — hold concrete identifiers, real keys, and a real verifying signature, and the harness's old normalization now simply passes those frozen values through; the rest name their check but delegate it to this runner.
 
 ## Thirty-second taste
 

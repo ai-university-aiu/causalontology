@@ -1,7 +1,7 @@
 """causalontology - the Python binding of the Causalontology standard.
 
 The second implementation (after the PrologAI reference), proving language
-independence: standard library only, conformant when it passes every vector
+independence: standard library only, conformant when it passes all 137 checks
 in conformance/vectors/ (run tests/run_conformance.py).
 
 Causalontology is a verb-first noun-hosting ontology: reality is what

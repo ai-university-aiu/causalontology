@@ -2,7 +2,8 @@
 # The Causalontology conformance runner for causalontology-r (spec 4.0.0).
 #
 # Runs every vector in conformance/vectors/ against the R binding. An
-# implementation is conformant if and only if it passes every vector; this
+# implementation is conformant iff it passes all 137 checks (38 driven by the
+# shared vector files, 99 implemented here); this
 # runner exits nonzero on any failure. It mirrors the reference harness
 # bindings/python/tests/run_conformance.py vector for vector (V01-V137).
 #
@@ -1732,7 +1733,9 @@ main <- function() {
     }
   }
   cat(strrep("-", 60L), "\n", sep = "")
-  cat(sprintf("%d/%d vectors passed\n", total - failures, total))
+  cat(sprintf(paste0("%d/%d checks passed ",
+                     "(38 from the frozen shared vectors, 99 per-binding)\n"),
+              total - failures, total))
   if (failures > 0L) quit(save = "no", status = 1L)
   cat(paste0("causalontology-r is CONFORMANT to the suite ",
              "(vectors frozen at specification 4.0.0).\n"))

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Run the causalontology-zig conformance suite (all 137 frozen vectors).
+# Run the causalontology-zig conformance suite (all 137 checks; 38 of them are
+# driven by the frozen shared vector files, the other 99 are written here).
 #
 # Usable locally and in CI from any working directory:
 #   bash bindings/zig/run_conformance.sh

@@ -4,7 +4,8 @@
 # The Causalontology conformance runner for causalontology-ruby (spec 4.0.0).
 #
 # Runs every vector in conformance/vectors/ against the Ruby binding. An
-# implementation is conformant if and only if it passes every vector; this
+# implementation is conformant iff it passes all 137 checks (38 driven by the
+# shared vector files, 99 implemented here); this
 # runner exits nonzero on any failure. It mirrors
 # bindings/python/tests/run_conformance.py exactly: same fixtures, same
 # expected results. Vectors V01-V107 are the whole-word 2.0.0 baseline
@@ -1662,7 +1663,8 @@ def main
     end
   end
   puts "-" * 60
-  puts "#{total - failures}/#{total} vectors passed"
+  puts "#{total - failures}/#{total} checks passed " \
+       "(38 from the frozen shared vectors, 99 per-binding)"
   exit 1 if failures > 0
   puts "causalontology-ruby is CONFORMANT to the suite " \
        "(vectors frozen at specification 4.0.0)."

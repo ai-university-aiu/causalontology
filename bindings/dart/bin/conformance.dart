@@ -1,7 +1,8 @@
 /// The Causalontology conformance runner for causalontology-dart.
 ///
 /// Runs every vector in conformance/vectors/ against the Dart binding. An
-/// implementation is conformant if and only if it passes every vector; this
+/// implementation is conformant iff it passes all 137 checks (38 driven by the
+// shared vector files, 99 implemented here); this
 /// runner exits nonzero on any failure. It mirrors
 /// bindings/python/tests/run_conformance.py exactly.
 ///
@@ -2043,7 +2044,8 @@ Future<void> main() async {
     }
   }
   print('-' * 60);
-  print('${total - failures}/$total vectors passed');
+  print('${total - failures}/$total checks passed '
+      '(38 from the frozen shared vectors, 99 per-binding)');
   if (failures > 0) {
     exit(1);
   }

@@ -5,7 +5,7 @@
 //! builds the conformance runner:
 //!
 //!   zig build                 # install the conformance executable
-//!   zig build conformance     # run the 137-vector suite
+//!   zig build conformance     # run the 137-check suite
 //!
 //! The runner needs the vectors, which it finds by walking up from the
 //! working directory or from its own executable, so the step works from a
@@ -37,6 +37,6 @@ pub fn build(b: *std.Build) void {
 
     const run_cmd = b.addRunArtifact(exe);
     if (b.args) |args| run_cmd.addArgs(args);
-    const run_step = b.step("conformance", "Run the 137-vector Causalontology conformance suite");
+    const run_step = b.step("conformance", "Run the 137-check Causalontology conformance suite");
     run_step.dependOn(&run_cmd.step);
 }

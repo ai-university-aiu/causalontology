@@ -1,7 +1,8 @@
 -- | The Causalontology conformance runner for causalontology-haskell.
 --
 -- Runs every vector in conformance\/vectors\/ against the Haskell binding.
--- An implementation is conformant if and only if it passes every vector;
+-- An implementation is conformant iff it passes all 137 checks (38 driven by the
+-- shared vector files, 99 implemented here);
 -- this runner exits nonzero on any failure. It mirrors
 -- bindings\/python\/tests\/run_conformance.py exactly. V01-V107 are the
 -- whole-word 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in
@@ -1619,7 +1620,8 @@ runOne schemas loaded n = do
     Right (Right ()) -> do putStrLn ("PASS  " ++ name); return True
     Right (Left err) -> do putStrLn ("FAIL  " ++ name ++ " :: " ++ err); return False
 
--- | Internal checks, then all 137 vectors; nonzero exit on any failure.
+-- | Internal checks, then all 137 conformance checks (38 driven by the shared
+-- vector files, 99 implemented here); nonzero exit on any failure.
 main :: IO ()
 main = do
   root <- findRoot
@@ -1640,7 +1642,8 @@ main = do
   failures <-
     foldM (\count n -> do ok <- runOne schemas loaded n; return (if ok then count else count + 1)) (0 :: Int) [1 .. total]
   putStrLn (replicate 60 '-')
-  putStrLn (show (total - failures) ++ "/" ++ show total ++ " vectors passed")
+  putStrLn (show (total - failures) ++ "/" ++ show total
+            ++ " checks passed (38 from the frozen shared vectors, 99 per-binding)")
   if failures > 0
     then exitFailure
     else putStrLn "causalontology-haskell is CONFORMANT to the suite (vectors frozen at specification 4.0.0)."

@@ -2,15 +2,17 @@
 # The Causalontology conformance runner for causalontology-perl (spec 4.0.0).
 #
 # Runs every vector in conformance/vectors/ against the Perl binding. An
-# implementation is conformant if and only if it passes every vector; this
+# implementation is conformant iff it passes all 137 checks (38 driven by the
+# shared vector files, 99 implemented here); this
 # runner exits nonzero on any failure. Mirrors
 # bindings/python/tests/run_conformance.py exactly. Vectors V01-V107 are the
 # whole-word 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in
 # meaning, V39-V107 new. V108-V119 are the 3.0.0 additions; V120-V137 are the
 # 4.0.0 additions (attitude, predicted_occurrence, prediction_error).
 #
-# The V01-V107 vectors carry concrete 64-hex identifiers and real keys, which
-# pass through the (retained) normalization unchanged; behavioral vectors
+# Only V01-V38 are driven by the shared vector FILES; those carry concrete
+# 64-hex identifiers and real keys, which pass through the (retained)
+# normalization unchanged. V39-V137 are labels only and are hand-written here; behavioral vectors
 # derive deterministic keypairs from the seed sha256("key:" + name).
 
 use strict;
@@ -2064,7 +2066,9 @@ sub main {
         }
     }
     print '-' x 60, "\n";
-    printf "%d/%d vectors passed\n", $total - $failures, $total;
+    printf "%d/%d checks passed "
+        . "(38 from the frozen shared vectors, 99 per-binding)\n",
+        $total - $failures, $total;
     printf "total runtime: %.1f s\n", time - $t0;
     exit 1 if $failures;
     print "causalontology-perl is CONFORMANT to the suite "

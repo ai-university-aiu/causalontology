@@ -4,7 +4,7 @@ defmodule Causalontology do
 
   A faithful port of causalontology-py, sharing the same conformance suite:
   OTP standard library only (`:crypto` for SHA-256 and Ed25519), conformant
-  when it passes every vector in conformance/vectors/ (run
+  when it passes all 137 checks (38 shared-file driven, 99 implemented here) (run
   `elixir conformance.exs` from bindings/elixir).
 
   Causalontology is a verb-first noun-hosting ontology: reality is what

@@ -20,14 +20,14 @@ answer before any vector runs. Requires the **.NET 8 SDK** or newer.
 | `spec_schema/` | the vendored copy of `spec/schema/*.schema.json`, compiled into `Causalontology.dll` as embedded resources and packed into the `.nupkg`, so an installed package validates with no repository present |
 | `Causalontology/Semantics.cs` | the 25 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s; year = 31,556,952 s) and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `Causalontology/Store.cs` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `Gaps()` read |
-| `conformance/Program.cs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance/Program.cs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 conformance checks (38 driven by the frozen shared vectors, 99 implemented per binding), mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ dotnet run --project bindings/csharp/conformance
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-csharp is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -67,10 +67,10 @@ $ cd /tmp && env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
 binding under test: /tmp/installed/Causalontology.dll
 schema source: bundled:/tmp/installed/spec_schema
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 ```
 
-The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors, V01–V137): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The suite is 137 checks at specification 4.0.0. Only V01–V38 are driven by the shared files in `conformance/vectors/` — those carry concrete identifiers, real keys, and a real verifying signature as data; the other 99 are implemented here and share no data with any other binding. The harness's old normalization now simply passes frozen values through.
 
 ## Thirty-second taste
 
@@ -95,8 +95,9 @@ Console.WriteLine(store.Gaps("missing_field").Count); // the degenerate claim is
 
 Source complete and ported line-for-line from the Python binding;
 verified locally with the .NET 8 SDK — `dotnet run --project
-bindings/csharp/conformance` prints `137/137 vectors passed` — and built
-and executed by GitHub Actions CI as well, as it is for every binding.
+bindings/csharp/conformance` prints `137/137 checks passed (38 from the
+frozen shared vectors, 99 per-binding)` — and built and executed by
+GitHub Actions CI as well, as it is for every binding.
 
 License: "The attribution always; no profit, no problem license." — see
 the repository `LICENSE` and `NOTICE`.

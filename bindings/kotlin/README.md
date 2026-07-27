@@ -28,14 +28,14 @@ ships with the compiler. Built and verified with **Kotlin/Native 2.0.20**.
 | `src/Signing.kt` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
 | `src/Store.kt` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors (deduplicated by canonical entry), retraction and succession lineage, the resolve minimum (label before alias), the deterministic cycle-breaking view rule (greatest (timestamp, id) loses), `forceMergeRecord()` replica merges, and the stigmergy `gaps()` read with its five gap kinds |
 | `src/Io.kt` | the single POSIX touchpoint: `readFile()`, `listDir()`, and environment lookup via `platform.posix` |
-| `src/Conformance.kt` | the conformance runner: internal known-answer checks (FIPS 180-4, RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `src/Conformance.kt` | the conformance runner: internal known-answer checks (FIPS 180-4, RFC 8032 TEST 1, RFC 8785 basics), then all 137 conformance checks (38 driven by the frozen shared vectors, 99 implemented per binding), mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ bash bindings/kotlin/run_conformance.sh
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-kotlin is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -56,7 +56,7 @@ $ cd /tmp && CAUSALONTOLOGY_TEST_INSTALLED=1 \
       bash /path/to/bindings/kotlin/run_conformance.sh
 binding under test: /home/you/.m2/repository/io/github/ai-university-aiu/causalontology-kotlin/4.0.0/causalontology-kotlin-4.0.0.jar
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 ```
 
 In this mode nothing under `src/` is compiled except the runner itself;
@@ -83,7 +83,7 @@ comparison whenever a repository checkout is present and exits nonzero
 with `bundled schema drift: <file> differs from spec/schema`. After any
 change to `spec/schema`, run `python3 bindings/kotlin/tools/gen_spec_schemas.py`.
 
-The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
+The suite is 137 checks at specification 4.0.0 (38 driven by the shared vector files,
 V01-V137): they carry concrete identifiers, real keys, and a real
 verifying signature. The harness's old normalization now simply passes
 frozen values through.

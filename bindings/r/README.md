@@ -18,7 +18,7 @@ because base R has none and the canonicalizer needs a lossless one anyway.
 | `R/schema.R` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
 | `R/semantics.R` | the semantic rules: temporal admissibility with the fixed unit constants (month = 2629746 s, year = 31556952 s) and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule, enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check, and the prediction-to-observation pairing |
 | `R/store.R` | an in-memory conformant store (an R environment holding insertion-ordered named lists): idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with canonical-entry dedup and contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule (latest `(timestamp, id)` loses, compared code-point-wise, timestamp first then id), and the stigmergy `co_store_gaps()` read |
-| `conformance.R` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.R` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 conformance checks — 38 driven by the frozen shared files in `conformance/vectors/`, 99 hand-written here — mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## The sodium application programming interface (API), pinned down
 
@@ -45,17 +45,21 @@ $ sudo apt-get install -y libsodium-dev libssl-dev
 $ Rscript -e "install.packages(c('sodium','openssl'), repos='https://cloud.r-project.org')"
 $ Rscript bindings/r/conformance.R
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-r is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The V01-V107 vectors are the whole-word 2.0.0 baseline (2026-07-13): they
-carry concrete identifiers, real keys, and a real verifying signature, and
-the harness's normalization now simply passes those frozen values through.
-The V108-V119 (3.0.0: the `ticks` unit, the cross_stratal_seam, the conduit
-`realized_by`) and V120-V137 (4.0.0: the attitude, the predicted_occurrence,
-the prediction_error) fixtures are built in the runner, mirroring the Python
-reference exactly.
+Only V01-V38 are actually driven by the frozen shared files in
+`conformance/vectors/`: those carry concrete identifiers, real keys, and a
+real verifying signature as data, and the harness's normalization now simply
+passes those frozen values through. The remaining files, V39-V137, are labels
+only — their `operation` field reads `see bindings/*/conformance runner` — so
+those 99 checks are hand-written here and share no data with any other
+implementation: the 2.0.0 additions (V39-V107, the whole-word re-mint of
+2026-07-13), the 3.0.0 additions (V108-V119: the `ticks` unit, the
+cross_stratal_seam, the conduit `realized_by`), and the 4.0.0 additions
+(V120-V137: the attitude, the predicted_occurrence, the prediction_error).
+All of them mirror the Python reference exactly.
 
 The runner locates the repository root from its own script path
 (`bindings/r/` is two levels down), falling back to the

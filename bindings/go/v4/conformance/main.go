@@ -1,8 +1,9 @@
 // Command conformance is the Causalontology conformance runner for
 // causalontology-go (specification 4.0.0).
 //
-// It runs every vector in conformance/vectors/ against the Go binding. An
-// implementation is conformant if and only if it passes every vector;
+// It runs the full conformance suite against the Go binding: 137 checks, of
+// which 38 are driven by the shared files in conformance/vectors/ and 99 are
+// implemented here. An implementation is conformant iff it passes all 137;
 // this runner exits nonzero on any failure. It reproduces every vNN()
 // assertion of bindings/python/tests/run_conformance.py with the same
 // fixtures and the same expected results. V01-V107 are the whole-word
@@ -2959,7 +2960,8 @@ func main() {
 	}
 	total := len(vectors)
 	fmt.Println(strings.Repeat("-", 60))
-	fmt.Printf("%d/%d vectors passed\n", total-failures, total)
+	fmt.Printf("%d/%d checks passed (38 from the frozen shared vectors, "+
+		"99 per-binding)\n", total-failures, total)
 	if failures > 0 {
 		os.Exit(1)
 	}

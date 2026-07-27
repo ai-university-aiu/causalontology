@@ -2,7 +2,8 @@
 /* The Causalontology conformance runner for causalontology-js (spec 4.0.0).
  *
  * Runs every vector in conformance/vectors/ against the JavaScript binding.
- * An implementation is conformant if and only if it passes every vector;
+ * An implementation is conformant iff it passes all 137 checks (38 driven by the
+ * shared vector files, 99 implemented here);
  * this runner exits nonzero on any failure. Vectors V01-V107 are the
  * whole-word 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in
  * meaning, V39-V107 new. V108-V119 are the 3.0.0 additions; V120-V137 are
@@ -274,7 +275,7 @@ function internalChecks() {
 }
 
 // ---------------------------------------------------------------------------
-// the 137 vectors
+// the 137 checks (38 driven by the shared vector files, 99 hand-written here)
 // ---------------------------------------------------------------------------
 const vectors = {};
 
@@ -1674,7 +1675,8 @@ function main() {
     }
   }
   console.log("-".repeat(60));
-  console.log((total - failures) + "/" + total + " vectors passed");
+  console.log((total - failures) + "/" + total + " checks passed " +
+    "(38 from the frozen shared vectors, 99 per-binding)");
   if (failures) process.exit(1);
   console.log("causalontology-js is CONFORMANT to the suite " +
     "(vectors frozen at specification 4.0.0).");

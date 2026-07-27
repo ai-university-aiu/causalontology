@@ -25,7 +25,7 @@ C++17 compiler**; compiles clean with `-Wall -Wextra`.
 | `src/semantics.hpp/.cpp` | the 25 semantic rules: temporal admissibility with the fixed unit constants (months = 2,629,746 s, years = 31,556,952 s) and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `src/signing.hpp/.cpp` | record-level `sign_record()` / `verify_record()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
 | `src/store.hpp/.cpp` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors (canonical-entry dedup), retraction and succession lineage, the resolve minimum (label before alias), the deterministic cycle-breaking view rule (index-based removal, max-(timestamp, id) exclusion), and the stigmergy `gaps()` read with its five gap kinds - with explicit insertion-order association vectors everywhere the Python iterates dicts |
-| `conformance.cpp` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `conformance.cpp` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 checks — 38 driven by the frozen shared vector files, 99 hand-written here — mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Using it as a library
 
@@ -98,7 +98,7 @@ the loader throws a `std::runtime_error` naming every path it tried.
 ```
 $ bash bindings/cpp/run_conformance.sh
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-cpp is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -113,11 +113,12 @@ as everywhere else: `CAUSALONTOLOGY_SPEC=/nowhere bash
 bindings/cpp/run_conformance.sh` fails the schema-bearing vectors with
 `cannot open schema /nowhere/schema/...` rather than quietly passing.
 
-The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
-V01-V137): they carry concrete identifiers, real keys, and a real
-verifying signature. The harness's old normalization now simply passes
-frozen values through; behavioral vectors derive deterministic keypairs
-from the seed `sha256("key:" + name)`.
+The shared vector files are frozen at specification 4.0.0 (2026-07-22; 137
+files, V01-V137). The 38 that carry an executable payload - V01-V38 - hold
+concrete identifiers, real keys, and a real verifying signature, and the
+harness's old normalization now simply passes those frozen values through;
+V39-V137 name their check but delegate it to this runner. Behavioral checks
+derive deterministic keypairs from the seed `sha256("key:" + name)`.
 
 `run_conformance.sh` compiles the sources directly and does not use
 `CMakeLists.txt`; downstream consumers do, as
@@ -161,7 +162,7 @@ random-operand cases across add/sub/mul/mod/modpow/modinv and the shift
 family, zero mismatches), record signing is cross-checked
 byte-for-byte against the Python binding (same seed, same record, same
 identifier and signature), and the hash functions and the signature
-scheme carry known-answer gates ahead of the vectors. CI runs the same
+scheme carry known-answer gates ahead of the suite. CI runs the same
 `bash bindings/cpp/run_conformance.sh` command.
 
 The **installed** package is proven the same way, not assumed: `cmake

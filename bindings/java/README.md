@@ -18,14 +18,14 @@ CI runs JDK 21).
 | `SchemaValidator` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
 | `Semantics` | the 25 semantic rules: temporal admissibility with the fixed unit constants and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `Store` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read |
-| `Conformance` | the conformance runner: internal sanity checks, then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
+| `Conformance` | the conformance runner: internal sanity checks, then all 137 conformance checks (38 driven by the frozen shared vectors, 99 implemented per binding), mirroring `bindings/python/tests/run_conformance.py` exactly |
 
 ## Conformance
 
 ```
 $ ./run_conformance.sh
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 causalontology-java is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
@@ -68,7 +68,7 @@ $ env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
 binding under test: <installed>/causalontology-4.0.0.jar
 schemas under test: bundled:jar:file:<installed>/causalontology-4.0.0.jar!/schema/occurrent.schema.json
 ...
-137/137 vectors passed
+137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)
 ```
 
 Only `target/test-classes` - the conformance runner, recompiled on its own
@@ -87,7 +87,7 @@ came from.
 block into the class output, and packages the result - the same
 `target/causalontology-4.0.0.jar` layout `mvn package` produces.
 
-The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors, V01-V137): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
+The suite is 137 checks at specification 4.0.0. Only V01-V38 are driven by the shared files in `conformance/vectors/` - those carry concrete identifiers, real keys, and a real verifying signature as data; the other 99 are implemented here and share no data with any other binding. The harness's old normalization now simply passes frozen values through.
 
 ## Status
 
