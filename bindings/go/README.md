@@ -1,4 +1,13 @@
-# causalontology-go
+# causalontology-go (the `/v2` module, specification 2.0.0)
+
+> **Looking for 4.0.0? It is a different module: [`v4/`](v4/).**
+> This directory is the `/v2` module, frozen at specification 2.0.0 and
+> 107 conformance checks. It stays published and unchanged. The current
+> release is
+> `go get github.com/ai-university-aiu/causalontology/bindings/go/v4@v4.0.1`,
+> imported as `.../bindings/go/v4/causalontology`. `v4.0.0` shipped without
+> the twenty-one JSON Schemas and is retracted in that module's `go.mod`;
+> the proxy serves `v4.0.1`. No `/v3` was ever cut.
 
 **The Go binding of the Causalontology standard** — a faithful port of
 [causalontology-py](../python/), sharing the same conformance suite.
@@ -49,7 +58,8 @@ The shared vector files are frozen at specification 2.0.0 (2026-07-13). The 38 t
 module carries the `/v2` suffix that Go requires for any version 2 or higher.
 Install it with `go get github.com/ai-university-aiu/causalontology/bindings/go/v2@v2.0.0`
 and import it as shown below (the `/v2` is part of the path). The 1.0.0 line
-remains available at the un-suffixed path, `.../bindings/go@v1.0.0`.
+remains available at the un-suffixed path, `.../bindings/go@v1.0.0`. For
+specification 4.0.0 use the `/v4` module instead - see [`v4/`](v4/).
 
 ```go
 import co "github.com/ai-university-aiu/causalontology/bindings/go/v2/causalontology"
@@ -68,9 +78,10 @@ fmt.Println(claim, store.Gaps("missing_field")) // the degenerate claim is a vis
 ## Status
 
 Source complete and ported line-for-line from the Python binding; built
-and executed by GitHub Actions CI (`cd bindings/go && go run ./conformance`) —
-there is no Go toolchain on the authoring machine, so CI is the gate, as
-it is for every binding.
+and executed by GitHub Actions CI (`cd bindings/go && go run ./conformance`).
+Last run locally on 2026-07-27 with Go 1.22: **107/107 checks passed**
+(38 from the frozen shared vectors, 69 per-binding), exit 0. CI runs the
+same command on every push, as it does for every binding.
 
 License: "The attribution always; no profit, no problem license." — see
 the repository `LICENSE` and `NOTICE`.

@@ -4,9 +4,15 @@ A document is SCHEMA-VALID if it matches its JSON Schema, and SEMANTICALLY
 VALID if it also satisfies these rules. Rules 1–12 are 1.0.0; those marked
 **AMENDED** carry a 2.0.0 delta. Rules 13–21 are new in 2.0.0; rules 22–23 are
 new in 3.0.0; rules 24–25 are new in 4.0.0. The normative algorithms (A–E from
-2.0.0, plus Algorithm F for the Cross Stratal Seam in 3.0.0) that make rules 7,
-15, 16, 19, 20, and 22 executable are given in Section 12 and implemented in
-every binding.
+2.0.0, plus Algorithm F for the Cross Stratal Seam in 3.0.0) make rules 7, 15,
+16, 19, 20 and 22 executable. A is bridge closure, B is bridged hierarchy
+consistency, C is stratal classification, D is skip coherence, E is unit
+normalization, and F is seam well-formedness; each is named in the abstract
+operation set of [`store.md`](store.md), stated in full in the master design
+document at the repository root, and implemented in every binding. (This line
+previously pointed at "Section 12". No such section exists in this
+specification — the reference was to the change order that introduced the
+algorithms, not to anything a reader of `spec/` could open.)
 
 1. **Temporal windows.** `minimum_delay <= maximum_delay` (fields formerly
    `dmin`/`dmax`, spelled out under Principle P7).

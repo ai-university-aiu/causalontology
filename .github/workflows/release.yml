@@ -1,13 +1,21 @@
 name: Release
 
-# On a version tag (v2.0.1, v2.1.0, ...), build the portable artifacts and
+# On a version tag (v4.0.3, v4.0.4, ...), build the portable artifacts and
 # create the GitHub Release. Go submodule tags (bindings/go/v*) do not match
 # and are handled by the Go module proxy directly, not by a release object.
+#
+# These artifacts are downloadable, so they are a distribution channel like any
+# other and the same rule applies: what is attached must be the file that would
+# really ship, and it must carry the twenty-one JSON Schemas. Both are asserted
+# below rather than assumed, because assuming it is precisely what put a
+# schema-less wheel on PyPI under a filename that can never be reused.
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
+# contents: write is the minimum `gh release create` needs, and the maximum
+# anything here needs. No packages:, no id-token:, no pull-requests:.
 permissions:
   contents: write
 
@@ -30,20 +38,52 @@ jobs:
 
       - name: Build the Python wheel and sdist
         run: |
+          set -eux
           python3 -m pip install --quiet build
-          (cd bindings/python && python3 -m build)
+          # THE WHEEL MUST CARRY THE BUILD TAG. A plain `python3 -m build`
+          # produces causalontology-4.0.0-py3-none-any.whl - the exact filename
+          # that is burned on PyPI as the defective, schema-less upload and can
+          # never be uploaded again. Attaching that file to a GitHub Release
+          # hands people the broken name under a corrected tag. The wheel that
+          # actually ships is the build-tagged one, so build that one here, the
+          # same way the conformance workflow does.
+          (cd bindings/python && python3 -m build --sdist)
+          (cd bindings/python && python3 -m build --wheel \
+            --config-setting=--build-option=--build-number=1)
+          # Assert the SHAPE, not the literal name, so this keeps working past
+          # 4.0.0. A wheel filename is name-version[-build]-python-abi-platform,
+          # so the build-tagged form has six dash-separated fields
+          # (causalontology-4.0.0-1-py3-none-any.whl) and the plain, burned form
+          # has five (causalontology-4.0.0-py3-none-any.whl).
+          n=$(ls bindings/python/dist/*.whl | wc -l)
+          [ "$n" -eq 1 ] || { echo "expected exactly one wheel, got $n" >&2; exit 1; }
+          whl=$(basename bindings/python/dist/*.whl)
+          echo "wheel: $whl"
+          case "$whl" in
+            *-*-*-*-*-*.whl) ;;
+            *) echo "$whl carries no wheel build tag - that is the filename already burned on PyPI" >&2
+               exit 1 ;;
+          esac
 
       - name: Build the npm tarball
         run: (cd bindings/javascript && npm pack)
 
       - name: Package the crate
-        run: (cd bindings/rust && cargo package --allow-dirty --no-verify)
+        # No --allow-dirty. This workflow only ever runs on a pushed tag, so
+        # bindings/rust is a clean checkout of that tag and there is nothing to
+        # allow; keeping the flag would mean a stray write from an earlier step
+        # could be packaged into a public artifact without a word. Verified:
+        # `cargo package --no-verify` packages 38 files from a clean tree.
+        # --no-verify stays - the compile is already gated by the conformance
+        # workflow, and re-running it here only lengthens the release.
+        run: (cd bindings/rust && cargo package --no-verify)
 
       - name: Build the WebAssembly core
         run: (cd bindings/rust && cargo build --lib --release --target wasm32-unknown-unknown)
 
       - name: Collect release artifacts
         run: |
+          set -eux
           mkdir -p dist
           cp bindings/python/dist/*.whl                                           dist/
           cp bindings/python/dist/*.tar.gz                                         dist/
@@ -51,6 +91,41 @@ jobs:
           cp bindings/rust/target/package/*.crate                                 dist/
           cp bindings/rust/target/wasm32-unknown-unknown/release/causalontology.wasm dist/
           ls -la dist
+
+      - name: Every attached package carries all 21 schemas
+        run: |
+          set -eux
+          # The defect that shipped three broken releases was a package that
+          # built cleanly and carried no schemas, so this is the one property
+          # worth asserting before anything is attached to a public release.
+          # Cheap, decisive, and it fails on the artifact rather than on a
+          # consumer's first validate call.
+          python3 - <<'PY'
+          import glob, sys, tarfile, zipfile
+
+          def count(path):
+              if path.endswith(".whl"):
+                  names = zipfile.ZipFile(path).namelist()
+              else:
+                  with tarfile.open(path) as t:
+                      names = t.getnames()
+              return sum(1 for n in names if n.endswith(".schema.json"))
+
+          bad = []
+          for pattern in ("dist/*.whl", "dist/*.tar.gz", "dist/*.tgz",
+                          "dist/*.crate"):
+              found = glob.glob(pattern)
+              if not found:
+                  bad.append(f"{pattern}: nothing matched")
+              for p in found:
+                  n = count(p)
+                  print(f"{p}: {n} schemas")
+                  if n != 21:
+                      bad.append(f"{p}: {n} schemas, expected 21")
+          if bad:
+              sys.exit("\n".join(bad))
+          print("every attached package carries all 21 schemas")
+          PY
 
       - name: Create the GitHub Release
         env:

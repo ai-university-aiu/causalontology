@@ -1,3 +1,9 @@
+# Only three ecosystems appear here, and that is the complete set rather than
+# an oversight: seventeen of the nineteen bindings are deliberately
+# zero-dependency, so there is nothing for Dependabot to raise against them.
+# The exceptions are Rust (sha2, ed25519-dalek, serde_json, regex) and Swift
+# (apple/swift-crypto, which itself pins apple/swift-asn1). If a binding ever
+# takes its first dependency, add it here in the same commit.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -6,5 +12,12 @@ updates:
       interval: weekly
   - package-ecosystem: cargo
     directory: "/bindings/rust"
+    schedule:
+      interval: weekly
+  # Package.swift and the tracked Package.resolved both live at the repository
+  # root, because SwiftPM resolves a tag against the root manifest. This was
+  # the one third-party dependency in the tree with nothing watching it.
+  - package-ecosystem: swift
+    directory: "/"
     schedule:
       interval: weekly

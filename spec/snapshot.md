@@ -31,7 +31,7 @@ A small JSON header, signed:
 | field | meaning |
 |---|---|
 | `snapshot_format` | the format version (`1.0`) |
-| `spec_version` | the specification version (`3.0.0`) |
+| `spec_version` | the specification version the publishing node implements (`4.0.0` at this specification version; the exporter writes the binding's own `__version__`, so an older mirror's dump honestly declares an older number) |
 | `created_at` | Coordinated Universal Time (UTC) ISO-8601 timestamp — the ONLY non-reproducible field |
 | `content_objects` | count of content objects in the body |
 | `provenance_records` | count of provenance records in the body |

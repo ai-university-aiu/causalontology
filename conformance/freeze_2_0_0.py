@@ -13,6 +13,30 @@ conformance/vectors/ and re-pins any real signatures, idempotently:
   dmin/dmax   ->  minimum_delay/maximum_delay   (the two field renames)
   "<128 hex>" ->  a real Ed25519 signature over the record's canonical bytes
 
+KNOWN LIMIT, recorded rather than repaired (measured 2026-07-27, corrected the
+same day). The signature step fires ONLY on the literal "<128 hex>" placeholder.
+It does NOT re-pin a signature that this script's own re-mint has just
+invalidated, and the re-mint invalidates TWO, not one. An earlier version of
+this note said "one: V11", which undercounted by half and would have let a
+future maintainer fix half the problem and report it done.
+
+The suite contains exactly two signature-bearing vectors, and verify_record
+returns False for both:
+
+    v11_assertion_is_valid.json   $.input  -> False
+    v13_enrichment_is_valid.json  $.input  -> False
+
+Same cause in each: the record was signed by a harness key over an `about`
+value using an abbreviated scheme, and the whole-word re-mint rewrote that
+value - V11's cro: -> causal_relation_object:, V13's occ: -> occurrent: -
+changing the bytes the signature covers. Neither signature verifies any longer,
+and neither id is still the hash of its own bytes. Nothing observes either
+field: both vectors' operation is validate_schema and their only expectation is
+schema_valid: true, so the suite is unaffected and all nineteen runners pass. Widening the condition here
+would rewrite the bytes of a frozen vector, which is a re-freeze and belongs to
+a version bump (GOVERNANCE.md), not to a maintenance run of this script. See
+the honest notes in README.md.
+
 Whole tokens only: a scheme is re-minted only where it is the text before the
 colon of an identifier, or the exact "type"/reference value. Ordinary words in
 prose (across, macro, instrument) are never touched.
@@ -84,8 +108,13 @@ def remint_value(v):
 
 
 def pin_real_signature(record):
-    """Replace a '<128 hex>' placeholder (or a signature stale after re-mint)
-    with the record's real Ed25519 signature over its new canonical bytes."""
+    """Replace a '<128 hex>' placeholder with the record's real Ed25519
+    signature over its new canonical bytes.
+
+    Called only from the placeholder branch in main(); it does NOT repair a
+    signature that the re-mint above has invalidated. See the KNOWN LIMIT note
+    in this module's docstring.
+    """
     source = record.get("source", "")
     who = None
     for name in ("ab12", "alice", "bob", "lab1", "lab2", "K1", "K2",

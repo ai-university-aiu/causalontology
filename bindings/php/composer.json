@@ -1,6 +1,5 @@
 {
   "name": "causalontology/causalontology",
-  "version": "4.0.0",
   "description": "The PHP binding of the Causalontology standard - a verb-first noun-hosting ontology; reified causation as a programming-language-neutral standard and shared commons. Bundled extensions only; zero Composer dependencies.",
   "type": "library",
   "license": "Apache-2.0",
@@ -24,6 +23,7 @@
   },
   "extra": {
     "license-name": "The attribution always; no profit, no problem license. (Apache License 2.0 text)",
+    "no-version-field": "Deliberately absent. Packagist publishes this package from the repository-ROOT composer.json and takes every version from a git tag (v4.0.0 ... v4.0.3, latest v4.0.3), so a hardcoded version here would be a second, unpublished, and immediately stale declaration - it read 4.0.0 while the registry served v4.0.3. Composer's own guidance is to omit the field for any package distributed through a VCS. This manifest exists for local `composer install`/`composer test` inside bindings/php only.",
     "vendored-schemas": "spec/schema/ holds a byte-for-byte copy of the repository's twenty-one spec/schema/*.schema.json files. SchemaValidator prefers it over any repository-relative path, so an installed copy validates with no repository present. It is data, not PSR-4 source, so nothing in the autoloader references it: keep archive.exclude empty and add no .gitattributes export-ignore covering spec/, or the installed package silently loses the ability to validate. bindings/php/conformance.php fails the run if the copy is absent, incomplete, or byte-different from spec/schema."
   }
 }

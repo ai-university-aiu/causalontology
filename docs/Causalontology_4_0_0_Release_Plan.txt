@@ -31,9 +31,10 @@ PART ONE - THE COMMON PRE-RELEASE SECTION (applies to every language)
 
 The single source of truth for 4.0.0 is the frozen schema and conformance suite:
 the twenty-one JavaScript Object Notation (JSON) schemas under spec/schema/ and
-the one hundred and thirty-seven conformance vectors under conformance/vectors/
-(V01-V137). The Python reference binding passes all one hundred and
-thirty-seven.
+the one hundred and thirty-seven conformance vector files under
+conformance/vectors/ (V01-V137). All nineteen bindings now pass all one hundred
+and thirty-seven checks; when this plan was written only the Python reference
+did.
 
 A binding MAY NOT publish 4.0.0 until it passes the 4.0.0 conformance vectors in
 its own language. For every binding, in order:
@@ -134,11 +135,14 @@ its own language. For every binding, in order:
  5. TAG THE RELEASE in Git (v4.0.3 for the vX.Y.Z channels as of 2026-07-27 -
     Swift, Zig, Packagist, the C++ source tarball, and the LuaRocks
     rockspec's source.tag - or the language-specific tag noted below; Go's is
+    bindings/go/v4.0.1 as of 2026-07-27, superseding the defective
     bindings/go/v4.0.0 - corrected 2026-07-26: the module lives in the
     major-version subdirectory bindings/go/v4, and for that layout Go drops
-    the folder's /v4 suffix from the tag prefix). Tags are added, never moved:
-    v4.0.0, v4.0.1 and v4.0.2 stay exactly where they are, because a pushed
-    tag is a public, cached surface a consumer may already have pinned.
+    the folder's /v4 suffix from the tag prefix). Tags are added, never moved.
+    Pushed to date: v4.0.0, v4.0.1, v4.0.2, v4.0.3, bindings/go/v4.0.0 and
+    bindings/go/v4.0.1, plus the misnamed bindings/go/v4/v4.0.0 which the Go
+    toolchain never consults. Every one stays exactly where it is, because a
+    pushed tag is a public, cached surface a consumer may already have pinned.
 
  6. PUBLISH, then run the post-publish verification: install the PUBLISHED
     4.0.0 package fresh, from the registry, into a clean environment, and run
@@ -167,8 +171,8 @@ use the Hex-published Elixir package).
     Build and publish tool: g++ (C++17) via run_conformance.sh; CMake for the
       installable library; the tagged source tarball is the artifact.
     Version bump: project(causalontology VERSION 4.0.0 ...) in
-      bindings/cpp/CMakeLists.txt (it stale-reads 1.0.2 today - fix it as part
-      of the bump).
+      bindings/cpp/CMakeLists.txt. DONE - it stale-read 1.0.2 when this plan
+      was written and reads 4.0.0 today.
     Tag: v4.0.3 (was v4.0.0 when this plan was written, then v4.0.1 when the
       tag channels were cut; v4.0.3 is the tag carrying the CMake-install
       repair of 2026-07-27, and the earlier tags are left where they are).
@@ -211,15 +215,23 @@ use the Hex-published Elixir package).
  3. DART (bindings/dart)
     Package and registry: causalontology on pub.dev.
     Build and publish tool: dart pub publish.
-    Version bump: version: 4.0.0 in bindings/dart/pubspec.yaml.
+    Version bump: version: 4.0.1 in bindings/dart/pubspec.yaml. CORRECTED
+      2026-07-27: this plan said 4.0.0, and 4.0.0 was published and found
+      defective. A pub.dev version holds one immutable file, so the fix could
+      only reach consumers as 4.0.1; 4.0.0 is retracted. See the Dart entry in
+      Part Three.
     Tag: v4.0.0.
     Publish:
       cd bindings/dart
       dart run bin/conformance.dart      -> 137/137
       dart pub publish
     Post-publish verification:
-      dart pub add causalontology:4.0.0 in a clean package and run the vectors
-      -> 137/137.
+      dart pub add causalontology:4.0.1 in a clean package and run the vectors
+      -> 137/137. CHECK git status BEFORE PUBLISHING, not only before
+      committing: the 4.0.1 archive went out from a working tree that a
+      documentation sweep was editing, and two of its sixteen files are
+      therefore uncommitted. Publishing is the more irreversible of the two
+      acts.
 
  4. ELIXIR (bindings/elixir)
     Package and registry: causalontology on Hex. There is no separate Erlang
@@ -249,17 +261,23 @@ use the Hex-published Elixir package).
       Go versions the import path, so a skipped major leaves no gap to fill.
     Build and publish tool: the Git tag plus the module proxy (no manual push).
     Version bump: the /v4 module path (above); the code version is the tag.
-    Tag: bindings/go/v4.0.0 (corrected 2026-07-26: for a module in the
-      major-version subdirectory bindings/go/v4, the tag prefix drops the
-      folder's /v4 suffix), i.e. tag name "bindings/go/v4.0.0".
+    Tag: bindings/go/v4.0.1 as of 2026-07-27 (corrected 2026-07-26: for a
+      module in the major-version subdirectory bindings/go/v4, the tag prefix
+      drops the folder's /v4 suffix, so the name is "bindings/go/v4.0.0";
+      corrected again 2026-07-27: v4.0.0 shipped without the schemas and is
+      retracted in go.mod, so the live tag is "bindings/go/v4.0.1").
     Publish:
       cd bindings/go/v4 && go run ./conformance    -> 137/137
       push the tag; then prime the proxy:
       GOPROXY=proxy.golang.org go list -m \
-        github.com/ai-university-aiu/causalontology/bindings/go/v4@v4.0.0
+        github.com/ai-university-aiu/causalontology/bindings/go/v4@v4.0.1
     Post-publish verification:
-      go get github.com/ai-university-aiu/causalontology/bindings/go/v4@v4.0.0
+      go get github.com/ai-university-aiu/causalontology/bindings/go/v4@v4.0.1
       import ".../bindings/go/v4/causalontology" and run the vectors -> 137/137.
+      Confirm the retraction took: go list -m -versions on the module must
+      offer v4.0.1 and not v4.0.0. Re-confirmed 2026-07-27 - it does, and the
+      proxy reports the tag it resolved as
+      refs/tags/bindings/go/v4.0.1 at aeaf0e71cc1b1f1ddcddd7c70d2b59fc3076d6f8.
 
  6. HASKELL (bindings/haskell)
     Package and registry: causalontology on Hackage (publication pending: the
@@ -319,8 +337,13 @@ use the Hex-published Elixir package).
 
  9. JULIA (bindings/julia)
     Package and registry: the Julia General registry (registration is a
-      pull-request process; the 2.0.0 registration, General #161292, is still
-      under contested human review - a gate this release inherits).
+      pull-request process; General #161292 is still open and under contested
+      human review - a gate this release inherits). CORRECTED 2026-07-27: that
+      pull request registers v1.0.0, not 2.0.0. Read before quoting: its body
+      names "Version: v1.0.0" at commit 12f4c6a, the tree tagged v1.0.2.
+      Julia's registry wants versions in order, so 2.0.0 and then 4.0.0 follow
+      only after it merges, which makes Julia the furthest behind of the
+      nineteen on the registry side however green it is locally.
     Build and publish tool: a Git tag plus the General-registry registration
       pull request.
     Version bump: version = "4.0.0" in bindings/julia/Project.toml.
@@ -432,18 +455,21 @@ use the Hex-published Elixir package).
       python3 -m venv /tmp/co4 && . /tmp/co4/bin/activate
       pip install causalontology==4.0.0
       run the conformance vectors against the installed package -> 137/137
-    Note: 2.0.0 remains the newest published version until this ships; no
-      3.0.0 was ever published; 1.0.0 stays yanked.
+    Note: 4.0.0 is the newest published version as of 2026-07-27 - it shipped
+      defective and was corrected in place inside the same release, per the
+      Python entry in Part Three. No 3.0.0 was ever published; 1.0.0 stays
+      yanked (reason on PyPI: "2.0.0 released!"); 2.0.0 remains.
 
  15. R (bindings/r)
     Package and registry: causalontology on the Comprehensive R Archive
       Network (CRAN) (submission is a human web-form review process, stated
       plainly - a gate this release inherits from 2.0.0).
     Build and publish tool: R CMD build and the CRAN submission form.
-    Version bump: Version: 4.0.0 in bindings/r/DESCRIPTION. Also refresh the
-      bundled schemas under bindings/r/inst/schema (seventeen 2.0.0-era files
-      today) to the twenty-one 4.0.0 schemas, so the package keeps working
-      standalone.
+    Version bump: Version: 4.0.0 in bindings/r/DESCRIPTION. BOTH DONE - the
+      DESCRIPTION reads 4.0.0 and bindings/r/inst/schema holds all twenty-one
+      4.0.0 schemas (it held seventeen 2.0.0-era files when this plan was
+      written), so the package works standalone; tests/bundled_schema.R makes
+      R CMD check fail if they ever stop shipping.
     Tag: v4.0.0.
     Publish:
       Rscript bindings/r/conformance.R   -> 137/137
@@ -471,12 +497,15 @@ use the Hex-published Elixir package).
  17. RUST (bindings/rust)
     Package and registry: causalontology on crates.io.
     Build and publish tool: cargo.
-    Version bump: version = "4.0.0" in bindings/rust/Cargo.toml. Also REFRESH
-      THE VENDORED SCHEMAS: the crate embeds its schemas at compile time from
-      bindings/rust/spec_schema/ (src/schema.rs includes them), and that copy
-      holds the seventeen 2.0.0-era files today - bring it to the twenty-one
-      4.0.0 schemas (cross_stratal_seam plus the three new kinds) so the
-      published crate matches spec/schema/.
+    Version bump: version = "4.0.1" in bindings/rust/Cargo.toml as of
+      2026-07-27 - 4.0.0 is published and its library is sound, but its
+      conformance binary and README are broken, and a crates.io version is
+      immutable, so the corrections can only reach consumers as 4.0.1.
+      REFRESHING THE VENDORED SCHEMAS is DONE: the crate embeds its schemas at
+      compile time from bindings/rust/spec_schema/ (src/schema.rs includes
+      them); that copy held seventeen 2.0.0-era files when this plan was
+      written and holds all twenty-one 4.0.0 schemas today, matching
+      spec/schema/.
     Tag: v4.0.0 for the code, but see the note below: the crate that is live
       was published from main, not from a tag, and the v4.0.0 tag does NOT
       carry the 4.0.0 Rust binding.
@@ -506,7 +535,9 @@ use the Hex-published Elixir package).
  18. SWIFT (bindings/swift)
     Package and registry: Swift Package Manager (Git-tag based; there is no
       central registry). The Swift Package Index listing (PackageList pull
-      request #14440) is still pending merge.
+      request #14440) MERGED on 2026-07-17, so the package is listed and the
+      index reindexes on each new tag. This plan said "still pending merge"
+      until 2026-07-27; it was already merged when that was written.
     Build and publish tool: a Git tag; the repository-root Package.swift is
       the manifest. TAG-ONLY: no version is written in any file.
     Version bump: none in a file - Swift Package Manager resolves by Git tag;
@@ -530,15 +561,18 @@ use the Hex-published Elixir package).
     Build and publish tool: publish the tagged source tarball and record its
       hash.
     Version bump: .version = "4.0.0" in BOTH manifests: the repository-root
-      build.zig.zon (it reads 2.0.1 today; the tag-based channel reads the
-      repository root) AND bindings/zig/build.zig.zon (it reads 2.0.0 today).
+      build.zig.zon (the tag-based channel reads the repository root) AND
+      bindings/zig/build.zig.zon. BOTH DONE - they read 2.0.1 and 2.0.0 when
+      this plan was written and both read 4.0.0 today.
     THE .paths LIST IS THE PACKAGE - CALLED OUT EXPLICITLY, because leaving it
       implicit shipped a broken package at v4.0.1. Zig's package manager
       prunes the fetched tarball to the .paths list in the ROOT
       build.zig.zon, then hashes what survives. Anything absent from that
       list does not exist for a consumer, however plainly it sits in the
       repository, and no .gitattributes or composer.json affects it. The list
-      must name bindings/zig, spec, conformance/vectors, LICENSE and NOTICE.
+      must name bindings/zig, spec, conformance/vectors, LICENSE and NOTICE,
+      alongside build.zig and build.zig.zon themselves. As shipped at v4.0.3
+      it names exactly those seven entries.
     Tag: v4.0.3 (the tarball the tag produces is the artifact; it was v4.0.0
       when this plan was written and v4.0.1 when the tag channels were cut).
     Publish:
@@ -591,11 +625,28 @@ opens. A proof that cannot say how many schemas the consumer received is not a
 proof about packaging.
 
 POST-RELEASE CHECKLIST AND CURRENT STATUS (tick a language only when both
-hold - published AND fresh-install 137/137; the code-level status below is the
-truthful state as of 2026-07-22, updated after the second binding wave brought
-every remaining language to 4.0.0 green locally. No box is ticked yet: every
-language is GREEN LOCALLY but UNPUBLISHED, because publication needs the owner's
-registry credentials and, for several languages, a standing human gate):
+hold - published AND fresh-install 137/137).
+
+SCOREBOARD AS OF 2026-07-27: FOURTEEN TICKED, FIVE NOT. Read the tick
+correctly: it means published AND fresh-install green, which is a stricter bar
+than "live". FIFTEEN bindings have a live 4.0.x artifact; Rust is the fifteenth
+and stays unticked because the binary a consumer installs cannot run its own
+suite. FOUR have nothing at 4.x at all. Ticked, and verified
+against the live registries on that date: C++ (v4.0.3 tag), C# (NuGet 4.0.0),
+Dart (pub.dev 4.0.1), Elixir (Hex 4.0.0), Go (proxy v4.0.1), Java and Kotlin
+(Maven Central 4.0.0), JavaScript (npm 4.0.0), Lua (LuaRocks 4.0.0-1), PHP
+(Packagist v4.0.3), Python (PyPI 4.0.0), Ruby (RubyGems 4.0.0), Swift and Zig
+(v4.0.3 tag). Not ticked, and each for a stated reason: Haskell (no Hackage
+account), Julia (contested General registration), Perl (PAUSE web-form upload),
+R (submitted to CRAN 2026-07-27, awaiting a reviewer - submitted is not
+accepted), Rust (library live and sound at 4.0.0, but the conformance binary a
+consumer installs cannot run, and the fixed 4.0.1 is unpublished).
+
+The wording that stood here until 2026-07-27 - "No box is ticked yet: every
+language is GREEN LOCALLY but UNPUBLISHED" - was true when it was written on
+2026-07-22 and false for a day afterwards. It is replaced rather than deleted,
+because a scoreboard that lags the thing it scores is the same failure mode as
+a proof that measures the wrong artifact:
 
 READINESS NOTE (2026-07-26). A publication-readiness pass was run on the build
 machine, and everything short of the outward act itself is verified. Rust:
@@ -815,17 +866,50 @@ the program opened was traced. Four findings.
 
     crates.io causalontology 4.0.0        main at 43d58a6 (the commit later
                                           tagged v4.0.1). NOT the v4.0.0 tag.
-    pub.dev causalontology 4.0.0          main at 43d58a6. Defective.
+    pub.dev causalontology 4.0.0          main at 43d58a6. Defective,
+                                          retracted 2026-07-27.
+    pub.dev causalontology 4.0.1          NO SINGLE COMMIT - published from
+      (live)                              the working tree. Re-measured from
+                                          the downloaded archive 2026-07-27:
+                                          14 of its 16 files are byte-
+                                          identical to bindings/dart/ at every
+                                          commit from 3f4a23b to b2e00ad, and
+                                          the only two that differ - README.md
+                                          and bin/conformance.dart - are both
+                                          outside lib/. The library a consumer
+                                          uses is identical to committed code.
     Go bindings/go/v4@v4.0.0              tag bindings/go/v4.0.0 = 43d58a6.
-                                          Defective. Not the never-consulted
+                                          Defective, retracted 2026-07-27.
+                                          Not the never-consulted
                                           bindings/go/v4/v4.0.0 tag.
+    Go bindings/go/v4@v4.0.1 (live)       tag bindings/go/v4.0.1 = aeaf0e7.
+                                          Confirmed against the proxy, which
+                                          reports Ref refs/tags/bindings/go/
+                                          v4.0.1 and Hash aeaf0e71cc1b1f1d...
     npm causalontology 4.0.0              main at e697d32, the commit that
                                           put LICENSE inside the artifact.
     PyPI causalontology-4.0.0-1-py3-...   main at e697d32. NOT the v4.0.0 tag.
-    Packagist 4.0.1                       tag v4.0.1 = 43d58a6.
-    SwiftPM / Zig / C++ tarball 4.0.1     tag v4.0.1 = 43d58a6.
-    LuaRocks rockspec source.tag          tag v4.0.2 = d04fac3, superseded by
-      (unpublished)                       v4.0.3. Never v4.0.0.
+    Packagist v4.0.3 (newest served)      tag v4.0.3 = 4c12aab. v4.0.0,
+                                          v4.0.1 and v4.0.2 also stay on the
+                                          index; Packagist removes nothing.
+    SwiftPM / Zig / C++ tarball v4.0.3    tag v4.0.3 = 4c12aab (they were at
+                                          v4.0.1 = 43d58a6 until 2026-07-27).
+    LuaRocks 4.0.0-1 (published)          rockspec source.tag = v4.0.3,
+                                          confirmed on the live rockspec at
+                                          luarocks.org. It named v4.0.2 =
+                                          d04fac3 until 2026-07-27. Never
+                                          v4.0.0.
+
+    SIX LIVE ARTIFACTS HAVE NO RECORDED BUILD COMMIT, and that is a gap in
+    this record rather than a detail: RubyGems 4.0.0, Hex 4.0.0, NuGet 4.0.0,
+    both Maven Central artifacts, and the pub.dev 4.0.1 archive were published
+    on 2026-07-26/27 without the commit being written down at the time. What
+    can still be said, from the artifacts themselves: the RubyGems gem's 32
+    files are byte-identical to bindings/ruby/ at every commit from 3f4a23b to
+    b2e00ad, and are NOT identical to current main - its bundled README.md and
+    conformance.rb predate the "137 checks" wording sweep. Record the commit
+    AT THE MOMENT OF PUBLISH. Reconstructing it afterwards narrows it to a
+    range at best, and only while the history is still short.
 
   THE TAG DECISION. A new tag, v4.0.3, carries all of the above repairs, and
   the tag channels - Swift, Zig, Packagist, the C++ source tarball, and the
@@ -1135,8 +1219,9 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    passes 137/137 and reads 4.0.0; nothing is on CPAN yet;
                    the PAUSE web-form upload stands besides, then the
                    fresh-install check.
-  [x] PHP        - v4.0.1 tag registered on Packagist; fresh 137/137;
-                   v4.0.3 supersedes it.
+  [x] PHP        - v4.0.3 is the newest version Packagist serves, confirmed on
+                   the live index 2026-07-27; v4.0.1 was verified by a real
+                   composer require at 137/137.
                    STATUS: COMPLETE (2026-07-26) - the Packagist webhook
                    mirrored v4.0.1 automatically on the tag push (confirmed on
                    the live Packagist index), and the composer-require residue
@@ -1295,8 +1380,11 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    separate stub package resolved the dependency at exactly
                    4.0.1 through Swift Package Manager itself, built it, and
                    imported the library. The Swift Package Index listing
-                   (PackageList pull request) remains pending on that index's
-                   side, as before. STRUCTURAL NOTE added after the packaging
+                   (PackageList pull request #14440) MERGED on 2026-07-17 -
+                   this entry said it was still pending for ten days after it
+                   landed, which is a reminder to re-check a third party's
+                   state rather than carry the last thing that was true.
+                   STRUCTURAL NOTE added after the packaging
                    defect: Swift ships no vendored copy. It is correct only
                    because a tag delivers the whole repository tree, and
                    defaultSchemaDirectory() derives its path from #filePath -
@@ -1354,15 +1442,22 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    PACKAGING CHANGES THE HASH: the v4.0.1 pin
                    12207a70...fe98d6f names the ten-file package, so this
                    channel cannot be corrected in place - consumers must
-                   re-run zig fetch --save against v4.0.3. Expected hash
-                   122000cacf485f8c9e8f87cfdd428d54270200b14aa666912a3e7d53cec9600c71fa,
-                   reproduced independently from two separately built
-                   tarballs, but computed locally: re-run zig fetch against
-                   the published v4.0.3 tarball and record what it prints
-                   before anyone pins it.
+                   re-run zig fetch --save against v4.0.3. Hash
+                   122000cacf485f8c9e8f87cfdd428d54270200b14aa666912a3e7d53cec9600c71fa
+                   - CONFIRMED, not estimated: zig fetch was run against the
+                   PUBLISHED v4.0.3 tarball at
+                   github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.3.tar.gz
+                   into an empty global cache on 2026-07-27 and printed
+                   exactly that string, and the resulting package holds 209
+                   files - 21 schemas under spec/schema, 21 beside the sources
+                   in bindings/zig/src/spec_schema, and all 137 vector files.
+                   Never record a Zig hash from a tarball you built yourself;
+                   the pruned file set is what is hashed.
 
-WHEN THE PACKAGES ARE OUT:
-  - Update the standard's README.md and the Standalone Design to point at the
+WHEN THE PACKAGES ARE OUT (status added 2026-07-27 against each item):
+  - DONE for README.md and PUBLISHING.md; the Standalone Design is outside
+    this pass. Update the standard's README.md and the Standalone Design to
+    point at the
     published versions - 4.0.0 for the channels shipping 4.x for the first
     time, 4.0.0 for PyPI as well (the build-tagged wheel inside the existing
     release), 4.0.1 for pub.dev and the Go module proxy, which each hold one
@@ -1370,32 +1465,71 @@ WHEN THE PACKAGES ARE OUT:
     for crates.io, whose library is sound at 4.0.0 but whose conformance
     binary and README are not. The differing numbers are deliberate; do not
     normalise them.
-  - Point the tag channels at v4.0.3: Swift, Zig, Packagist, the C++ source
-    tarball, and the source.tag in the LuaRocks rockspec. Leave v4.0.0,
+  - DONE. Point the tag channels at v4.0.3: Swift, Zig, Packagist, the C++
+    source tarball, and the source.tag in the LuaRocks rockspec. All five now
+    do; Packagist was confirmed serving v4.0.3 on the live index and the
+    LuaRocks rockspec confirmed naming v4.0.3 on luarocks.org. Leave v4.0.0,
     v4.0.1 and v4.0.2 where they are - a pushed tag is a public, cached
     surface a consumer may already have pinned, so a corrected tree gets a new
     tag and an existing tag is never moved.
-  - Confirm the spec version tag v4.0.0 is pushed so consumers can pin the
-    exact specification (spec/VERSIONS.md lists it). Note what that tag is
-    NOT: it pins the specification-freeze commit 64b1d1a, which predates the
-    binding port, so it must never be used to verify a published binding
-    artifact. At v4.0.0 the Rust binding declares 2.0.0 and carries seventeen
-    schemas.
-  - Record, for every artifact published, the COMMIT it was built from. The
-    table under FINDING SEVEN above is that record; keep it current. A
-    registry artifact and a git tag are two different things, and assuming
-    they match is how an auditor ends up testing the wrong code.
-  - For each superseding release, yank or retract the broken one as a
-    SEPARATE act with its own named go-ahead, and record here that it was
-    done. A yank is not a deletion: pinned installs keep resolving.
+  - DONE. Confirm the spec version tag v4.0.0 is pushed so consumers can pin
+    the exact specification (spec/VERSIONS.md lists it); it is. Note what that
+    tag is NOT: it pins the specification-freeze commit 64b1d1a, which
+    predates the binding port, so it must never be used to verify a published
+    binding artifact. At v4.0.0 the Rust binding declares 2.0.0 and carries
+    seventeen schemas.
+  - PARTLY DONE, AND THE GAP IS NAMED. Record, for every artifact published,
+    the COMMIT it was built from. The table under FINDING SEVEN above is that
+    record; keep it current. Six live artifacts have no recorded commit and
+    are listed as such there rather than guessed at. A registry artifact and a
+    git tag are two different things, and assuming they match is how an
+    auditor ends up testing the wrong code.
+  - DONE for all three broken channels. For each superseding release, yank or
+    retract the broken one as a SEPARATE act with its own named go-ahead, and
+    record here that it was done: pub.dev 4.0.0 retracted, Go v4.0.0 retracted
+    via go.mod, and the two defective PyPI files deleted so release 4.0.0
+    holds exactly one. A yank is not a deletion: pinned installs keep
+    resolving.
+  - STILL OPEN, AND WIDER THAN FIRST RECORDED. An earlier version of this
+    entry said the retracted "137 vectors" phrasing reached "four immutable
+    artifacts" and gave Hex an all-clear. Both were wrong. Re-measured on
+    2026-07-27 by UNPACKING each published artifact rather than reading its
+    registry metadata - which is the lesson, since several misses sit inside
+    archives whose metadata field was correct.
+    Measured: npm, PyPI, RubyGems, Hex, crates.io and NuGet all ship a bundled
+    README or METADATA still saying "vectors"; the Go proxy v4.0.1 ships it in
+    the module zip and the compiled binary; Maven Central ships it in the POM
+    inside the jar. Hex's hex.pm DESCRIPTION field was corrected before upload
+    but its bundled README was not, so the all-clear was false. Only the Kotlin
+    POM and pub.dev 4.0.1 carry the corrected wording.
+    THE LARGEST INSTANCE: all NINETEEN conformance runners at tag v4.0.3 still
+    print "vectors passed". That tag serves five live channels - Swift, Zig,
+    Packagist, the C++ tarball and the LuaRocks source.tag - and was cut before
+    the sweep landed; main is 14 commits ahead of it. So a consumer of any of
+    those five runs the project's own verification step and is shown the
+    retracted claim, inside a package whose own PUBLISHING.md retracts it.
+    The immutable channels cannot be edited. The v4.0.3 instance CAN be fixed,
+    by cutting a tag from current main and re-pointing the five channels that
+    read it. Recorded as an open decision rather than quietly left.
 
 MATURITY NOTE. The bindings are at different maturity, and this plan says so
 plainly. It gives the steps and states each language's PREREQUISITE - a binding
 must first implement the folded-in 3.0.0 delta where it is missing, then the
 4.0.0 delta, and pass 137/137. It does not claim a language is released until
 it is. Where a 2.0.0 binding is already awaiting a human step (the Contributor
-License Agreement on the vcpkg and Conan ports for C++, the web-form submission
-for the R package on CRAN, the PAUSE upload for Perl, the contested Julia
-General registration, the Hackage account and token for Haskell), the 4.0.0
-release for that language inherits the same human gate and is PENDING until it
-clears - recorded here, not hidden.
+License Agreement on the vcpkg and Conan ports for C++, the CRAN submission for
+the R package, the PAUSE upload for Perl, the contested Julia General
+registration, the Hackage account and token for Haskell), the 4.0.0 release for
+that language inherits the same human gate and is PENDING until it clears -
+recorded here, not hidden. Of those, the R submission was made on 2026-07-27
+and now waits on a reviewer rather than on this project; the other four are
+unchanged.
+
+FINAL STATE OF THIS PLAN, 2026-07-27. Fifteen of the nineteen bindings have a
+live 4.0.x artifact and fourteen of those are published AND fresh-install
+verified. Five acts remain: Rust needs 4.0.1 published to crates.io (its 4.0.0
+library is live and sound, so this is a correction rather than a first
+release), Haskell needs a Hackage account, Perl needs a PAUSE upload, R needs a
+CRAN reviewer, and Julia needs its contested General registration to merge and
+then two further registrations to catch up. Nothing in that list is blocked on
+code in this repository.

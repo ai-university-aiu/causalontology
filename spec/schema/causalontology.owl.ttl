@@ -1,8 +1,14 @@
 # Causalontology — Web Ontology Language (OWL) mapping (governance-track draft)
-# Aligns the seventeen object kinds and their fields to Basic Formal Ontology
+# Aligns the twenty-one object kinds and their fields to Basic Formal Ontology
 # (BFO), the Relation Ontology (RO), and the W3C Provenance Ontology (PROV).
 # The JSON form (the *.schema.json files) remains normative; this mapping is
 # for interoperability with OWL/RDF tooling.
+#
+# Brought to specification 4.0.0 on 2026-07-27. It had been left at 2.0.0 and
+# was missing four kinds (cross_stratal_seam from 3.0.0; attitude,
+# predicted_occurrence and prediction_error from 4.0.0), the `enabling`
+# modality, the ordinal `ticks` unit, and the 2.0.0 field renames
+# dmin/dmax -> minimum_delay/maximum_delay.
 
 @prefix co:   <https://causalontology.org/ns#> .
 @prefix bfo:  <http://purl.obolibrary.org/obo/BFO_> .
@@ -16,7 +22,7 @@
 <https://causalontology.org/ns> a owl:Ontology ;
     rdfs:label "Causalontology" ;
     rdfs:comment "A verb-first noun-hosting ontology: reality is what happens, and things are its participants. Reified causation as a programming-language-neutral standard and a shared commons." ;
-    owl:versionInfo "specification 2.0.0 (seventeen kinds; vectors re-frozen)" .
+    owl:versionInfo "specification 4.0.0 (twenty-one kinds; vectors re-frozen at V01-V137)" .
 
 # ---------------------------------------------------------------- content kinds
 co:Occurrent a owl:Class ;
@@ -94,6 +100,24 @@ co:TokenCausalClaim a owl:Class ;
     rdfs:comment "A particular happening causing a particular happening (token-level causation), optionally instantiating a type-level Causal Relation Object. Like co:CausalRelationObject it is a reified relation and stays co:-native; its cause-to-effect edge aligns with ro:0002410 (causally related to) and prov:wasInfluencedBy, and each token effect is prov:wasGeneratedBy its token causes." ;
     rdfs:seeAlso ro:0002410 , prov:wasInfluencedBy .
 
+# ------------------------------------ 3.0.0 new type-tier content kind (18th)
+co:CrossStratalSeam a owl:Class ;
+    rdfs:label "cross stratal seam" ;
+    rdfs:comment "A MANAGED record of a legitimate jump across NON-ADJACENT strata (semantics.md rule 22, Algorithm F). Where a Causal Relation Object's boolean skips flag can only assert THAT a relation crosses non-adjacent strata, a seam records HOW HONEST the jump is: co:mechanismStatus distinguishes 'unmodeled' (a mechanism exists but is deliberately not drawn here) from 'absent' (there is none), and an optional co:chain draws the intervening pathway. Its HOME is the coarsest stratum it touches. Stratification machinery, co:-native." .
+
+# ------------------------------------ 4.0.0 new token-tier content kinds (3)
+co:Attitude a owl:Class ;
+    rdfs:label "attitude" ;
+    rdfs:comment "A propositional attitude: what a MODELED agent's mind CONTAINS toward a content object - believes, desires, intends, knows, expects, fears. Quarantined by semantics.md rule 25: its content may be FALSE and raises no conflict with the record, and it may nest (A believes that B believes X). Deliberately NOT aligned to prov:Entity-as-belief or to any BFO mental-state term: the holder is a modeled agent inside the ontology, never a signing key, and the attitude is asserted through the ordinary provenance layer like any other content object." .
+
+co:PredictedOccurrence a owl:Class ;
+    rdfs:label "predicted occurrence" ;
+    rdfs:comment "An EXPECTATION: an occurrent type predicted by a stated predictor over exactly ONE temporal dimension - wall-clock or ordinal ticks, never both and never neither (semantics.md rule 24). It is the sibling of co:TokenOccurrence that has not (yet) happened, so it is NOT a bfo:0000003 occurrent and NOT a prov:Activity: nothing has occurred. Its optional co:predictionStrength is part of the predicted content, not a provenance evaluation." .
+
+co:PredictionError a owl:Class ;
+    rdfs:label "prediction error" ;
+    rdfs:comment "How a prediction met the world: the signed discrepancy (actual minus expected) between a co:PredictedOccurrence and what was, or was not, observed. An absent co:observed is legal and means nothing arrived. Where co:observed is present it MUST instantiate the same occurrent the prediction instantiates (rule 24, pairing_mismatch)." .
+
 # ------------------------------------------------------------- object properties
 co:hasCause a owl:ObjectProperty ;
     rdfs:domain co:CausalRelationObject ; rdfs:range co:Occurrent ;
@@ -134,10 +158,26 @@ co:canonicalLabel  a owl:DatatypeProperty ; rdfs:range xsd:string .
 co:category        a owl:DatatypeProperty ; rdfs:range xsd:string .
 co:alias           a owl:DatatypeProperty ; rdfs:range xsd:string .
 co:modality        a owl:DatatypeProperty ; rdfs:range xsd:string ;
-    rdfs:comment "necessary | sufficient | contributory | preventive" .
-co:temporalDmin    a owl:DatatypeProperty ; rdfs:range xsd:double .
-co:temporalDmax    a owl:DatatypeProperty ; rdfs:range xsd:double .
-co:temporalUnit    a owl:DatatypeProperty ; rdfs:range xsd:string .
+    rdfs:comment "necessary | sufficient | contributory | preventive | enabling (enabling added in 2.0.0; the four positive modalities are mutually compatible and preventive opposes all four, semantics.md rule 6)" .
+co:minimumDelay    a owl:DatatypeProperty ; rdfs:range xsd:double ;
+    rdfs:comment "The temporal window's lower bound (the JSON field minimum_delay, spelled out from dmin under Principle P7 in 2.0.0)." .
+co:maximumDelay    a owl:DatatypeProperty ; rdfs:range xsd:double ;
+    rdfs:comment "The temporal window's upper bound (the JSON field maximum_delay, spelled out from dmax under Principle P7 in 2.0.0)." .
+# The pre-2.0.0 abbreviated forms, kept resolvable and marked deprecated so an
+# early consumer that pinned them is not silently orphaned.
+co:temporalDmin    a owl:DatatypeProperty , owl:DeprecatedProperty ;
+    owl:deprecated true ; rdfs:range xsd:double ;
+    rdfs:seeAlso co:minimumDelay ;
+    rdfs:comment "DEPRECATED at 2.0.0 (Principle P7): use co:minimumDelay." .
+co:temporalDmax    a owl:DatatypeProperty , owl:DeprecatedProperty ;
+    owl:deprecated true ; rdfs:range xsd:double ;
+    rdfs:seeAlso co:maximumDelay ;
+    rdfs:comment "DEPRECATED at 2.0.0 (Principle P7): use co:maximumDelay." .
+co:temporalUnit    a owl:DatatypeProperty ; rdfs:range xsd:string ;
+    rdfs:comment "instant | seconds | minutes | hours | days | weeks | months | years | ticks. The wall-clock values carry a fixed seconds mapping; 'ticks' (3.0.0) is a discrete, dimensionless ORDINAL step with NO wall-clock mapping, and the two dimensions never compare (semantics.md rule 23)." .
+co:skips           a owl:DatatypeProperty ;
+    rdfs:domain co:CausalRelationObject ; rdfs:range xsd:boolean ;
+    rdfs:comment "TRUE asserts that this relation crosses non-adjacent strata WITHOUT being re-encoded at the intervening strata: the missing mechanism is a POSITIVE FINDING, not a gap (semantics.md rule 16). Subordinated to co:CrossStratalSeam, which can additionally say how honest the jump is." .
 co:evidenceType    a owl:DatatypeProperty ; rdfs:range xsd:string ;
     rdfs:comment "intervention | observation | simulation | derivation | human_hint | imported (intervention is the strongest grade; ordering strongest to weakest is intervention, observation, simulation, testimony; 2.0.0)" .
 co:strengthEstimate a owl:DatatypeProperty ; rdfs:range xsd:double .
@@ -169,8 +209,17 @@ co:transform a owl:ObjectProperty ;
     rdfs:domain co:Conduit ; rdfs:range co:CausalRelationObject ;
     rdfs:comment "Present makes the conduit COMPUTATIONAL: the Causal Relation Object it performs on what it carries. Absent makes it TRANSMISSIVE." .
 co:atStratum a owl:ObjectProperty ;
-    rdfs:domain co:Quality ; rdfs:range co:Stratum ;
-    rdfs:comment "Optional: the level of description at which a quality is defined." .
+    rdfs:domain [ a owl:Class ; owl:unionOf ( co:Occurrent co:Quality ) ] ;
+    rdfs:range co:Stratum ;
+    rdfs:comment "Optional: the level of description at which an occurrent is pitched or a quality is defined. IDENTITY-BEARING on an occurrent - the same label at two strata is two objects (identity.md)." .
+co:occurrentIsA a owl:ObjectProperty ;
+    rdfs:domain co:Occurrent ; rdfs:range co:Occurrent ;
+    rdfs:seeAlso rdfs:subClassOf ;
+    rdfs:comment "The occurrent taxonomy (the occurrent_subsumes enrichment field, 2.0.0). Acyclic; between different strata it surfaces subsumption_crosses_strata - a Bridge was probably meant." .
+co:occurrentPartOf a owl:ObjectProperty ;
+    rdfs:domain co:Occurrent ; rdfs:range co:Occurrent ;
+    rdfs:seeAlso bfo:0000050 ;
+    rdfs:comment "Occurrent mereology (the occurrent_part_of enrichment field, 2.0.0). Acyclic, and it does NOT imply causation." .
 
 # Token tier.
 co:instantiates a owl:ObjectProperty ;
@@ -235,6 +284,60 @@ co:actualDelay        a owl:DatatypeProperty ;
 co:duration           a owl:DatatypeProperty ; rdfs:range xsd:double .
 co:counterfactual     a owl:DatatypeProperty ; rdfs:domain co:TokenCausalClaim ; rdfs:range xsd:boolean ;
     rdfs:comment "true asserts the BUT-FOR test for THIS OCCASION ONLY." .
+
+# --------------------------------------------- 3.0.0 additions: the seam, the
+# realized_by reference, and the evidenced_by citation added in 2.0.0.
+co:seamSource a owl:ObjectProperty ;
+    rdfs:domain co:CrossStratalSeam ; rdfs:range co:Occurrent ;
+    rdfs:comment "One endpoint occurrent of a seam. NOTE the name collision in the JSON form: the seam's `source` field is an ENDPOINT, never a signing key - unlike the `source` of a provenance record, which is co:wasAttributedTo (Principle P4 is not breached here)." .
+co:seamTarget a owl:ObjectProperty ;
+    rdfs:domain co:CrossStratalSeam ; rdfs:range co:Occurrent ;
+    rdfs:comment "The other endpoint occurrent of a seam. The two endpoints' strata must share a scheme and be NON-ADJACENT." .
+co:chain a owl:ObjectProperty ;
+    rdfs:domain co:CrossStratalSeam ; rdfs:range co:Occurrent ;
+    rdfs:comment "Optional: the DRAWN intervening pathway, an ordered list of occurrents at strictly intervening strata, strictly monotone from one endpoint toward the other. Present makes the seam DRAWN, which forces co:mechanismStatus to 'unmodeled' (contradictory_seam otherwise)." .
+co:mechanismStatus a owl:DatatypeProperty ;
+    rdfs:domain co:CrossStratalSeam ; rdfs:range xsd:string ;
+    rdfs:comment "unmodeled | absent - the HONEST-IGNORANCE distinction. IDENTITY-BEARING: the two statuses are different objects." .
+co:realizedBy a owl:ObjectProperty ;
+    rdfs:domain co:Conduit ;
+    rdfs:comment "Optional (3.0.0), IDENTITY-BEARING: a reference by identity to the native law or signal that realizes a conduit's transform. Unbound is legal; a malformed reference is rejected." .
+co:evidencedBy a owl:ObjectProperty ;
+    rdfs:domain co:Assertion ;
+    rdfs:range [ a owl:Class ; owl:unionOf ( co:TokenOccurrence co:TokenCausalClaim co:StateAssertion ) ] ;
+    rdfs:comment "Optional (2.0.0), IDENTITY-BEARING: the PARTICULAR token records that are this assertion's evidence, so a law induced from ten interventional tokens can be told from one induced from a thousand observed ones." .
+
+# ---------------------------------------- 4.0.0 additions: attitude, prediction
+co:holder a owl:ObjectProperty ;
+    rdfs:domain co:Attitude ;
+    rdfs:range [ a owl:Class ; owl:unionOf ( co:Continuant co:TokenIndividual ) ] ;
+    rdfs:comment "The MODELED agent whose mind contains the content - a continuant type or a token individual, NEVER a cryptographic key. The signer of an assertion about an attitude is a co:Assertion source and is a different thing (semantics.md rule 25)." .
+co:attitudeType a owl:DatatypeProperty ;
+    rdfs:domain co:Attitude ; rdfs:range xsd:string ;
+    rdfs:comment "believes | desires | intends | knows | expects | fears. CLOSED; extending it is a MAJOR change." .
+co:content a owl:ObjectProperty ;
+    rdfs:domain co:Attitude ;
+    rdfs:comment "A reference by identity to ANY content object, including another attitude (nesting). QUARANTINED: it records what the holder's mind contains, not what is true, and content contradicting the record raises NO conflict - that mismatch IS a false belief." .
+co:predictor a owl:ObjectProperty ;
+    rdfs:domain co:PredictedOccurrence ;
+    rdfs:range [ a owl:Class ; owl:unionOf ( co:Continuant co:TokenIndividual ) ] ;
+    rdfs:comment "The predicting agent or construct - modeled inside the ontology, never a cryptographic key." .
+co:predictionStrength a owl:DatatypeProperty ;
+    rdfs:domain co:PredictedOccurrence ; rdfs:range xsd:double ;
+    rdfs:comment "Optional, IDENTITY-BEARING when present: the predicted probability. Deliberately NOT co:strengthEstimate - this grades the PREDICTED CONTENT, like a relation's modality, and is the one recorded carve-out in Principle P4. Confidence in and evidence for the prediction still travel in assertions." .
+co:predicted a owl:ObjectProperty ;
+    rdfs:domain co:PredictionError ; rdfs:range co:PredictedOccurrence ;
+    rdfs:comment "The prediction this error grades; MANDATORY - an error without a prediction is not an error." .
+co:observed a owl:ObjectProperty ;
+    rdfs:domain co:PredictionError ; rdfs:range co:TokenOccurrence ;
+    rdfs:comment "Optional: the token occurrence that answered the prediction. ABSENT is legal and means nothing arrived." .
+co:discrepancy a owl:DatatypeProperty ;
+    rdfs:domain co:PredictionError ; rdfs:range xsd:double ;
+    rdfs:comment "Signed: actual minus expected. Positive exceeded the expectation, negative fell short, zero means fulfilled." .
+co:startTick a owl:DatatypeProperty ; rdfs:range xsd:integer ;
+    rdfs:comment "The ordinal dimension of a predicted interval: a discrete tick with NO wall-clock mapping (rule 23). Exactly one of co:startTick and prov:startedAtTime may be present (rule 24)." .
+co:endTick a owl:DatatypeProperty ; rdfs:range xsd:integer ;
+    rdfs:comment "The optional ordinal end of a predicted interval." .
 
 # ------------------------------------------------------------------- provenance
 # A record's source maps to prov:wasAttributedTo; its timestamp to

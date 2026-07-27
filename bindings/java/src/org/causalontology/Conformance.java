@@ -158,6 +158,19 @@ public final class Conformance {
         if (installed == null || installed.isEmpty()) {
             return;
         }
+        // CAUSALONTOLOGY_SPEC wins over the schemas bundled in the jar (see
+        // SchemaValidator.readSchemaText), so leaving it set lets a jar that
+        // shipped no resources at all still report 137/137 - the exact false
+        // green that put broken artifacts on three registries.
+        String specEnv = System.getenv("CAUSALONTOLOGY_SPEC");
+        if (specEnv != null && !specEnv.isEmpty()) {
+            System.err.println("CAUSALONTOLOGY_TEST_INSTALLED is set but "
+                + "CAUSALONTOLOGY_SPEC is also set (" + specEnv + "); it would "
+                + "override the bundled schemas and hide the packaging defect "
+                + "installed mode exists to catch. Re-run with "
+                + "`env -u CAUSALONTOLOGY_SPEC`.");
+            System.exit(1);
+        }
         Path binding = codeSource(SchemaValidator.class);
         if (binding == null) {
             System.err.println("CAUSALONTOLOGY_TEST_INSTALLED is set but the "
@@ -182,8 +195,17 @@ public final class Conformance {
             System.exit(1);
         }
         System.out.println("binding under test: " + binding);
-        System.out.println("schemas under test: "
-                           + SchemaValidator.schemaSource());
+        String schemaSource = SchemaValidator.schemaSource();
+        System.out.println("schemas under test: " + schemaSource);
+        // The point of installed mode is the copy that travels inside the
+        // artifact, so nothing else counts. Anything but "bundled:" means the
+        // jar's own resources were never read.
+        if (!schemaSource.startsWith("bundled:")) {
+            System.err.println("CAUSALONTOLOGY_TEST_INSTALLED is set but the "
+                + "schemas did not come from the copy bundled inside the jar; "
+                + "they came from " + schemaSource);
+            System.exit(1);
+        }
     }
 
     /**

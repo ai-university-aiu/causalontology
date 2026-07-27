@@ -54,6 +54,13 @@ target_link_libraries(app PRIVATE causalontology::causalontology)
 # directory, should your own code want the path.
 ```
 
+Include the headers **unprefixed** — `#include <schema.hpp>`, not
+`#include <causalontology/schema.hpp>`. The imported target's interface
+include directory is `<prefix>/include/causalontology` itself (and
+`bindings/cpp/src` in an `add_subdirectory` build), so both modes take the
+same `#include` lines, and the headers include one another the same way. The
+prefixed form does not compile.
+
 The library looks for the schemas in exactly this order:
 
 1. `$CAUSALONTOLOGY_SPEC/schema`, whenever that variable is set and

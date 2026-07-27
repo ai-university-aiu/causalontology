@@ -2,14 +2,33 @@
 
 ## Abstract operation set (every conformant implementation)
 
-`canonicalize`, `identify`, `validate_schema`, `validate_semantics`,
-`admissible(cro, elapsed_seconds)`, `conflicts(a, b)`,
-`hierarchy_consistent(cro, members, bridges)` (BRIDGED reachability, Algorithm
-B), `bridge_closure`, `classify_cro`, `skip_gaps`, `delay_within_window`,
-`sign`, `verify` — and against a store:
-`put`, `put_record`, `get` (with materialized enrichments),
-`assertions_about`, `enrichments_about`, `retractions_of`, `lineage`,
-`resolve`, `query`, `gaps`.
+Pure functions:
+
+- **identity** — `canonicalize`, `identify`, `identity_bearing`, `infer_kind`
+- **validation** — `validate_schema`, `validate_semantics`, `is_partial`,
+  `refinement_valid`
+- **time** — `admissible(cro, elapsed)`, `to_seconds`, `delay_within_window`
+  (Algorithm E; a `ticks` window is compared by INTEGER order and never
+  converted, semantics.md rule 23)
+- **the stratal algorithms** — `bridge_closure` (Algorithm A),
+  `hierarchy_consistent(cro, members, bridges)` (BRIDGED reachability,
+  Algorithm B), `classify_cro` (Algorithm C), `skip_gaps` (Algorithm D),
+  `endpoints_mixed`, `bridge_wellformed`, `has_cycle`
+- **3.0.0** — `seam_wellformed` (Algorithm F), `seam_home` (the coarsest-stratum
+  HOME rule)
+- **4.0.0** — `prediction_pairing_mismatch` (semantics.md rule 24)
+- **the rest of the rule surface** — `conflicts(a, b)`, `conduit_wellformed`,
+  `state_gaps`, `covering_law_mismatch`, `retrocausal`
+- **signing** — `sign`, `verify`
+
+And against a store: `put`, `put_record`, `get` (with materialized
+enrichments), `assertions_about`, `enrichments_about`, `retractions_of`,
+`lineage`, `resolve`, `query`, `gaps`.
+
+This list had been left at its 2.0.0 shape and was missing the 3.0.0 seam
+algorithm, the 4.0.0 prediction pairing check, and several rule functions every
+binding already exports; it was brought into line with the shipped surface on
+2026-07-27.
 
 ## Hypertext Transfer Protocol (HTTP) binding (Tier A reference)
 

@@ -1,13 +1,26 @@
 name: conformance
 
-# Every implementation passes the canonical conformance vectors for the
-# specification version it declares - 137 (V01-V137) at 4.0.0 - or it is not
+# Every implementation passes the conformance suite for the specification
+# version it declares - 137 checks (V01-V137) at 4.0.0 - or it is not
 # Causalontology. All nineteen bindings now implement the folded
 # 3.0.0-plus-4.0.0 delta and are gated at 137 checks here (registry
 # publication is a separate, credential-gated step per the 4.0.0 release plan).
 #
-# TWO MODES, AND WHY (added 2026-07-26). Each binding job below runs the 137
-# checks twice.
+# WHAT "137" COUNTS, EXACTLY (say it here too, not only in the documents).
+# It is 137 CHECKS, not 137 shared vectors. Only 38 of them are driven by the
+# frozen files in conformance/vectors/ that every binding reads; the remaining
+# 99 carry no executable payload at all - the "operation" field of V39-V137
+# reads literally "see bindings/*/conformance runner" - so they are
+# hand-written per binding and share no data with any other implementation.
+# A green run here therefore means nineteen runners each passed their own 99
+# plus the shared 38. It does not mean one set of 137 vectors was executed
+# nineteen times. See conformance/README.md, bindings/README.md and
+# PUBLISHING.md, which carry the same disclosure.
+#
+# TWO MODES, AND WHY (added 2026-07-26). Most binding jobs below run the 137
+# checks twice. Which ones do not is spelled out in the coverage table further
+# down - a gap that is written down is a gap; a gap left to be inferred from a
+# green tick is how this project shipped three broken releases.
 #
 #   repo mode      - the runner loads the binding from this source tree. This
 #                    proves the CODE is conformant.
@@ -31,16 +44,86 @@ name: conformance
 # from spec/schema by one byte. CAUSALONTOLOGY_ROOT, where it appears, locates
 # the 137 vectors only: they are test data and are deliberately not shipped
 # inside any package.
+#
+# INSTALLED-MODE COVERAGE, ALL NINETEEN BINDINGS. Keep this current; it is the
+# only place the gaps are stated rather than implied.
+#
+#   Full 137-check run against the built artifact, from outside the checkout
+#   (14): python (wheel), javascript (npm pack), java (jar), csharp (NuGet
+#   pack), ruby (gem), dart (pub-shaped export), elixir (Hex tarball), perl
+#   (make dist + install), r (R CMD INSTALL), lua (installed rock), kotlin
+#   (jar stand-in for the klib), go (module-only export), php (Composer
+#   vendor tree with spec/ deleted), zig (the package `zig fetch` delivers).
+#
+#   Artifact integrity proved, but NOT a 137-check installed run (3):
+#     rust    - schema.rs pulls the schemas in with include_str!, so a crate
+#               missing them does not compile; the job asserts all 21 appear
+#               in `cargo package --list`, which is what crates.io receives.
+#     haskell - a full run needs `cabal install`, which needs a Hackage index
+#               this job deliberately does not fetch (the setup action's
+#               `cabal update` 404s); the job asserts all 21 schemas are in
+#               the sdist, where the data-files manifest is the single point
+#               of failure. Full run is in the release runbook and in
+#               bindings/haskell/README.md.
+#     cpp     - the CMake install and a find_package consumer are exercised
+#               outside the checkout, which is how the binding is consumed.
+#               A 137-check installed run is blocked in bindings/cpp, not
+#               here: conformance.cpp includes "src/*.hpp" by relative path
+#               and calls schema_set_spec_dir(<repo>/spec/schema) outright.
+#
+#   No installed-mode coverage at all (2) - OPEN GAPS, not exemptions:
+#     julia   - registration in the General registry is blocked on a reviewer
+#               objection, so nothing has been published to install. Pkg
+#               clones the whole repository, so an export-and-depend proof is
+#               constructible and simply has not been written yet.
+#     swift   - SwiftPM resolves a git tag into a checkout, so there is no
+#               artifact distinct from a tree; the library derives its schema
+#               path from #filePath and so points at whichever checkout
+#               compiled it. That makes the proof unusual, not impossible: a
+#               consumer package depending on an export outside this
+#               repository would still be a real test. It has not been
+#               written.
 
 on:
   push:
     branches: [main]
   pull_request:
 
+# Read-only, workflow-wide. Nothing here writes to the repository, creates a
+# release, publishes a package or comments on a pull request; the only cross-
+# repository access is the public checkout of PrologAI in the `prolog` job,
+# which contents:read covers. Set explicitly rather than inherited, so a
+# permissive repository default (the "read and write" setting) cannot silently
+# hand a token with write scope to twenty-three jobs that run pull-request
+# code.
+permissions:
+  contents: read
+
 jobs:
   # The vendored schemas must be byte-identical to spec/schema, in every
   # binding, always. This job needs no toolchain and covers bindings whose own
   # runner has no drift guard (Rust), so nothing can drift unnoticed.
+  #
+  # WHERE EVERY SCHEMA COPY IS GUARDED, so the accounting is checkable:
+  #   14 bindings vendor loose *.schema.json files - checked in the first step
+  #      below, against a list that the same step verifies against git.
+  #   kotlin embeds them in generated src/SpecSchemas.kt - checked in the
+  #      second step below (regenerate, diff).
+  #   dart embeds them in generated lib/spec_schema.g.dart - checked the same
+  #      way, but in the `dart` job, because it needs the Dart SDK.
+  #   cpp, julia and swift vendor nothing and read spec/schema from the tree
+  #      their channel delivers whole. Nothing can drift, because there is no
+  #      second copy; what has to be guarded instead is that the tree really
+  #      arrives, which the third step below does for the archive-based
+  #      channels (the C++ tarball, Packagist) and the fourth does for Zig.
+  #      Julia and Swift resolve a git CLONE rather than an archive, so
+  #      .gitattributes export-ignore cannot reach them and there is nothing
+  #      left to filter spec/ out - but note that this is an argument, not a
+  #      measurement, and it is the same shape of argument that was wrong
+  #      about Zig. The cpp job additionally proves the CMake install carries
+  #      its own copy, since that path does not deliver the tree at all.
+  #   That is all nineteen. Adding a copy anywhere else fails the git
+  #      cross-check rather than going unnoticed.
   schemas:
     runs-on: ubuntu-latest
     steps:
@@ -48,7 +131,7 @@ jobs:
       - name: vendored schemas are byte-identical to spec/schema
         run: |
           python3 - <<'PY'
-          import pathlib, sys
+          import pathlib, subprocess, sys
 
           root = pathlib.Path(".").resolve()
           spec = root / "spec" / "schema"
@@ -57,7 +140,9 @@ jobs:
           if len(canonical) != 21:
               sys.exit(f"spec/schema holds {len(canonical)} schemas, expected 21")
 
-          # Every binding that ships loose schema files, and where it puts them.
+          # Every binding that ships loose schema files, and where it puts
+          # them. This list is checked against git below, so it cannot quietly
+          # fall behind reality.
           vendored = [
               "bindings/csharp/spec_schema",
               "bindings/elixir/priv/schema",
@@ -92,10 +177,32 @@ jobs:
                       bad.append(f"{rel}/{name}: no longer in spec/schema")
               print(f"{rel}: {len(here)} schemas")
 
+          # THE LIST ABOVE MUST NOT GO STALE. Ask git what is actually tracked
+          # rather than trusting the hand-written list: a binding that starts
+          # vendoring schemas without being added here gets a silent, unguarded
+          # copy that can drift from spec/schema indefinitely, and one that
+          # stops vendoring leaves a dead entry that hides the change. Both
+          # failures look exactly like a green tick, which is the failure mode
+          # this whole workflow exists to stop.
+          actual = sorted({str(pathlib.PurePosixPath(f).parent)
+                           for f in subprocess.run(
+                               ["git", "ls-files", "bindings"], check=True,
+                               capture_output=True, text=True).stdout.split()
+                           if f.endswith(".schema.json")})
+          for rel in actual:
+              if rel not in vendored:
+                  bad.append(f"{rel}: vendors schemas but is not in the list "
+                             "above - add it, or nothing checks it for drift")
+          for rel in vendored:
+              if rel not in actual:
+                  bad.append(f"{rel}: listed above but tracks no *.schema.json "
+                             "- remove the dead entry")
+
           if bad:
               print("\n".join(bad))
               sys.exit("vendored schema drift - re-copy from spec/schema")
           print(f"{len(vendored)} vendored copies, {len(canonical)} schemas each, all byte-identical")
+          print("and the list matches `git ls-files` exactly")
           PY
       - name: the Kotlin generated source still matches spec/schema
         run: |
@@ -129,6 +236,71 @@ jobs:
           if any("spec" in str(e) for e in excluded):
               sys.exit("composer.json excludes spec/ from the dist archive")
           print("composer.json ships the whole tree; .gitattributes does not filter spec/")
+          PY
+      - name: the root build.zig.zon .paths still delivers the Zig channel
+        run: |
+          set -eu
+          # THE ZIG DEFECT, MADE UNREPEATABLE. `zig fetch` prunes the tarball
+          # to exactly the root build.zig.zon .paths list before hashing and
+          # caching it - it ignores .gitattributes and composer.json, so the
+          # step above could never have caught this - and spec/ was not on the
+          # list. A consumer received ten files and zero schemas.
+          #
+          # This reproduces zig's pruning rule statically (a path entry ships
+          # itself and, if it is a directory, everything beneath it) over the
+          # tracked file list, and fails if the resulting package is missing
+          # anything the channel must deliver. Static on purpose: it needs no
+          # Zig toolchain, so it runs in this dependency-free job and cannot be
+          # skipped. The `zig` job below then fetches a real package and runs
+          # the suite inside it, which proves the rule was reproduced correctly.
+          python3 - <<'PY'
+          import pathlib, re, subprocess, sys
+
+          zon = pathlib.Path("build.zig.zon").read_text()
+          m = re.search(r"\.paths\s*=\s*\.\{(.*?)\}\s*,?\s*\}\s*\Z", zon, re.S)
+          if not m:
+              sys.exit("build.zig.zon: cannot find the .paths list")
+          paths = re.findall(r'"([^"]*)"', m.group(1))
+          if not paths:
+              sys.exit("build.zig.zon: .paths is empty - a consumer gets nothing")
+          print("build.zig.zon .paths =", paths)
+
+          tracked = subprocess.run(["git", "ls-files"], check=True,
+                                   capture_output=True, text=True).stdout.split()
+          delivered = [f for f in tracked
+                       if any(f == p or f.startswith(p.rstrip("/") + "/")
+                              for p in paths)]
+
+          def n(prefix, suffix=""):
+              return sum(1 for f in delivered
+                         if f.startswith(prefix) and f.endswith(suffix))
+
+          bad = []
+          for what, got, want in (
+              ("spec/schema/*.schema.json",
+               n("spec/schema/", ".schema.json"), 21),
+              ("bindings/zig/src/spec_schema/*.schema.json (compiled in)",
+               n("bindings/zig/src/spec_schema/", ".schema.json"), 21),
+              ("conformance/vectors/*",
+               n("conformance/vectors/"), 137),
+          ):
+              if got != want:
+                  bad.append(f"{what}: zig fetch would deliver {got}, expected {want}")
+          for f in ("build.zig", "build.zig.zon", "LICENSE", "NOTICE",
+                    "bindings/zig/run_conformance.sh",
+                    "bindings/zig/conformance.zig",
+                    "bindings/zig/src/causalontology.zig"):
+              if f not in delivered:
+                  bad.append(f"{f}: pruned away by .paths")
+
+          if bad:
+              print("\n".join(bad))
+              sys.exit("build.zig.zon .paths prunes files the Zig channel must "
+                       "deliver - a `zig fetch` consumer would get a package "
+                       "that cannot validate or cannot verify itself")
+          print(f"zig fetch would deliver {len(delivered)} tracked files: "
+                "21 schemas under spec/schema, 21 compiled into the library, "
+                "137 vectors")
           PY
 
   python:
@@ -396,6 +568,33 @@ jobs:
           extensions: sodium
       - name: conformance (137 checks)
         run: php bindings/php/conformance.php
+      - name: conformance in a Composer vendor tree with spec/ deleted (137 checks)
+        run: |
+          set -euxo pipefail
+          # What Packagist ships is Composer's dist archive, and that is the
+          # WHOLE repository - which, until v4.0.3, was the only reason PHP
+          # worked at all. The binding now vendors its own twenty-one schemas
+          # under bindings/php/spec/schema, so prove it does not need the
+          # accident any more: build a real vendor tree outside the checkout,
+          # DELETE the top-level spec/, and run from a working directory
+          # outside the repository with CAUSALONTOLOGY_SPEC unset.
+          vendor="$RUNNER_TEMP/phpvendor/causalontology/causalontology"
+          mkdir -p "$vendor" "$RUNNER_TEMP/phpcwd"
+          git archive HEAD | tar -x -C "$vendor"
+          rm -rf "$vendor/spec"
+          test ! -e "$vendor/spec"
+          test "$(find "$vendor/bindings/php/spec/schema" -name '*.schema.json' | wc -l)" = 21
+          cd "$RUNNER_TEMP/phpcwd"
+          env -u CAUSALONTOLOGY_SPEC php "$vendor/bindings/php/conformance.php" \
+            | tee "$RUNNER_TEMP/php-installed.log"
+          # conformance.php prints the two files it actually loaded. Assert
+          # both live in the vendor tree and neither in the checkout: unlike
+          # Python, JavaScript, Go and the rest, this runner carries no
+          # repo-path guard of its own, so the guard has to live here.
+          grep -q "^binding under test: $vendor/" "$RUNNER_TEMP/php-installed.log"
+          grep -q "^schemas under test: $vendor/" "$RUNNER_TEMP/php-installed.log"
+          ! grep -E "^(binding|schemas) under test: $GITHUB_WORKSPACE/" \
+            "$RUNNER_TEMP/php-installed.log"
 
   dart:
     runs-on: ubuntu-latest
@@ -596,13 +795,115 @@ jobs:
       - uses: actions/checkout@v7
       - name: conformance (137 checks)
         run: bash bindings/cpp/run_conformance.sh
+      - name: the CMake install stands on its own outside the checkout
+        run: |
+          set -euxo pipefail
+          # NOT a 137-check run, and the step name does not pretend otherwise.
+          # A full installed-mode conformance run is impossible from here
+          # without a bindings/cpp change: conformance.cpp includes
+          # "src/*.hpp" by relative path (the install lays the headers out
+          # flat) and calls schema_set_spec_dir(<repo>/spec/schema) outright,
+          # so it can neither compile against the installed package nor be
+          # made to read the installed schemas. This is the honest upper bound
+          # until that is fixed.
+          #
+          # What it does cover is the thing the repo-mode run structurally
+          # cannot. run_conformance.sh compiles the sources in place and hands
+          # the library the repository's own spec/schema. How anyone actually
+          # consumes this binding is `cmake --install` plus find_package - and
+          # at v4.0.1 that install shipped fifteen files and ZERO schemas, so
+          # a consumer could not validate a single record. Every job here was
+          # green throughout.
+          cmake -S bindings/cpp -B "$RUNNER_TEMP/cppbuild" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/cppprefix"
+          cmake --build "$RUNNER_TEMP/cppbuild" -j
+          cmake --install "$RUNNER_TEMP/cppbuild"
+          echo "installed files: $(find "$RUNNER_TEMP/cppprefix" -type f | wc -l)"
+          test "$(find "$RUNNER_TEMP/cppprefix/share/causalontology/spec/schema" \
+                    -name '*.schema.json' | wc -l)" = 21
+          mkdir -p "$RUNNER_TEMP/cppconsumer" "$RUNNER_TEMP/cppcwd"
+          cd "$RUNNER_TEMP/cppconsumer"
+          cat > CMakeLists.txt <<'CM'
+          cmake_minimum_required(VERSION 3.16)
+          project(installed_mode_consumer LANGUAGES CXX)
+          find_package(causalontology CONFIG REQUIRED)
+          add_executable(consumer consumer.cpp)
+          target_link_libraries(consumer PRIVATE causalontology::causalontology)
+          CM
+          # No schema_set_spec_dir() call and no CAUSALONTOLOGY_SPEC below, so
+          # the twenty-one schemas must come from the install prefix that
+          # CMakeLists.txt compiled in, or validate_schema throws.
+          cat > consumer.cpp <<'CPP'
+          #include <json.hpp>
+          #include <schema.hpp>
+          #include <fstream>
+          #include <iostream>
+          #include <sstream>
+          int main(int argc, char** argv) {
+              if (argc < 2) return 2;
+              std::ifstream f(argv[1]);
+              std::stringstream ss; ss << f.rdbuf();
+              co::JValue vec = co::json_parse(ss.str());
+              auto r = co::validate_schema(vec.at("input"));
+              std::cout << "valid=" << (r.first ? "true" : "false") << "\n";
+              return r.first ? 0 : 1;
+          }
+          CPP
+          # Copy the vector out first: the run must touch no repository path.
+          cp "$GITHUB_WORKSPACE/conformance/vectors/v01_complete_cro_is_valid.json" vec.json
+          cmake -S . -B build -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/cppprefix"
+          cmake --build build
+          cd "$RUNNER_TEMP/cppcwd"
+          env -u CAUSALONTOLOGY_SPEC "$RUNNER_TEMP/cppconsumer/build/consumer" \
+            "$RUNNER_TEMP/cppconsumer/vec.json"
 
   zig:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: install the pinned Zig 0.13.0
+        run: |
+          set -eux
+          # run_conformance.sh downloads this same pinned release when no zig
+          # is on PATH, so the repo-mode step works either way. It is installed
+          # explicitly here because the installed-mode step below needs to call
+          # `zig fetch` itself, and both steps must use one toolchain.
+          curl -sSL https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz \
+            -o "$RUNNER_TEMP/zig.tar.xz"
+          mkdir -p "$RUNNER_TEMP/zig"
+          tar -xJf "$RUNNER_TEMP/zig.tar.xz" -C "$RUNNER_TEMP/zig" --strip-components=1
+          echo "$RUNNER_TEMP/zig" >> "$GITHUB_PATH"
       - name: conformance (137 checks)
         run: bash bindings/zig/run_conformance.sh
+      - name: conformance inside the package zig fetch really delivers (137 checks)
+        run: |
+          set -eux
+          # THE ONE DEFECT NOBODY PREDICTED, NOW GATED. `zig fetch` prunes the
+          # tarball to the root build.zig.zon .paths list before caching it, so
+          # what a Zig consumer receives is not the tree in front of you. At
+          # v4.0.1 that pruning left ten files and zero schemas and every job
+          # in this workflow stayed green.
+          #
+          # So: fetch a package built from the tracked tree exactly as a
+          # consumer does, then run the suite INSIDE the pruned copy from a
+          # working directory outside the checkout with CAUSALONTOLOGY_SPEC
+          # unset. A pass proves the bytes a consumer receives, not the
+          # repository sitting next to them. The `schemas` job checks the same
+          # property statically and without a toolchain; this is the one that
+          # actually executes the delivered package.
+          mkdir -p "$RUNNER_TEMP/zigsrc" "$RUNNER_TEMP/zigcwd"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/zigsrc"
+          zig fetch --global-cache-dir "$RUNNER_TEMP/zigcache" "$RUNNER_TEMP/zigsrc"
+          pkg=$(find "$RUNNER_TEMP/zigcache/p" -mindepth 1 -maxdepth 1 -type d)
+          echo "fetched package: $pkg"
+          echo "files delivered: $(find "$pkg" -type f | wc -l)"
+          test "$(find "$pkg/spec/schema" -name '*.schema.json' | wc -l)" = 21
+          test "$(find "$pkg/bindings/zig/src/spec_schema" -name '*.schema.json' | wc -l)" = 21
+          test "$(find "$pkg/conformance/vectors" -type f | wc -l)" = 137
+          cd "$RUNNER_TEMP/zigcwd"
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            bash "$pkg/bindings/zig/run_conformance.sh"
 
   julia:
     runs-on: ubuntu-latest
@@ -646,7 +947,9 @@ jobs:
   # conformance must be gated here, not merely asserted in prose. PrologAI is
   # checked out beside the standard and run through its own canonical
   # conformance harness (built in PrologAI Work Package 425 / WP-425) against
-  # THIS repository's canonical conformance/vectors/ (137 at 4.0.0). Both
+  # THIS repository's canonical conformance/vectors/ (137 vector files frozen
+  # at 4.0.0, of which 38 carry an executable payload and 99 are placeholders
+  # naming the per-binding runner - see the header of this file). Both
   # repositories thus stay in lockstep on one vector set: the reference
   # implementation cannot silently drift from the specification. This job is
   # distinct from the `gardener` job, which also installs SWI-Prolog but runs
@@ -655,7 +958,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # The standard: this repository's canonical conformance/vectors/ frozen at
-      # specification 4.0.0 (137 vectors).
+      # specification 4.0.0 - 137 vector files, 38 of them executable. What
+      # this job can therefore detect is drift in those 38; the other 99 are
+      # PrologAI's own, exactly as they are every other binding's own.
       - name: check out the standard (causalontology)
         uses: actions/checkout@v7
         with:

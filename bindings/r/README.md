@@ -95,14 +95,17 @@ str(co_store_gaps(store, "missing_field"))
 Source complete and ported line-for-line from the Python binding;
 executed by GitHub Actions CI (`Rscript bindings/r/conformance.R` after
 installing `libsodium-dev`, `libssl-dev`, and the `sodium` and `openssl`
-CRAN packages) — there is no R interpreter on the authoring machine, so
-CI is the gate, as it is for every binding.
+CRAN packages). Last run locally on 2026-07-27: **137/137 checks passed**,
+exit 0, both from the working tree and from a package installed with
+`R CMD INSTALL -l <lib>` into a library outside the checkout.
 
 The `DESCRIPTION` file gives the directory the shape of an R package
 (`Package: causalontology`, version 4.0.0). Publishing it on CRAN is a
 separate, human-driven process — CRAN submissions go through a manual
 review by the CRAN team and require a human maintainer to submit,
-respond, and confirm; no claim of CRAN presence is made here.
+respond, and confirm. **Submitted 2026-07-27 and awaiting review**;
+`cran.r-project.org/web/packages/causalontology/` still returns 404, so no
+claim of CRAN presence is made here.
 
 License: Apache License 2.0 — see the `LICENSE` file (copied from the
 repository root) and the repository `NOTICE`.

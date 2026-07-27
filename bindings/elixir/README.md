@@ -87,8 +87,10 @@ IO.inspect({claim, Store.gaps(store, "missing_field")})
 
 Source complete and ported line-for-line from the Python binding; built and
 executed by GitHub Actions CI (`cd bindings/elixir && elixir conformance.exs`,
-on erlef/setup-beam with OTP 26 and Elixir 1.16) — there is no BEAM toolchain
-on the authoring machine, so CI is the gate, as it is for every binding.
+on erlef/setup-beam with OTP 26 and Elixir 1.16). Last run locally on
+2026-07-27: **137/137 checks passed**, exit 0, both from the working tree and
+from a compiled application on the code path outside the checkout
+(`elixir -pa <app>/ebin conformance.exs` with `CAUSALONTOLOGY_TEST_INSTALLED`).
 
 License: "The attribution always; no profit, no problem license." — see the
 repository `LICENSE` and `NOTICE`.

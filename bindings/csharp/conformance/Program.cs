@@ -207,17 +207,20 @@ internal static class Program
 
         var source = SchemaValidator.SchemaSource();
         Console.WriteLine($"schema source: {source}");
-        var colon = source.IndexOf(':');
-        if (colon >= 0)
+        // Require a POSITIVE origin, not merely "not inside the repository".
+        // Testing only for the repo path let a publish tree with spec_schema
+        // deleted pass by reading CAUSALONTOLOGY_SPEC from somewhere else -
+        // verified: it printed "schema source: env:.../fakespec/schema" and a
+        // confident 137/137. In installed mode the schemas must come from the
+        // package itself and nowhere else, which is what Java asserts too.
+        if (!source.StartsWith("bundled:", StringComparison.Ordinal)
+            && !source.Equals("embedded", StringComparison.Ordinal))
         {
-            var dir = source[(colon + 1)..];
-            if (dir.Length > 0 && IsInside(dir, root))
-            {
-                Console.Error.WriteLine(
-                    "CAUSALONTOLOGY_TEST_INSTALLED is set but the schemas "
-                    + $"were read from the repository tree: {dir}");
-                Environment.Exit(1);
-            }
+            Console.Error.WriteLine(
+                "CAUSALONTOLOGY_TEST_INSTALLED is set but the schemas did not "
+                + "come from the copy shipped inside the package; they came "
+                + $"from {source}");
+            Environment.Exit(1);
         }
     }
 

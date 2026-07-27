@@ -85,6 +85,15 @@ vectors themselves live in the repository and are not part of the module. Build
 the command without `-trimpath`, or the binding path cannot be reported and
 installed mode refuses to run.
 
+> **The summary line above is this repository's, not v4.0.1's.** A Go module
+> ships its runner, and `v4.0.1` was tagged before the "137 checks, not 137
+> vectors" correction, so a binary installed with
+> `go install github.com/ai-university-aiu/causalontology/bindings/go/v4/conformance@v4.0.1`
+> prints the old, overstated `137/137 vectors passed` (checked 2026-07-27).
+> The checks it runs are the same 137 and the schemas are the same compiled-in
+> 21; only the wording is stale. It corrects itself with the next module tag.
+> Go is the only channel affected: no other published package ships a runner.
+
 The shared vector files are frozen at specification 4.0.0 (2026-07-22; 137
 files, V01–V137). The 38 that carry an executable payload — V01–V38 — hold
 concrete identifiers, real keys, and a real verifying signature, and the

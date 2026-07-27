@@ -80,6 +80,17 @@ local function die(message)
 end
 
 if TEST_INSTALLED then
+  -- CAUSALONTOLOGY_SPEC wins over the copy vendored in the rock, so leaving
+  -- it set lets a rock that shipped no schemas at all still report 137/137.
+  -- That is the exact false green that put broken artifacts on three
+  -- registries, so installed mode refuses it outright.
+  local spec_env = os.getenv("CAUSALONTOLOGY_SPEC")
+  if spec_env and spec_env ~= "" then
+    die("CAUSALONTOLOGY_TEST_INSTALLED is set but CAUSALONTOLOGY_SPEC is also " ..
+        "set (" .. spec_env .. "); it would override the bundled schemas and " ..
+        "hide the packaging defect installed mode exists to catch. Re-run " ..
+        "with `env -u CAUSALONTOLOGY_SPEC`.")
+  end
   local found = package.searchpath("causalontology.schema", package.path)
   if not found then
     die("CAUSALONTOLOGY_TEST_INSTALLED is set but causalontology is not on " ..
@@ -109,10 +120,10 @@ do
   end
   local resolved = abs_dir(where)
   if TEST_INSTALLED then
-    -- An explicit CAUSALONTOLOGY_SPEC is a deliberate override and is honoured
-    -- wherever it points; without one, the schemas must have come from the
-    -- installation, or the rock shipped none and the run would be worthless.
-    if not os.getenv("CAUSALONTOLOGY_SPEC") and inside_repo(resolved) then
+    -- CAUSALONTOLOGY_SPEC is already refused above, so the schemas must have
+    -- come from the installation itself, or the rock shipped none and the run
+    -- would be worthless.
+    if inside_repo(resolved) then
       die("CAUSALONTOLOGY_TEST_INSTALLED is set but the schemas resolved " ..
           "inside the repository: " .. resolved)
     end
@@ -160,7 +171,8 @@ do
   -- the copy that ships in the rock, as it sits in the checkout ...
   check_drift(script_dir .. "/causalontology/spec/schema")
   -- ... and, in installed mode, the copy the installed rock actually resolved
-  if TEST_INSTALLED and not os.getenv("CAUSALONTOLOGY_SPEC") then
+  -- (CAUSALONTOLOGY_SPEC cannot be set there - it is refused above)
+  if TEST_INSTALLED then
     check_drift(resolved)
   end
 end

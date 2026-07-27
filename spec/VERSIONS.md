@@ -20,7 +20,11 @@ example `git show v2.0.0:spec/causalontology.md`, or browse the tag on GitHub.
 
 The normative gate travels with the version: an implementation is conformant if
 and only if it passes every vector in [`../conformance/vectors/`](../conformance/vectors/)
-for the specification version it declares.
+for the specification version it declares. Read
+[`../conformance/README.md`](../conformance/README.md) before quoting a score:
+of the 137 vector files at 4.0.0, only V01–V38 carry an executable payload, so
+`137/137` counts **checks**, not shared data — 38 driven by the frozen files,
+99 implemented per binding.
 
 ## Versioning rules
 

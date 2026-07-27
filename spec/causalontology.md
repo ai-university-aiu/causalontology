@@ -59,9 +59,12 @@ see `safety.md`.
 
 Content is separated from provenance, uniformly. Content objects are pure and
 immutable; every mutable datum — every alias, link, claim, withdrawal, key
-rotation — is a signed record with an author. The ten 2.0.0 content kinds obey
-this without exception: none carries strength, confidence, probability, source, or
-timestamp-of-assertion (Principle P4). The three 4.0.0 token kinds obey it too,
+rotation — is a signed record with an author. The fourteen content kinds
+inherited from 3.0.0 obey this without exception: none carries strength,
+confidence, probability, source, or timestamp-of-assertion (Principle P4). The
+one apparent exception is a name collision, not a breach: a
+`cross_stratal_seam`'s `source` is one of its two **endpoint occurrents**, never
+a signing key. The three 4.0.0 token kinds obey it too,
 with ONE recorded, deliberate carve-out: a `predicted_occurrence`'s optional
 `strength` is part of the PREDICTED CONTENT itself — the grade of the
 expectation, like a relation's modality — not a provenance evaluation of the
@@ -80,6 +83,17 @@ An implementation is conformant if and only if it passes every vector in
 `../conformance/vectors/` (V01–V137) for specification version 4.0.0. See
 `../conformance/README.md`.
 
+**What that clause currently buys, stated plainly (measured 2026-07-27).** Only
+V01–V38 carry an executable payload. V39–V137 carry an `expect` block and a
+prose note, and their `operation` field reads literally
+`"see bindings/*/conformance runner"` — so for those 99 the clause is satisfied
+by each implementation's own reading of the prose, not by shared data. The
+guarantee is therefore strong (shared frozen bytes) for V01–V38 and weaker
+(nineteen independent readings of the same sentences) for the rest. Quote the
+result as `137/137 conformance checks (38 driven by the frozen shared vectors;
+99 implemented per binding)`. The full measurement is in
+`../conformance/README.md` and `../PUBLISHING.md`.
+
 ## Normative companions
 
 - `identity.md` — canonicalization (RFC 8785), hashing (Secure Hash Algorithm 256-bit (SHA-256)), identity-bearing fields for all twenty-one kinds, merge
@@ -87,4 +101,10 @@ An implementation is conformant if and only if it passes every vector in
 - `provenance.md` — signatures (Ed25519), evidence grading (with simulation), evidenced_by, retraction, succession, trust
 - `store.md` — abstract operations, Hypertext Transfer Protocol (HTTP) binding, query, resolve, the complete gap taxonomy
 - `safety.md` — abuse resistance, claims of consequence, takedown by tier, TOKEN-TIER SAFETY
-- `schema/` — the twenty-one JSON Schemas, the JSON-LD context, the optional Protobuf encoding
+- `schema/` — the twenty-one JSON Schemas (normative), plus three NON-NORMATIVE
+  companions kept in step with them: the JSON-LD context, the OWL mapping
+  (`causalontology.owl.ttl`), and the optional Protobuf encoding
+  (`causalontology.proto`). The JSON Schemas are the only normative artifact
+  here; the other three exist for interoperability and are carried at the same
+  specification version. See the URI note in `identity.md` before projecting to
+  RDF.

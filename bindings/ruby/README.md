@@ -111,8 +111,9 @@ store.put_record(Causalontology.sign_record(
 
 Source complete and ported line-for-line from the Python binding; built and
 executed by GitHub Actions CI (`ruby bindings/ruby/conformance.rb` on
-Ruby 3.3 via ruby/setup-ruby) — there is no Ruby interpreter on the
-authoring machine, so CI is the gate, as it is for every binding.
+Ruby 3.3 via ruby/setup-ruby). Last run locally on 2026-07-27 with Ruby
+3.3.8: **137/137 checks passed**, exit 0, both from the working tree and
+from a gem installed into an empty `GEM_HOME` outside the checkout.
 
 License: "The attribution always; no profit, no problem license." — see the
 repository `LICENSE` and `NOTICE`.

@@ -4,11 +4,36 @@ name: publish
 # binding using an encrypted repository secret; tokens never touch the
 # authoring machine's disk. Trigger: gh workflow run publish.yml -f registry=<name>
 #
-# Every job gates on the INSTALLED-MODE conformance run, not the in-repo one.
-# The in-repo run resolves the binding by relative path, so it exercises the
-# source tree beside it rather than the artifact about to be pushed - which is
-# how thirteen bindings reported 137/137 while shipping packages that could not
-# score above 62. A gate that cannot fail is not a gate. See PUBLISHING.md.
+# WHAT EACH JOB ACTUALLY GATES ON. Three of the four gate on the
+# INSTALLED-MODE conformance run rather than the in-repo one. The in-repo run
+# resolves the binding by relative path, so it exercises the source tree beside
+# it rather than the artifact about to be pushed - which is how thirteen
+# bindings reported 137/137 while shipping packages that could not score above
+# 62. A gate that cannot fail is not a gate. See PUBLISHING.md.
+#
+#   rubygems  - installs the built gem into a throwaway GEM_HOME and runs the
+#               137 checks from outside the checkout. Full installed-mode gate.
+#   hex       - unpacks the built Hex tarball as a real dependency of a
+#               throwaway consumer project and runs the 137 checks. Full
+#               installed-mode gate.
+#   luarocks  - installs the packed rock into a throwaway tree and runs the
+#               137 checks from outside the checkout, and separately refuses
+#               to upload unless the rockspec's source.tag really carries the
+#               twenty-one vendored schemas (LuaRocks uploads the rockspec,
+#               not the code, so a stale tag ships stale code silently). Full
+#               installed-mode gate.
+#   hackage   - NOT an installed-mode gate, and this note exists so nobody
+#               reads it as one. It runs the vectors in REPO mode and then
+#               asserts the sdist carries all 21 schemas. A real installed
+#               run needs `cabal install`, which needs a Hackage index the
+#               setup action cannot fetch here (its `cabal update` 404s), and
+#               the binding uses GHC boot packages only so the job otherwise
+#               needs no index at all. The schemas travel as Cabal data-files,
+#               so the manifest is the single point of failure and that is
+#               what is checked. The full installed run is a manual step in
+#               the release runbook - bindings/haskell/README.md - and
+#               Hackage is not published yet, so nothing has shipped on the
+#               weaker gate.
 
 on:
   workflow_dispatch:
@@ -18,6 +43,13 @@ on:
         required: true
         type: choice
         options: [rubygems, hex, luarocks, hackage]
+
+# Read-only. Every job here pushes to a REGISTRY using a repository secret;
+# none of them writes to this repository, so the GITHUB_TOKEN needs nothing.
+# Stated explicitly so a permissive repository default cannot hand write scope
+# to a job that also holds a publishing credential.
+permissions:
+  contents: read
 
 jobs:
   rubygems:
@@ -91,6 +123,16 @@ jobs:
           set -eux
           # `mix hex.publish` alone would run the docs stage and fail: ex_doc is
           # not a dependency of this zero-dependency binding. `package` skips it.
+          #
+          # This runs in bindings/elixir while the gate above ran against a
+          # tarball built in $RUNNER_TEMP/exsrc, which looks like the very
+          # mistake this file exists to prevent - gate one artifact, ship
+          # another. It is not, and here is why, so the next reader does not
+          # have to re-derive it: exsrc is a `cp -a` of this directory, and
+          # mix.exs declares an explicit `files:` allowlist (lib, priv,
+          # mix.exs, README.md, LICENSE, conformance.exs), so hex.build
+          # produces the same payload from either directory and nothing that
+          # the gate created in exsrc could leak into the upload.
           cd bindings/elixir && mix hex.publish package --yes
 
   luarocks:
@@ -140,13 +182,21 @@ jobs:
             LUA_PATH="$RUNNER_TEMP/luatree/share/lua/5.4/?.lua;$RUNNER_TEMP/luatree/share/lua/5.4/?/init.lua" \
             lua5.4 "$GITHUB_WORKSPACE/bindings/lua/conformance.lua"
       - name: upload the rockspec that was actually proven
+        env:
+          # Read from the environment, never interpolated into the script.
+          # `${{ secrets.* }}` is substituted into the run body before bash
+          # ever sees it, so the key became part of the script text - and under
+          # `set -x` bash then echoed that text to the log. Passing it as an
+          # environment variable keeps the literal out of both.
+          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
         run: |
-          set -eux
+          set -eu
+          # No `set -x` on this step: the trace would expand the key.
           # Was hard-coded to causalontology-1.0.0-1.rockspec, a file that does
           # not exist in this tree.
           cd bindings/lua
           luarocks upload causalontology-4.0.0-1.rockspec \
-            --api-key="${{ secrets.LUAROCKS_API_KEY }}"
+            --api-key="$LUAROCKS_API_KEY"
 
   hackage:
     if: inputs.registry == 'hackage'
@@ -173,6 +223,19 @@ jobs:
           HACKAGE_USERNAME: ${{ secrets.HACKAGE_USERNAME }}
           HACKAGE_PASSWORD: ${{ secrets.HACKAGE_PASSWORD }}
         run: |
-          set -eux
+          set -eu
+          # No `set -x` here, unlike every other step in this file. With the
+          # trace on, bash prints the command AFTER expansion, so the Hackage
+          # password would be written to the workflow log in clear text and the
+          # only thing standing between it and a reader would be GitHub's
+          # secret masking. Masking is a backstop, not a control.
+          #
+          # Residual exposure, recorded rather than hidden: cabal still takes
+          # the password as an argv element, so it is visible in /proc to
+          # anything else running on the runner for the life of the process.
+          # On an ephemeral single-tenant runner that is acceptable; on a
+          # self-hosted or shared runner it is not, and this should move to a
+          # cabal config file written with a restrictive umask before this job
+          # is ever run on one.
           cabal upload --publish -u "$HACKAGE_USERNAME" -p "$HACKAGE_PASSWORD" \
             "$RUNNER_TEMP"/hssdist/causalontology-*.tar.gz

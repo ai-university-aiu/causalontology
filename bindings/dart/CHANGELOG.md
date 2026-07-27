@@ -17,7 +17,9 @@
   the resolved path of the binding under test and exits nonzero if that path
   lies inside the repository, so a test of the installed package can no
   longer silently exercise the repository sources.
-- Still passes all 137 frozen conformance vectors (specification 4.0.0).
+- Still passes all 137 conformance checks (specification 4.0.0) - 38 driven by
+  the frozen shared vector files in `conformance/vectors/`, 99 implemented in
+  this binding's own runner.
 
 ## 4.0.0
 
@@ -34,7 +36,8 @@
   24 and 25 join; the assertion about-reference widens to the new kinds.
 - Additive and identity-preserving: every 3.0.0 record keeps its identifier
   byte-for-byte (witness V136).
-- Passes all 137 frozen conformance vectors (specification 4.0.0).
+- Passes all 137 conformance checks (specification 4.0.0) - 38 driven by the
+  frozen shared vector files, 99 implemented in this binding's own runner.
 
 ## 2.0.0
 
@@ -42,7 +45,8 @@
   the object kind's full name, replacing the abbreviated 1.0.0 prefixes.
 - Adds the nine new object kinds of specification 2.0.0, taking the total
   from 8 to 17 (the token tier, strata and bridges, ports and conduits).
-- Passes all 107 frozen conformance vectors (specification 2.0.0).
+- Passes all 107 conformance checks (specification 2.0.0) - 38 driven by the
+  frozen shared vector files, 69 implemented in this binding's own runner.
 
 ## 1.0.0
 

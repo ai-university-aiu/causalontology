@@ -24,6 +24,20 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
+// Installed mode must exercise the schemas that travel inside the package.
+// CAUSALONTOLOGY_SPEC points schemaDir() at a checkout instead, so a package
+// that shipped no schemas at all still reports 137/137 - which is precisely
+// the false green that put broken artifacts on three registries. Refuse
+// before anything is loaded, exactly as the Python and Go runners do.
+if (process.env.CAUSALONTOLOGY_TEST_INSTALLED && process.env.CAUSALONTOLOGY_SPEC) {
+  console.error(
+    "CAUSALONTOLOGY_TEST_INSTALLED is set but CAUSALONTOLOGY_SPEC is also set ("
+    + process.env.CAUSALONTOLOGY_SPEC + "); it would override the bundled "
+    + "schemas and hide the packaging defect installed mode exists to catch. "
+    + "Re-run with `env -u CAUSALONTOLOGY_SPEC`.");
+  process.exit(1);
+}
+
 const co = process.env.CAUSALONTOLOGY_TEST_INSTALLED
   ? require("node:module").createRequire(path.join(process.cwd(), "consumer.js"))("causalontology")
   : require(path.join(__dirname, "..", "causalontology.js"));

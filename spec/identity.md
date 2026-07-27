@@ -18,6 +18,30 @@ English word (Principle P7); abbreviations MUST NOT be used. The proper names
 of external standards (ed25519, SHA-256, RFC 8785, RFC 3339, UCUM, UTC, JSON,
 JSON-LD, BFO, RO, PROV) are kept verbatim.
 
+**A Causalontology identifier is not a Uniform Resource Identifier (URI), and
+RDF consumers must not assume it is** (recorded 2026-07-27; it had not been
+written down anywhere). RFC 3986 allows only letters, digits, `+`, `-` and `.`
+in a URI scheme. Eight of the twenty-one schemes carry an underscore —
+`causal_relation_object`, `cross_stratal_seam`, `token_individual`,
+`token_occurrence`, `state_assertion`, `token_causal_claim`,
+`predicted_occurrence`, `prediction_error` — so `causal_relation_object:<hex>`
+is neither an absolute URI nor a usable relative reference. Measured with
+rdflib 6.1.1 against [`schema/context.jsonld`](schema/context.jsonld): a record
+of one of those eight kinds does NOT become a blank node — it is resolved
+against the document base, yielding a base-dependent absolute IRI such as
+`file:///path/to/cwd/causal_relation_object:aaa…`, while the other thirteen
+expand cleanly to `occurrent:aaa…` under a private scheme. The base-dependent
+outcome is the more dangerous of the two, because it is silent and looks
+plausible: two consumers expanding the same content-addressed record from
+different base URIs mint different identifiers for it, and nothing announces
+that. Note also that this is processor behaviour, not a property of JSON-LD 1.1
+itself — a conforming processor preserves all twenty-one verbatim. This costs nothing in
+the JSON form, which is normative, and nothing in any binding — no binding
+treats an identifier as a URI. It matters only when projecting to RDF, where a
+consumer MUST map `scheme:localpart` into a URI space of its own before
+expansion. Choosing an official one is a specification change and is left to
+governance rather than decided here.
+
 ## Canonicalization procedure
 
 1. Take the object as a JSON document.

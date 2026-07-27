@@ -20,7 +20,13 @@ id(s) from each side.
 **Expected vs actual**
 
 **Version**
-Specification version (e.g. 2.0.0) and binding version / commit.
+Specification version (current is 4.0.0) and binding version / commit.
+
+**Installed, or from a checkout?**
+Please say which, and give the exact install command. The two behave
+differently and the difference has been the source of real bugs: a package
+installed from a registry must validate with no repository anywhere on the
+machine and no `CAUSALONTOLOGY_SPEC` set.
 
 **Environment**
 OS, language toolchain version.

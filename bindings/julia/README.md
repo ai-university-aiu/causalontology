@@ -73,9 +73,12 @@ Registration in Julia's General registry is a pull-request process: a
 release is registered by opening a pull request against
 `JuliaRegistries/General` (normally via the Registrator bot), and the
 package becomes installable by name (`pkg> add Causalontology`) only after
-that pull request is merged. This binding is not yet registered; until
-then, use it by `include`-ing `src/Causalontology.jl` as above, or by
-`pkg> dev bindings/julia`.
+that pull request is merged. **This binding is not yet registered**: the
+registration pull request is open and blocked on a reviewer objection, and
+`JuliaRegistries/General` still has no `C/Causalontology/Versions.toml`
+(HTTP 404, checked 2026-07-27), so `pkg> add Causalontology` does not
+resolve. Until it does, use it by `include`-ing `src/Causalontology.jl` as
+above, or by `pkg> dev bindings/julia`.
 
 ## License
 
