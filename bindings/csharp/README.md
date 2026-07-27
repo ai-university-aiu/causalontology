@@ -31,11 +31,18 @@ $ dotnet run --project bindings/csharp/conformance
 causalontology-csharp is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
+The runner locates the 137 **vectors** from the `CAUSALONTOLOGY_ROOT`
 environment variable when set, otherwise by walking up from the working
 directory until it finds `conformance/vectors`, otherwise from the source
-directory baked into the build; the schemas are read from `spec/schema`
-under the same root (overridable with `CAUSALONTOLOGY_SPEC`).
+directory baked into the build. The vectors are test data and are not shipped
+in the package.
+
+The **schemas** are a separate matter and `CAUSALONTOLOGY_ROOT` does not affect
+them. They are read from `CAUSALONTOLOGY_SPEC` if it is set, otherwise from the
+`spec_schema` directory shipped beside the assembly, otherwise from the copies
+embedded in the assembly itself, and only as a last resort by walking up to a
+repository `spec/schema`. That ordering is what lets an installed copy validate
+with no checkout anywhere.
 
 Whenever both `spec/schema/` and `spec_schema/` are reachable the runner
 compares them byte for byte and exits with `bundled schema drift` on any

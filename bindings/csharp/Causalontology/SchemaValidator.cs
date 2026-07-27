@@ -6,7 +6,7 @@
 // copy validates standalone, with no repository checkout anywhere.
 //
 // Lookup order (see SchemaSource):
-//   (a) CAUSALONTOLOGY_SPEC / CAUSALONTOLOGY_ROOT, for the existing
+//   (a) CAUSALONTOLOGY_SPEC, for the existing
 //       environment-variable workflows;
 //   (b) the vendored copy: the spec_schema directory shipped beside the
 //       assembly, else the copies embedded in the assembly;
@@ -60,15 +60,20 @@ public static class SchemaValidator
     // the resource-name prefix the .csproj gives the embedded schemas
     private const string EmbeddedPrefix = "Causalontology.spec_schema.";
 
-    // (a) explicit environment override, or null when neither is set
+    // (a) explicit environment override, or null when it is not set.
+    //
+    // Only CAUSALONTOLOGY_SPEC is consulted. CAUSALONTOLOGY_ROOT deliberately is
+    // NOT: that variable locates the 137 conformance VECTORS, which are test
+    // data and are not shipped in the package. Letting it also steer schema
+    // resolution conflated the two, so a runner that merely needed to find its
+    // test inputs silently pulled the schemas out of the repository as well -
+    // which is the precise mechanism that produced a false 137/137 here. Go
+    // decoupled the same pair for the same reason; see bindings/go/v4.
     private static string? EnvSchemaDir()
     {
         var env = Environment.GetEnvironmentVariable("CAUSALONTOLOGY_SPEC");
         if (!string.IsNullOrEmpty(env))
             return Path.Combine(env, "schema");
-        var root = Environment.GetEnvironmentVariable("CAUSALONTOLOGY_ROOT");
-        if (!string.IsNullOrEmpty(root))
-            return Path.Combine(root, "spec", "schema");
         return null;
     }
 
@@ -138,7 +143,7 @@ public static class SchemaValidator
             return "repo:" + repo;
         throw new DirectoryNotFoundException(
             "no spec/schema above the working directory; "
-            + "set CAUSALONTOLOGY_SPEC or CAUSALONTOLOGY_ROOT");
+            + "set CAUSALONTOLOGY_SPEC");
     }
 
     private static string ReadSchemaText(string file)
@@ -156,7 +161,7 @@ public static class SchemaValidator
             return File.ReadAllText(Path.Combine(repo, file));
         throw new DirectoryNotFoundException(
             "no spec/schema above the working directory; "
-            + "set CAUSALONTOLOGY_SPEC or CAUSALONTOLOGY_ROOT");
+            + "set CAUSALONTOLOGY_SPEC");
     }
 
     private static JsonMap LoadFile(string file)
