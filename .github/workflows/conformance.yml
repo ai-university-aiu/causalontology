@@ -229,7 +229,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: swift-actions/setup-swift@v3
+      - uses: swift-actions/setup-swift@v2  # v3 is broken: its own gpg step exits 2. Dependabot #10 declined.
         with:
           swift-version: "5.10"
       - name: conformance (137 checks)
