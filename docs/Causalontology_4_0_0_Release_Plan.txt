@@ -1021,11 +1021,26 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    (second wave); passes 137/137 locally and the .cabal reads
                    4.0.0; the Hackage account and upload-token gate stands
                    besides.
-  [ ] Java       - released on Maven Central; fresh consume 137/137.
-                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
-                   (second wave); passes 137/137 locally and pom.xml reads
-                   4.0.0; Maven Central still carries 2.0.0; only the signed
-                   deploy and fresh-consume check remain.
+  [x] Java       - released on Maven Central; fresh consume 137/137.
+                   STATUS: COMPLETE (2026-07-27). io.github.ai-university-aiu:
+                   causalontology:4.0.0 is live. Proven against repo1.maven.org
+                   itself: the jar was DOWNLOADED FROM MAVEN CENTRAL, carries
+                   all 21 schemas under schema/, its .asc verifies against the
+                   published key 4286FBC1...83D4, and with ONLY that jar and a
+                   separately compiled runner on the classpath - nothing from
+                   the repository - from outside any checkout with
+                   CAUSALONTOLOGY_SPEC poisoned and then stripped, it scored
+                   137/137, printing a jar: URL as the schema source.
+                   THE PROOF HAD TO BE MADE POSSIBLE FIRST. Java was the only
+                   binding of nineteen that ignored CAUSALONTOLOGY_ROOT, so an
+                   installed-jar run had no way to be told where the vectors
+                   live and failed outright. Fixed in PR #39 - and CI had been
+                   passing that step for the wrong reason, running the runner
+                   from inside the workspace so it could walk up to the
+                   checkout. Both corrected before anything was signed, because
+                   Maven Central is immutable: no delete, no replace, no yank.
+                   Uploaded via the Central Portal as USER_MANAGED, validated
+                   with zero errors, and released by the owner.
   [x] JavaScript - published to npm; types reflect the 4.0.0 shape; 137/137.
                    STATUS: COMPLETE (2026-07-27). 4.0.0 is live on npm. The
                    proof was run the strong way: causalontology@4.0.0 installed
@@ -1040,11 +1055,26 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
                    (second wave); passes 137/137 locally and Project.toml reads
                    4.0.0; the contested General-registry review stands besides.
-  [ ] Kotlin     - released on Maven Central (causalontology-kotlin); 137/137.
-                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
-                   (second wave); passes 137/137 locally on Kotlin/JVM over the
-                   shared sources and build.gradle.kts reads 4.0.0; Maven
-                   Central still carries 2.0.0.
+  [x] Kotlin     - released on Maven Central (causalontology-kotlin); 137/137.
+                   STATUS: COMPLETE (2026-07-27), WITH A WEAKER PROOF THAN THE
+                   OTHERS, stated plainly rather than glossed. The klib served
+                   by repo1.maven.org verifies against the published key and
+                   carries the schemas compiled in - 21 $schema declarations in
+                   its intermediate-representation string table. Repo
+                   conformance is 137/137. What was NOT done: an end-to-end
+                   consumer run against the published klib, because Kotlin's
+                   runner cannot be pointed at one the way Java's can now be
+                   pointed at a jar. Anyone strengthening this should start
+                   there.
+                   TWO THINGS CAUGHT BEFORE UPLOAD. Gradle's central-bundle
+                   directory still held the 2.0.0 artifacts from an earlier
+                   build; uploading it would have tried to republish a version
+                   Maven Central already holds immutably. The bundle was
+                   reduced to 4.0.0 only. And the POM described the package as
+                   passing '137 frozen conformance vectors' - the retracted
+                   phrasing - which on an immutable registry could never have
+                   been corrected. Fixed in PR #40 before the bundle was built;
+                   the live POM carries the honest wording.
   [x] Lua        - published to LuaRocks; fresh install 137/137.
                    STATUS: COMPLETE (2026-07-27). 4.0.0-1 is live at
                    luarocks.org/modules/ai-university-aiu/causalontology.

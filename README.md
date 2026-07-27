@@ -220,8 +220,8 @@ That third document — a *degenerate* causal_relation_object, just cause and ef
 | Python | `pip install causalontology` (**4.0.0 live and correct on PyPI**, fresh-install verified 137/137 against the registry; the correction shipped inside the same 4.0.0 release as a build-tagged wheel and the defective files were deleted) |
 | JavaScript / TypeScript | `npm install causalontology` (**4.0.0 live on npm**, fresh-install verified 137/137 against the registry; typings included; 1.0.0 deprecated) |
 | Rust | `cargo add causalontology` (**4.0.0 live on crates.io; the library is proven sound** — the crate compiles the twenty-one schemas in with `include_str!` and cannot build without them, verified with the repository bind-mounted away and every file access traced. The 4.0.0 `conformance` binary cannot run for a registry consumer and the 4.0.0 README instructs people to run it; **4.0.1 fixes both and is unpublished**. 1.0.0 yanked) |
-| Java | `io.github.ai-university-aiu:causalontology:2.0.0` (Maven Central) |
-| Kotlin/Native | `io.github.ai-university-aiu:causalontology-kotlin:2.0.0` (Maven Central, linuxX64 klib) |
+| Java | `io.github.ai-university-aiu:causalontology:4.0.0` (**live on Maven Central**, verified 137/137 against the jar downloaded from repo1.maven.org, signature checked) |
+| Kotlin/Native | `io.github.ai-university-aiu:causalontology-kotlin:4.0.0` (**live on Maven Central**, linuxX64 klib; signature checked and the 21 schemas confirmed compiled in) |
 | C# / .NET | `dotnet add package causalontology` (**4.0.0 live on NuGet**, fresh-restore verified 137/137 against the registry; 1.0.0 unlisted) |
 | Ruby | `gem install causalontology` (**4.0.0 live on RubyGems**, fresh-install verified 137/137 against the registry; 1.0.0 yanked) |
 | PHP | `composer require causalontology/causalontology:^4.0` (**v4.0.1 live on Packagist**, mirrored automatically from the tag and verified by a real `composer require`; **`v4.0.3` supersedes it**, vendoring the twenty-one schemas so the binding no longer depends on Composer shipping the whole repository. Earlier tags remain) |
