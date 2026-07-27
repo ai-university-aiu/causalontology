@@ -206,12 +206,23 @@ jobs:
           sh bindings/java/build_jar.sh
           mkdir -p "$RUNNER_TEMP/javainstall" "$RUNNER_TEMP/javacwd"
           cp bindings/java/target/causalontology-4.0.0.jar "$RUNNER_TEMP/javainstall/"
+          # Compile the runner ALONE, against the jar, and put it outside the
+          # workspace. Previously it was run from
+          # $GITHUB_WORKSPACE/bindings/java/target/test-classes, which let the
+          # runner walk up from its own code source and find the checkout - so
+          # the step passed without ever exercising the path a real consumer
+          # takes. Now nothing on the classpath is inside the repository, and
+          # the vectors are located the way every other binding locates them:
+          # CAUSALONTOLOGY_ROOT. CAUSALONTOLOGY_SPEC stays unset, so the schemas
+          # must come from inside the jar or the run fails.
+          mkdir -p "$RUNNER_TEMP/javarunner"
+          javac -cp "$RUNNER_TEMP/javainstall/causalontology-4.0.0.jar" \
+            -d "$RUNNER_TEMP/javarunner" \
+            "$GITHUB_WORKSPACE"/bindings/java/src/org/causalontology/Conformance.java
           cd "$RUNNER_TEMP/javacwd"
-          # target/test-classes holds the runner only - Conformance.class and
-          # nothing of the binding - so it can still reach the frozen vectors
-          # while every binding class resolves from the installed jar.
           env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
-            java -cp "$GITHUB_WORKSPACE/bindings/java/target/test-classes:$RUNNER_TEMP/javainstall/causalontology-4.0.0.jar" \
+            CAUSALONTOLOGY_ROOT="$GITHUB_WORKSPACE" \
+            java -cp "$RUNNER_TEMP/javainstall/causalontology-4.0.0.jar:$RUNNER_TEMP/javarunner" \
             org.causalontology.Conformance
 
   swift:

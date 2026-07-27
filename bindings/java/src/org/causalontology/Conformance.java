@@ -93,12 +93,26 @@ public final class Conformance {
 
     /**
      * The repository checkout, or null when there is none in reach. First
-     * ../.. relative to the working directory (repo mode: bindings/java),
-     * then walking up from wherever this runner class itself was loaded -
-     * which is what lets installed-mode runs from an unrelated working
-     * directory still find the frozen vectors.
+     * CAUSALONTOLOGY_ROOT if it names one, then ../.. relative to the working
+     * directory (repo mode: bindings/java), then walking up from wherever this
+     * runner class itself was loaded.
+     *
+     * CAUSALONTOLOGY_ROOT locates the 137 VECTORS, which are test data and are
+     * deliberately not shipped inside the jar. It does NOT steer schema
+     * resolution - the jar reads its schemas from its own resources. Every
+     * other binding honours this variable; Java did not, which meant an
+     * installed-mode run from an unrelated working directory had no way to be
+     * told where the vectors live and simply failed. That made the one proof
+     * that matters - the jar exercised as a consumer sees it - unrunnable.
      */
     static Path repoRoot() {
+        String env = System.getenv("CAUSALONTOLOGY_ROOT");
+        if (env != null && !env.isEmpty()) {
+            Path fromEnv = Paths.get(env);
+            if (isCheckout(fromEnv)) {
+                return fromEnv;
+            }
+        }
         Path relative = Paths.get("..", "..");
         if (isCheckout(relative)) {
             return relative;
@@ -114,11 +128,19 @@ public final class Conformance {
     }
 
     private static Path vectorDir() {
+        // repoRoot() consults CAUSALONTOLOGY_ROOT first, so ask it before
+        // falling back to a working-directory-relative guess.
+        Path root = repoRoot();
+        if (root != null) {
+            Path fromRoot = root.resolve("conformance").resolve("vectors");
+            if (Files.isDirectory(fromRoot)) {
+                return fromRoot;
+            }
+        }
         Path relative = Paths.get("..", "..", "conformance", "vectors");
         if (Files.isDirectory(relative)) {
             return relative;
         }
-        Path root = repoRoot();
         if (root != null) {
             return root.resolve("conformance").resolve("vectors");
         }
