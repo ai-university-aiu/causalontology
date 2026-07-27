@@ -333,7 +333,13 @@ jobs:
             -o "$RUNNER_TEMP/csinstalled" --configfile "$RUNNER_TEMP/nuget.config"
           mkdir -p "$RUNNER_TEMP/cscwd"
           cd "$RUNNER_TEMP/cscwd"
-          env -u CAUSALONTOLOGY_SPEC -u CAUSALONTOLOGY_ROOT CAUSALONTOLOGY_TEST_INSTALLED=1 \
+          # CAUSALONTOLOGY_SPEC stays unset - that is the whole point, the
+          # schemas must come from inside the package. CAUSALONTOLOGY_ROOT is
+          # set, because it locates the 137 VECTORS, which are test data and are
+          # deliberately not shipped in the package. Unsetting both conflates
+          # the two and only proves the runner cannot find its own test inputs.
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            CAUSALONTOLOGY_ROOT="$GITHUB_WORKSPACE" \
             dotnet "$RUNNER_TEMP/csinstalled/conformance.dll"
 
   ruby:
@@ -543,7 +549,10 @@ jobs:
       - name: conformance (137 vectors)
         run: lua5.4 bindings/lua/conformance.lua
       - name: install LuaRocks
-        run: sudo apt-get install -y luarocks
+        # liblua5.4-dev too: luarocks refuses to build any rock without the Lua
+        # headers ("Failed finding Lua header files"), even for a pure-Lua rock
+        # that compiles nothing.
+        run: sudo apt-get install -y luarocks liblua5.4-dev
       - name: conformance against the installed rock (137 vectors)
         run: |
           set -eux
