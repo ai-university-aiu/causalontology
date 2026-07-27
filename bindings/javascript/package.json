@@ -2,14 +2,22 @@
   "name": "causalontology",
   "version": "4.0.0",
   "description": "The JavaScript binding of the Causalontology standard - the third verified implementation. Node.js builtins only; zero dependencies.",
-  "license": "The attribution always; no profit, no problem license. (Apache License 2.0 text)",
+  "license": "Apache-2.0",
+  "licenseNote": "The attribution always; no profit, no problem license. (Apache License 2.0 text)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ai-university-aiu/causalontology.git",
+    "directory": "bindings/javascript"
+  },
+  "homepage": "https://github.com/ai-university-aiu/causalontology",
   "main": "causalontology.js",
   "types": "causalontology.d.ts",
   "files": [
     "causalontology.js",
     "causalontology.d.ts",
     "spec/schema/*.schema.json",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "test": "node tests/run_conformance.js"
