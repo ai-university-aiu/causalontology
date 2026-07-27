@@ -5,6 +5,32 @@ name: conformance
 # Causalontology. All nineteen bindings now implement the folded
 # 3.0.0-plus-4.0.0 delta and are gated at 137 vectors here (registry
 # publication is a separate, credential-gated step per the 4.0.0 release plan).
+#
+# TWO MODES, AND WHY (added 2026-07-26). Each binding job below runs the 137
+# vectors twice.
+#
+#   repo mode      - the runner loads the binding from this source tree. This
+#                    proves the CODE is conformant.
+#   installed mode - the artifact is built, installed into a clean location
+#                    outside the checkout, and the same 137 vectors are run
+#                    from a working directory outside the checkout with
+#                    CAUSALONTOLOGY_TEST_INSTALLED=1 and CAUSALONTOLOGY_SPEC
+#                    unset. This proves the PACKAGE is conformant.
+#
+# Only the first of these existed before, and that gap shipped three broken
+# releases: every binding but Rust read the twenty-one JSON Schemas from a
+# repository-relative path and packaged none of them, while every runner
+# reached the binding by relative path from the source tree - so a run
+# advertised as a fresh install exercised the repository sitting next to it
+# and reported a confident 137/137 for a package that could not validate a
+# single record. See PUBLISHING.md.
+#
+# In installed mode the runner prints the binding path and the schema
+# directory it actually read and exits non-zero if either lies inside the
+# repository, if CAUSALONTOLOGY_SPEC is set, or if the packaged schemas differ
+# from spec/schema by one byte. CAUSALONTOLOGY_ROOT, where it appears, locates
+# the 137 vectors only: they are test data and are deliberately not shipped
+# inside any package.
 
 on:
   push:
@@ -12,6 +38,90 @@ on:
   pull_request:
 
 jobs:
+  # The vendored schemas must be byte-identical to spec/schema, in every
+  # binding, always. This job needs no toolchain and covers bindings whose own
+  # runner has no drift guard (Rust), so nothing can drift unnoticed.
+  schemas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: vendored schemas are byte-identical to spec/schema
+        run: |
+          python3 - <<'PY'
+          import pathlib, sys
+
+          root = pathlib.Path(".").resolve()
+          spec = root / "spec" / "schema"
+          canonical = {p.name: p.read_bytes()
+                       for p in sorted(spec.glob("*.schema.json"))}
+          if len(canonical) != 21:
+              sys.exit(f"spec/schema holds {len(canonical)} schemas, expected 21")
+
+          # Every binding that ships loose schema files, and where it puts them.
+          vendored = [
+              "bindings/csharp/spec_schema",
+              "bindings/elixir/priv/schema",
+              "bindings/go/v4/causalontology/spec_schema",
+              "bindings/haskell/spec_schema",
+              "bindings/java/src/main/resources/schema",
+              "bindings/javascript/spec/schema",
+              "bindings/lua/causalontology/spec/schema",
+              "bindings/perl/share/schema",
+              "bindings/python/causalontology/spec/schema",
+              "bindings/r/inst/schema",
+              "bindings/ruby/lib/causalontology/spec/schema",
+              "bindings/rust/spec_schema",
+          ]
+
+          bad = []
+          for rel in vendored:
+              d = root / rel
+              if not d.is_dir():
+                  bad.append(f"{rel}: directory is missing entirely")
+                  continue
+              here = {p.name: p.read_bytes() for p in d.glob("*.schema.json")}
+              for name, body in canonical.items():
+                  if name not in here:
+                      bad.append(f"{rel}/{name}: missing")
+                  elif here[name] != body:
+                      bad.append(f"{rel}/{name}: differs from spec/schema")
+              for name in here:
+                  if name not in canonical:
+                      bad.append(f"{rel}/{name}: no longer in spec/schema")
+              print(f"{rel}: {len(here)} schemas")
+
+          if bad:
+              print("\n".join(bad))
+              sys.exit("vendored schema drift - re-copy from spec/schema")
+          print(f"{len(vendored)} vendored copies, {len(canonical)} schemas each, all byte-identical")
+          PY
+      - name: the Kotlin generated source still matches spec/schema
+        run: |
+          set -eu
+          cd bindings/kotlin
+          cp src/SpecSchemas.kt "$RUNNER_TEMP/SpecSchemas.kt.before"
+          python3 tools/gen_spec_schemas.py
+          diff -q "$RUNNER_TEMP/SpecSchemas.kt.before" src/SpecSchemas.kt \
+            || { echo "bundled schema drift: regenerate with tools/gen_spec_schemas.py" >&2; exit 1; }
+      - name: the whole-repository channels still deliver spec/schema
+        run: |
+          set -eu
+          # C++, Julia, PHP, Swift and Zig vendor nothing: they are correct only
+          # because their channel ships the whole repository tree. Fail if
+          # anything starts filtering spec/ out of that tree.
+          if [ -f .gitattributes ] && grep -E '^\s*(/)?spec/' .gitattributes | grep -q export-ignore; then
+            echo "spec/ is export-ignored: the tag archives would ship no schemas" >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, sys
+          m = json.load(open("composer.json"))
+          excluded = m.get("archive", {}).get("exclude", [])
+          if any("spec" in str(e) for e in excluded):
+              sys.exit("composer.json excludes spec/ from the dist archive")
+          print("composer.json ships the whole tree; .gitattributes does not filter spec/")
+          PY
+
   python:
     runs-on: ubuntu-latest
     steps:
@@ -21,6 +131,25 @@ jobs:
           python-version: "3.12"
       - name: conformance (137 vectors)
         run: python3 bindings/python/tests/run_conformance.py
+      - name: conformance against the installed wheel (137 vectors)
+        run: |
+          set -eux
+          python3 -m pip install --quiet build
+          # Build WITH the wheel build tag. The plain filename
+          # causalontology-4.0.0-py3-none-any.whl is burned on PyPI - that is the
+          # defective upload - so the release artifact must be the build-tagged
+          # causalontology-4.0.0-1-py3-none-any.whl. Building it here keeps CI
+          # honest about the file that actually ships.
+          python3 -m build --wheel --config-setting=--build-option=--build-number=1 \
+            --outdir "$RUNNER_TEMP/pydist" bindings/python
+          test -f "$RUNNER_TEMP/pydist/causalontology-4.0.0-1-py3-none-any.whl"
+          python3 -m venv "$RUNNER_TEMP/pyvenv"
+          "$RUNNER_TEMP/pyvenv/bin/pip" install --no-index --no-deps "$RUNNER_TEMP"/pydist/*.whl
+          mkdir -p "$RUNNER_TEMP/pyconsumer"
+          cd "$RUNNER_TEMP/pyconsumer"
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            "$RUNNER_TEMP/pyvenv/bin/python" \
+            "$GITHUB_WORKSPACE/bindings/python/tests/run_conformance.py"
       - name: Tier A store smoke
         run: python3 store/server/test_server.py
       - name: stigmergy layer
@@ -41,6 +170,16 @@ jobs:
           node-version: "20"
       - name: conformance (137 vectors)
         run: node bindings/javascript/tests/run_conformance.js
+      - name: conformance against the packed npm tarball (137 vectors)
+        run: |
+          set -eux
+          mkdir -p "$RUNNER_TEMP/jspack" "$RUNNER_TEMP/jsconsumer"
+          (cd bindings/javascript && npm pack --pack-destination "$RUNNER_TEMP/jspack")
+          cd "$RUNNER_TEMP/jsconsumer"
+          npm init -y >/dev/null
+          npm install "$RUNNER_TEMP"/jspack/causalontology-*.tgz
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            node "$GITHUB_WORKSPACE/bindings/javascript/tests/run_conformance.js"
 
   java:
     runs-on: ubuntu-latest
@@ -52,6 +191,19 @@ jobs:
           java-version: "21"
       - name: conformance (137 vectors)
         run: bash bindings/java/run_conformance.sh
+      - name: conformance against the built jar (137 vectors)
+        run: |
+          set -eux
+          sh bindings/java/build_jar.sh
+          mkdir -p "$RUNNER_TEMP/javainstall" "$RUNNER_TEMP/javacwd"
+          cp bindings/java/target/causalontology-4.0.0.jar "$RUNNER_TEMP/javainstall/"
+          cd "$RUNNER_TEMP/javacwd"
+          # target/test-classes holds the runner only - Conformance.class and
+          # nothing of the binding - so it can still reach the frozen vectors
+          # while every binding class resolves from the installed jar.
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            java -cp "$GITHUB_WORKSPACE/bindings/java/target/test-classes:$RUNNER_TEMP/javainstall/causalontology-4.0.0.jar" \
+            org.causalontology.Conformance
 
   swift:
     runs-on: ubuntu-latest
@@ -84,6 +236,17 @@ jobs:
           node-version: "20"
       - name: conformance (137 vectors)
         run: cd bindings/rust && cargo run --bin conformance
+      - name: the packaged crate carries all 21 schemas
+        run: |
+          set -eu
+          # Rust has no installed mode and needs none: schema.rs pulls the
+          # twenty-one schemas in with include_str!, so a crate missing them
+          # does not compile. This asserts they are in the packaged file list
+          # as well, which is what crates.io actually receives.
+          cd bindings/rust
+          n=$(cargo package --list --allow-dirty | grep -c '^spec_schema/.*\.schema\.json$')
+          echo "spec_schema entries in the packaged crate: $n"
+          [ "$n" -eq 21 ] || { echo "expected 21, got $n" >&2; exit 1; }
       - name: WebAssembly core build
         run: cd bindings/rust && cargo build --lib --release --target wasm32-unknown-unknown
       - name: WASM vs JavaScript cross-check
@@ -100,6 +263,20 @@ jobs:
       # /v2 module stays live at the 2.0.0 level. Gate on /v4.
       - name: conformance (137 vectors)
         run: cd bindings/go/v4 && go run ./conformance
+      - name: conformance against the module as it would be published (137 vectors)
+        run: |
+          set -eux
+          # A Go module ships only its own subdirectory. Reproduce that exactly:
+          # export the tracked contents of bindings/go/v4 - nothing else from
+          # the repository - to a directory outside the checkout and build
+          # there. If go:embed loses the schemas, this step fails to compile,
+          # which is the strongest guard any binding here has.
+          mkdir -p "$RUNNER_TEMP/gomod" "$RUNNER_TEMP/gocwd"
+          git archive HEAD bindings/go/v4 | tar -x -C "$RUNNER_TEMP/gomod" --strip-components=3
+          (cd "$RUNNER_TEMP/gomod" && go build -o "$RUNNER_TEMP/goconformance" ./conformance)
+          cd "$RUNNER_TEMP/gocwd"
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            CAUSALONTOLOGY_ROOT="$GITHUB_WORKSPACE" "$RUNNER_TEMP/goconformance"
 
   typescript:
     runs-on: ubuntu-latest
@@ -120,6 +297,37 @@ jobs:
           dotnet-version: "8.0.x"
       - name: conformance (137 vectors)
         run: dotnet run --project bindings/csharp/conformance
+      - name: conformance against the packed NuGet package (137 vectors)
+        run: |
+          set -eux
+          # Build through a private intermediate directory so the repo-mode
+          # build above (a ProjectReference) cannot leave state that the
+          # installed build (a PackageReference) picks up.
+          dotnet pack bindings/csharp/Causalontology/Causalontology.csproj -c Release \
+            -o "$RUNNER_TEMP/nugetfeed" \
+            -p:BaseIntermediateOutputPath="$RUNNER_TEMP/packobj/" \
+            -p:BaseOutputPath="$RUNNER_TEMP/packbin/"
+          cat > "$RUNNER_TEMP/nuget.config" <<XML
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local" value="$RUNNER_TEMP/nugetfeed" />
+            </packageSources>
+          </configuration>
+          XML
+          # conformance.csproj switches from ProjectReference to a
+          # PackageReference when this variable is set, so the runner is built
+          # against the package, not the source tree.
+          NUGET_PACKAGES="$RUNNER_TEMP/nugetcache" CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            dotnet build bindings/csharp/conformance/conformance.csproj -c Release \
+            -o "$RUNNER_TEMP/csinstalled" --configfile "$RUNNER_TEMP/nuget.config" \
+            -p:BaseIntermediateOutputPath="$RUNNER_TEMP/confobj/" \
+            -p:BaseOutputPath="$RUNNER_TEMP/confbin/"
+          mkdir -p "$RUNNER_TEMP/cscwd"
+          cd "$RUNNER_TEMP/cscwd"
+          env -u CAUSALONTOLOGY_SPEC -u CAUSALONTOLOGY_ROOT CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            dotnet "$RUNNER_TEMP/csinstalled/conformance.dll"
 
   ruby:
     runs-on: ubuntu-latest
@@ -130,6 +338,20 @@ jobs:
           ruby-version: "3.3"
       - name: conformance (137 vectors)
         run: ruby bindings/ruby/conformance.rb
+      - name: conformance against the built gem (137 vectors)
+        run: |
+          set -eux
+          # The gemspec itself refuses to build if the vendored schemas are
+          # missing, incomplete, or drifted, so this also exercises that guard.
+          (cd bindings/ruby && gem build causalontology.gemspec -o "$RUNNER_TEMP/causalontology.gem")
+          gem install --install-dir "$RUNNER_TEMP/gemhome" --no-document --local \
+            "$RUNNER_TEMP/causalontology.gem"
+          mkdir -p "$RUNNER_TEMP/rbcwd"
+          cd "$RUNNER_TEMP/rbcwd"
+          env -u CAUSALONTOLOGY_SPEC \
+            GEM_HOME="$RUNNER_TEMP/gemhome" GEM_PATH="$RUNNER_TEMP/gemhome" \
+            CAUSALONTOLOGY_TEST_INSTALLED=1 CAUSALONTOLOGY_ROOT="$GITHUB_WORKSPACE" \
+            ruby "$GITHUB_WORKSPACE/bindings/ruby/conformance.rb"
 
   php:
     runs-on: ubuntu-latest
@@ -149,6 +371,35 @@ jobs:
       - uses: dart-lang/setup-dart@v1
       - name: conformance (137 vectors)
         run: dart bindings/dart/bin/conformance.dart
+      - name: the generated embedding still matches spec/schema
+        run: |
+          set -eu
+          cd bindings/dart
+          cp lib/spec_schema.g.dart "$RUNNER_TEMP/spec_schema.g.dart.before"
+          dart run tool/embed_schemas.dart
+          diff -q "$RUNNER_TEMP/spec_schema.g.dart.before" lib/spec_schema.g.dart \
+            || { echo "embedded schema drift: rerun tool/embed_schemas.dart" >&2; exit 1; }
+      - name: conformance against the package as it would be published (137 vectors)
+        run: |
+          set -eux
+          # pub.dev ships the tracked files of bindings/dart and nothing else -
+          # no spec/schema anywhere. Export exactly that to a directory outside
+          # the checkout and consume it as a real dependency.
+          mkdir -p "$RUNNER_TEMP/dartpkg" "$RUNNER_TEMP/dartconsumer"
+          git archive HEAD bindings/dart | tar -x -C "$RUNNER_TEMP/dartpkg" --strip-components=2
+          cd "$RUNNER_TEMP/dartconsumer"
+          cat > pubspec.yaml <<'YAML'
+          name: installed_mode_consumer
+          publish_to: none
+          environment:
+            sdk: '>=3.0.0 <4.0.0'
+          dependencies:
+            causalontology:
+              path: ../dartpkg
+          YAML
+          dart pub get
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            CAUSALONTOLOGY_ROOT="$GITHUB_WORKSPACE" dart run causalontology:conformance
 
   elixir:
     runs-on: ubuntu-latest
@@ -160,6 +411,32 @@ jobs:
           elixir-version: "1.16"
       - name: conformance (137 vectors)
         run: cd bindings/elixir && elixir conformance.exs
+      - name: conformance against the built Hex package (137 vectors)
+        run: |
+          set -eux
+          mix local.hex --force
+          # Build the Hex tarball from a copy outside the checkout, unpack its
+          # payload exactly as Hex leaves it in deps/, and compile it as a real
+          # dependency of a throwaway consumer project.
+          cp -a bindings/elixir "$RUNNER_TEMP/exsrc"
+          (cd "$RUNNER_TEMP/exsrc" && mix hex.build)
+          mkdir -p "$RUNNER_TEMP/exconsumer/deps/causalontology" "$RUNNER_TEMP/exunpack"
+          tar -xf "$RUNNER_TEMP"/exsrc/causalontology-*.tar -C "$RUNNER_TEMP/exunpack"
+          tar -xzf "$RUNNER_TEMP/exunpack/contents.tar.gz" \
+            -C "$RUNNER_TEMP/exconsumer/deps/causalontology"
+          cd "$RUNNER_TEMP/exconsumer"
+          cat > mix.exs <<'EX'
+          defmodule Consumer.MixProject do
+            use Mix.Project
+            def project do
+              [app: :consumer, version: "0.0.0", elixir: "~> 1.16",
+               deps: [{:causalontology, path: "deps/causalontology"}]]
+            end
+          end
+          EX
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            CAUSALONTOLOGY_ROOT="$GITHUB_WORKSPACE" \
+            mix run deps/causalontology/conformance.exs
 
   haskell:
     runs-on: ubuntu-latest
@@ -177,6 +454,21 @@ jobs:
           cabal-update: false
       - name: conformance (137 vectors)
         run: cd bindings/haskell && runghc -isrc -iapp app/Conformance.hs
+      - name: the built sdist carries all 21 schemas
+        run: |
+          set -eux
+          # Haskell ships its schemas as Cabal data-files, so the manifest is
+          # the single point of failure and this is where it is checked. A full
+          # installed-mode run needs `cabal install`, which needs a Hackage
+          # index this job deliberately does not fetch (see the note above); it
+          # is part of the release runbook instead, and is recorded in
+          # bindings/haskell/README.md.
+          cd bindings/haskell
+          cabal sdist -o "$RUNNER_TEMP/hssdist"
+          n=$(tar -tzf "$RUNNER_TEMP"/hssdist/causalontology-*.tar.gz \
+                | grep -c '/spec_schema/.*\.schema\.json$')
+          echo "spec_schema entries in the sdist: $n"
+          [ "$n" -eq 21 ] || { echo "expected 21, got $n" >&2; exit 1; }
 
   perl:
     runs-on: ubuntu-latest
@@ -184,6 +476,25 @@ jobs:
       - uses: actions/checkout@v4
       - name: conformance (137 vectors)
         run: perl bindings/perl/conformance.pl
+      - name: conformance against the installed distribution (137 vectors)
+        run: |
+          set -eux
+          # make dist ships only what MANIFEST names, so this exercises the
+          # MANIFEST guard as well as the install.
+          cp -a bindings/perl "$RUNNER_TEMP/perlsrc"
+          cd "$RUNNER_TEMP/perlsrc"
+          perl Makefile.PL >/dev/null
+          make dist >/dev/null
+          tar -xzf Causalontology-*.tar.gz -C "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP"/Causalontology-*/
+          perl Makefile.PL INSTALL_BASE="$RUNNER_TEMP/perlinstall" >/dev/null
+          make >/dev/null
+          make install >/dev/null
+          mkdir -p "$RUNNER_TEMP/perlcwd"
+          cd "$RUNNER_TEMP/perlcwd"
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            PERL5LIB="$RUNNER_TEMP/perlinstall/lib/perl5" \
+            perl "$GITHUB_WORKSPACE/bindings/perl/conformance.pl"
 
   r:
     runs-on: ubuntu-latest
@@ -196,6 +507,16 @@ jobs:
           Rscript -e "install.packages(c('sodium','openssl'), repos='https://cloud.r-project.org')"
       - name: conformance (137 vectors)
         run: Rscript bindings/r/conformance.R
+      - name: conformance against the installed package (137 vectors)
+        run: |
+          set -eux
+          mkdir -p "$RUNNER_TEMP/rbuild" "$RUNNER_TEMP/rlib" "$RUNNER_TEMP/rcwd"
+          (cd "$RUNNER_TEMP/rbuild" && R CMD build "$GITHUB_WORKSPACE/bindings/r")
+          R CMD INSTALL --library="$RUNNER_TEMP/rlib" "$RUNNER_TEMP"/rbuild/causalontology_*.tar.gz
+          cd "$RUNNER_TEMP/rcwd"
+          env -u CAUSALONTOLOGY_SPEC -u CAUSALONTOLOGY_ROOT CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            R_LIBS="$RUNNER_TEMP/rlib" \
+            Rscript "$GITHUB_WORKSPACE/bindings/r/conformance.R"
 
   lua:
     runs-on: ubuntu-latest
@@ -205,6 +526,24 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lua5.4
       - name: conformance (137 vectors)
         run: lua5.4 bindings/lua/conformance.lua
+      - name: install LuaRocks
+        run: sudo apt-get install -y luarocks
+      - name: conformance against the installed rock (137 vectors)
+        run: |
+          set -eux
+          # luarocks make must run with the rockspec's own directory as the
+          # working directory; anything else fails loudly rather than quietly.
+          (cd bindings/lua && luarocks --lua-version 5.4 \
+            --tree="$RUNNER_TEMP/luathrowaway" make \
+            --pack-binary-rock causalontology-4.0.0-1.rockspec)
+          luarocks --lua-version 5.4 --tree="$RUNNER_TEMP/luatree" install \
+            bindings/lua/causalontology-4.0.0-1.all.rock
+          rm -f bindings/lua/causalontology-4.0.0-1.all.rock
+          mkdir -p "$RUNNER_TEMP/luacwd"
+          cd "$RUNNER_TEMP/luacwd"
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            LUA_PATH="$RUNNER_TEMP/luatree/share/lua/5.4/?.lua;$RUNNER_TEMP/luatree/share/lua/5.4/?/init.lua" \
+            lua5.4 "$GITHUB_WORKSPACE/bindings/lua/conformance.lua"
 
   cpp:
     runs-on: ubuntu-latest
@@ -240,6 +579,22 @@ jobs:
           java-version: "21"
       - name: conformance (137 vectors)
         run: bash bindings/kotlin/run_conformance.sh
+      - name: conformance against the built artifact (137 vectors)
+        run: |
+          set -eux
+          # The registry artifact for Kotlin is the Kotlin/Native klib, which
+          # the Java Virtual Machine runner cannot execute; tools/build_jar.sh
+          # builds the same library sources - including the generated
+          # src/SpecSchemas.kt that carries the twenty-one schemas - with
+          # kotlinc-jvm, outside the repository, as a faithful stand-in. The
+          # schemas job above independently checks that generated source
+          # against spec/schema.
+          bash bindings/kotlin/tools/build_jar.sh "$RUNNER_TEMP/kotlinm2"
+          mkdir -p "$RUNNER_TEMP/ktcwd"
+          cd "$RUNNER_TEMP/ktcwd"
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            CAUSALONTOLOGY_KOTLIN_JAR="$RUNNER_TEMP/kotlinm2/causalontology-kotlin-4.0.0.jar" \
+            bash "$GITHUB_WORKSPACE/bindings/kotlin/run_conformance.sh"
 
   # The reference implementation gates itself. Prolog is listed first among the
   # bindings and PrologAI is named the reference implementation, so its

@@ -16,7 +16,8 @@ newer**.
 | `causalontology/jcs.go` | RFC 8785 (JSON Canonicalization Scheme) serialization: sorted keys, minimal string escaping, ECMAScript-style canonical numbers (`1.0` → `1`, `0.7` stays `0.7`, `e-7` not `e-07`) |
 | `causalontology/canonical.go` | identity-bearing field filtering per kind and Secure Hash Algorithm 256-bit (SHA-256) content-addressed `Identify()` (spec/identity.md) |
 | `causalontology/signing.go` | record-level `SignRecord()` / `VerifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `causalontology/schema.go` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `causalontology/schema.go` | validation against the twenty-one JSON Schemas (a small interpreter for exactly the keywords those schemas use) |
+| `causalontology/embed.go` | the twenty-one JSON Schemas compiled into the module with `//go:embed`, plus the drift guard that compares them byte for byte against `spec/schema` |
 | `causalontology/semantics.go` | the 25 semantic rules: temporal admissibility with the fixed unit constants and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `causalontology/store.go` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `Gaps()` read — with explicit insertion-order bookkeeping, since Go maps iterate in random order where Python dicts do not |
 | `conformance/main.go` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
@@ -37,8 +38,52 @@ causalontology-go is CONFORMANT to the suite (vectors frozen at specification 4.
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
 environment variable when set, otherwise by walking up from the working
-directory until it finds `conformance/vectors`; the schemas are read from
-`spec/schema` under the same root.
+directory until it finds `conformance/vectors`. That root supplies the
+vectors. It also supplies the schemas in the default (in-repository) mode, so
+an edit to `spec/schema` is picked up immediately during development.
+
+### Where the schemas come from
+
+The twenty-one JSON Schemas are compiled into the module by `//go:embed` over
+`causalontology/spec_schema/`, so `go get` of this module delivers them. A Go
+module ships only its own subdirectory, so the repository's `spec/schema` is
+*not* delivered; version 4.0.0 read that directory at run time and therefore
+failed on the first `ValidateSchema` call for every consumer outside a
+checkout. That version is retracted in `go.mod`; use 4.0.1 or newer.
+
+Resolution order is: an explicit `SetSchemaDir` call, then the
+`CAUSALONTOLOGY_SPEC` environment variable, then the compiled-in copy. Nothing
+else moves the schema source - in particular `CAUSALONTOLOGY_ROOT` locates the
+vectors only, because letting it move the schemas too is exactly what once hid
+the missing schemas from the conformance run.
+
+### Installed mode
+
+`CAUSALONTOLOGY_TEST_INSTALLED=1` runs the suite the way a consumer does: the
+schemas must come from the compiled-in copy, and the runner prints the
+directory the binding was compiled from and **exits nonzero if that directory
+is inside the repository**. A run that resolves the binding by relative path,
+or through a `replace` directive pointing at the checkout, is therefore
+rejected rather than reported as a pass.
+
+```
+$ cd /some/directory/outside/the/repository
+$ env -u CAUSALONTOLOGY_SPEC \
+      CAUSALONTOLOGY_TEST_INSTALLED=1 \
+      CAUSALONTOLOGY_ROOT=/path/to/causalontology \
+      "$(go env GOPATH)/bin/conformance"
+binding under test: /.../pkg/mod/github.com/ai-university-aiu/causalontology/bindings/go/v4@v4.0.1/causalontology
+module under test: github.com/ai-university-aiu/causalontology/bindings/go/v4 v4.0.1
+embedded schemas: 21
+schema source: compiled into the module (embed.FS)
+...
+137/137 vectors passed
+```
+
+`CAUSALONTOLOGY_ROOT` still points at a checkout in installed mode, because the
+vectors themselves live in the repository and are not part of the module. Build
+the command without `-trimpath`, or the binding path cannot be reported and
+installed mode refuses to run.
 
 The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
 V01–V137): they carry concrete identifiers, real keys, and a real verifying
@@ -53,8 +98,10 @@ V120–V137 are the 4.0.0 additions (`attitude`, `predicted_occurrence`,
 **Import path (4.0.0):** Go versions the import path, so a major version 4
 release takes a `/v4` suffix; it is the new module directory
 `bindings/go/v4`. Install it with
-`go get github.com/ai-university-aiu/causalontology/bindings/go/v4@v4.0.0`
-and import it as shown below (the `/v4` is part of the path). No `/v3` module
+`go get github.com/ai-university-aiu/causalontology/bindings/go/v4@v4.0.1`
+and import it as shown below (the `/v4` is part of the path). Do not use
+`@v4.0.0`: it shipped without the JSON Schemas and is retracted, so `go get`
+of the bare module path will skip it. No `/v3` module
 was ever cut — the 3.0.0 delta is folded into 4.0.0 — so the module path steps
 from `/v2` straight to `/v4`; the 2.0.0 line remains available at
 `.../bindings/go/v2@v2.0.0` and the 1.0.0 line at the un-suffixed path,

@@ -29,12 +29,70 @@ if (length(co_file_arg) >= 1L) {
   co_binding_dir <- file.path(normalizePath(getwd()), "bindings", "r")
 }
 
-for (co_src in c("json.R", "jcs.R", "canonical.R", "signing.R",
-                 "schema.R", "semantics.R", "store.R")) {
-  source(file.path(co_binding_dir, "R", co_src))
+co_root_candidate <- dirname(dirname(co_binding_dir))   # bindings/r -> root
+
+# Set CAUSALONTOLOGY_TEST_INSTALLED to exercise the *installed* package the
+# way a real consumer would load it, instead of the repository sources.
+# Unset (the default) keeps the repo-mode behaviour exactly as it was.
+co_test_installed <- nzchar(Sys.getenv("CAUSALONTOLOGY_TEST_INSTALLED",
+                                       unset = ""))
+
+co_inside <- function(path, root) {
+  a <- normalizePath(path, winslash = "/", mustWork = FALSE)
+  b <- normalizePath(root, winslash = "/", mustWork = FALSE)
+  identical(a, b) || startsWith(paste0(a, "/"), paste0(b, "/"))
 }
 
-co_root_candidate <- dirname(dirname(co_binding_dir))   # bindings/r -> root
+if (co_test_installed) {
+  if (!requireNamespace("causalontology", quietly = TRUE)) {
+    stop("CAUSALONTOLOGY_TEST_INSTALLED is set but the 'causalontology' ",
+         "package is not installed in .libPaths(): ",
+         paste(.libPaths(), collapse = ", "), call. = FALSE)
+  }
+  co_ns <- asNamespace("causalontology")
+  co_loaded <- normalizePath(getNamespaceInfo(co_ns, "path"), mustWork = FALSE)
+  if (co_inside(co_loaded, co_root_candidate)) {
+    stop("CAUSALONTOLOGY_TEST_INSTALLED is set but the repository copy was ",
+         "loaded: ", co_loaded, call. = FALSE)
+  }
+  # The runner exercises package internals as well as the exported API, so
+  # the whole namespace goes on the search path, just after the global env.
+  attach(as.list(co_ns, all.names = TRUE), name = "causalontology_installed",
+         warn.conflicts = FALSE)
+  cat(sprintf("binding under test: %s\n", co_loaded))
+} else {
+  for (co_src in c("json.R", "jcs.R", "canonical.R", "signing.R",
+                   "schema.R", "semantics.R", "store.R")) {
+    source(file.path(co_binding_dir, "R", co_src))
+  }
+}
+
+# -- bundled schema drift guard -------------------------------------------
+# The vendored copy that ships inside the package must never go stale: when
+# a bundled copy and the repository's spec/schema are both present they must
+# be byte-identical.
+co_spec_schema_dir <- file.path(co_root_candidate, "spec", "schema")
+if (dir.exists(co_spec_schema_dir)) {
+  co_bundled_dirs <- unique(c(
+    file.path(co_binding_dir, "inst", "schema"),
+    tryCatch(system.file("schema", package = "causalontology"),
+             error = function(e) "")))
+  co_bytes <- function(p) readBin(p, "raw", n = file.info(p)$size)
+  for (co_bd in co_bundled_dirs) {
+    if (!nzchar(co_bd) || !dir.exists(co_bd)) next
+    for (co_sf in sort(Sys.glob(file.path(co_spec_schema_dir,
+                                          "*.schema.json")))) {
+      co_bf <- file.path(co_bd, basename(co_sf))
+      if (!file.exists(co_bf) ||
+          !identical(co_bytes(co_bf), co_bytes(co_sf))) {
+        stop("bundled schema drift: ", basename(co_sf),
+             " differs from spec/schema (", co_bd,
+             ") - re-copy before building", call. = FALSE)
+      }
+    }
+  }
+}
+
 if (dir.exists(file.path(co_root_candidate, "conformance", "vectors"))) {
   co_set_root(co_root_candidate)
 } else {

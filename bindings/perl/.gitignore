@@ -1,0 +1,6 @@
+# The repository-root .gitignore treats MANIFEST as a MakeMaker build output
+# (`make manifest` can regenerate one). For this distribution it is a real
+# source file: it is what makes `make dist` ship share/schema/*.schema.json,
+# the twenty-one vendored JSON Schemas the binding needs to validate anything
+# without a repository checkout. Un-ignore it so a fresh clone packs correctly.
+!MANIFEST

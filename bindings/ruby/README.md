@@ -16,7 +16,7 @@ Requires **Ruby 3.0 or newer** (CI runs 3.3).
 | `lib/causalontology/canonical.rb` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify` (spec/identity.md) |
 | `lib/causalontology/ed25519.rb` | pure-Ruby Ed25519 (RFC 8032) over native bignums, verified against the RFC's TEST 1 known answer before any vector runs |
 | `lib/causalontology/signing.rb` | record-level `sign_record` / `verify_record` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `lib/causalontology/schema.rb` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `lib/causalontology/schema.rb` | validation against the twenty-one JSON Schemas vendored at `lib/causalontology/spec/schema/`, a byte-for-byte copy of `spec/schema/` that ships inside the gem (a small interpreter for exactly the keywords those schemas use) |
 | `lib/causalontology/semantics.rb` | the semantic rules: temporal admissibility with the fixed unit constants (months 2629746 s, years 31556952 s) and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule, enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check, and the prediction-to-observation pairing |
 | `lib/causalontology/store.rb` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps` read — Ruby Hashes preserve insertion order, and the iteration order deliberately mirrors the reference store's |
 | `conformance.rb` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
@@ -30,11 +30,48 @@ $ ruby bindings/ruby/conformance.rb
 causalontology-ruby is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
-environment variable when set, otherwise from its own location inside
-`bindings/ruby/`; the schemas are read from `spec/schema` under the same
-root (overridable with `CAUSALONTOLOGY_SPEC`, which names the `spec/`
-directory).
+The runner locates the vectors from the `CAUSALONTOLOGY_ROOT` environment
+variable when set, otherwise from its own location inside `bindings/ruby/`.
+
+The schemas are resolved in strict precedence:
+
+1. `$CAUSALONTOLOGY_SPEC/schema`, when that variable is set (it names the
+   `spec/` directory, not the `schema/` directory);
+2. the copy vendored at `lib/causalontology/spec/schema`, which travels
+   inside the gem and is what an installed consumer validates against;
+3. the repository-relative `spec/schema`, a last resort for a checkout in
+   which the vendored copy has not been made yet.
+
+Before running the vectors, the runner checks the vendored copy byte-for-byte
+against `spec/schema` and aborts on any drift, so the published gem can never
+quietly enforce a different standard than the repository states.
+
+### Testing the installed gem rather than the working tree
+
+By default the runner loads the working tree next to it. Set
+`CAUSALONTOLOGY_TEST_INSTALLED=1` and it instead loads the binding the way a
+real consumer does, through a plain `require "causalontology"` resolved by
+RubyGems; it prints the path it actually loaded and aborts if that path lies
+inside the repository. Without that refusal a "fresh install" check silently
+exercises repository source through a relative path and reports a false pass.
+
+```
+$ cd bindings/ruby                       # RubyGems resolves manifest paths
+$ gem build causalontology.gemspec -o /tmp/causalontology-4.0.0.gem
+                                         # against the working directory
+$ gem install --install-dir /tmp/gemhome --no-document --local \
+    /tmp/causalontology-4.0.0.gem
+$ cd /tmp && env -u CAUSALONTOLOGY_SPEC GEM_HOME=/tmp/gemhome GEM_PATH=/tmp/gemhome \
+    CAUSALONTOLOGY_TEST_INSTALLED=1 CAUSALONTOLOGY_ROOT=/path/to/causalontology \
+    ruby /tmp/gemhome/gems/causalontology-4.0.0/conformance.rb
+binding under test: /tmp/gemhome/gems/causalontology-4.0.0/lib/causalontology.rb
+...
+137/137 vectors passed
+```
+
+The gemspec itself refuses to build if the vendored schemas are absent,
+incomplete, or byte-different from `spec/schema`, so a gem that cannot
+validate can never be produced in the first place.
 
 The V01–V107 vectors are the whole-word 2.0.0 baseline (2026-07-13): they
 carry concrete identifiers, real keys, and a real verifying signature, and

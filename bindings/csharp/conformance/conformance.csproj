@@ -11,8 +11,31 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- Where this runner's sources live, baked in at build time. It is the
+       C# equivalent of Python's __file__ and Node's __dirname: it lets an
+       installed-mode run locate conformance/vectors and spec/schema even
+       when the built runner lives outside the repository. It is used only
+       as a fallback, after CAUSALONTOLOGY_ROOT and the walk-up from the
+       working directory, so repo-mode behaviour is unchanged. -->
   <ItemGroup>
+    <AssemblyMetadata Include="CausalontologySourceRoot"
+                      Value="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../..'))" />
+  </ItemGroup>
+
+  <!-- Default: the repository sources, exactly as before.
+       With CAUSALONTOLOGY_TEST_INSTALLED set, the runner is instead built
+       against the published NuGet package, the way a real consumer would
+       reference it - so a "fresh install" test cannot silently exercise
+       the repository copy. Restore it from a local feed holding the packed
+       artifact, e.g.:
+         dotnet pack bindings/csharp/Causalontology -o /tmp/feed
+         CAUSALONTOLOGY_TEST_INSTALLED=1 dotnet build \
+             bindings/csharp/conformance -s /tmp/feed -o /tmp/installed -->
+  <ItemGroup Condition="'$(CAUSALONTOLOGY_TEST_INSTALLED)' == ''">
     <ProjectReference Include="../Causalontology/Causalontology.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(CAUSALONTOLOGY_TEST_INSTALLED)' != ''">
+    <PackageReference Include="causalontology" Version="4.0.0" />
   </ItemGroup>
 
 </Project>

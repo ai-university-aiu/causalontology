@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'canonical.dart';
+import 'spec_schema.g.dart';
 
 /// kind -> schema file. Three token kinds keep their original 1.0.0-reserved
 /// file names (individual/token/state); the id scheme is the whole word.
@@ -73,6 +74,14 @@ Directory schemaDir() {
 
 Map<String, dynamic> _loadFile(String filename) {
   return _cache.putIfAbsent(filename, () {
+    // The CAUSALONTOLOGY_SPEC override wins, so a caller can always point the
+    // binding at a working tree; otherwise the compiled-in copy is used, which
+    // is what makes the published package validate standalone; the repository
+    // walk remains only for a schema file the embedded map does not carry.
+    final env = Platform.environment['CAUSALONTOLOGY_SPEC'];
+    if ((env == null || env.isEmpty) && embeddedSchemas.containsKey(filename)) {
+      return jsonDecode(embeddedSchemas[filename]!) as Map<String, dynamic>;
+    }
     final path = '${schemaDir().path}${Platform.pathSeparator}$filename';
     return jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
   });

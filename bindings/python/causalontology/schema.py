@@ -47,6 +47,9 @@ def _schema_dir():
     env = os.environ.get("CAUSALONTOLOGY_SPEC")
     if env:
         return Path(env) / "schema"
+    bundled = Path(__file__).resolve().parent / "spec" / "schema"
+    if bundled.is_dir():
+        return bundled
     return Path(__file__).resolve().parents[3] / "spec" / "schema"
 
 

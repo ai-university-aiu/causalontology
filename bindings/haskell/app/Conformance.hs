@@ -16,7 +16,16 @@ import Causalontology.Canonical (identify)
 import Causalontology.Ed25519 (edSign, edVerify, secretToPublic)
 import Causalontology.Jcs (jcs)
 import Causalontology.Json
-import Causalontology.Schema (Schemas, loadSchemas, validateSchema)
+import Causalontology.Schema
+  ( SchemaOrigin (..)
+  , Schemas
+  , bundledSchemaDir
+  , loadSchemas
+  , originLabel
+  , packageDataDir
+  , schemaDirWithOrigin
+  , validateSchema
+  )
 import Causalontology.Semantics
   ( admissible
   , bridgeWellformed
@@ -44,17 +53,24 @@ import Causalontology.Sha2 (hexDecode, hexEncode, sha256, sha512)
 import Causalontology.Signing (keypairFromSeed, signRecord, verifyRecord)
 import Causalontology.Store
 import Control.Exception (SomeException, evaluate, try)
-import Control.Monad (foldM)
+import Control.Monad (foldM, unless, when)
 import qualified Data.ByteString as B
-import Data.List (isInfixOf, isPrefixOf, nub, sort)
+import Data.List (isInfixOf, isPrefixOf, isSuffixOf, nub, sort)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust)
 import qualified Data.Set as Set
 import Data.Word (Word8)
-import System.Directory (doesDirectoryExist, getCurrentDirectory, listDirectory)
-import System.Environment (lookupEnv)
-import System.Exit (exitFailure)
-import System.FilePath (dropExtension, takeDirectory, (</>))
+import System.Directory
+  ( canonicalizePath
+  , doesDirectoryExist
+  , doesFileExist
+  , getCurrentDirectory
+  , listDirectory
+  )
+import System.Environment (getExecutablePath, lookupEnv)
+import System.Exit (die, exitFailure)
+import System.FilePath (addTrailingPathSeparator, dropExtension, takeDirectory, (</>))
+import System.IO.Error (catchIOError)
 import System.IO (hFlush, stdout)
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -1449,6 +1465,123 @@ findRoot = do
             then ioError (userError "cannot locate the repository root (set CAUSALONTOLOGY_ROOT)")
             else climb parent
 
+-- | Canonicalize without ever throwing (the path need not exist).
+safeCanonical :: FilePath -> IO FilePath
+safeCanonical p = canonicalizePath p `catchIOError` \_ -> return p
+
+-- | Is @anc@ the same directory as, or an ancestor of, @p@? Both paths
+-- must already be canonical.
+isAncestorOf :: FilePath -> FilePath -> Bool
+isAncestorOf anc p = anc == p || addTrailingPathSeparator anc `isPrefixOf` p
+
+-- | Installed-mode de-masking. With @CAUSALONTOLOGY_TEST_INSTALLED@ set the
+-- runner must be exercising a real consumer's copy of the binding, so any
+-- resolved path that still points inside the repository tree is a hard
+-- failure: that is exactly the false 137\/137 this guard exists to stop.
+-- Reports the copy under test. With the variable unset this does nothing,
+-- so repo-mode behaviour is unchanged.
+reportBindingUnderTest :: Bool -> FilePath -> FilePath -> SchemaOrigin -> IO ()
+reportBindingUnderTest installedMode root schemaDir origin = do
+  dataDir <- packageDataDir >>= safeCanonical
+  exePath <- (getExecutablePath >>= safeCanonical) `catchIOError` \_ -> return ""
+  schemaDirC <- safeCanonical schemaDir
+  rootC <- safeCanonical root
+  if not installedMode
+    then return ()
+    else do
+      when (rootC `isAncestorOf` dataDir) $
+        die
+          ( "CAUSALONTOLOGY_TEST_INSTALLED is set but the binding resolves inside "
+              ++ "the repository tree: "
+              ++ dataDir
+              ++ " (build and install the package, then run the installed conformance binary)"
+          )
+      -- independent of CAUSALONTOLOGY_ROOT: an installed share directory
+      -- never contains the package's own .cabal file, a source checkout does
+      inSourceTree <- doesFileExist (dataDir </> "causalontology.cabal")
+      when inSourceTree $
+        die
+          ( "CAUSALONTOLOGY_TEST_INSTALLED is set but the binding resolves to the "
+              ++ "package source directory, not an installed copy: "
+              ++ dataDir
+          )
+      unless (null exePath) $
+        when (rootC `isAncestorOf` exePath) $
+          die
+            ( "CAUSALONTOLOGY_TEST_INSTALLED is set but the conformance binary is "
+                ++ "inside the repository tree: "
+                ++ exePath
+            )
+      -- the point of installed mode is to exercise the copy that travels
+      -- inside the artifact, so nothing else counts: a repository checkout
+      -- is the masked failure itself, and CAUSALONTOLOGY_SPEC would leave
+      -- the bundled copy untested even when it points somewhere harmless
+      unless (origin == SchemaFromBundle) $
+        die
+          ( "CAUSALONTOLOGY_TEST_INSTALLED is set but the schemas did not come "
+              ++ "from the copy bundled inside the installed package; they came "
+              ++ "from "
+              ++ originLabel origin
+              ++ ": "
+              ++ schemaDirC
+              ++ " (run with `env -u CAUSALONTOLOGY_SPEC` so the installed "
+              ++ "package's own spec_schema copy is the one under test)"
+          )
+      when (rootC `isAncestorOf` schemaDirC) $
+        die
+          ( "CAUSALONTOLOGY_TEST_INSTALLED is set but the schemas resolve inside "
+              ++ "the repository tree: "
+              ++ schemaDirC
+          )
+      putStrLn ("binding under test: " ++ dataDir)
+      putStrLn ("conformance binary: " ++ exePath)
+      putStrLn ("schemas under test: " ++ schemaDirC ++ " (" ++ originLabel origin ++ ")")
+
+-- | Drift guard. When both the vendored copy and the repository's
+-- normative @spec\/schema@ are present they must agree byte for byte, so
+-- the bundled copy can never go quietly stale.
+checkBundledSchemaDrift :: FilePath -> IO ()
+checkBundledSchemaDrift root = do
+  mBundled <- bundledSchemaDir
+  let specDir = root </> "spec" </> "schema"
+  specPresent <- doesDirectoryExist specDir
+  case (mBundled, specPresent) of
+    (Just bundled, True) -> do
+      names <- fmap (sort . filter (".schema.json" `isSuffixOf`)) (listDirectory specDir)
+      bundledNames <- fmap (sort . filter (".schema.json" `isSuffixOf`)) (listDirectory bundled)
+      unless (bundledNames == names) $
+        die
+          ( "bundled schema drift: "
+              ++ bundled
+              ++ " holds "
+              ++ show bundledNames
+              ++ " but spec/schema holds "
+              ++ show names
+              ++ " - re-copy spec/schema before building"
+          )
+      mapM_ (compareOne bundled specDir) names
+    _ -> return ()
+  where
+    compareOne bundled specDir name = do
+      let bundledFile = bundled </> name
+      present <- doesFileExist bundledFile
+      unless present $
+        die
+          ( "bundled schema drift: "
+              ++ name
+              ++ " is missing from "
+              ++ bundled
+              ++ " - re-copy spec/schema before building"
+          )
+      bundledBytes <- B.readFile bundledFile
+      specBytes <- B.readFile (specDir </> name)
+      when (bundledBytes /= specBytes) $
+        die
+          ( "bundled schema drift: "
+              ++ name
+              ++ " differs from spec/schema - re-copy before building"
+          )
+
 -- | Load vector n: its display name (file stem) and parsed JSON.
 vectorFile :: FilePath -> Int -> IO (String, JValue)
 vectorFile vecDir n = do
@@ -1490,11 +1623,13 @@ runOne schemas loaded n = do
 main :: IO ()
 main = do
   root <- findRoot
-  specEnv <- lookupEnv "CAUSALONTOLOGY_SPEC"
-  let specDir = fromMaybe (root </> "spec") specEnv
-      vecDir = root </> "conformance" </> "vectors"
+  installedMode <- fmap isJust (lookupEnv "CAUSALONTOLOGY_TEST_INSTALLED")
+  (schemaDir, origin) <- schemaDirWithOrigin
+  checkBundledSchemaDrift root
+  reportBindingUnderTest installedMode root schemaDir origin
+  let vecDir = root </> "conformance" </> "vectors"
       total = 137
-  schemas <- loadSchemas (specDir </> "schema")
+  schemas <- loadSchemas schemaDir
   loaded <- mapM (\n -> do (nm, jv) <- vectorFile vecDir n; return (n, (nm, jv))) [1 .. total]
   putStrLn "causalontology-haskell conformance run (specification 4.0.0)"
   putStr "internal checks (RFC 8032, RFC 8785, fixed constants, ground-truth ids) ... "

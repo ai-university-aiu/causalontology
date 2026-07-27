@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"strings"
 
 	co "github.com/ai-university-aiu/causalontology/bindings/go/v4/causalontology"
@@ -154,6 +155,45 @@ func findRepoRoot() (string, error) {
 	}
 	return "", errors.New(
 		"no conformance/vectors above the working directory; set CAUSALONTOLOGY_ROOT")
+}
+
+// realPath makes a path absolute and resolves symbolic links, so the
+// containment test below cannot be fooled by a relative path, a "..", or a
+// symlink pointing back into the checkout.
+func realPath(path string) string {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return path
+	}
+	if resolved, err := filepath.EvalSymlinks(absolute); err == nil {
+		return resolved
+	}
+	return absolute
+}
+
+// assertOutsideRepo is the installed-mode guard: the binding being exercised
+// must not live inside the repository tree. A relative import, a `replace`
+// directive pointing at the checkout, or a stray GOFLAGS all land inside the
+// repository, and each of them turns an installed-mode run back into a
+// repository run while still printing a pass.
+func assertOutsideRepo(bindingPath, repoRoot string) error {
+	if bindingPath == "" || strings.HasPrefix(bindingPath, "<") {
+		return errors.New(
+			"cannot determine the binding path, so installed mode cannot be trusted; " +
+				"build the conformance command without -trimpath")
+	}
+	binding := realPath(bindingPath)
+	repo := realPath(repoRoot)
+	relative, err := filepath.Rel(repo, binding)
+	if err == nil && relative != ".." &&
+		!strings.HasPrefix(relative, ".."+string(filepath.Separator)) &&
+		!filepath.IsAbs(relative) {
+		return fmt.Errorf(
+			"the binding under test is inside the repository (%s is under %s); "+
+				"installed mode must resolve the module the way a consumer does, "+
+				"from the module cache", binding, repo)
+	}
+	return nil
 }
 
 // vec loads vector n's JSON file.
@@ -2832,7 +2872,56 @@ func main() {
 		os.Exit(1)
 	}
 	vectorsDir = filepath.Join(root, "conformance", "vectors")
-	co.SetSchemaDir(filepath.Join(root, "spec", "schema"))
+
+	installed := os.Getenv("CAUSALONTOLOGY_TEST_INSTALLED") != ""
+
+	// Say out loud which copy of the binding is being exercised. The defect
+	// this guard exists for was a "fresh install" test that resolved the
+	// library by relative path and so reported 137/137 for an artifact that
+	// carried no schemas at all.
+	bindingPath := co.BindingPath()
+	if bindingPath == "" {
+		bindingPath = "<unknown: built with -trimpath>"
+	}
+	fmt.Printf("binding under test: %s\n", bindingPath)
+	if info, ok := debug.ReadBuildInfo(); ok {
+		version := info.Main.Version
+		for _, dep := range info.Deps {
+			if dep.Path == "github.com/ai-university-aiu/causalontology/bindings/go/v4" {
+				version = dep.Version
+			}
+		}
+		fmt.Printf("module under test: %s %s\n",
+			"github.com/ai-university-aiu/causalontology/bindings/go/v4", version)
+	}
+	fmt.Printf("embedded schemas: %d\n", len(co.EmbeddedSchemaNames()))
+
+	// CAUSALONTOLOGY_ROOT locates the vectors only. In installed mode the
+	// schemas must come from the module's own compiled-in copy - pointing them
+	// at the repository is exactly what let a module with no schemas in it
+	// report 137/137. Repo mode keeps reading spec/schema so an edit there is
+	// picked up immediately during development.
+	if installed {
+		if err := assertOutsideRepo(bindingPath, root); err != nil {
+			fmt.Printf("installed-mode check FAILED :: %v\n", err)
+			os.Exit(1)
+		}
+		if spec := os.Getenv("CAUSALONTOLOGY_SPEC"); spec != "" {
+			fmt.Printf("installed-mode check FAILED :: CAUSALONTOLOGY_SPEC is set (%s); "+
+				"installed mode must read the compiled-in schemas, so run with "+
+				"`env -u CAUSALONTOLOGY_SPEC`\n", spec)
+			os.Exit(1)
+		}
+		fmt.Println("schema source: compiled into the module (embed.FS)")
+	} else {
+		co.SetSchemaDir(filepath.Join(root, "spec", "schema"))
+		fmt.Println("schema source: spec/schema under the repository root")
+	}
+	if err := co.CheckEmbeddedSchemaDrift(
+		filepath.Join(root, "spec", "schema")); err != nil {
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
+	}
 
 	fmt.Println("causalontology-go conformance run (specification 4.0.0)")
 	fmt.Print("internal checks (RFC 8032, RFC 8785, fixed constants, ground-truth ids) ... ")

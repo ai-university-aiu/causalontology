@@ -21,11 +21,51 @@
 require "json"
 require "digest"
 require "set"
-require_relative "lib/causalontology"
 
-C = Causalontology
 ROOT = ENV["CAUSALONTOLOGY_ROOT"] || File.expand_path("../..", __dir__)
 VECDIR = File.join(ROOT, "conformance", "vectors")
+
+# How the binding under test is loaded.
+#
+# The default (no environment variable) is unchanged: load the working tree
+# sitting next to this file, which is what repo-mode development wants.
+#
+# With CAUSALONTOLOGY_TEST_INSTALLED set, load it the way a real consumer
+# does - a plain "require" resolved through RubyGems against the installed
+# gem - and refuse to run if what actually got loaded turns out to live
+# inside the repository. Without that refusal a "fresh install" test happily
+# exercises the repository source through a relative path and reports a false
+# pass, which is precisely how the missing-schema defect reached production.
+if ENV["CAUSALONTOLOGY_TEST_INSTALLED"]
+  require "causalontology"
+  entry = $LOADED_FEATURES.find { |f| f.end_with?(File::SEPARATOR + "causalontology.rb") }
+  abort "CAUSALONTOLOGY_TEST_INSTALLED is set but no causalontology.rb was loaded" unless entry
+  entry = File.realpath(entry)
+  if entry.start_with?(File.realpath(ROOT) + File::SEPARATOR)
+    abort "CAUSALONTOLOGY_TEST_INSTALLED is set but the repository copy was loaded: #{entry}"
+  end
+  puts "binding under test: #{entry}"
+else
+  require_relative "lib/causalontology"
+end
+
+C = Causalontology
+
+# Drift guard. The schemas vendored into the gem are the ones an installed
+# consumer validates against, so they must stay byte-for-byte identical to
+# the spec. If they silently go stale the published artifact enforces a
+# different standard than the repository claims.
+BUNDLED_SCHEMAS = File.expand_path("lib/causalontology/spec/schema", __dir__)
+SPEC_SCHEMAS = File.join(ROOT, "spec", "schema")
+if File.directory?(BUNDLED_SCHEMAS) && File.directory?(SPEC_SCHEMAS)
+  Dir.glob(File.join(SPEC_SCHEMAS, "*.schema.json")).sort.each do |src|
+    dst = File.join(BUNDLED_SCHEMAS, File.basename(src))
+    unless File.exist?(dst) && File.binread(dst) == File.binread(src)
+      abort "bundled schema drift: #{File.basename(src)} differs from " \
+            "spec/schema - re-copy before packing"
+    end
+  end
+end
 
 # ---------------------------------------------------------------------------
 # assertion helper

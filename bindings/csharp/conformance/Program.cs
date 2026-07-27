@@ -14,6 +14,7 @@
 // names (seed = sha256("key:" + name)), mirroring
 // bindings/python/tests/run_conformance.py exactly.
 
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -85,7 +86,37 @@ internal static class Program
         return output;
     }
 
-    // the repository root: CAUSALONTOLOGY_ROOT, else a walk up from cwd
+    // true when we are being asked to test an installed copy of the binding
+    private static bool TestingInstalled() => !string.IsNullOrEmpty(
+        Environment.GetEnvironmentVariable("CAUSALONTOLOGY_TEST_INSTALLED"));
+
+    // the directory this runner's sources were built from, baked in by
+    // conformance.csproj (see AssemblyMetadata there); null if absent
+    private static string? SourceRoot()
+    {
+        foreach (var attribute in typeof(Program).Assembly
+                     .GetCustomAttributes<AssemblyMetadataAttribute>())
+        {
+            if (attribute.Key == "CausalontologySourceRoot")
+                return attribute.Value;
+        }
+        return null;
+    }
+
+    // whether path lies inside root
+    private static bool IsInside(string path, string root)
+    {
+        var prefix = Path.GetFullPath(root)
+                         .TrimEnd(Path.DirectorySeparatorChar)
+                     + Path.DirectorySeparatorChar;
+        return Path.GetFullPath(path).StartsWith(prefix, StringComparison.Ordinal);
+    }
+
+    // the repository root: CAUSALONTOLOGY_ROOT, else a walk up from cwd,
+    // else - only when neither finds it, so repo-mode behaviour is
+    // unchanged - the source directory baked in at build time, which is
+    // what lets an installed-mode run outside the repository still read
+    // conformance/vectors
     private static string FindRepoRoot()
     {
         var env = Environment.GetEnvironmentVariable("CAUSALONTOLOGY_ROOT");
@@ -98,9 +129,95 @@ internal static class Program
                 return dir;
             dir = Path.GetDirectoryName(dir);
         }
+        var source = SourceRoot();
+        if (source is not null
+            && Directory.Exists(Path.Combine(source, "conformance", "vectors")))
+            return source;
         throw new DirectoryNotFoundException(
             "no conformance/vectors above the working directory; "
             + "set CAUSALONTOLOGY_ROOT");
+    }
+
+    // The vendored copy must never silently go stale: whenever both the
+    // normative spec/schema and bindings/csharp/spec_schema are reachable,
+    // they must be byte-for-byte identical.
+    private static void DriftGuard(string root)
+    {
+        var spec = Path.Combine(root, "spec", "schema");
+        var vendored = Path.Combine(root, "bindings", "csharp", "spec_schema");
+        if (!Directory.Exists(spec) || !Directory.Exists(vendored))
+            return;
+        var files = Directory.GetFiles(spec, "*.schema.json");
+        Array.Sort(files, StringComparer.Ordinal);
+        foreach (var file in files)
+        {
+            var name = Path.GetFileName(file);
+            var copy = Path.Combine(vendored, name);
+            if (!File.Exists(copy)
+                || !File.ReadAllBytes(copy).SequenceEqual(File.ReadAllBytes(file)))
+            {
+                Console.Error.WriteLine(
+                    $"bundled schema drift: {name} differs from spec/schema "
+                    + "- re-copy before packing");
+                Environment.Exit(1);
+            }
+        }
+        // the other direction: a schema retired from spec/schema must not
+        // linger in the vendored copy and ship inside the package
+        var normative = files.Select(Path.GetFileName).ToHashSet(
+            StringComparer.Ordinal);
+        var vendoredFiles = Directory.GetFiles(vendored, "*.schema.json");
+        Array.Sort(vendoredFiles, StringComparer.Ordinal);
+        foreach (var file in vendoredFiles)
+        {
+            var name = Path.GetFileName(file);
+            if (!normative.Contains(name))
+            {
+                Console.Error.WriteLine(
+                    $"bundled schema drift: {name} is no longer in spec/schema "
+                    + "- delete it before packing");
+                Environment.Exit(1);
+            }
+        }
+    }
+
+    // In installed mode the binding must come from the packaged artifact,
+    // never from the repository tree, and the schemas it validates against
+    // must come with it - otherwise a "fresh install" test proves nothing.
+    private static void CheckInstalled(string root)
+    {
+        var location = typeof(SchemaValidator).Assembly.Location;
+        if (string.IsNullOrEmpty(location))
+        {
+            Console.Error.WriteLine(
+                "CAUSALONTOLOGY_TEST_INSTALLED is set but the binding "
+                + "assembly has no on-disk location to verify");
+            Environment.Exit(1);
+        }
+        var resolved = Path.GetFullPath(location);
+        if (IsInside(resolved, root))
+        {
+            Console.Error.WriteLine(
+                "CAUSALONTOLOGY_TEST_INSTALLED is set but the repository "
+                + $"copy was loaded: {resolved}");
+            Environment.Exit(1);
+        }
+        Console.WriteLine($"binding under test: {resolved}");
+
+        var source = SchemaValidator.SchemaSource();
+        Console.WriteLine($"schema source: {source}");
+        var colon = source.IndexOf(':');
+        if (colon >= 0)
+        {
+            var dir = source[(colon + 1)..];
+            if (dir.Length > 0 && IsInside(dir, root))
+            {
+                Console.Error.WriteLine(
+                    "CAUSALONTOLOGY_TEST_INSTALLED is set but the schemas "
+                    + $"were read from the repository tree: {dir}");
+                Environment.Exit(1);
+            }
+        }
     }
 
     private static string VectorPath(int n)
@@ -2145,10 +2262,17 @@ internal static class Program
     {
         var root = FindRepoRoot();
         _vectorsDir = Path.Combine(root, "conformance", "vectors");
-        Environment.SetEnvironmentVariable(
-            "CAUSALONTOLOGY_SPEC", Path.Combine(root, "spec"));
+        if (!TestingInstalled())
+        {
+            // repo mode, unchanged: validate against the normative sources
+            Environment.SetEnvironmentVariable(
+                "CAUSALONTOLOGY_SPEC", Path.Combine(root, "spec"));
+        }
 
         Console.WriteLine("causalontology-csharp conformance run");
+        DriftGuard(root);
+        if (TestingInstalled())
+            CheckInstalled(root);
         Console.Write(
             "internal checks (RFC 8032 known-answer, RFC 8785 basics) ... ");
         InternalChecks();

@@ -45,9 +45,18 @@ module Causalontology
     @cache = {}
 
     class << self
+      # Where the twenty-one *.schema.json files live, in strict precedence:
+      #
+      #   (a) $CAUSALONTOLOGY_SPEC/schema  - explicit override, always wins;
+      #   (b) the copy vendored inside the gem - what an installed consumer
+      #       uses, so validation works standalone with no repository present;
+      #   (c) the repository-relative path - last resort, for working directly
+      #       in a checkout where (b) has not been vendored yet.
       def schema_dir
         env = ENV["CAUSALONTOLOGY_SPEC"]
         return File.join(env, "schema") if env && !env.empty?
+        bundled = File.expand_path("spec/schema", __dir__)
+        return bundled if File.directory?(bundled)
         # lib/causalontology -> lib -> ruby -> bindings -> repository root
         File.expand_path("../../../../spec/schema", __dir__)
       end

@@ -39,17 +39,62 @@ co_schema_files <- c(
 
 co_schema_base <- "https://causalontology.org/schema/"
 
+# The directory of this source file, captured while it is being source()d.
+# It is "" when the package has been installed (the file is not source()d
+# then, and system.file() is the right answer instead).
+co_schema_source_dir <- local({
+  found <- ""
+  n <- sys.nframe()
+  if (n > 0L) {
+    for (i in seq_len(n)) {
+      of <- tryCatch(get("ofile", envir = sys.frame(i), inherits = FALSE),
+                     error = function(e) NULL)
+      if (is.character(of) && length(of) == 1L && nzchar(of)) {
+        found <- dirname(normalizePath(of, mustWork = FALSE))
+        break
+      }
+    }
+  }
+  found
+})
+
+# The vendored (bundled) schema directory that ships inside the package, or
+# "" when there is none. Two shapes are recognised, in this order:
+#   * the installed package's inst/schema, via system.file(); and
+#   * the source tree's bindings/r/inst/schema, when R/schema.R was sourced.
+# Both are the same twenty-one files; the conformance runner's drift guard
+# enforces that they stay byte-identical to spec/schema.
+co_bundled_schema_dir <- function() {
+  p <- tryCatch(system.file("schema", package = "causalontology"),
+                error = function(e) "")
+  if (length(p) == 1L && nzchar(p) && dir.exists(p) &&
+      file.exists(file.path(p, "occurrent.schema.json"))) {
+    return(p)
+  }
+  if (nzchar(co_schema_source_dir)) {
+    q <- file.path(dirname(co_schema_source_dir), "inst", "schema")
+    if (dir.exists(q) && file.exists(file.path(q, "occurrent.schema.json"))) {
+      return(q)
+    }
+  }
+  ""
+}
+
+# Where the twenty-one specification schemas live at run time. Precedence:
+#   (a) $CAUSALONTOLOGY_SPEC, an explicit specification tree, always wins;
+#   (b) the vendored copy that ships inside the package, so an installed
+#       artifact validates standalone with no repository present;
+#   (c) the repository checkout's spec/schema, as a last resort, so working
+#       straight from a clone still resolves.
 co_schema_dir <- function() {
   env <- Sys.getenv("CAUSALONTOLOGY_SPEC", unset = "")
   if (nzchar(env)) return(file.path(env, "schema"))
-  # In-repo / sourced: the standard's spec/schema is the source of truth.
+  bundled <- co_bundled_schema_dir()
+  if (nzchar(bundled)) return(bundled)
   root <- tryCatch(co_repo_root(), error = function(e) NULL)
   if (!is.null(root) && dir.exists(file.path(root, "spec", "schema"))) {
     return(file.path(root, "spec", "schema"))
   }
-  # Installed package: the schemas bundled under inst/schema.
-  p <- system.file("schema", package = "causalontology")
-  if (nzchar(p) && dir.exists(p)) return(p)
   stop("cannot locate the specification schemas")
 }
 

@@ -8,6 +8,16 @@ version = "4.0.0-1"
 source = {
   url = "git+https://github.com/ai-university-aiu/causalontology.git",
   tag = "v4.0.0",
+  -- Every path in build.modules and build.install below is relative to this
+  -- directory, and this directory is relative to whatever the fetch left
+  -- behind.  LuaRocks clones a git source into a directory named after the
+  -- URL's last component with ".git" removed - here "causalontology" - so the
+  -- binding sits at causalontology/bindings/lua.  Without this line LuaRocks
+  -- would chdir into the clone root and look for causalontology/init.lua
+  -- there, find nothing, and `luarocks install causalontology` would fail
+  -- outright.  ("luarocks make", run from inside bindings/lua, ignores
+  -- source.dir entirely, which is why a checkout-local build never noticed.)
+  dir = "causalontology/bindings/lua",
 }
 
 description = {
@@ -46,5 +56,59 @@ build = {
     ["causalontology.semantics"] = "causalontology/semantics.lua",
     ["causalontology.signing"] = "causalontology/signing.lua",
     ["causalontology.store"] = "causalontology/store.lua",
+  },
+  -- The twenty-one JSON Schemas are data, not modules, so they ship through
+  -- build.install.lua.  LuaRocks turns a string key into a directory under the
+  -- Lua tree (the last dotted component is dropped) and keeps the source file's
+  -- own name for anything that is not a .lua file, so each entry below lands at
+  --   <lua tree>/causalontology/spec/schema/<name>.schema.json
+  -- which is exactly where causalontology/schema.lua looks for them.  Without
+  -- this table the published rock carries no schemas at all and cannot
+  -- validate anything standalone.
+  install = {
+    lua = {
+      ["causalontology.spec.schema.occurrent"] =
+        "causalontology/spec/schema/occurrent.schema.json",
+      ["causalontology.spec.schema.causal_relation_object"] =
+        "causalontology/spec/schema/causal_relation_object.schema.json",
+      ["causalontology.spec.schema.continuant"] =
+        "causalontology/spec/schema/continuant.schema.json",
+      ["causalontology.spec.schema.realizable"] =
+        "causalontology/spec/schema/realizable.schema.json",
+      ["causalontology.spec.schema.stratum"] =
+        "causalontology/spec/schema/stratum.schema.json",
+      ["causalontology.spec.schema.bridge"] =
+        "causalontology/spec/schema/bridge.schema.json",
+      ["causalontology.spec.schema.cross_stratal_seam"] =
+        "causalontology/spec/schema/cross_stratal_seam.schema.json",
+      ["causalontology.spec.schema.port"] =
+        "causalontology/spec/schema/port.schema.json",
+      ["causalontology.spec.schema.conduit"] =
+        "causalontology/spec/schema/conduit.schema.json",
+      ["causalontology.spec.schema.quality"] =
+        "causalontology/spec/schema/quality.schema.json",
+      ["causalontology.spec.schema.individual"] =
+        "causalontology/spec/schema/individual.schema.json",
+      ["causalontology.spec.schema.token"] =
+        "causalontology/spec/schema/token.schema.json",
+      ["causalontology.spec.schema.state"] =
+        "causalontology/spec/schema/state.schema.json",
+      ["causalontology.spec.schema.token_causal_claim"] =
+        "causalontology/spec/schema/token_causal_claim.schema.json",
+      ["causalontology.spec.schema.attitude"] =
+        "causalontology/spec/schema/attitude.schema.json",
+      ["causalontology.spec.schema.predicted_occurrence"] =
+        "causalontology/spec/schema/predicted_occurrence.schema.json",
+      ["causalontology.spec.schema.prediction_error"] =
+        "causalontology/spec/schema/prediction_error.schema.json",
+      ["causalontology.spec.schema.assertion"] =
+        "causalontology/spec/schema/assertion.schema.json",
+      ["causalontology.spec.schema.enrichment"] =
+        "causalontology/spec/schema/enrichment.schema.json",
+      ["causalontology.spec.schema.retraction"] =
+        "causalontology/spec/schema/retraction.schema.json",
+      ["causalontology.spec.schema.succession"] =
+        "causalontology/spec/schema/succession.schema.json",
+    },
   },
 }

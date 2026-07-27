@@ -6,8 +6,37 @@
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
+use File::Find ();
+
+# The twenty-one JSON Schemas are data the binding cannot validate without,
+# so they are shipped inside the distribution rather than read out of a
+# repository checkout. File::ShareDir::Install would be the usual vehicle,
+# but it is not a core module and this distribution deliberately has no CPAN
+# dependencies at all; instead the schemas ride along in the PM map and land
+# beside the modules at <libdir>/Causalontology/share/schema, which is where
+# Causalontology::Schema::_schema_dir() looks for them.
+my %PM;
+File::Find::find({
+    no_chdir => 1,
+    wanted   => sub {
+        return unless -f $_;
+        return unless /\.pm\z/;
+        (my $dest = $_) =~ s{\Alib/}{};
+        $PM{$_} = '$(INST_LIB)/' . $dest;
+    },
+}, 'lib');
+
+for my $schema (sort glob 'share/schema/*.schema.json') {
+    my ($file) = $schema =~ m{([^/]+)\z};
+    $PM{$schema} = '$(INST_LIB)/Causalontology/share/schema/' . $file;
+}
+
+die "Makefile.PL: no vendored schemas found under share/schema - "
+  . "copy spec/schema/*.schema.json there before building\n"
+    unless grep { m{\Ashare/schema/} } keys %PM;
 
 WriteMakefile(
+    PM               => \%PM,
     NAME             => 'Causalontology',
     DISTNAME         => 'Causalontology',
     VERSION_FROM     => 'lib/Causalontology.pm',

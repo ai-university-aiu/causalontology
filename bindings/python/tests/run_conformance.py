@@ -12,12 +12,14 @@ additions (attitude, predicted_occurrence, prediction_error).
 import glob
 import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve()
-sys.path.insert(0, str(HERE.parents[1]))          # bindings/python
+if not os.environ.get("CAUSALONTOLOGY_TEST_INSTALLED"):
+    sys.path.insert(0, str(HERE.parents[1]))      # repo mode; set the env var to test an installed copy
 ROOT = HERE.parents[3]                            # repository root
 VECDIR = ROOT / "conformance" / "vectors"
 
@@ -33,6 +35,47 @@ from causalontology import (                       # noqa: E402
 from causalontology import ed25519                 # noqa: E402
 from causalontology.canonical import _jcs          # noqa: E402
 from causalontology.semantics import ENRICHMENT_FIELDS  # noqa: E402
+import causalontology as _co_module                # noqa: E402
+
+_INSTALLED_MODE = bool(os.environ.get("CAUSALONTOLOGY_TEST_INSTALLED"))
+_LOADED = Path(_co_module.__file__).resolve()
+
+if _INSTALLED_MODE:
+    # A consumer's install must not be the repository checkout wearing a hat.
+    if ROOT == _LOADED or ROOT in _LOADED.parents:
+        sys.exit(f"CAUSALONTOLOGY_TEST_INSTALLED is set but the repository copy was imported: {_LOADED}")
+    # CAUSALONTOLOGY_SPEC would point the library back at a checkout and hide
+    # exactly the packaging defect this mode exists to catch.
+    if os.environ.get("CAUSALONTOLOGY_SPEC"):
+        sys.exit("CAUSALONTOLOGY_TEST_INSTALLED is set but CAUSALONTOLOGY_SPEC is also set; "
+                 "it would override the bundled schemas. Re-run with 'env -u CAUSALONTOLOGY_SPEC'.")
+    print(f"binding under test: {_LOADED}")
+    from causalontology import schema as _co_schema   # noqa: E402
+    _RESOLVED = _co_schema._schema_dir().resolve()
+    if not _RESOLVED.is_dir():
+        sys.exit(f"the installed binding resolved its schemas to a nonexistent directory: {_RESOLVED}")
+    if ROOT == _RESOLVED or ROOT in _RESOLVED.parents:
+        sys.exit(f"the installed binding resolved its schemas to a repository path: {_RESOLVED}")
+    print(f"schema directory in use: {_RESOLVED}")
+
+# Byte-for-byte drift guard. In installed mode this checks the schemas that
+# actually shipped inside the artifact; in repo mode it checks the vendored
+# copy that the artifact will be built from.
+_BUNDLED_SCHEMAS = ((_LOADED.parent if _INSTALLED_MODE
+                     else HERE.parents[1] / "causalontology") / "spec" / "schema")
+_SPEC_SCHEMAS = ROOT / "spec" / "schema"
+if _INSTALLED_MODE and not _BUNDLED_SCHEMAS.is_dir():
+    sys.exit(f"the installed artifact ships no bundled schemas at {_BUNDLED_SCHEMAS}")
+if _BUNDLED_SCHEMAS.is_dir() and _SPEC_SCHEMAS.is_dir():
+    _n_checked = 0
+    for _f in sorted(_SPEC_SCHEMAS.glob("*.schema.json")):
+        _b = _BUNDLED_SCHEMAS / _f.name
+        if not _b.exists():
+            sys.exit(f"bundled schema missing: {_f.name} is not in {_BUNDLED_SCHEMAS}")
+        if _b.read_bytes() != _f.read_bytes():
+            sys.exit(f"bundled schema drift: {_f.name} differs from spec/schema - re-copy before building")
+        _n_checked += 1
+    print(f"bundled schemas: {_n_checked} byte-identical to spec/schema ({_BUNDLED_SCHEMAS})")
 
 # ---------------------------------------------------------------------------
 # whole-word scheme normalization (Principle P7)

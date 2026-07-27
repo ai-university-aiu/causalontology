@@ -1,7 +1,9 @@
 package org.causalontology;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,11 +25,20 @@ import java.util.regex.Pattern;
  * ("#/$defs/..."). "format" is treated as an annotation, as the 2020-12
  * draft does by default.
  *
- * The schema directory is resolved from the system property
- * "causalontology.spec" or the environment variable CAUSALONTOLOGY_SPEC
- * (either names the spec/ directory), falling back to ../../spec/schema
- * relative to the working directory (bindings/java when run through
- * run_conformance.sh).
+ * The twenty-one schema files are located at run time in exactly this
+ * order, so that a published jar validates standalone while repository
+ * development and the existing override workflows keep working:
+ *
+ * <ol>
+ *   <li>the system property "causalontology.spec", or the environment
+ *       variable CAUSALONTOLOGY_SPEC - either names the spec/ directory;</li>
+ *   <li>the copy bundled inside this artifact, read from the classpath at
+ *       "/schema/&lt;file&gt;" (packaged from
+ *       bindings/java/src/main/resources/schema by the pom's
+ *       &lt;resources&gt; block);</li>
+ *   <li>as a last resort ../../spec/schema relative to the working
+ *       directory (bindings/java when run through run_conformance.sh).</li>
+ * </ol>
  */
 public final class SchemaValidator {
 
@@ -73,7 +84,18 @@ public final class SchemaValidator {
     private SchemaValidator() {
     }
 
-    private static Path schemaDir() {
+    /** Classpath prefix of the copy bundled inside the published jar. */
+    static final String RESOURCE_DIR = "/schema/";
+
+    /** Repository-relative last resort, kept for repo-mode development. */
+    private static final Path REPO_SCHEMA_DIR =
+        Paths.get("..", "..", "spec", "schema");
+
+    /**
+     * Step (1) of the precedence: the explicit override, or null when
+     * neither the system property nor the environment variable is set.
+     */
+    private static Path overrideDir() {
         String override = System.getProperty("causalontology.spec");
         if (override == null || override.isEmpty()) {
             override = System.getenv("CAUSALONTOLOGY_SPEC");
@@ -81,7 +103,51 @@ public final class SchemaValidator {
         if (override != null && !override.isEmpty()) {
             return Paths.get(override, "schema");
         }
-        return Paths.get("..", "..", "spec", "schema");
+        return null;
+    }
+
+    /** Step (2): the bundled classpath copy, or null when not packaged. */
+    static byte[] bundledBytes(String file) {
+        try (InputStream in =
+                 SchemaValidator.class.getResourceAsStream(RESOURCE_DIR
+                                                           + file)) {
+            if (in == null) {
+                return null;
+            }
+            return in.readAllBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * Where the schemas are being read from, for diagnostics: the override
+     * directory, "bundled:&lt;jar-or-directory&gt;", or the repository path.
+     */
+    public static String schemaSource() {
+        Path override = overrideDir();
+        if (override != null) {
+            return override.toString();
+        }
+        if (bundledBytes("occurrent.schema.json") != null) {
+            java.net.URL url = SchemaValidator.class
+                .getResource(RESOURCE_DIR + "occurrent.schema.json");
+            return "bundled:" + (url == null ? "classpath" : url.toString());
+        }
+        return REPO_SCHEMA_DIR.toString();
+    }
+
+    /** Read one schema file's text, honouring the three-step precedence. */
+    private static String readSchemaText(String file) throws IOException {
+        Path override = overrideDir();
+        if (override != null) {                                  // (1)
+            return Files.readString(override.resolve(file));
+        }
+        byte[] bundled = bundledBytes(file);                     // (2)
+        if (bundled != null) {
+            return new String(bundled, StandardCharsets.UTF_8);
+        }
+        return Files.readString(REPO_SCHEMA_DIR.resolve(file));  // (3)
     }
 
     /** Load (and cache) a schema file by its filename. */
@@ -89,8 +155,7 @@ public final class SchemaValidator {
     static Map<String, Object> loadFile(String file) {
         return FILE_CACHE.computeIfAbsent(file, f -> {
             try {
-                String text = Files.readString(schemaDir().resolve(f));
-                return (Map<String, Object>) Json.parse(text);
+                return (Map<String, Object>) Json.parse(readSchemaText(f));
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

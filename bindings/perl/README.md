@@ -15,7 +15,8 @@ from CPAN; any stock Perl 5.16+ runs the suite as-is.
 | `lib/Causalontology/Canonical.pm` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
 | `lib/Causalontology/Ed25519.pm` | Ed25519 (RFC 8032), pure Perl over `Math::BigInt`: slow but correct, gated on the RFC 8032 TEST 1 known answer before any vector runs; a fixed-base doubling table for G keeps the whole suite under ten seconds even on the pure-Perl bigint backend |
 | `lib/Causalontology/Signing.pm` | record-level `sign_record()` / `verify_record()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `lib/Causalontology/Schema.pm` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `lib/Causalontology/Schema.pm` | validation against the twenty-one JSON Schemas (a small interpreter for exactly the keywords those schemas use) |
+| `share/schema/*.schema.json` | the twenty-one JSON Schemas, vendored byte-for-byte from the repository's `spec/schema/` and shipped inside the distribution, so an installed copy validates with no checkout present |
 | `lib/Causalontology/Semantics.pm` | the semantic rules: temporal admissibility with the fixed unit constants (months 2629746 s, years 31556952 s) and the ordinal `ticks` dimension, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal-seam well-formedness and the home rule, enrichment field/shape rules, the token-tier coherence checks, the predicted-interval dimension check, and the prediction-to-observation pairing |
 | `lib/Causalontology/Store.pm` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps()` read — with explicit insertion-order bookkeeping everywhere the Python reference iterates dicts |
 | `conformance.pl` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
@@ -32,10 +33,34 @@ causalontology-perl is CONFORMANT to the suite (vectors frozen at specification 
 ```
 
 The runner locates the repository root from its own path (two levels up
-from `bindings/perl/`), reads the vectors from `conformance/vectors`, and
-reads the schemas from `spec/schema` under the same root (overridable
-with the `CAUSALONTOLOGY_SPEC` environment variable, which names the
-`spec/` directory).
+from `bindings/perl/`) and reads the vectors from `conformance/vectors`.
+
+`Causalontology::Schema` looks for the schema documents in this order:
+
+1. `$CAUSALONTOLOGY_SPEC/schema`, if that environment variable is set — the explicit override, which always wins;
+2. the vendored copy shipped with the distribution — `<libdir>/Causalontology/share/schema` once installed, or `bindings/perl/share/schema` in a checkout;
+3. `spec/schema` under the repository root — the last resort, for a checkout with no vendored copy.
+
+Step 2 is what lets an installed package validate standalone. The runner
+hard-fails with `bundled schema drift` if `share/schema` and `spec/schema`
+ever disagree by a single byte, so the vendored copy cannot go stale.
+
+To test a genuinely installed copy rather than the working tree, set
+`CAUSALONTOLOGY_TEST_INSTALLED`. The runner then leaves `bindings/perl/lib`
+off `@INC`, so `Causalontology` must be resolved from the ordinary `@INC`
+the way a consumer resolves it; it prints `binding under test: <path>` and
+exits nonzero if that path turns out to be inside the repository.
+
+```
+$ cd /tmp/anywhere-outside-the-repo
+$ env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+    PERL5LIB=<prefix>/lib/site_perl perl <repo>/bindings/perl/conformance.pl
+binding under test: <prefix>/lib/site_perl/Causalontology.pm
+...
+137/137 vectors passed
+```
+
+With the variable unset — the default — nothing changes.
 
 For CI, no toolchain setup step is needed — the stock Ubuntu runner's
 Perl carries every module used:
@@ -81,6 +106,19 @@ print "$claim\n", scalar($store->gaps('missing_field')), " gap(s)\n";
 
 `Makefile.PL` and `META.json` carry standard CPAN metadata (dist
 `Causalontology`, version 4.0.0). Both declare only core prerequisites.
+
+`MANIFEST` lists every file in the distribution, including the twenty-one
+`share/schema/*.schema.json` documents; `Makefile.PL` builds its `PM` map
+from `lib/` plus `share/schema/`, so `make`/`make install` copy the schemas
+to `<libdir>/Causalontology/share/schema`. `File::ShareDir::Install` would
+be the conventional vehicle, but it is not a core module and this
+distribution deliberately has no CPAN dependencies at all.
+
+```
+$ perl Makefile.PL && make && make dist
+$ tar tzf Causalontology-4.0.0.tar.gz | grep -c 'share/schema/.*\.schema\.json'
+21
+```
 
 License: "The attribution always; no profit, no problem license.
 (Apache 2.0 text)" — see `LICENSE` here and the repository `NOTICE`.

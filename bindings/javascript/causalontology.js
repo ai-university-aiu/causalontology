@@ -322,6 +322,8 @@ const fileCache = {};
 function schemaDir() {
   const env = process.env.CAUSALONTOLOGY_SPEC;
   if (env) return path.join(env, "schema");
+  const bundled = path.join(__dirname, "spec", "schema");
+  if (fs.existsSync(bundled)) return bundled;
   // bindings/javascript/causalontology.js -> repository root -> spec/schema
   return path.join(__dirname, "..", "..", "spec", "schema");
 }

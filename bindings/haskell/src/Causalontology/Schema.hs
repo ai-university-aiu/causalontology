@@ -11,10 +11,24 @@
 -- schemas use: literals, the @.@ any-char, @^@ and @$@ anchors, character
 -- classes with ranges, alternation groups, @*@, @+@, and @{n}@ repetition
 -- (@.+@ appears in the 3.0.0 conduit realized_by reference pattern).
+--
+-- The twenty-one schema files are shipped inside the package (the
+-- @spec_schema@ @data-files@ directory), so a plain @cabal install@ of
+-- causalontology can validate without a repository checkout. See
+-- 'schemaDirWithOrigin' for the resolution order.
 module Causalontology.Schema
   ( Schemas
   , schemaFileTable
   , loadSchemas
+  , loadDefaultSchemas
+    -- * Locating the twenty-one schema files
+  , SchemaOrigin (..)
+  , originLabel
+  , packageDataDir
+  , bundledSchemaDir
+  , repositorySchemaDir
+  , schemaDirWithOrigin
+  , defaultSchemaDir
   , validateSchema
   , patternMatch
   ) where
@@ -24,7 +38,11 @@ import Causalontology.Json
 import qualified Data.ByteString as B
 import Data.Char (isDigit)
 import Data.List (isPrefixOf, tails)
-import System.FilePath ((</>))
+import Paths_causalontology (getDataFileName)
+import System.Directory (doesDirectoryExist, doesFileExist, getCurrentDirectory)
+import System.Environment (lookupEnv)
+import System.FilePath (takeDirectory, (</>))
+import System.IO.Error (catchIOError)
 
 -- | The twenty-one loaded schemas, keyed by their file name (so cross-file
 -- @$ref@s, which name a sibling file, resolve directly).
@@ -66,15 +84,112 @@ schemaBaseUrl = "https://causalontology.org/schema/"
 -- | Load all twenty-one schemas from a schema directory (spec\/schema),
 -- keyed by file name.
 loadSchemas :: FilePath -> IO Schemas
-loadSchemas schemaDir = mapM loadOne files
+loadSchemas schemaDir = mapM loadOne schemaFileNames
   where
-    files = distinct [ file | (_, file) <- schemaFileTable ]
-    distinct = foldr (\x acc -> if x `elem` acc then acc else x : acc) []
     loadOne file = do
       bytes <- B.readFile (schemaDir </> file)
       case parseJson (utf8Decode (B.unpack bytes)) of
         Right v -> return (file, v)
         Left err -> ioError (userError ("cannot parse " ++ file ++ ": " ++ err))
+
+-- ---------------------------------------------------------------------------
+-- locating the twenty-one schema files
+-- ---------------------------------------------------------------------------
+
+-- | The distinct schema file names, in a stable order.
+schemaFileNames :: [String]
+schemaFileNames = distinct [ file | (_, file) <- schemaFileTable ]
+  where distinct = foldr (\x acc -> if x `elem` acc then acc else x : acc) []
+
+-- | Which of the three candidate locations supplied the schemas.
+data SchemaOrigin
+  = -- | the @CAUSALONTOLOGY_SPEC@ environment variable
+    SchemaFromEnv
+  | -- | the copy vendored inside the installed package (@spec_schema@)
+    SchemaFromBundle
+  | -- | a repository checkout - the last resort, for repo-mode development
+    SchemaFromRepository
+  deriving (Eq, Show)
+
+-- | A human-readable label for an origin.
+originLabel :: SchemaOrigin -> String
+originLabel SchemaFromEnv = "CAUSALONTOLOGY_SPEC"
+originLabel SchemaFromBundle = "bundled with the installed package"
+originLabel SchemaFromRepository = "repository checkout"
+
+-- | The package's installed data directory, as Cabal resolved it. For a
+-- package built in place this is the source directory; for an installed
+-- package it is the share directory the twenty-one schemas were copied to.
+packageDataDir :: IO FilePath
+packageDataDir =
+  fmap (takeDirectory . takeDirectory) (getDataFileName ("spec_schema" </> "probe"))
+    `catchIOError` \_ -> return "."
+
+-- | The vendored schema directory shipped inside the package, when it is
+-- present and complete (all twenty-one files).
+bundledSchemaDir :: IO (Maybe FilePath)
+bundledSchemaDir = flip catchIOError (\_ -> return Nothing) $ do
+  probe <- getDataFileName ("spec_schema" </> head schemaFileNames)
+  let dir = takeDirectory probe
+  complete <- mapM (doesFileExist . (dir </>)) schemaFileNames
+  return (if and complete then Just dir else Nothing)
+
+-- | The repository-relative schema directory: @CAUSALONTOLOGY_ROOT@ when
+-- set, otherwise the nearest ancestor of the working directory that holds
+-- a @spec\/schema@. Retained so repo-mode development keeps working.
+repositorySchemaDir :: IO (Maybe FilePath)
+repositorySchemaDir = flip catchIOError (\_ -> return Nothing) $ do
+  envRoot <- lookupEnv "CAUSALONTOLOGY_ROOT"
+  case envRoot of
+    Just root -> accept (root </> "spec" </> "schema")
+    Nothing -> getCurrentDirectory >>= climb
+  where
+    accept dir = do
+      present <- doesDirectoryExist dir
+      return (if present then Just dir else Nothing)
+    climb dir = do
+      found <- accept (dir </> "spec" </> "schema")
+      case found of
+        Just hit -> return (Just hit)
+        Nothing ->
+          let parent = takeDirectory dir
+          in if parent == dir then return Nothing else climb parent
+
+-- | The schema directory and where it came from, in strict precedence:
+--
+-- 1. @CAUSALONTOLOGY_SPEC@ (its @schema@ subdirectory), when set;
+-- 2. the copy vendored inside the installed package;
+-- 3. a repository checkout, as a last resort.
+schemaDirWithOrigin :: IO (FilePath, SchemaOrigin)
+schemaDirWithOrigin = do
+  envSpec <- lookupEnv "CAUSALONTOLOGY_SPEC"
+  case envSpec of
+    Just spec | not (null spec) -> return (spec </> "schema", SchemaFromEnv)
+    _ -> do
+      bundled <- bundledSchemaDir
+      case bundled of
+        Just dir -> return (dir, SchemaFromBundle)
+        Nothing -> do
+          repo <- repositorySchemaDir
+          case repo of
+            Just dir -> return (dir, SchemaFromRepository)
+            Nothing ->
+              ioError
+                ( userError
+                    ( "cannot locate the twenty-one Causalontology schemas: no "
+                        ++ "CAUSALONTOLOGY_SPEC, no copy bundled with the package, "
+                        ++ "and no spec/schema in any ancestor of the working directory"
+                    )
+                )
+
+-- | The schema directory chosen by 'schemaDirWithOrigin'.
+defaultSchemaDir :: IO FilePath
+defaultSchemaDir = fmap fst schemaDirWithOrigin
+
+-- | Load the twenty-one schemas from wherever 'schemaDirWithOrigin' finds
+-- them. This is what a consumer of the installed package should call.
+loadDefaultSchemas :: IO Schemas
+loadDefaultSchemas = defaultSchemaDir >>= loadSchemas
 
 -- | @(ok, reasons)@ - structural validity against the kind's JSON Schema.
 -- The outer 'Left' fires only for an unknown or uninferable kind.

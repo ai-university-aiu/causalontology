@@ -21,7 +21,7 @@ newer** with cabal.
 | `src/Causalontology/Ed25519.hs` | Ed25519 (RFC 8032), ported from the Python binding's `ed25519.py` over `Integer` (Haskell's floored `mod` matches Python's `%` for these positive moduli) |
 | `src/Causalontology/Canonical.hs` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify` (spec/identity.md) |
 | `src/Causalontology/Signing.hs` | record-level `signRecord` / `verifyRecord` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `src/Causalontology/Schema.hs` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use, with a tiny matcher for their regular-expression subset, including the `.` any-char and `+` quantifier of the 3.0.0 conduit realized_by pattern) |
+| `src/Causalontology/Schema.hs` | validation against the twenty-one JSON Schemas, resolved from `CAUSALONTOLOGY_SPEC`, then the copy bundled in the package at `spec_schema/`, then a repository checkout (a small interpreter for exactly the keywords those schemas use, with a tiny matcher for their regular-expression subset, including the `.` any-char and `+` quantifier of the 3.0.0 conduit realized_by pattern) |
 | `src/Causalontology/Semantics.hs` | the 25 semantic rules: temporal admissibility with the fixed unit constants and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `src/Causalontology/Store.hs` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `gaps` read — the Python store's state modeled as a `Store` record threaded through pure functions, with association-list tables so dict insertion order is preserved exactly |
 | `app/Conformance.hs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
@@ -38,9 +38,47 @@ causalontology-haskell is CONFORMANT to the suite (vectors frozen at specificati
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
 environment variable when set, otherwise by walking up from the working
-directory until it finds `conformance/vectors`; the schemas are read from
-`spec/schema` under the same root (overridable with `CAUSALONTOLOGY_SPEC`,
-which names the `spec/` directory).
+directory until it finds `conformance/vectors`. That root supplies the
+vectors only; the schemas are resolved separately (see below).
+
+### Testing an installed copy
+
+Setting `CAUSALONTOLOGY_TEST_INSTALLED` puts the runner in installed mode:
+it prints the copy of the binding it resolved and hard-fails if that copy,
+the conformance binary, or the schemas still come from the repository tree.
+That is what stops a "fresh install" test from silently exercising the
+source checkout and reporting a false 137/137.
+
+```
+$ cabal install exe:conformance --install-method=copy --installdir=/tmp/co/bin
+$ cd /tmp && env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+    CAUSALONTOLOGY_ROOT=/path/to/causalontology /tmp/co/bin/conformance
+binding under test: ~/.local/state/cabal/store/ghc-9.6.6/causalontology-4.0.0-.../share
+...
+137/137 vectors passed
+```
+
+The runner also compares the bundled schemas against `spec/schema`
+byte for byte whenever both are present, and fails with `bundled schema
+drift` rather than letting the vendored copy go quietly stale.
+
+## Where the schemas come from
+
+The twenty-one normative JSON Schemas are **vendored into the package** at
+`spec_schema/` and shipped as Cabal `data-files`, so `cabal install
+causalontology` gives you a binding that validates with no repository
+checkout anywhere. `Causalontology.Schema` resolves them in this order:
+
+1. `CAUSALONTOLOGY_SPEC`, which names a `spec/` directory (its `schema`
+   subdirectory is read) — unchanged from earlier releases;
+2. the copy bundled inside the installed package, found through
+   `Paths_causalontology.getDataFileName`;
+3. a repository checkout — `CAUSALONTOLOGY_ROOT/spec/schema`, else the
+   nearest ancestor of the working directory holding `spec/schema` — as a
+   last resort, so repo-mode development keeps working.
+
+`loadDefaultSchemas` applies that order; `loadSchemas dir` still reads an
+explicit directory. `schemaDirWithOrigin` reports which of the three won.
 
 The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
 V01–V137): they carry concrete identifiers, real keys, and a real verifying
@@ -52,12 +90,12 @@ from `sha256("key:" ++ name)`, as the Python harness does.
 
 ```haskell
 import Causalontology.Json
-import Causalontology.Schema (loadSchemas)
+import Causalontology.Schema (loadDefaultSchemas)
 import Causalontology.Store
 
 main :: IO ()
 main = do
-  schemas <- loadSchemas "spec/schema"
+  schemas <- loadDefaultSchemas   -- the schemas bundled with the package
   let s0 = newStore True schemas
       (Right press, s1) = put (JObj [ ("type", JStr "occurrent")
                                     , ("label", JStr "press_button")

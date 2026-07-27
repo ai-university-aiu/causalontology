@@ -33,8 +33,27 @@ causalontology-elixir is CONFORMANT to the suite (vectors frozen at specificatio
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
 environment variable when set, otherwise from its own source location inside
-`bindings/elixir/`; the schemas are read from `spec/schema` under the same
-root (overridable with `CAUSALONTOLOGY_SPEC`, naming the `spec/` directory).
+`bindings/elixir/`.
+
+The twenty-one JSON Schemas are located in this order: the
+`CAUSALONTOLOGY_SPEC` environment variable when set (naming the `spec/`
+directory), then the copy vendored into this package's `priv/schema` (shipped
+in every published artifact, so an installed copy validates with no checkout
+present), then `spec/schema` under the repository root as a last resort.
+`priv/schema` is a byte-for-byte copy of `spec/schema`; the runner refuses to
+run if the two ever differ.
+
+Set `CAUSALONTOLOGY_TEST_INSTALLED` to run the suite against a real published
+artifact rather than the repository sources. The runner then takes the binding
+from the code path the way a consumer does, prints `binding under test: <path>`,
+and hard-fails if that path is inside the repository tree:
+
+```
+$ mix hex.build                       # in bindings/elixir
+$ cd /path/to/a/project/that/depends/on/causalontology
+$ CAUSALONTOLOGY_TEST_INSTALLED=1 CAUSALONTOLOGY_ROOT=/path/to/checkout \
+    mix run deps/causalontology/conformance.exs
+```
 
 The V01-V107 vectors are the whole-word 2.0.0 baseline (2026-07-13): they carry
 concrete identifiers, real keys, and a real verifying signature, and the
