@@ -300,13 +300,20 @@ jobs:
       - name: conformance against the packed NuGet package (137 vectors)
         run: |
           set -eux
-          # Build through a private intermediate directory so the repo-mode
-          # build above (a ProjectReference) cannot leave state that the
-          # installed build (a PackageReference) picks up.
-          dotnet pack bindings/csharp/Causalontology/Causalontology.csproj -c Release \
-            -o "$RUNNER_TEMP/nugetfeed" \
-            -p:BaseIntermediateOutputPath="$RUNNER_TEMP/packobj/" \
-            -p:BaseOutputPath="$RUNNER_TEMP/packbin/"
+          # Pack from an export of the TRACKED files only, outside the checkout.
+          # Two reasons. First, it proves the package is built from what git
+          # actually carries - if a vendored schema were untracked, the pack
+          # would come out empty and this step would fail, which is the class of
+          # mistake this branch exists to close. Second, redirecting
+          # BaseIntermediateOutputPath in place does not work: obj/ is excluded
+          # from the compile glob only while it IS the intermediate directory,
+          # so redirecting it makes the SDK compile both the old obj/ and the new
+          # AssemblyInfo.cs and fail with duplicate assembly attributes (CS0579).
+          mkdir -p "$RUNNER_TEMP/cssrc"
+          git archive HEAD bindings/csharp | tar -x -C "$RUNNER_TEMP/cssrc" --strip-components=2
+          test "$(find "$RUNNER_TEMP/cssrc/spec_schema" -name '*.schema.json' | wc -l)" = 21
+          dotnet pack "$RUNNER_TEMP/cssrc/Causalontology/Causalontology.csproj" -c Release \
+            -o "$RUNNER_TEMP/nugetfeed"
           cat > "$RUNNER_TEMP/nuget.config" <<XML
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
@@ -319,11 +326,11 @@ jobs:
           # conformance.csproj switches from ProjectReference to a
           # PackageReference when this variable is set, so the runner is built
           # against the package, not the source tree.
+          # Built from the same clean export, for the same reason: an in-place
+          # build would inherit the repo-mode obj/ from the step above.
           NUGET_PACKAGES="$RUNNER_TEMP/nugetcache" CAUSALONTOLOGY_TEST_INSTALLED=1 \
-            dotnet build bindings/csharp/conformance/conformance.csproj -c Release \
-            -o "$RUNNER_TEMP/csinstalled" --configfile "$RUNNER_TEMP/nuget.config" \
-            -p:BaseIntermediateOutputPath="$RUNNER_TEMP/confobj/" \
-            -p:BaseOutputPath="$RUNNER_TEMP/confbin/"
+            dotnet build "$RUNNER_TEMP/cssrc/conformance/conformance.csproj" -c Release \
+            -o "$RUNNER_TEMP/csinstalled" --configfile "$RUNNER_TEMP/nuget.config"
           mkdir -p "$RUNNER_TEMP/cscwd"
           cd "$RUNNER_TEMP/cscwd"
           env -u CAUSALONTOLOGY_SPEC -u CAUSALONTOLOGY_ROOT CAUSALONTOLOGY_TEST_INSTALLED=1 \
@@ -370,7 +377,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
       - name: conformance (137 vectors)
-        run: dart bindings/dart/bin/conformance.dart
+        run: |
+          set -eu
+          # conformance.dart now imports package:causalontology/... rather than
+          # reaching sideways with a relative path, so it has to run from inside
+          # the package with its package config resolved. Running it from the
+          # repository root was what the old relative imports allowed, and is
+          # exactly the reaching-out-of-the-package habit this branch removes.
+          cd bindings/dart
+          dart pub get
+          dart run bin/conformance.dart
       - name: the generated embedding still matches spec/schema
         run: |
           set -eu
