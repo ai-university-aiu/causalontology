@@ -195,7 +195,7 @@ allowed to differ, and the 137 vectors are the thing that must not.
 | Zig | zig | tag `v4.0.1` | **no — broken** | **`v4.0.3`** | `zig fetch` prunes the tarball to the root `build.zig.zon` `.paths` list, `spec/` was not on it, and a consumer received ten files and zero schemas. `v4.0.3` lists the schemas, the specification and the vectors, and compiles the schemas into the library besides |
 | C++ source tarball | cpp | tag `v4.0.1` | yes, with a caveat | **`v4.0.3`** | the tarball is the whole repository, so `spec/schema` is there for anyone who points at it. The caveat was the CMake **install**, which shipped zero schemas; `v4.0.3` installs them to `<prefix>/share/causalontology/spec/schema` and refuses `find_package` on an incomplete install |
 | npm | javascript | **4.0.0 LIVE** | **yes** | **done 2026-07-27** | published and proved: `npm install causalontology@4.0.0` into an empty directory delivers the 21 schemas under `spec/schema/`, and the installed package scored **137/137** with `CAUSALONTOLOGY_SPEC` first poisoned then stripped, from outside any checkout. Registry shasum `953f69a4`, licence indexed as `Apache-2.0` |
-| RubyGems | ruby | 2.0.0 | n/a | **4.0.0** | never published at 4.x; the gem vendors the schemas and the gemspec refuses to build without them |
+| RubyGems | ruby | **4.0.0 LIVE** | **yes** | **done 2026-07-27** | published and proved: `gem install causalontology --version 4.0.0` from rubygems.org into an empty gem home delivers all 21 vendored schemas, and the installed gem scored **137/137** with `CAUSALONTOLOGY_SPEC` poisoned then stripped, from outside any checkout. Registry checksum `e0a0e35eb4f07a73`, 32 files. Note for whoever verifies next: the first install attempt failed with *Could not find a valid gem* purely because the local gem client's index was cached — the registry was already correct. Redirect `HOME` to a scratch directory to force a virgin index |
 | Hex | elixir | 2.0.0 | n/a | **4.0.0** | never published at 4.x; the schemas ship in `priv/schema` and `mix.exs` lists `priv` |
 | NuGet | csharp | 2.0.0 | n/a | **4.0.0** | never published at 4.x; the schemas are embedded resources in the assembly *and* packed as content files |
 | LuaRocks | lua | 2.0.0 | n/a | **4.0.0-1** | never published at 4.x; the rockspec installs the schemas as module paths. LuaRocks uploads the rockspec, not the code, so `source.tag` decides what a consumer actually fetches: it names **`v4.0.3`**, the tag whose tree carries the vendored schemas. Note the separate rockspec fix: without `source.dir` the published rockspec could never have built from its declared source at all |
@@ -294,7 +294,6 @@ lands.
 | Maven Central (Java) | `io.github.ai-university-aiu:causalontology:2.0.0` | immutable; 1.0.0 remains |
 | Maven Central (Kotlin/Native klib) | `io.github.ai-university-aiu:causalontology-kotlin:2.0.0` (linuxX64) | immutable; 1.0.0 remains |
 | NuGet | `dotnet add package causalontology` | 1.0.0 unlisted |
-| RubyGems | `gem install causalontology` | 1.0.0 yanked |
 | Hex | `{:causalontology, "~> 2.0"}` | 1.0.0 retired (deprecated) |
 | LuaRocks | `luarocks install causalontology` | no yank; 1.0.0-1 remains listed |
 

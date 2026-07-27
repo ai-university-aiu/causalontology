@@ -3,16 +3,16 @@ name: conformance
 # Every implementation passes the canonical conformance vectors for the
 # specification version it declares - 137 (V01-V137) at 4.0.0 - or it is not
 # Causalontology. All nineteen bindings now implement the folded
-# 3.0.0-plus-4.0.0 delta and are gated at 137 vectors here (registry
+# 3.0.0-plus-4.0.0 delta and are gated at 137 checks here (registry
 # publication is a separate, credential-gated step per the 4.0.0 release plan).
 #
 # TWO MODES, AND WHY (added 2026-07-26). Each binding job below runs the 137
-# vectors twice.
+# checks twice.
 #
 #   repo mode      - the runner loads the binding from this source tree. This
 #                    proves the CODE is conformant.
 #   installed mode - the artifact is built, installed into a clean location
-#                    outside the checkout, and the same 137 vectors are run
+#                    outside the checkout, and the same 137 checks are run
 #                    from a working directory outside the checkout with
 #                    CAUSALONTOLOGY_TEST_INSTALLED=1 and CAUSALONTOLOGY_SPEC
 #                    unset. This proves the PACKAGE is conformant.
@@ -108,9 +108,16 @@ jobs:
       - name: the whole-repository channels still deliver spec/schema
         run: |
           set -eu
-          # C++, Julia, PHP, Swift and Zig vendor nothing: they are correct only
-          # because their channel ships the whole repository tree. Fail if
-          # anything starts filtering spec/ out of that tree.
+          # C++, Julia and Swift vendor nothing: they are correct only because
+          # their channel ships the whole repository tree. Fail if anything
+          # starts filtering spec/ out of that tree.
+          #
+          # PHP and Zig used to be on this list and no longer are. Zig was the
+          # proof that the reasoning is not safe: zig fetch prunes the tarball
+          # to the root build.zig.zon .paths list and ignores .gitattributes
+          # and composer.json entirely, so this job could never have caught it -
+          # a consumer got ten files and zero schemas. Both now vendor their own
+          # copies and are covered by the drift job above instead.
           if [ -f .gitattributes ] && grep -E '^\s*(/)?spec/' .gitattributes | grep -q export-ignore; then
             echo "spec/ is export-ignored: the tag archives would ship no schemas" >&2
             exit 1
@@ -131,9 +138,9 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: python3 bindings/python/tests/run_conformance.py
-      - name: conformance against the installed wheel (137 vectors)
+      - name: conformance against the installed wheel (137 checks)
         run: |
           set -eux
           python3 -m pip install --quiet build
@@ -170,9 +177,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "20"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: node bindings/javascript/tests/run_conformance.js
-      - name: conformance against the packed npm tarball (137 vectors)
+      - name: conformance against the packed npm tarball (137 checks)
         run: |
           set -eux
           mkdir -p "$RUNNER_TEMP/jspack" "$RUNNER_TEMP/jsconsumer"
@@ -191,9 +198,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: bash bindings/java/run_conformance.sh
-      - name: conformance against the built jar (137 vectors)
+      - name: conformance against the built jar (137 checks)
         run: |
           set -eux
           sh bindings/java/build_jar.sh
@@ -214,7 +221,7 @@ jobs:
       - uses: swift-actions/setup-swift@v2
         with:
           swift-version: "5.10"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: cd bindings/swift && swift run conformance
 
   gardener:
@@ -236,7 +243,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "20"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: cd bindings/rust && cargo run --bin conformance
       - name: the packaged crate carries all 21 schemas
         run: |
@@ -263,9 +270,9 @@ jobs:
           go-version: "1.22"
       # The 4.0.0 code is the new /v4 module (Go versions the import path); the
       # /v2 module stays live at the 2.0.0 level. Gate on /v4.
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: cd bindings/go/v4 && go run ./conformance
-      - name: conformance against the module as it would be published (137 vectors)
+      - name: conformance against the module as it would be published (137 checks)
         run: |
           set -eux
           # A Go module ships only its own subdirectory. Reproduce that exactly:
@@ -297,9 +304,9 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "8.0.x"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: dotnet run --project bindings/csharp/conformance
-      - name: conformance against the packed NuGet package (137 vectors)
+      - name: conformance against the packed NuGet package (137 checks)
         run: |
           set -eux
           # Pack from an export of the TRACKED files only, outside the checkout.
@@ -351,9 +358,9 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: ruby bindings/ruby/conformance.rb
-      - name: conformance against the built gem (137 vectors)
+      - name: conformance against the built gem (137 checks)
         run: |
           set -eux
           # The gemspec itself refuses to build if the vendored schemas are
@@ -376,7 +383,7 @@ jobs:
         with:
           php-version: "8.3"
           extensions: sodium
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: php bindings/php/conformance.php
 
   dart:
@@ -384,7 +391,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: |
           set -eu
           # conformance.dart now imports package:causalontology/... rather than
@@ -403,7 +410,7 @@ jobs:
           dart run tool/embed_schemas.dart
           diff -q "$RUNNER_TEMP/spec_schema.g.dart.before" lib/spec_schema.g.dart \
             || { echo "embedded schema drift: rerun tool/embed_schemas.dart" >&2; exit 1; }
-      - name: conformance against the package as it would be published (137 vectors)
+      - name: conformance against the package as it would be published (137 checks)
         run: |
           set -eux
           # pub.dev ships the tracked files of bindings/dart and nothing else -
@@ -433,9 +440,9 @@ jobs:
         with:
           otp-version: "26"
           elixir-version: "1.16"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: cd bindings/elixir && elixir conformance.exs
-      - name: conformance against the built Hex package (137 vectors)
+      - name: conformance against the built Hex package (137 checks)
         run: |
           set -eux
           mix local.hex --force
@@ -476,7 +483,7 @@ jobs:
         with:
           ghc-version: "9.6"
           cabal-update: false
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: cd bindings/haskell && runghc -isrc -iapp app/Conformance.hs
       - name: the built sdist carries all 21 schemas
         run: |
@@ -498,9 +505,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: perl bindings/perl/conformance.pl
-      - name: conformance against the installed distribution (137 vectors)
+      - name: conformance against the installed distribution (137 checks)
         run: |
           set -eux
           # make dist ships only what MANIFEST names, so this exercises the
@@ -529,9 +536,9 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y libsodium-dev libssl-dev
           Rscript -e "install.packages(c('sodium','openssl'), repos='https://cloud.r-project.org')"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: Rscript bindings/r/conformance.R
-      - name: conformance against the installed package (137 vectors)
+      - name: conformance against the installed package (137 checks)
         run: |
           set -eux
           mkdir -p "$RUNNER_TEMP/rbuild" "$RUNNER_TEMP/rlib" "$RUNNER_TEMP/rcwd"
@@ -548,14 +555,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: install Lua 5.4
         run: sudo apt-get update && sudo apt-get install -y lua5.4
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: lua5.4 bindings/lua/conformance.lua
       - name: install LuaRocks
         # liblua5.4-dev too: luarocks refuses to build any rock without the Lua
         # headers ("Failed finding Lua header files"), even for a pure-Lua rock
         # that compiles nothing.
         run: sudo apt-get install -y luarocks liblua5.4-dev
-      - name: conformance against the installed rock (137 vectors)
+      - name: conformance against the installed rock (137 checks)
         run: |
           set -eux
           # luarocks make must run with the rockspec's own directory as the
@@ -576,14 +583,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: bash bindings/cpp/run_conformance.sh
 
   zig:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: bash bindings/zig/run_conformance.sh
 
   julia:
@@ -593,7 +600,7 @@ jobs:
       - uses: julia-actions/setup-julia@v3
         with:
           version: "1.10"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: julia bindings/julia/conformance.jl
 
   kotlin:
@@ -604,9 +611,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: conformance (137 vectors)
+      - name: conformance (137 checks)
         run: bash bindings/kotlin/run_conformance.sh
-      - name: conformance against the built artifact (137 vectors)
+      - name: conformance against the built artifact (137 checks)
         run: |
           set -eux
           # The registry artifact for Kotlin is the Kotlin/Native klib, which

@@ -1087,11 +1087,21 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    (second wave); passes 137/137 locally, DESCRIPTION reads
                    4.0.0, and inst/schema is refreshed to the twenty-one 4.0.0
                    schemas; the CRAN human review stands besides.
-  [ ] Ruby       - published to RubyGems; fresh install 137/137.
-                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
-                   (second wave); passes 137/137 locally and both the VERSION
-                   constant and the gemspec read 4.0.0; RubyGems still carries
-                   2.0.0; only publication and the fresh-install check remain.
+  [x] Ruby       - published to RubyGems; fresh install 137/137.
+                   STATUS: COMPLETE (2026-07-27). 4.0.0 is live on rubygems.org,
+                   registry checksum e0a0e35eb4f07a73, 32 files of which 21 are
+                   the vendored schemas. Proven the strong way: installed FRESH
+                   from the registry into an empty gem home with sources
+                   cleared, outside any checkout, with CAUSALONTOLOGY_SPEC set
+                   to a poison value and then stripped - 21/21 schemas
+                   delivered, a bare validate_schema call returned true, and the
+                   suite scored 137/137 against the INSTALLED gem.
+                   TRAP FOR THE NEXT PERSON: the first install attempt failed
+                   with 'Could not find a valid gem' minutes after a successful
+                   push. That was NOT a failed publish - the compact index, the
+                   API and the .gem download were all already correct. It was
+                   the local gem client's cached index. Redirect HOME to a
+                   scratch directory to force a virgin index and it installs.
   [ ] Rust       - LIBRARY COMPLETE at 4.0.0; the conformance binary and the
                    published README are BROKEN at 4.0.0 and fixed at 4.0.1,
                    which is not published. Unticked deliberately: the box

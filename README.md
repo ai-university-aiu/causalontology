@@ -223,7 +223,7 @@ That third document — a *degenerate* causal_relation_object, just cause and ef
 | Java | `io.github.ai-university-aiu:causalontology:2.0.0` (Maven Central) |
 | Kotlin/Native | `io.github.ai-university-aiu:causalontology-kotlin:2.0.0` (Maven Central, linuxX64 klib) |
 | C# / .NET | `dotnet add package causalontology` (2.0.0 published, indexing; 1.0.0 unlisted) |
-| Ruby | `gem install causalontology` (2.0.0 live on RubyGems; 1.0.0 yanked) |
+| Ruby | `gem install causalontology` (**4.0.0 live on RubyGems**, fresh-install verified 137/137 against the registry; 1.0.0 yanked) |
 | PHP | `composer require causalontology/causalontology:^4.0` (**v4.0.1 live on Packagist**, mirrored automatically from the tag and verified by a real `composer require`; **`v4.0.3` supersedes it**, vendoring the twenty-one schemas so the binding no longer depends on Composer shipping the whole repository. Earlier tags remain) |
 | Dart | `dart pub add causalontology` (pub.dev carries **4.0.0, defective** — no schemas, throws `cannot locate spec/schema`; **4.0.1 fixed and verified standalone, publication pending**) |
 | Elixir / Erlang | `{:causalontology, "~> 2.0"}` (2.0.0 live on Hex; 1.0.0 retired) |

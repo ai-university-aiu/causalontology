@@ -26,7 +26,8 @@ defmodule Causalontology.MixProject do
     "The Elixir binding of the Causalontology standard - reified causation " <>
       "as a programming-language-neutral standard and shared commons. OTP stdlib only: " <>
       "RFC 8785 canonicalization, SHA-256 identity, Ed25519 signing, and a " <>
-      "conformant store. Passes all 137 frozen vectors."
+      "conformant store. Passes all 137 conformance checks (38 driven by the " <>
+      "frozen shared vectors; 99 implemented per binding)."
   end
 
   defp package do
