@@ -218,7 +218,7 @@ That third document — a *degenerate* causal_relation_object, just cause and ef
 | Language | Command |
 |---|---|
 | Python | `pip install causalontology` (PyPI carries **4.0.0, defective** — no schemas, 62/137 installed; **the correction stays at 4.0.0**, shipping as a second, build-tagged file inside that same release — verified standalone at 137/137, publication pending) |
-| JavaScript / TypeScript | `npm install causalontology` (typings included; 2.0.0 live on npm, 1.0.0 deprecated) |
+| JavaScript / TypeScript | `npm install causalontology` (**4.0.0 live on npm**, fresh-install verified 137/137 against the registry; typings included; 1.0.0 deprecated) |
 | Rust | `cargo add causalontology` (**4.0.0 live on crates.io**, audited sound — the crate compiles the twenty-one schemas in with `include_str!` and cannot build without them; 1.0.0 yanked) |
 | Java | `io.github.ai-university-aiu:causalontology:2.0.0` (Maven Central) |
 | Kotlin/Native | `io.github.ai-university-aiu:causalontology-kotlin:2.0.0` (Maven Central, linuxX64 klib) |
