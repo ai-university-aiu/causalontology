@@ -23,13 +23,23 @@ version = "4.0.0"
 description = "The Python binding of the Causalontology standard - a verb-first noun-hosting ontology; a programming-language-neutral standard and shared commons for reified causation. Zero dependencies: RFC 8785 canonicalization, SHA-256 identity, pure-Python Ed25519 (RFC 8032), schema and semantics validation, and an in-memory conformant store."
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "The attribution always; no profit, no problem license. (Apache License 2.0 text)"}
+# Apache-2.0, matching how composer.json and mix.exs already declare it. Spelled
+# in the table form, not the PEP 639 plain string: the string form needs
+# setuptools 77+, and the build-system floor here is 61. LICENSE now travels
+# inside the wheel and the sdist (see [tool.setuptools] below) rather than
+# living only in the repository.
+license = {text = "Apache-2.0"}
 authors = [{name = "AI University (AIU)", email = "ai.university.aiu@gmail.com"}]
 keywords = ["causality", "ontology", "causal-reasoning", "knowledge-graph", "provenance", "AGI"]
+# The project's own phrasing, preserved: "The attribution always; no profit,
+# no problem license. (Apache License 2.0 text)"
 
 [project.urls]
 Homepage = "https://github.com/ai-university-aiu/causalontology"
 Specification = "https://github.com/ai-university-aiu/causalontology/tree/main/spec"
+
+[tool.setuptools]
+license-files = ["LICENSE"]
 
 [tool.setuptools.package-data]
 causalontology = ["spec/schema/*.schema.json"]
