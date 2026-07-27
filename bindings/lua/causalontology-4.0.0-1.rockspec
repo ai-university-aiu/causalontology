@@ -40,8 +40,9 @@ canonical JSON, record-level Ed25519 signing and verification (RFC 8032,
 pure Lua), schema and semantic validation over the twenty-one object
 kinds, and an in-memory conformant store with materialized views,
 retraction, succession lineage, and the stigmergy gap read.  Conformant
-when it passes every vector in conformance/vectors/ (run
-bindings/lua/conformance.lua): 137 vectors at specification 4.0.0.
+when it passes the suite (run bindings/lua/conformance.lua): 137 checks at
+specification 4.0.0, of which 38 are driven by the frozen shared vector
+files in conformance/vectors/ and 99 are implemented per binding.
 ]],
   homepage = "https://github.com/ai-university-aiu/causalontology",
   license = "The attribution always; no profit, no problem license. (Apache License 2.0 text)",
