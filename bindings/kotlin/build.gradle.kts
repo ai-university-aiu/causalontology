@@ -112,7 +112,8 @@ publishing {
                 "The Kotlin/Native binding of the Causalontology standard - reified " +
                     "causation as a programming-language-neutral standard and shared commons. " +
                     "Pure Kotlin, all cryptography (SHA-2, Ed25519, bignum) hand-built; " +
-                    "passes all 137 frozen conformance vectors."
+                    "passes all 137 conformance checks (38 driven by the frozen shared " +
+                    "vectors, 99 implemented per binding)."
             )
             url.set("https://github.com/ai-university-aiu/causalontology")
             licenses {
