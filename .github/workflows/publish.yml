@@ -3,6 +3,12 @@ name: publish
 # One-shot registry publications, run on demand. Each job publishes one
 # binding using an encrypted repository secret; tokens never touch the
 # authoring machine's disk. Trigger: gh workflow run publish.yml -f registry=<name>
+#
+# Every job gates on the INSTALLED-MODE conformance run, not the in-repo one.
+# The in-repo run resolves the binding by relative path, so it exercises the
+# source tree beside it rather than the artifact about to be pushed - which is
+# how thirteen bindings reported 137/137 while shipping packages that could not
+# score above 62. A gate that cannot fail is not a gate. See PUBLISHING.md.
 
 on:
   workflow_dispatch:
@@ -22,15 +28,29 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
-      - name: conformance first (never publish unproven bytes)
-        run: ruby bindings/ruby/conformance.rb
-      - name: build and push the gem
+      - name: build the gem, then prove the INSTALLED gem passes 137/137
+        run: |
+          set -eux
+          # The gemspec refuses to build if the vendored schemas are missing,
+          # incomplete or drifted, so this exercises that guard too.
+          (cd bindings/ruby && gem build causalontology.gemspec -o "$RUNNER_TEMP/causalontology.gem")
+          gem install --install-dir "$RUNNER_TEMP/gemhome" --no-document --local \
+            "$RUNNER_TEMP/causalontology.gem"
+          mkdir -p "$RUNNER_TEMP/rbcwd"
+          cd "$RUNNER_TEMP/rbcwd"
+          env -u CAUSALONTOLOGY_SPEC \
+            GEM_HOME="$RUNNER_TEMP/gemhome" GEM_PATH="$RUNNER_TEMP/gemhome" \
+            CAUSALONTOLOGY_TEST_INSTALLED=1 CAUSALONTOLOGY_ROOT="$GITHUB_WORKSPACE" \
+            ruby "$GITHUB_WORKSPACE/bindings/ruby/conformance.rb"
+      - name: push the gem that was actually proven
         env:
           GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
         run: |
-          cd bindings/ruby
-          gem build causalontology.gemspec
-          gem push causalontology-1.0.0.gem
+          set -eux
+          # Push the exact file the step above installed and proved. The old
+          # hard-coded `causalontology-1.0.0.gem` had been stale for three major
+          # versions and could only ever have failed or pushed the wrong thing.
+          gem push "$RUNNER_TEMP/causalontology.gem"
 
   hex:
     if: inputs.registry == 'hex'
@@ -41,13 +61,36 @@ jobs:
         with:
           otp-version: "26"
           elixir-version: "1.16"
-      - name: conformance first
-        run: cd bindings/elixir && elixir conformance.exs
+      - name: build the Hex package, then prove the UNPACKED package passes 137/137
+        run: |
+          set -eux
+          mix local.hex --force
+          cp -a bindings/elixir "$RUNNER_TEMP/exsrc"
+          (cd "$RUNNER_TEMP/exsrc" && mix hex.build)
+          mkdir -p "$RUNNER_TEMP/exconsumer/deps/causalontology" "$RUNNER_TEMP/exunpack"
+          tar -xf "$RUNNER_TEMP"/exsrc/causalontology-*.tar -C "$RUNNER_TEMP/exunpack"
+          tar -xzf "$RUNNER_TEMP/exunpack/contents.tar.gz" \
+            -C "$RUNNER_TEMP/exconsumer/deps/causalontology"
+          cd "$RUNNER_TEMP/exconsumer"
+          cat > mix.exs <<'EX'
+          defmodule Consumer.MixProject do
+            use Mix.Project
+            def project do
+              [app: :consumer, version: "0.0.0", elixir: "~> 1.16",
+               deps: [{:causalontology, path: "deps/causalontology"}]]
+            end
+          end
+          EX
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            CAUSALONTOLOGY_ROOT="$GITHUB_WORKSPACE" \
+            mix run deps/causalontology/conformance.exs
       - name: publish to Hex (package only - no ex_doc in a zero-dep binding)
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: |
-          mix local.hex --force
+          set -eux
+          # `mix hex.publish` alone would run the docs stage and fail: ex_doc is
+          # not a dependency of this zero-dependency binding. `package` skips it.
           cd bindings/elixir && mix hex.publish package --yes
 
   luarocks:
@@ -55,14 +98,55 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the source.tag guard below needs the tags
       - name: install Lua + LuaRocks (+ the JSON lib luarocks-upload itself needs)
         run: |
-          sudo apt-get update && sudo apt-get install -y lua5.4 luarocks
+          set -eux
+          sudo apt-get update
+          # liblua5.4-dev: luarocks refuses to build any rock without the Lua
+          # headers, even a pure-Lua rock that compiles nothing.
+          sudo apt-get install -y lua5.4 luarocks liblua5.4-dev
           sudo luarocks install dkjson
-      - name: conformance first
-        run: lua5.4 bindings/lua/conformance.lua
-      - name: upload rockspec
-        run: cd bindings/lua && luarocks upload causalontology-1.0.0-1.rockspec --api-key="${{ secrets.LUAROCKS_API_KEY }}"
+      - name: the rockspec's source.tag must carry the fixed binding
+        run: |
+          set -eux
+          # LuaRocks does not upload the code - it uploads the rockspec, and
+          # consumers then fetch source.tag themselves. So a stale tag ships
+          # stale code under a fresh version number, silently. Tag v4.0.0 in
+          # this repository carries the specification-2.0.0 Lua binding.
+          cd bindings/lua
+          rockspec=$(ls causalontology-4.0.0-*.rockspec)
+          tag=$(sed -n 's/^[[:space:]]*tag[[:space:]]*=[[:space:]]*"\(.*\)".*/\1/p' "$rockspec")
+          echo "rockspec source.tag: $tag"
+          n=$(git -C "$GITHUB_WORKSPACE" archive "$tag" bindings/lua \
+                | tar -t | grep -c '/spec/schema/.*\.schema\.json$')
+          echo "schemas carried by $tag: $n"
+          [ "$n" -eq 21 ] || {
+            echo "source.tag $tag does not carry the 21 vendored schemas - do not publish" >&2
+            exit 1; }
+      - name: prove the INSTALLED rock passes 137/137
+        run: |
+          set -eux
+          (cd bindings/lua && luarocks --lua-version 5.4 \
+            --tree="$RUNNER_TEMP/luathrowaway" make \
+            --pack-binary-rock causalontology-4.0.0-1.rockspec)
+          luarocks --lua-version 5.4 --tree="$RUNNER_TEMP/luatree" install \
+            bindings/lua/causalontology-4.0.0-1.all.rock
+          rm -f bindings/lua/causalontology-4.0.0-1.all.rock
+          mkdir -p "$RUNNER_TEMP/luacwd"
+          cd "$RUNNER_TEMP/luacwd"
+          env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+            LUA_PATH="$RUNNER_TEMP/luatree/share/lua/5.4/?.lua;$RUNNER_TEMP/luatree/share/lua/5.4/?/init.lua" \
+            lua5.4 "$GITHUB_WORKSPACE/bindings/lua/conformance.lua"
+      - name: upload the rockspec that was actually proven
+        run: |
+          set -eux
+          # Was hard-coded to causalontology-1.0.0-1.rockspec, a file that does
+          # not exist in this tree.
+          cd bindings/lua
+          luarocks upload causalontology-4.0.0-1.rockspec \
+            --api-key="${{ secrets.LUAROCKS_API_KEY }}"
 
   hackage:
     if: inputs.registry == 'hackage'
@@ -72,13 +156,23 @@ jobs:
       - uses: haskell-actions/setup@v2
         with:
           ghc-version: "9.6"
-      - name: conformance first
-        run: cd bindings/haskell && cabal update && cabal run -v0 conformance
-      - name: sdist and upload
+          cabal-update: false
+      - name: conformance, and the sdist must carry all 21 schemas
+        run: |
+          set -eux
+          cd bindings/haskell
+          # Boot packages only, so no Hackage index is needed to run the vectors.
+          runghc -isrc -iapp app/Conformance.hs
+          cabal sdist -o "$RUNNER_TEMP/hssdist"
+          n=$(tar -tzf "$RUNNER_TEMP"/hssdist/causalontology-*.tar.gz \
+                | grep -c '/spec_schema/.*\.schema\.json$')
+          echo "spec_schema entries in the sdist: $n"
+          [ "$n" -eq 21 ] || { echo "expected 21, got $n" >&2; exit 1; }
+      - name: upload the sdist that was actually checked
         env:
           HACKAGE_USERNAME: ${{ secrets.HACKAGE_USERNAME }}
           HACKAGE_PASSWORD: ${{ secrets.HACKAGE_PASSWORD }}
         run: |
-          cd bindings/haskell
-          cabal sdist
-          cabal upload --publish -u "$HACKAGE_USERNAME" -p "$HACKAGE_PASSWORD" dist-newstyle/sdist/*.tar.gz
+          set -eux
+          cabal upload --publish -u "$HACKAGE_USERNAME" -p "$HACKAGE_PASSWORD" \
+            "$RUNNER_TEMP"/hssdist/causalontology-*.tar.gz
