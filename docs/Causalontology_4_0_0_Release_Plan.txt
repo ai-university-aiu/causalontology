@@ -1216,7 +1216,7 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    12207a70...fe98d6f names the ten-file package, so this
                    channel cannot be corrected in place - consumers must
                    re-run zig fetch --save against v4.0.3. Expected hash
-                   12206993b2c6279008106276f92f88cf1209be3ded300d9de6f9dc5b15007a65f09c,
+                   122000cacf485f8c9e8f87cfdd428d54270200b14aa666912a3e7d53cec9600c71fa,
                    reproduced independently from two separately built
                    tarballs, but computed locally: re-run zig fetch against
                    the published v4.0.3 tarball and record what it prints
