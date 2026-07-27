@@ -23,11 +23,12 @@ defmodule Causalontology.MixProject do
   end
 
   defp description do
+    # Hex rejects a description over 300 characters at build time, so this is
+    # deliberately terse: 278 characters. Do not expand it without counting.
     "The Elixir binding of the Causalontology standard - reified causation " <>
       "as a programming-language-neutral standard and shared commons. OTP stdlib only: " <>
-      "RFC 8785 canonicalization, SHA-256 identity, Ed25519 signing, and a " <>
-      "conformant store. Passes all 137 conformance checks (38 driven by the " <>
-      "frozen shared vectors; 99 implemented per binding)."
+      "RFC 8785 canonicalization, SHA-256 identity, Ed25519 signing, a " <>
+      "conformant store. 137 checks: 38 shared vectors, 99 per binding."
   end
 
   defp package do
