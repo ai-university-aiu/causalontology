@@ -721,10 +721,16 @@ plainly, in the order they matter.
                    (second wave); passes 137/137 locally and pom.xml reads
                    4.0.0; Maven Central still carries 2.0.0; only the signed
                    deploy and fresh-consume check remain.
-  [ ] JavaScript - published to npm; types reflect the 4.0.0 shape; 137/137.
-                   STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
-                   passes 137/137 and reads 4.0.0; npm still carries 2.0.0;
-                   only publication and the fresh-install check remain.
+  [x] JavaScript - published to npm; types reflect the 4.0.0 shape; 137/137.
+                   STATUS: COMPLETE (2026-07-27). 4.0.0 is live on npm. The
+                   proof was run the strong way: causalontology@4.0.0 installed
+                   FRESH from registry.npmjs.org into an empty directory outside
+                   any checkout, the 21 schemas confirmed present under
+                   spec/schema/, CAUSALONTOLOGY_SPEC set to a poison value and
+                   then stripped with env -u, and the 137 vectors run against
+                   the INSTALLED package - 137/137, CONFORMANT. This is the
+                   first channel in the 4.x line proven to the standard the
+                   earlier proofs only claimed.
   [ ] Julia      - registered in General at 4.0.0; fresh add 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
                    (second wave); passes 137/137 locally and Project.toml reads

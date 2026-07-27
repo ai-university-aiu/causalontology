@@ -88,7 +88,7 @@ allowed to differ, and the 137 vectors are the thing that must not.
 | Swift Package Manager | swift | tag `v4.0.1` | yes | **none — `v4.0.1` stands** | a tag delivers the whole tree; `spec/schema` arrives with the sources |
 | Zig | zig | tag `v4.0.1` | yes, with a caveat | **none — `v4.0.1` stands** | the library has no default schema path and fails loudly; the consumer supplies one. See the caveat in the tag-channel table — `build.zig.zon` does not list `spec/` among its `.paths` |
 | C++ source tarball | cpp | tag `v4.0.1` | yes, with a caveat | **none — `v4.0.1` stands** | same: no default path, no silent failure; the tarball carries `spec/schema` for anyone who points at it |
-| npm | javascript | 2.0.0 | n/a | **4.0.0** | never published at 4.x, so the first 4.x release is simply correct: the package now ships its own `spec/schema/` under an explicit `files` allowlist |
+| npm | javascript | **4.0.0 LIVE** | **yes** | **done 2026-07-27** | published and proved: `npm install causalontology@4.0.0` into an empty directory delivers the 21 schemas under `spec/schema/`, and the installed package scored **137/137** with `CAUSALONTOLOGY_SPEC` first poisoned then stripped, from outside any checkout. Registry shasum `953f69a4`, licence indexed as `Apache-2.0` |
 | RubyGems | ruby | 2.0.0 | n/a | **4.0.0** | never published at 4.x; the gem vendors the schemas and the gemspec refuses to build without them |
 | Hex | elixir | 2.0.0 | n/a | **4.0.0** | never published at 4.x; the schemas ship in `priv/schema` and `mix.exs` lists `priv` |
 | NuGet | csharp | 2.0.0 | n/a | **4.0.0** | never published at 4.x; the schemas are embedded resources in the assembly *and* packed as content files |
@@ -173,7 +173,6 @@ lands.
 
 | Registry | Consume with | 1.0.0 disposition |
 |---|---|---|
-| npm | `npm install causalontology` | 1.0.0 deprecated |
 | Maven Central (Java) | `io.github.ai-university-aiu:causalontology:2.0.0` | immutable; 1.0.0 remains |
 | Maven Central (Kotlin/Native klib) | `io.github.ai-university-aiu:causalontology-kotlin:2.0.0` (linuxX64) | immutable; 1.0.0 remains |
 | NuGet | `dotnet add package causalontology` | 1.0.0 unlisted |
