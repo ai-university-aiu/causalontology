@@ -49,6 +49,52 @@ if (PHP_VERSION_ID < 80200) {
 // bindings/php/conformance.php -> two levels below the repository root.
 define('CO_VECDIR', __DIR__ . '/../../conformance/vectors');
 
+// Drift guard. The schemas vendored into the package at bindings/php/spec/
+// schema are the ones an installed consumer validates against, so they must
+// stay byte-for-byte identical to spec/schema. If they silently go stale the
+// published artifact enforces a different standard than the repository claims.
+// Both directories must be present for the comparison to mean anything: an
+// installed copy has the vendored one only, and that is exactly the layout
+// this change exists to make safe, so a missing spec/schema is not a failure.
+define('CO_BUNDLED_SCHEMAS', __DIR__ . '/spec/schema');
+define('CO_SPEC_SCHEMAS', dirname(__DIR__, 2) . '/spec/schema');
+
+// (1) The vendored copy must be present and complete. This is the check that
+// an installed package can still make with no repository around it, and it is
+// what makes the copy load-bearing rather than decorative.
+foreach (SchemaValidator::SCHEMA_FILES as $kind => $filename) {
+    if (!is_file(CO_BUNDLED_SCHEMAS . '/' . $filename)) {
+        fwrite(STDERR, 'vendored schema missing: ' . $filename . ' (for kind '
+             . $kind . ") under bindings/php/spec/schema - re-copy from spec/schema\n");
+        exit(1);
+    }
+}
+
+// (2) When the repository is present, the copy must be byte-for-byte the
+// spec. If it silently goes stale the published artifact enforces a different
+// standard than the repository claims.
+if (is_dir(CO_SPEC_SCHEMAS)) {
+    $specFiles = glob(CO_SPEC_SCHEMAS . '/*.schema.json');
+    sort($specFiles);
+    foreach ($specFiles as $src) {
+        $dst = CO_BUNDLED_SCHEMAS . '/' . basename($src);
+        if (!is_file($dst) || file_get_contents($dst) !== file_get_contents($src)) {
+            fwrite(STDERR, 'bundled schema drift: ' . basename($src)
+                 . " differs from spec/schema - re-copy before packing\n");
+            exit(1);
+        }
+    }
+    // A schema added to the spec but never vendored, or a stray extra file in
+    // the vendored directory, shows up only as a count mismatch.
+    $bundledFiles = glob(CO_BUNDLED_SCHEMAS . '/*.schema.json');
+    if (count($bundledFiles) !== count($specFiles)) {
+        fwrite(STDERR, 'bundled schema drift: ' . count($bundledFiles)
+             . ' vendored schemas versus ' . count($specFiles)
+             . " in spec/schema - re-copy before packing\n");
+        exit(1);
+    }
+}
+
 // The twenty-one whole-word schemes (Principle P7), plus ed25519 for keys.
 const CO_SCHEMES = ['occurrent', 'causal_relation_object', 'continuant', 'realizable',
     'assertion', 'enrichment', 'retraction', 'succession', 'stratum', 'bridge',
@@ -1763,6 +1809,11 @@ function vectorSuite(): array
 function main(): void
 {
     echo "causalontology-php conformance run (specification 4.0.0)\n";
+    // Name the two things a "fresh install" proof must be able to check: the
+    // binding source actually loaded, and the schema directory actually used.
+    echo 'binding under test: ' . realpath(__DIR__ . '/src/SchemaValidator.php') . "\n";
+    echo 'schemas under test: ' . (realpath(SchemaValidator::schemaDir())
+                                  ?: SchemaValidator::schemaDir()) . "\n";
     echo 'internal checks (RFC 8032, RFC 8785, fixed constants) ... ';
     internalChecks();
     echo "ok\n";

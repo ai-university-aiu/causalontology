@@ -1,9 +1,37 @@
 # Conformance
 
 **An implementation is Causalontology-conformant if and only if it passes every
-vector in `vectors/` for the specification version it declares.** That single
-rule is what guarantees that Prolog, Python, Java, and Swift implementations
-agree without sharing a line of code.
+vector in `vectors/` for the specification version it declares.**
+
+> **Read this before quoting `137/137`.** The rule above states the intention.
+> It is not what the suite currently measures, and the gap was found by
+> measurement on 2026-07-27, not by argument.
+>
+> **`137/137` counts checks, not vector files.** It is 137 hand-written,
+> per-language assertions. Of those, **38 are driven by the files in this
+> directory** — exactly V01–V38 — and the other 99 share no data with any other
+> binding at all. Every one of the nineteen runners opens 38 vector files for
+> their contents and no more. Rust and Haskell open all 137, but only to lift
+> the label printed on the PASS line: replace the contents of V39–V137 with `{}`
+> and both still print `137/137` and `CONFORMANT`.
+>
+> **The cause is in these files, not only in the runners.** All 99 files from
+> V39 to V137 carry no executable payload — no `input`, no `given`, no `steps`.
+> Their `operation` field reads, literally, `"see bindings/*/conformance
+> runner"`. They are named, grouped stubs carrying an `expect` block of booleans
+> and a prose note. There is nothing in them to execute, so no runner could read
+> them for meaning even if it tried.
+>
+> The consequence for the sentence above: that passing every vector is what makes
+> nineteen independent implementations agree without sharing a line of code holds
+> today **for V01–V38 only**. For V39–V137 the agreement rests on nineteen
+> separate hand-written implementations of the same prose. That is a real but
+> weaker guarantee, and it should not be described as the stronger one.
+>
+> **The honest headline** is `137/137 conformance checks passed (38 driven by the
+> frozen shared vectors; 99 implemented per binding)`. PUBLISHING.md carries the
+> full measurement, including the stricter figure: of the 38 files that are read,
+> only 26 change any verdict when their bytes are destroyed.
 
 There are **137 vectors**. V01–V38 are the original suite, re-frozen unaltered
 in meaning under the whole-word schemes (Principle P7); V39–V107 are the 2.0.0

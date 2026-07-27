@@ -5,7 +5,12 @@
 //! builds the conformance runner:
 //!
 //!   zig build                 # install the conformance executable
-//!   zig build conformance     # run the 137-vector suite (from the repo root)
+//!   zig build conformance     # run the 137-vector suite
+//!
+//! The runner needs the vectors, which it finds by walking up from the
+//! working directory or from its own executable, so the step works from a
+//! checkout and from inside a fetched package alike. It needs nothing at all
+//! for the schemas: those are compiled into the library.
 
 const std = @import("std");
 
@@ -18,8 +23,10 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/causalontology.zig"),
     });
 
-    // The conformance runner (must run with the repository root as cwd, or
-    // with CAUSALONTOLOGY_ROOT pointing at it).
+    // The conformance runner. It locates conformance/vectors itself
+    // (CAUSALONTOLOGY_ROOT, else a walk up from the working directory, else a
+    // walk up from the executable) and validates against the schemas compiled
+    // into the library, so it proves the artifact, not a checkout.
     const exe = b.addExecutable(.{
         .name = "conformance",
         .root_source_file = b.path("conformance.zig"),

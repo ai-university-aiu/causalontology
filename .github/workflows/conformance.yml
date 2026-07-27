@@ -67,10 +67,12 @@ jobs:
               "bindings/javascript/spec/schema",
               "bindings/lua/causalontology/spec/schema",
               "bindings/perl/share/schema",
+              "bindings/php/spec/schema",
               "bindings/python/causalontology/spec/schema",
               "bindings/r/inst/schema",
               "bindings/ruby/lib/causalontology/spec/schema",
               "bindings/rust/spec_schema",
+              "bindings/zig/src/spec_schema",
           ]
 
           bad = []

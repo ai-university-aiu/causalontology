@@ -122,14 +122,23 @@ its own language. For every binding, in order:
 
  3. CONFORM. Run the binding's own port of the conformance suite until it
     reports 137/137. Green is the gate; a binding that is not green is PENDING,
-    not published.
+    not published. READ THAT NUMBER CORRECTLY, per the measurement recorded in
+    Part Three under WHAT 137/137 ACTUALLY COUNTS: it is 137 CHECKS, of which
+    38 are driven by the shared vector files V01-V38 and 99 are implemented
+    per binding, because the files V39-V137 carry no executable payload. The
+    gate is real, but it is not 137 shared data vectors and must not be
+    described as such.
 
  4. BUMP THE VERSION to 4.0.0 in the binding's package manifest.
 
- 5. TAG THE RELEASE in Git (v4.0.0, or the language-specific tag noted below;
-    Go's is bindings/go/v4.0.0 - corrected 2026-07-26: the module lives in the
+ 5. TAG THE RELEASE in Git (v4.0.3 for the vX.Y.Z channels as of 2026-07-27 -
+    Swift, Zig, Packagist, the C++ source tarball, and the LuaRocks
+    rockspec's source.tag - or the language-specific tag noted below; Go's is
+    bindings/go/v4.0.0 - corrected 2026-07-26: the module lives in the
     major-version subdirectory bindings/go/v4, and for that layout Go drops
-    the folder's /v4 suffix from the tag prefix).
+    the folder's /v4 suffix from the tag prefix). Tags are added, never moved:
+    v4.0.0, v4.0.1 and v4.0.2 stay exactly where they are, because a pushed
+    tag is a public, cached surface a consumer may already have pinned.
 
  6. PUBLISH, then run the post-publish verification: install the PUBLISHED
     4.0.0 package fresh, from the registry, into a clean environment, and run
@@ -160,13 +169,23 @@ use the Hex-published Elixir package).
     Version bump: project(causalontology VERSION 4.0.0 ...) in
       bindings/cpp/CMakeLists.txt (it stale-reads 1.0.2 today - fix it as part
       of the bump).
-    Tag: v4.0.0.
+    Tag: v4.0.3 (was v4.0.0 when this plan was written, then v4.0.1 when the
+      tag channels were cut; v4.0.3 is the tag carrying the CMake-install
+      repair of 2026-07-27, and the earlier tags are left where they are).
     Publish:
       bindings/cpp/run_conformance.sh    -> 137/137
-      push the v4.0.0 tag; update the vcpkg and Conan port pull requests to
+      push the v4.0.3 tag; update the vcpkg and Conan port pull requests to
       4.0.0 once their CLA gates clear.
-    Post-publish verification: fetch the v4.0.0 tag tarball fresh, run
-      bindings/cpp/run_conformance.sh against it -> 137/137.
+    Post-publish verification, in two parts, because the first part alone
+      missed a real defect for a day:
+      (a) fetch the v4.0.3 tag tarball fresh, run
+          bindings/cpp/run_conformance.sh against it -> 137/137;
+      (b) configure, build and install into a clean temporary prefix, assert
+          21 *.schema.json under <prefix>/share/causalontology/spec/schema,
+          then build a small find_package consumer OUTSIDE the checkout and
+          run it with CAUSALONTOLOGY_SPEC unset. Part (a) exercises the
+          tarball; only part (b) exercises the installed library, which is how
+          anyone actually consumes this.
 
  2. C# (bindings/csharp)
     Package and registry: causalontology on the NuGet gallery. The C# package
@@ -334,10 +353,15 @@ use the Hex-published Elixir package).
     Package and registry: causalontology on LuaRocks.
     Build and publish tool: luarocks upload with a 4.0.0 rockspec.
     Version bump: write bindings/lua/causalontology-4.0.0-1.rockspec (version
-      "4.0.0-1", source pointing at the v4.0.0 tag). Stated honestly: no 3.0.0
-      rockspec was ever written; the new rockspec sits alongside the 2.0.0-1
-      one, which stays for history (LuaRocks has no yank).
-    Tag: v4.0.0.
+      "4.0.0-1", source.tag pointing at v4.0.3). LuaRocks uploads the
+      rockspec, not the code, so source.tag decides what a consumer fetches; a
+      rockspec that travels with a tag must name that tag or it is not
+      self-consistent. It named v4.0.2 until 2026-07-27 and now names v4.0.3.
+      Never v4.0.0, whose tree carries the specification-2.0.0 Lua binding.
+      Stated honestly: no 3.0.0 rockspec was ever written; the new rockspec
+      sits alongside the 2.0.0-1 one, which stays for history (LuaRocks has no
+      yank).
+    Tag: v4.0.3.
     Publish:
       lua bindings/lua/conformance.lua   -> 137/137
       luarocks upload bindings/lua/causalontology-4.0.0-1.rockspec \
@@ -374,14 +398,21 @@ use the Hex-published Elixir package).
       preference and derives the version from the tag; the two manifests must
       not disagree.)
     Tag and register:
-      git tag v4.0.0 (created in the release step) is picked up by the
+      git tag v4.0.3 (created in the release step) is picked up by the
       Packagist webhook; if not, click "Update" on the Packagist package page.
+      v4.0.1 is already live on Packagist and is sound; v4.0.3 supersedes it
+      and the earlier tags stay where they are.
     Publish:
       php bindings/php/conformance.php   -> 137/137   (also wired as
         composer test)
     Post-publish verification:
-      composer require causalontology/causalontology:4.0.0 in a clean project
-      and run the vectors -> 137/137.
+      composer require causalontology/causalontology:^4.0 in a clean project
+      and run the vectors -> 137/137. Then the stronger check added
+      2026-07-27: delete the top-level spec/ from the vendor tree and run it
+      again. Composer's dist archive is the whole repository, so spec/schema
+      arrives whether or not the binding carries its own; deleting it is what
+      proves the vendored copy under bindings/php/spec/schema is load-bearing
+      rather than decorative.
 
  14. PYTHON (bindings/python)
     Package and registry: causalontology on the Python Package Index (PyPI).
@@ -446,15 +477,29 @@ use the Hex-published Elixir package).
       holds the seventeen 2.0.0-era files today - bring it to the twenty-one
       4.0.0 schemas (cross_stratal_seam plus the three new kinds) so the
       published crate matches spec/schema/.
-    Tag: v4.0.0.
+    Tag: v4.0.0 for the code, but see the note below: the crate that is live
+      was published from main, not from a tag, and the v4.0.0 tag does NOT
+      carry the 4.0.0 Rust binding.
     Publish:
       cd bindings/rust
       cargo test               (the conformance harness) -> 137/137
       cargo publish
-    Post-publish verification:
-      cargo new /tmp/conrs && cd /tmp/conrs
-      cargo add causalontology@4.0.0
-      run the conformance vectors against the published crate -> 137/137.
+    Post-publish verification, corrected 2026-07-27 (the original line here
+      could never have worked, and saying so is the point):
+      cargo install causalontology --version <the published version> \
+        --root /tmp/co --bin conformance
+      cd /tmp && env -u CAUSALONTOLOGY_SPEC /tmp/co/bin/conformance \
+        <a checkout>/conformance/vectors            -> 137/137
+      NOT "cargo add causalontology && cargo run --bin conformance": the
+      binary belongs to a dependency, so a consumer project answers "no bin
+      target named conformance", and at 4.0.0 the binary hardcodes the
+      vectors at ../../conformance/vectors relative to CARGO_MANIFEST_DIR, a
+      path no registry checkout has, so it panics with exit 101. The vectors
+      are test data and are deliberately not shipped inside the crate, so the
+      runner must be TOLD where they are; 4.0.1 accepts them on the command
+      line, from CAUSALONTOLOGY_VECTORS, from CAUSALONTOLOGY_ROOT, or from a
+      checkout at or above the working directory, prints which it used, and
+      exits 2 with an actionable message when it finds none.
     Note: the WebAssembly core is built from this crate; rebuild it at 4.0.0
       and re-run its cross-checks against the JavaScript binding.
 
@@ -466,14 +511,18 @@ use the Hex-published Elixir package).
       the manifest. TAG-ONLY: no version is written in any file.
     Version bump: none in a file - Swift Package Manager resolves by Git tag;
       keep Package.swift valid at the tag.
-    Tag: v4.0.0 (this IS the release).
+    Tag: v4.0.3 (this IS the release; it was v4.0.0 when this plan was
+      written and v4.0.1 when the tag channels were cut).
     Publish:
       swift run conformance              -> 137/137   (from the repository
         root; Sources/conformance/main.swift)
-      push the v4.0.0 tag; if listed, the Swift Package Index reindexes.
+      push the v4.0.3 tag; if listed, the Swift Package Index reindexes.
     Post-publish verification: in a fresh package declare
-      .package(url: "https://github.com/ai-university-aiu/causalontology", from: "4.0.0")
-      and run the vectors -> 137/137.
+      .package(url: "https://github.com/ai-university-aiu/causalontology", from: "4.0.3")
+      and run the vectors -> 137/137. Swift is the one channel still correct
+      only because a tag delivers the whole repository tree: it vendors
+      nothing, and defaultSchemaDirectory() derives its path from #filePath,
+      so it points at the Swift Package Manager checkout that compiled it.
 
  19. ZIG (bindings/zig)
     Package and registry: the Zig package manager (build.zig.zon,
@@ -483,17 +532,32 @@ use the Hex-published Elixir package).
     Version bump: .version = "4.0.0" in BOTH manifests: the repository-root
       build.zig.zon (it reads 2.0.1 today; the tag-based channel reads the
       repository root) AND bindings/zig/build.zig.zon (it reads 2.0.0 today).
-    Tag: v4.0.0 (the tarball the tag produces is the artifact).
+    THE .paths LIST IS THE PACKAGE - CALLED OUT EXPLICITLY, because leaving it
+      implicit shipped a broken package at v4.0.1. Zig's package manager
+      prunes the fetched tarball to the .paths list in the ROOT
+      build.zig.zon, then hashes what survives. Anything absent from that
+      list does not exist for a consumer, however plainly it sits in the
+      repository, and no .gitattributes or composer.json affects it. The list
+      must name bindings/zig, spec, conformance/vectors, LICENSE and NOTICE.
+    Tag: v4.0.3 (the tarball the tag produces is the artifact; it was v4.0.0
+      when this plan was written and v4.0.1 when the tag channels were cut).
     Publish:
       bindings/zig/run_conformance.sh    -> 137/137
-      push v4.0.0; the release tarball is
-      https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.0.tar.gz
+      push v4.0.3; the release tarball is
+      https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.3.tar.gz
       Compute and record its hash:
-        zig fetch https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.0.tar.gz
-      and publish the printed hash so consumers can pin it.
+        zig fetch https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.3.tar.gz
+      and publish the printed hash so consumers can pin it. A hash covers only
+      the pruned file set, so a packaging correction ALWAYS produces a new
+      hash and can never be applied in place: consumers must re-run
+      zig fetch --save against the corrected tag.
     Post-publish verification: in a fresh project,
-      zig fetch --save <the v4.0.0 tarball URL>, then
-      dep.module("causalontology"), and run the vectors -> 137/137.
+      zig fetch --save <the v4.0.3 tarball URL>, then
+      dep.module("causalontology"), and run the vectors -> 137/137. Count what
+      the fetch actually delivered before believing it - files in the package,
+      *.schema.json inside it - because a run inside the tag TREE proves
+      nothing about the fetched PACKAGE, and that confusion is exactly what
+      hid the v4.0.1 defect.
 
 
 PART THREE - THE POST-RELEASE SECTION
@@ -513,6 +577,18 @@ prints the binding path and the schema directory it actually read, and aborts
 if either is inside the repository. A run that resolves the binding by
 relative path from the source tree proves nothing about the package and does
 not count, whatever number it prints.
+
+TIGHTENED AGAIN 2026-07-27, after the Zig finding. The 2026-07-26 rule was
+still not enough on its own, because it says nothing about WHICH ARTIFACT is
+under test. A run inside a git tag TREE is not a run inside the fetched
+PACKAGE, and for Zig those differ by 199 files. So, before the run: build the
+artifact the way the consumer's tool builds it (zig fetch, cargo package,
+composer require, cmake --install), then COUNT WHAT IT CONTAINS - files, and
+*.schema.json inside it - and only then run the suite from inside it. Where
+the platform allows it, hide the repository outright (a mount namespace, or
+open_basedir) rather than merely not using it, and trace the files the program
+opens. A proof that cannot say how many schemas the consumer received is not a
+proof about packaging.
 
 POST-RELEASE CHECKLIST AND CURRENT STATUS (tick a language only when both
 hold - published AND fresh-install 137/137; the code-level status below is the
@@ -649,17 +725,208 @@ plainly, in the order they matter.
   retraction is not deletion, so the superseding release is the fix and the
   yank is only a signpost.
 
+THE AUDIT OF THE FIVE NEVER-RE-PROVED CHANNELS (2026-07-27). The repair above
+covered thirteen bindings. Five channels were live and were left alone, on the
+strength of a THEORY rather than a measurement: crates.io (Rust) and the four
+git-tag channels - Swift, Zig, Packagist (PHP), and the C++ source tarball. An
+unmeasured theory is precisely what produced the first round of false proofs,
+so the five were re-tested: the artifact a consumer actually receives was
+built, run from a working directory outside the checkout with
+CAUSALONTOLOGY_SPEC first poisoned and then stripped, and in the strongest
+cases run with the repository hidden behind a mount namespace while every file
+the program opened was traced. Four findings.
+
+  FINDING FOUR - ZIG WAS GENUINELY BROKEN, NOT MERELY UNPROVEN. The entry
+  below said a Zig consumer "must supply the twenty-one schemas itself", and
+  called that a documented requirement of the interface rather than a defect.
+  That was wrong. Zig's package manager prunes the fetched tarball to the
+  .paths list in the ROOT build.zig.zon and hashes only what survives; spec/
+  was not on that list. Measured: zig fetch of a tarball built from the
+  published tree produced a package of TEN FILES AND ZERO SCHEMAS, and a
+  consumer project that fetched the module and called validateSchema died
+  with error.SpecDirNotSet. There was no supported way for a consumer to
+  comply with the documented requirement, because the data was not in the
+  package. FIXED: .paths now names bindings/zig, spec, conformance/vectors,
+  LICENSE and NOTICE; the twenty-one schemas are additionally compiled into
+  the library from bindings/zig/src/spec_schema/ (Zig 0.13 refuses @embedFile
+  of a path outside the module directory, so the copy must sit beside the
+  sources); and the fetched package is now 209 files - 21 schemas under
+  spec/schema, 21 compiled in, and all 137 vectors, so it verifies itself
+  against the exact bytes received. A consumer with the repository hidden
+  behind a mount namespace gets valid = true, and strace shows the program
+  opening no schema file at all. The conformance runner inside the fetched
+  package passed 137/137 under those conditions and fails loudly, rather than
+  falling back, when CAUSALONTOLOGY_SPEC names a directory it cannot read.
+
+  FINDING FIVE - THE "WHOLE REPOSITORY" REASONING WAS TRUE FOR THREE,
+  IRRELEVANT FOR ONE, AND FALSE FOR ONE. This matters more than the verdicts,
+  because the reasoning is what gets reapplied to the next channel.
+    TRUE for Swift, the C++ source tarball, and PHP. A GitHub tag archive and
+      Composer's dist archive really are the whole repository tree, so
+      spec/schema arrives with the code and the repository-relative path
+      resolves on the consumer's disk. PHP no longer depends on it: the
+      binding now vendors its own twenty-one schemas under
+      bindings/php/spec/schema and passes 137/137 in a Composer-shaped vendor
+      tree with the top-level spec/ deleted, and again with the repository
+      hidden behind a mount namespace. The C++ CMake install now carries its
+      own copy too.
+    IRRELEVANT for Rust. crates.io does not ship the repository; it ships the
+      bindings/rust subtree and nothing above it. Rust is safe for a different
+      reason entirely: its schemas live INSIDE that subtree, at
+      bindings/rust/spec_schema/, and are compiled in with include_str!.
+      Filing Rust under "whole-repository delivery" was a correct conclusion
+      reached by a wrong argument, which is the most dangerous kind, because
+      the argument is what survives into the next decision.
+    FALSE for Zig. A manifest sits between the tag and the consumer, and it
+      was not listing the data. Being tag-based does not make a channel
+      whole-repository. (The Go module is the other exception, for its own
+      reason: it ships only its own subdirectory.)
+
+  FINDING SIX - RUST'S LIBRARY IS SOUND; ITS CONFORMANCE PROGRAM COULD NOT
+  RUN FOR A REGISTRY CONSUMER, AND ITS README TOLD PEOPLE TO RUN IT. The
+  library was proven the hard way: a consumer crate built against the
+  packaged .crate, run from outside every checkout with the repository
+  bind-mounted away behind an empty directory, printed byte-identical output
+  with CAUSALONTOLOGY_SPEC poisoned and with it stripped, and strace recorded
+  not one syscall touching the repository. But src/bin/conformance.rs
+  hardcoded the vectors at ../../conformance/vectors relative to
+  CARGO_MANIFEST_DIR, so an installed copy PANICKED ON FIRST RUN with exit
+  101; and the published README's headline instruction, "cargo run --bin
+  conformance", fails in a consumer project with "no bin target named
+  conformance" because the binary belongs to a dependency. The README showed
+  a passing result for a command that cannot pass. Both are fixed in tree at
+  4.0.1, which is NOT PUBLISHED: crates.io serves the panicking binary and
+  the wrong README today. The 4.0.0 library is sound, so yanking 4.0.0 would
+  punish correct library consumers in order to punish a broken test runner;
+  the recommendation is to publish 4.0.1 and leave 4.0.0 listed. The proof
+  installed from a locally packaged .crate, byte-for-byte the artifact
+  crates.io would receive; a registry-fetch proof must be redone after
+  publish before this channel is recorded as proven.
+
+  FINDING SEVEN - THE v4.0.0 GIT TAG IS STALE FOR THE RUST BINDING, AND
+  NOBODY SHOULD VERIFY THE CRATE AGAINST IT. v4.0.0 pins the
+  specification-freeze commit 64b1d1a, which predates the binding port: at
+  that tag bindings/rust/Cargo.toml declares version 2.0.0 and
+  bindings/rust/spec_schema/ holds SEVENTEEN schemas, not twenty-one. The
+  crate on crates.io was published from main at 43d58a6. Anyone who checks
+  out v4.0.0 to audit the published crate audits two-major-versions-old code
+  and concludes something false about a sound artifact. Recorded here so it
+  cannot happen again - which commit produced which live artifact:
+
+    crates.io causalontology 4.0.0        main at 43d58a6 (the commit later
+                                          tagged v4.0.1). NOT the v4.0.0 tag.
+    pub.dev causalontology 4.0.0          main at 43d58a6. Defective.
+    Go bindings/go/v4@v4.0.0              tag bindings/go/v4.0.0 = 43d58a6.
+                                          Defective. Not the never-consulted
+                                          bindings/go/v4/v4.0.0 tag.
+    npm causalontology 4.0.0              main at e697d32, the commit that
+                                          put LICENSE inside the artifact.
+    PyPI causalontology-4.0.0-1-py3-...   main at e697d32. NOT the v4.0.0 tag.
+    Packagist 4.0.1                       tag v4.0.1 = 43d58a6.
+    SwiftPM / Zig / C++ tarball 4.0.1     tag v4.0.1 = 43d58a6.
+    LuaRocks rockspec source.tag          tag v4.0.2 = d04fac3, superseded by
+      (unpublished)                       v4.0.3. Never v4.0.0.
+
+  THE TAG DECISION. A new tag, v4.0.3, carries all of the above repairs, and
+  the tag channels - Swift, Zig, Packagist, the C++ source tarball, and the
+  LuaRocks rockspec's source.tag - now point at it. v4.0.0, v4.0.1 and v4.0.2
+  are left exactly where they are and are not moved: a pushed tag is a
+  public, cached surface that a consumer may already have pinned by hash or
+  by lockfile, so a corrected tree gets a new tag and an existing tag is
+  never redefined under anyone.
+
+WHAT 137/137 ACTUALLY COUNTS (measured 2026-07-27, across all nineteen
+bindings). The number this release is gated on does not mean what its label
+says, so it is recorded here plainly rather than left to be discovered again.
+
+  IT COUNTS CHECKS, NOT VECTOR FILES. "137/137" is 137 hand-written,
+  per-language assertions. Of those, 38 are driven by the frozen shared
+  vector files - exactly V01-V38 - and the other 99 share no data with any
+  other binding at all. Method: strace of openat on every runner, then a
+  shadow vectors directory in which the CONTENTS of V39-V137 were replaced by
+  "{}" while the filenames stayed intact, then a second shadow with those 99
+  files deleted, then a positive control with all 137 gutted to prove the
+  method had teeth. Every one of the nineteen runners opens 38 vector files
+  for their contents and no more. Rust and Haskell do open all 137, but only
+  to lift the label printed on the PASS line: against the gutted-content
+  shadow both still print 137/137 and CONFORMANT.
+
+  THE CAUSE IS IN THE VECTOR FILES, NOT ONLY IN THE RUNNERS. All 99 files
+  from V39 to V137 carry no executable payload - no "input", no "given", no
+  "steps". Their "operation" field reads, literally, "see bindings/*/
+  conformance runner". They are named, grouped stubs carrying an "expect"
+  block of booleans and a prose note. There is nothing in them to execute, so
+  no runner could read them for meaning even if it tried.
+
+  THE HONEST HEADLINE. Not "137/137 vectors". Either "137/137 conformance
+  checks passed (38 driven by the frozen shared vectors; 99 implemented per
+  binding)" or, if one number is wanted, "38/38 shared data vectors + 99
+  per-binding checks". A stricter figure is also defensible: of the 38 files
+  that are read, only 26 change any verdict when their bytes are destroyed
+  (V01-V19, V21-V25, V34, V35); gutting all 137 leaves 111 checks still
+  passing.
+
+  WHAT THIS DOES AND DOES NOT UNDERMINE. It does not mean the bindings are
+  unverified: 137 assertions per language really do run, and the
+  schema-packaging proofs above are unaffected, since those turn on whether
+  an installed artifact can validate at all. What it undermines is the
+  specific claim - made in conformance/README.md, in bindings/README.md and
+  in the standard's own README - that the shared vector files are what makes
+  nineteen independent implementations agree. Today that holds for V01-V38.
+  For V39-V137 the nineteen bindings agree only in that nineteen ports were
+  each written to the same prose note.
+
+  A SECOND MEASUREMENT THAT BEARS ON EVERY FRESH-INSTALL PROOF: only the Rust
+  runner detects a vectors directory with files missing. Delete 99 of the 137
+  and Elixir, Go, Swift and Zig still report 137/137 and CONFORMANT; seven
+  more bindings happen to crash on a filename lookup, which is an accident
+  rather than a guard. Rust alone refuses with an accurate diagnosis, and
+  even Rust passes when the files are present but hollow.
+
+  THE CHEAPEST REPAIR, IN ORDER OF COST. (1) Stop printing the word "vectors"
+  for a number that counts checks - nineteen one-line changes, and it removes
+  the false claim immediately. (2) Port the Rust completeness check into the
+  other eighteen runners, roughly ten lines each. (3) Each of the 99 stubs
+  ALREADY lists in its "expect" block every assertion the check owes, so have
+  each runner require that its check for vector n answers every key in that
+  file's "expect" object, comparing the answered key-set to the file's. That
+  is one shared helper per language rather than 99 rewrites, and it makes the
+  file authoritative over what must be checked - which is what "137 vectors"
+  asserts. Writing real payloads into the 99 files is the complete fix, but
+  that is a data project of 99 files times 19 runners and must not gate the
+  relabel. NONE OF THIS IS DONE. What is recorded above is a measurement, and
+  the vectors themselves were not touched.
+
   [x] C++ (source tarball) - the v4.0.1 tag tarball is out and a freshly
-                   downloaded copy passed 137/137 (2026-07-26). The vcpkg and
-                   Conan ports remain unticked besides: both await their CLA
-                   gates, exactly as before. STRUCTURAL NOTE added after the
-                   packaging defect: schema.cpp has no default schema path -
-                   schemaDir() throws unless the consumer calls
-                   schema_set_spec_dir() or sets CAUSALONTOLOGY_SPEC - and
-                   the run above works because run_conformance.sh points it
-                   at the tarball's own spec/schema. The tarball is the whole
-                   repository, so the schemas are there for anyone who points
-                   at them; nothing is vendored and nothing fails silently.
+                   downloaded copy passed 137/137 (2026-07-26); v4.0.3
+                   supersedes it. The vcpkg and Conan ports remain unticked
+                   besides: both await their CLA gates, exactly as before.
+                   The tarball claim was and is true - the tarball is the
+                   whole repository, so spec/schema is there for anyone who
+                   points at it. TWO CORRECTIONS from the 2026-07-27 audit,
+                   because that run never touched the part people actually
+                   consume. (a) THE CMAKE INSTALL SHIPPED ZERO SCHEMAS: 15
+                   files installed, no spec/schema anywhere, so a
+                   find_package consumer outside the checkout could not
+                   validate at all ("schema directory unknown"). v4.0.3
+                   installs 36 files including all 21 schemas at
+                   <prefix>/share/causalontology/spec/schema, compiles that
+                   absolute path in as the last-resort lookup, and refuses
+                   loudly at configure, at find_package, and at run time
+                   rather than falling back to the tree that built it -
+                   proven with a consumer built outside the checkout and the
+                   repository bind-mounted away, and with strace showing the
+                   only schema opened is the installed one. (b) THE README'S
+                   CAUSALONTOLOGY_SPEC CLAIM WAS FALSE: schemaDir() consulted
+                   the explicitly-set directory first and conformance.cpp
+                   always called schema_set_spec_dir(), so the variable could
+                   never be reached - with it set to a poison value the suite
+                   still reported 137/137. The variable is now consulted
+                   first, matching Python and JavaScript, and a poisoned run
+                   now scores 62/137, which is how you can tell it is really
+                   being read. Nothing is vendored into bindings/cpp; the
+                   installed copy is written at install time from
+                   spec/schema, so it cannot drift.
   [ ] C#         - published to NuGet; fresh install 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
                    (second wave); passes 137/137 locally and the csproj reads
@@ -745,19 +1012,43 @@ plainly, in the order they matter.
                    (second wave); passes 137/137 locally with a new
                    causalontology-4.0.0-1.rockspec; LuaRocks still carries
                    2.0.0; only the upload and fresh-install check remain.
+                   Its source.tag now names v4.0.3 (it named v4.0.2 until
+                   2026-07-27). LuaRocks uploads the rockspec and not the
+                   code, so that field decides what a consumer fetches, and a
+                   rockspec riding a tag must name that tag to be
+                   self-consistent - which is why this one binding file is
+                   edited when a new tag is cut.
   [ ] Perl       - uploaded to CPAN via PAUSE; fresh install 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - the working tree
                    passes 137/137 and reads 4.0.0; nothing is on CPAN yet;
                    the PAUSE web-form upload stands besides, then the
                    fresh-install check.
-  [x] PHP        - v4.0.1 tag registered on Packagist; fresh 137/137.
+  [x] PHP        - v4.0.1 tag registered on Packagist; fresh 137/137;
+                   v4.0.3 supersedes it.
                    STATUS: COMPLETE (2026-07-26) - the Packagist webhook
                    mirrored v4.0.1 automatically on the tag push (confirmed on
                    the live Packagist index), and the composer-require residue
                    closed the same day: composer.phar was fetched fresh, a
                    clean project required causalontology/causalontology 4.0.1
                    from Packagist (resolved v4.0.1), and the conformance suite
-                   passed 137/137 from the installed vendor tree.
+                   passed 137/137 from the installed vendor tree. RE-AUDITED
+                   2026-07-27 and confirmed sound - but sound for a reason
+                   that was borrowed rather than owned: Composer's dist
+                   archive is the whole repository, so SchemaValidator's
+                   dirname(__DIR__, 3) . '/spec/schema' happened to resolve
+                   inside the vendor tree. Delete the top-level spec/ from
+                   that vendor tree and the pre-fix binding failed at V01
+                   with "cannot read schema file", every schema-touching
+                   vector dead. At v4.0.3 the binding vendors its own
+                   twenty-one schemas under bindings/php/spec/schema, and the
+                   same pruned vendor tree passes 137/137 from outside the
+                   repository - and again with PHP forbidden by open_basedir,
+                   and again with the repository hidden behind a mount
+                   namespace. The runner aborts before the first vector if a
+                   vendored schema is missing, so a package that cannot
+                   validate cannot pass its own suite, and it compares the
+                   vendored copy byte-for-byte against spec/schema whenever
+                   one is reachable. PHP's safety is now owned, not borrowed.
   [x] Python     - published to PyPI; fresh install 137/137.
                    STATUS: COMPLETE (2026-07-27), after a defective publish the
                    day before. On 2026-07-26 the 137/137 reported for 4.0.0 was
@@ -801,24 +1092,64 @@ plainly, in the order they matter.
                    (second wave); passes 137/137 locally and both the VERSION
                    constant and the gemspec read 4.0.0; RubyGems still carries
                    2.0.0; only publication and the fresh-install check remain.
-  [x] Rust       - published to crates.io; the artifact carries its schemas.
-                   STATUS: COMPLETE (2026-07-26) - 4.0.0 published to
-                   crates.io with the owner's explicit go-ahead. Re-audited
-                   the same day after the packaging defect was found, and
-                   Rust is the one binding that never had it: schema.rs
-                   compiles the twenty-one schemas in with include_str! from
-                   its own vendored spec_schema/, so the crate cannot build
-                   without them and reads nothing from disk at run time.
-                   "cargo package --list" names all twenty-one of them.
-                   ONE CLAIM WITHDRAWN: the earlier line "a clean cargo
-                   project added the crate fresh from the registry and passed
-                   137/137" is not reproducible as written - the conformance
-                   binary resolves the vectors at ../../conformance/vectors
-                   relative to CARGO_MANIFEST_DIR, and no registry checkout
-                   has that path. The soundness conclusion stands on the
-                   embedding, which anyone can check; the run does not, and
-                   is struck rather than defended.
-  [x] Swift      - v4.0.1 tag pushed; fresh 137/137 at the tag.
+  [ ] Rust       - LIBRARY COMPLETE at 4.0.0; the conformance binary and the
+                   published README are BROKEN at 4.0.0 and fixed at 4.0.1,
+                   which is not published. Unticked deliberately: the box
+                   means published AND fresh-install green, and the artifact
+                   a consumer installs today cannot run its own suite.
+                   STATUS: 4.0.0 published to crates.io on 2026-07-26 with
+                   the owner's explicit go-ahead. The LIBRARY never had the
+                   packaging defect: schema.rs compiles the twenty-one
+                   schemas in with include_str! from its own vendored
+                   spec_schema/, so the crate cannot build without them and
+                   reads nothing from disk at run time. Note WHY that is
+                   safe, because the earlier wording got the reason wrong and
+                   the reason is what gets reapplied: crates.io ships only
+                   the bindings/rust subtree, never the repository, and Rust
+                   is safe because the schemas live INSIDE that subtree - not
+                   because of whole-repository delivery, which for this
+                   channel is simply irrelevant. Proven on 2026-07-27 the
+                   strong way: a consumer crate built against the packaged
+                   .crate, from a working directory outside every checkout,
+                   with the repository bind-mounted away, printed identical
+                   output with CAUSALONTOLOGY_SPEC poisoned and with it
+                   stripped, and strace recorded no syscall touching the
+                   repository. WHAT IS BROKEN AT 4.0.0: the conformance
+                   binary hardcodes the vectors at ../../conformance/vectors
+                   relative to CARGO_MANIFEST_DIR, a path no registry
+                   checkout has, so an installed copy panics with exit 101
+                   and 0/137; and the published README's headline
+                   instruction, "cargo run --bin conformance", fails in a
+                   consumer project with "no bin target named conformance"
+                   because the binary belongs to a dependency - the README
+                   showed a passing result for a command that cannot pass.
+                   The earlier withdrawal of the "clean cargo project passed
+                   137/137" line was right, but it stopped at withdrawing the
+                   claim instead of recording that the runner was broken.
+                   FIXED AT 4.0.1 in tree: the vectors resolve from a
+                   command-line argument, then CAUSALONTOLOGY_VECTORS, then
+                   CAUSALONTOLOGY_ROOT, then a checkout at or above the
+                   working directory; an explicit request that names a
+                   directory holding no vectors is refused rather than
+                   silently falling through to another copy; every run prints
+                   the directory it read and how it found it; and a run with
+                   no vectors anywhere exits 2 with an actionable paragraph
+                   instead of panicking. Verified 137/137 from an installed
+                   binary, outside the repository, repository bind-mounted
+                   away, poison set then stripped. The vectors are still not
+                   shipped inside the crate, by the repo-wide policy that
+                   they are test data; that is now a clear instruction rather
+                   than a panic. Remaining: publish 4.0.1, then redo the
+                   proof as a registry fetch rather than from a locally
+                   packaged .crate. Leave 4.0.0 listed and unyanked - its
+                   library is correct, and yanking it would punish correct
+                   library consumers to punish a broken test runner.
+                   DO NOT VERIFY THE CRATE AGAINST THE v4.0.0 TAG: that tag
+                   pins 64b1d1a, where bindings/rust/Cargo.toml declares
+                   2.0.0 and spec_schema/ holds seventeen schemas. The live
+                   crate was published from main at 43d58a6.
+  [x] Swift      - v4.0.1 tag pushed; fresh 137/137 at the tag; v4.0.3
+                   supersedes it.
                    STATUS: COMPLETE (2026-07-26) - Swift Package Manager is
                    tag-resolved and the v4.0.1 tag is pushed; a fresh clone
                    checked out at the tag built and passed 137/137, and a
@@ -832,34 +1163,89 @@ plainly, in the order they matter.
                    defaultSchemaDirectory() derives its path from #filePath -
                    the Swift Package Manager checkout that compiled the
                    library. Move or delete that checkout and the consumer
-                   must set CAUSALONTOLOGY_SPEC.
-  [x] Zig        - v4.0.1 tarball published and hash recorded; fresh fetch
-                   137/137.
-                   STATUS: COMPLETE (2026-07-26) - the v4.0.1 tag tarball is
-                   the artifact; zig fetch pinned its package hash (recorded
-                   in PUBLISHING.md), and the freshly fetched tag tree passed
-                   137/137. READ THAT NARROWLY, added after the packaging
-                   defect: it is a proof about the TAG TREE, not about the
-                   fetched package. build.zig.zon lists .paths as build.zig,
-                   build.zig.zon, bindings/zig/src and LICENSE - spec/ is not
-                   among them - and schema.zig has no default directory at
-                   all, returning error.SpecDirNotSet unless the consumer
-                   calls setSpecDir. A Zig consumer must therefore supply the
-                   twenty-one schemas itself. That is a documented
-                   requirement of the interface rather than a silent failure,
-                   which is why Zig could not have failed the way Python and
-                   Dart did, but it is not the guarantee the package
-                   registries now give.
+                   must set CAUSALONTOLOGY_SPEC. RE-AUDITED 2026-07-27: that
+                   reasoning is TRUE here, unlike for Zig and unlike for
+                   Rust. A GitHub tag archive really is the whole repository,
+                   so spec/schema arrives with the sources. Swift is now the
+                   only channel whose correctness rests entirely on how the
+                   channel delivers, with nothing owned by the binding, and
+                   it is listed that way deliberately rather than left to be
+                   inferred.
+  [x] Zig        - v4.0.3 tarball, all 21 schemas and all 137 vectors in the
+                   fetched package; fresh fetch 137/137 with the repository
+                   hidden.
+                   STATUS: v4.0.1 WAS BROKEN, AND THIS ENTRY SAID IT WAS
+                   FINE. What it said - that a Zig consumer "must supply the
+                   twenty-one schemas itself" and that this was "a documented
+                   requirement of the interface rather than a silent failure"
+                   - was wrong, and wrong in the way that costs a user their
+                   afternoon. Zig's package manager prunes the fetched
+                   tarball to the .paths list in the ROOT build.zig.zon and
+                   hashes only what survives; spec/ was not on that list.
+                   Measured 2026-07-27: zig fetch of a tarball built from the
+                   published tree produced a package of TEN FILES AND ZERO
+                   SCHEMAS, and a consumer project that fetched the module
+                   and called validateSchema died with error.SpecDirNotSet.
+                   There was no supported way to comply with the documented
+                   requirement, because the data was not in the package. The
+                   137/137 recorded for v4.0.1 was a run against the tag
+                   TREE, which is not the artifact a consumer receives.
+                   FIXED AT v4.0.3: the root .paths names bindings/zig, spec,
+                   conformance/vectors, LICENSE and NOTICE; the twenty-one
+                   schemas are additionally compiled into the library from
+                   bindings/zig/src/spec_schema/ (Zig 0.13 refuses @embedFile
+                   of a path outside the module directory, so the copy sits
+                   beside the sources, as in Rust and Go); and schema.zig
+                   resolves in the order explicit setSpecDir, then
+                   CAUSALONTOLOGY_SPEC, then the compiled-in bytes, so a
+                   consumer needs no setSpecDir call at all. The fetched
+                   package is now 209 files - 21 schemas under spec/schema,
+                   21 compiled in, and all 137 vectors, which makes it
+                   self-verifying: a Zig consumer can run the gate against
+                   the exact bytes received, and Zig has no separate test
+                   artifact by which they otherwise could. Proven with the
+                   repository bind-mounted away behind an empty directory:
+                   consumer valid = true, runner 137/137, and strace shows
+                   the program opening no schema file at all. The runner
+                   fails loudly rather than falling back when
+                   CAUSALONTOLOGY_SPEC names an unreadable directory, and
+                   compares the compiled-in bytes against spec/schema in both
+                   directions whenever one is reachable, failing the gate on
+                   drift (exercised deliberately by appending one byte).
+                   PACKAGING CHANGES THE HASH: the v4.0.1 pin
+                   12207a70...fe98d6f names the ten-file package, so this
+                   channel cannot be corrected in place - consumers must
+                   re-run zig fetch --save against v4.0.3. Expected hash
+                   12206993b2c6279008106276f92f88cf1209be3ded300d9de6f9dc5b15007a65f09c,
+                   reproduced independently from two separately built
+                   tarballs, but computed locally: re-run zig fetch against
+                   the published v4.0.3 tarball and record what it prints
+                   before anyone pins it.
 
 WHEN THE PACKAGES ARE OUT:
   - Update the standard's README.md and the Standalone Design to point at the
     published versions - 4.0.0 for the channels shipping 4.x for the first
     time, 4.0.0 for PyPI as well (the build-tagged wheel inside the existing
-    release), and 4.0.1 only for pub.dev and the Go module proxy, which each
-    hold one immutable file per version and so cannot be corrected in place.
-    The two numbers are deliberate; do not normalise them.
+    release), 4.0.1 for pub.dev and the Go module proxy, which each hold one
+    immutable file per version and so cannot be corrected in place, and 4.0.1
+    for crates.io, whose library is sound at 4.0.0 but whose conformance
+    binary and README are not. The differing numbers are deliberate; do not
+    normalise them.
+  - Point the tag channels at v4.0.3: Swift, Zig, Packagist, the C++ source
+    tarball, and the source.tag in the LuaRocks rockspec. Leave v4.0.0,
+    v4.0.1 and v4.0.2 where they are - a pushed tag is a public, cached
+    surface a consumer may already have pinned, so a corrected tree gets a new
+    tag and an existing tag is never moved.
   - Confirm the spec version tag v4.0.0 is pushed so consumers can pin the
-    exact specification (spec/VERSIONS.md lists it).
+    exact specification (spec/VERSIONS.md lists it). Note what that tag is
+    NOT: it pins the specification-freeze commit 64b1d1a, which predates the
+    binding port, so it must never be used to verify a published binding
+    artifact. At v4.0.0 the Rust binding declares 2.0.0 and carries seventeen
+    schemas.
+  - Record, for every artifact published, the COMMIT it was built from. The
+    table under FINDING SEVEN above is that record; keep it current. A
+    registry artifact and a git tag are two different things, and assuming
+    they match is how an auditor ends up testing the wrong code.
   - For each superseding release, yank or retract the broken one as a
     SEPARATE act with its own named go-ahead, and record here that it was
     done. A yank is not a deletion: pinned installs keep resolving.

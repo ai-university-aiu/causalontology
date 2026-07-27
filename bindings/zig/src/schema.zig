@@ -1,4 +1,12 @@
-//! Schema validation against spec/schema/*.schema.json.
+//! Schema validation against the twenty-one Causalontology JSON Schemas.
+//!
+//! The schemas are compiled into the library with `@embedFile` (see
+//! spec_schema.zig, generated from spec/schema/ by
+//! tools/sync_spec_schema.sh), so a package fetched with `zig fetch`
+//! validates immediately: no checkout, no data files, no setup call. An
+//! on-disk copy is read instead only when asked for - by setSpecDir(), or by
+//! the CAUSALONTOLOGY_SPEC environment variable naming a specification
+//! directory (its schema/ subdirectory is used, as in every other binding).
 //!
 //! A deliberately small interpreter for exactly the JSON Schema keywords the
 //! twenty-one Causalontology schemas use: type, const, enum, pattern, required,
@@ -20,6 +28,7 @@
 const std = @import("std");
 const jcs = @import("jcs.zig");
 const canonical = @import("canonical.zig");
+const spec_schema = @import("spec_schema.zig");
 
 const Value = jcs.Value;
 const Allocator = jcs.Allocator;
@@ -31,6 +40,60 @@ const Validation = jcs.Validation;
 var spec_dir: ?[]const u8 = null;
 var spec_alloc: ?Allocator = null;
 var file_cache: ?std.StringArrayHashMap(Value) = null;
+var env_read = false;
+var env_dir: ?[]const u8 = null;
+
+/// Where the schema bytes are coming from. The default is `compiled_in`: the
+/// twenty-one schemas are `@embedFile`d into the library (see
+/// spec_schema.zig), so a package fetched with `zig fetch` validates with no
+/// checkout, no data files, and no configuration. An on-disk copy is used
+/// only when something asks for one.
+pub const Source = enum {
+    /// The bytes compiled into the library - the default.
+    compiled_in,
+    /// A directory named by an explicit setSpecDir() call.
+    explicit_dir,
+    /// $CAUSALONTOLOGY_SPEC/schema.
+    environment,
+};
+
+/// The source the next schema load will read from, and the directory it will
+/// read (null for the compiled-in copy). Precedence, highest first:
+/// setSpecDir(), then CAUSALONTOLOGY_SPEC, then the compiled-in bytes.
+pub fn currentSource() struct { source: Source, dir: ?[]const u8 } {
+    if (spec_dir) |d| return .{ .source = .explicit_dir, .dir = d };
+    if (env_dir) |d| return .{ .source = .environment, .dir = d };
+    return .{ .source = .compiled_in, .dir = null };
+}
+
+/// How many schemas are compiled into this build (twenty-one at 4.0.0).
+pub const compiledInCount = spec_schema.count;
+
+/// Compare the compiled-in schemas against an on-disk spec/schema directory,
+/// byte-for-byte and in both directions. Used by the conformance runner
+/// whenever a copy of the specification is reachable.
+pub const checkCompiledInDrift = spec_schema.checkDrift;
+
+/// Give the module an allocator (for the parsed-schema cache) and read the
+/// environment once. Every entry point calls this, so a consumer never has
+/// to: the allocator that reaches validateSchema() is the one used here.
+/// It must outlive the validations that follow, exactly as the allocator
+/// handed to setSpecDir() always had to.
+fn ensureInit(a: Allocator) void {
+    if (spec_alloc == null) spec_alloc = a;
+    if (file_cache == null) file_cache = std.StringArrayHashMap(Value).init(spec_alloc.?);
+    if (env_read) return;
+    env_read = true;
+    // CAUSALONTOLOGY_SPEC names the specification directory (the one holding
+    // schema/), the same meaning it has in every other binding.
+    if (std.process.getEnvVarOwned(spec_alloc.?, "CAUSALONTOLOGY_SPEC")) |root| {
+        if (root.len == 0) {
+            spec_alloc.?.free(root);
+        } else {
+            env_dir = std.fs.path.join(spec_alloc.?, &.{ root, "schema" }) catch null;
+        }
+    } else |_| {}
+}
 
 const _BASE = "https://causalontology.org/schema/";
 
@@ -47,22 +110,40 @@ fn schemaFileForKind(kind: []const u8) ?[]const u8 {
     return null; // sentinel: use <kind>.schema.json (built by loadSchema)
 }
 
-/// Point the validator at the directory holding the twenty-one *.schema.json
-/// files.
+/// Optional: hand the module an allocator up front. validateSchema() does
+/// this for you; call it only if you use loadFile()/loadSchema() directly.
+pub fn init(a: Allocator) void {
+    ensureInit(a);
+}
+
+/// Optional: point the validator at an on-disk directory holding the
+/// twenty-one *.schema.json files, overriding both CAUSALONTOLOGY_SPEC and
+/// the compiled-in copy. Nothing needs to call this - it exists so a caller
+/// can validate against a working tree (a specification under development)
+/// instead of the schemas this library was built with.
 pub fn setSpecDir(a: Allocator, dir: []const u8) void {
     spec_alloc = a;
     spec_dir = dir;
     file_cache = std.StringArrayHashMap(Value).init(a);
 }
 
-/// Load (and cache) a parsed JSON Schema file by its bare filename.
+/// Drop a setSpecDir() override and go back to the normal precedence
+/// (CAUSALONTOLOGY_SPEC, else the compiled-in schemas).
+pub fn clearSpecDir() void {
+    spec_dir = null;
+    if (spec_alloc) |a| file_cache = std.StringArrayHashMap(Value).init(a);
+}
+
+/// Load (and cache) a parsed JSON Schema file by its bare filename, from
+/// whichever source currentSource() names.
 pub fn loadFile(filename: []const u8) !Value {
-    const a = spec_alloc orelse return error.SpecDirNotSet;
-    const dir = spec_dir orelse return error.SpecDirNotSet;
+    const a = spec_alloc orelse return error.SchemaAllocatorNotSet;
     if (file_cache == null) file_cache = std.StringArrayHashMap(Value).init(a);
     if (file_cache.?.get(filename)) |v| return v;
-    const path = try std.fmt.allocPrint(a, "{s}{c}{s}", .{ dir, std.fs.path.sep, filename });
-    const bytes = try std.fs.cwd().readFileAlloc(a, path, 1 << 20);
+    const bytes: []const u8 = if (currentSource().dir) |dir| blk: {
+        const path = try std.fmt.allocPrint(a, "{s}{c}{s}", .{ dir, std.fs.path.sep, filename });
+        break :blk try std.fs.cwd().readFileAlloc(a, path, 1 << 20);
+    } else spec_schema.get(filename) orelse return error.UnknownSchemaFile;
     const parsed = try std.json.parseFromSliceLeaky(Value, a, bytes, .{});
     try file_cache.?.put(try a.dupe(u8, filename), parsed);
     return parsed;
@@ -72,13 +153,14 @@ pub fn loadFile(filename: []const u8) !Value {
 pub fn loadSchema(kind: []const u8) !Value {
     if (canonical.specOfKind(kind) == null) return error.UnknownKind;
     if (schemaFileForKind(kind)) |fname| return loadFile(fname);
-    const a = spec_alloc orelse return error.SpecDirNotSet;
+    const a = spec_alloc orelse return error.SchemaAllocatorNotSet;
     const fname = try std.fmt.allocPrint(a, "{s}.schema.json", .{kind});
     return loadFile(fname);
 }
 
 /// (ok, reasons) - structural validity against the kind's JSON Schema.
 pub fn validateSchema(a: Allocator, obj: Value, kind_opt: ?[]const u8) !Validation {
+    ensureInit(a);
     const kind = kind_opt orelse try canonical.inferKind(obj.object);
     const root = try loadSchema(kind);
     var errors = std.ArrayList([]const u8).init(a);

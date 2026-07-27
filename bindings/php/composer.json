@@ -19,7 +19,11 @@
   "scripts": {
     "test": "@php conformance.php"
   },
+  "archive": {
+    "exclude": []
+  },
   "extra": {
-    "license-name": "The attribution always; no profit, no problem license. (Apache License 2.0 text)"
+    "license-name": "The attribution always; no profit, no problem license. (Apache License 2.0 text)",
+    "vendored-schemas": "spec/schema/ holds a byte-for-byte copy of the repository's twenty-one spec/schema/*.schema.json files. SchemaValidator prefers it over any repository-relative path, so an installed copy validates with no repository present. It is data, not PSR-4 source, so nothing in the autoloader references it: keep archive.exclude empty and add no .gitattributes export-ignore covering spec/, or the installed package silently loses the ability to validate. bindings/php/conformance.php fails the run if the copy is absent, incomplete, or byte-different from spec/schema."
   }
 }

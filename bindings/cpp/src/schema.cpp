@@ -3,11 +3,13 @@
 #include "schema.hpp"
 
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <map>
 #include <regex>
 #include <sstream>
 #include <stdexcept>
+#include <system_error>
 
 #include "canonical.hpp"
 #include "jcs.hpp"
@@ -49,13 +51,45 @@ const std::map<std::string, std::string>& schemaFiles() {
     return files;
 }
 
+// Where the twenty-one *.schema.json documents live, in priority order:
+//
+//   1. $CAUSALONTOLOGY_SPEC/schema - the operator's override. It wins over
+//      everything, including an explicit schema_set_spec_dir() call, so the
+//      documented override is true in every program that links this library,
+//      the conformance runner included.
+//   2. schema_set_spec_dir(), when the embedding program called it.
+//   3. CAUSALONTOLOGY_SCHEMA_DIR - the copy `cmake --install` ships next to
+//      the library; CMakeLists.txt compiles its absolute path in.
+//
+// There is deliberately NO repository-relative fallback: a library that
+// quietly reads a source tree it happens to sit near works on the machine
+// that built it and nowhere else, and makes a fresh-install proof worthless.
+// When no candidate yields a directory, throw at once, naming every place
+// that was tried, instead of failing later one confusing file at a time.
 std::string schemaDir() {
-    if (!g_schema_dir.empty()) return g_schema_dir;
     const char* env = std::getenv("CAUSALONTOLOGY_SPEC");
     if (env && *env) return std::string(env) + "/schema";
+    if (!g_schema_dir.empty()) return g_schema_dir;
+#ifdef CAUSALONTOLOGY_SCHEMA_DIR
+    std::error_code ec;
+    if (std::filesystem::is_directory(CAUSALONTOLOGY_SCHEMA_DIR, ec))
+        return CAUSALONTOLOGY_SCHEMA_DIR;
     throw std::runtime_error(
-        "schema directory unknown: call schema_set_spec_dir() or set "
-        "CAUSALONTOLOGY_SPEC");
+        std::string("the twenty-one causalontology JSON Schemas are not "
+                    "where this build installed them: ") +
+        CAUSALONTOLOGY_SCHEMA_DIR +
+        " - reinstall the package (cmake --install), or set "
+        "CAUSALONTOLOGY_SPEC to a directory whose schema/ subdirectory holds "
+        "them, or call co::schema_set_spec_dir()");
+#else
+    throw std::runtime_error(
+        "schema directory unknown: this build has no installed schema "
+        "directory compiled in (CAUSALONTOLOGY_SCHEMA_DIR undefined, i.e. it "
+        "was not built through CMakeLists.txt), so call "
+        "co::schema_set_spec_dir(), or set CAUSALONTOLOGY_SPEC to a "
+        "directory whose schema/ subdirectory holds the twenty-one "
+        "*.schema.json files");
+#endif
 }
 
 // Load a schema document by filename, cached by filename so cross-file $refs

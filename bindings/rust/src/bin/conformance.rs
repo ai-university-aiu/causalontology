@@ -19,11 +19,172 @@ use ed25519_dalek::SigningKey;
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
-fn vectors_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../conformance/vectors")
+// ---- locating the 137 conformance vectors ---------------------------------
+//
+// The vectors are the standard's shared test data. They are deliberately not
+// shipped inside any published package (see PUBLISHING.md), and every other
+// binding's runner reaches them through CAUSALONTOLOGY_ROOT, so a binary
+// installed from crates.io has to be told where they are instead of assuming
+// a repository sits two directories above its own manifest. In priority
+// order:
+//
+//   1. the first command-line argument - a conformance/vectors directory;
+//   2. CAUSALONTOLOGY_VECTORS - the same directory, as an environment
+//      variable, for callers who cannot easily pass an argument;
+//   3. CAUSALONTOLOGY_ROOT - a checkout root, the project-wide variable the
+//      other eighteen bindings already honour; the vectors are then
+//      $CAUSALONTOLOGY_ROOT/conformance/vectors;
+//   4. a checkout at or above the working directory;
+//   5. the compiled-in repository-relative path, which keeps the in-tree
+//      `cargo run --bin conformance` working exactly as it did before.
+//
+// 1 to 3 are explicit requests and are authoritative: if the caller names a
+// directory that holds no vectors we stop there and say so. Falling through
+// to some other copy would report a pass for a suite the caller never asked
+// for, which is precisely the class of defect this runner exists to catch.
+
+const VECTOR_COUNT: u32 = 137;
+const CLONE_HINT: &str =
+    "git clone https://github.com/ai-university-aiu/causalontology";
+
+/// True when `dir` looks like the frozen suite: a directory holding the first
+/// vector. A bare "the directory exists" test would happily accept an empty
+/// one and then fail 137 times over.
+fn is_vectors_dir(dir: &Path) -> bool {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => return false,
+    };
+    entries.flatten().any(|e| {
+        let name = e.file_name().to_string_lossy().to_string();
+        name.starts_with("v01_") && name.ends_with(".json")
+    })
+}
+
+fn env_dir(name: &str) -> Option<String> {
+    std::env::var(name).ok().filter(|v| !v.trim().is_empty())
+}
+
+/// The one directory the caller explicitly asked for, if any.
+fn explicit_request() -> Option<(String, PathBuf)> {
+    if let Some(arg) = std::env::args().nth(1) {
+        return Some(("the command line".into(), PathBuf::from(arg)));
+    }
+    if let Some(v) = env_dir("CAUSALONTOLOGY_VECTORS") {
+        return Some(("CAUSALONTOLOGY_VECTORS".into(), PathBuf::from(v)));
+    }
+    if let Some(root) = env_dir("CAUSALONTOLOGY_ROOT") {
+        return Some(("CAUSALONTOLOGY_ROOT".into(),
+                     Path::new(&root).join("conformance").join("vectors")));
+    }
+    None
+}
+
+fn resolve_vectors_dir() -> Result<(String, PathBuf), String> {
+    if let Some((how, dir)) = explicit_request() {
+        if is_vectors_dir(&dir) {
+            return Ok((how, dir));
+        }
+        return Err(format!(
+            "{} names {}, which holds no conformance vectors (nothing there \
+             matches v01_*.json).\nRefusing to fall back to another copy: a \
+             run has to test the suite you asked for.",
+            how, dir.display()));
+    }
+    // Implicit: a checkout at or above the working directory.
+    if let Ok(cwd) = std::env::current_dir() {
+        for dir in cwd.ancestors() {
+            let candidate = dir.join("conformance").join("vectors");
+            if is_vectors_dir(&candidate) {
+                return Ok(("a checkout above the working directory".into(),
+                           candidate));
+            }
+        }
+    }
+    // Implicit: the repository this binary was compiled in, which is what
+    // makes `cargo run --bin conformance` work from bindings/rust.
+    let in_tree = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../conformance/vectors");
+    if is_vectors_dir(&in_tree) {
+        return Ok(("the compiled-in repository path".into(), in_tree));
+    }
+    Err(format!(
+        "the {} conformance vectors were not found.\n\n\
+         They are the standard's shared test data and are deliberately not \
+         shipped inside any published package, so an installed binary has to \
+         be pointed at them. Any one of these works:\n\n    \
+         conformance /path/to/causalontology/conformance/vectors\n    \
+         CAUSALONTOLOGY_VECTORS=/path/to/causalontology/conformance/vectors \
+         conformance\n    \
+         CAUSALONTOLOGY_ROOT=/path/to/causalontology conformance\n    \
+         cd /path/to/causalontology && conformance\n\n\
+         To obtain them:\n    {}\n\n\
+         Nothing was found on the command line, in CAUSALONTOLOGY_VECTORS or \
+         CAUSALONTOLOGY_ROOT, at or above {}, or at {}.",
+        VECTOR_COUNT, CLONE_HINT,
+        std::env::current_dir()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|_| "the working directory".into()),
+        in_tree.display()))
+}
+
+static VECTORS: OnceLock<(String, PathBuf)> = OnceLock::new();
+
+fn vectors() -> &'static (String, PathBuf) {
+    VECTORS.get_or_init(|| {
+        resolve_vectors_dir().unwrap_or_else(|why| {
+            eprintln!("causalontology conformance: {}", why);
+            std::process::exit(2);
+        })
+    })
+}
+
+fn vectors_dir() -> &'static Path {
+    &vectors().1
+}
+
+/// The suite is frozen at 137 vectors. A directory holding only some of them
+/// is a stale or partial copy, and a partial run must never be mistaken for a
+/// pass.
+fn check_vector_set() -> Result<(), String> {
+    let dir = vectors_dir();
+    let names: Vec<String> = std::fs::read_dir(dir)
+        .map_err(|e| format!("cannot read {}: {}", dir.display(), e))?
+        .flatten()
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .collect();
+    let missing: Vec<u32> = (1..=VECTOR_COUNT)
+        .filter(|n| {
+            let prefix = format!("v{:02}_", n);
+            !names.iter().any(|m| m.starts_with(&prefix)
+                              && m.ends_with(".json"))
+        })
+        .collect();
+    if missing.is_empty() {
+        return Ok(());
+    }
+    Err(format!(
+        "{} holds an incomplete suite: {} of the {} vectors are missing \
+         (first missing: v{:02}). This is a stale or partial copy; point the \
+         runner at the frozen {}-vector suite instead.",
+        dir.display(), missing.len(), VECTOR_COUNT, missing[0], VECTOR_COUNT))
+}
+
+fn usage() -> String {
+    format!(
+        "causalontology conformance - runs the frozen {}-vector suite \
+         (specification 4.0.0)\n\n\
+         Usage:\n    conformance [VECTORS_DIR]\n\n\
+         VECTORS_DIR is the conformance/vectors directory of a causalontology \
+         checkout.\nWhen it is omitted, CAUSALONTOLOGY_VECTORS is tried, then \
+         CAUSALONTOLOGY_ROOT (a\ncheckout root), then a checkout at or above \
+         the working directory.\n\n\
+         The vectors are shared test data and are not shipped inside the \
+         crate. Obtain\nthem with:\n    {}\n",
+        VECTOR_COUNT, CLONE_HINT)
 }
 
 fn vec_json(n: u32) -> (String, Value) {
@@ -2001,14 +2162,33 @@ fn run_vector(n: u32) -> R {
 }
 
 fn main() {
+    if let Some(arg) = std::env::args().nth(1) {
+        if arg == "-h" || arg == "--help" {
+            print!("{}", usage());
+            return;
+        }
+        if arg.starts_with('-') {
+            eprintln!("causalontology conformance: unknown option {}\n", arg);
+            eprint!("{}", usage());
+            std::process::exit(2);
+        }
+    }
     println!("causalontology-rust conformance run (specification 4.0.0)");
+    // Say which suite this run actually read, so the result can be audited
+    // rather than taken on trust.
+    let (how, dir) = vectors();
+    println!("vectors: {} (from {})", dir.display(), how);
+    if let Err(e) = check_vector_set() {
+        eprintln!("causalontology conformance: {}", e);
+        std::process::exit(2);
+    }
     print!("internal checks (RFC 8032 known-answer, RFC 8785 basics) ... ");
     if let Err(e) = internal_checks() {
         println!("FAILED: {}", e);
         std::process::exit(1);
     }
     println!("ok");
-    let total = 137u32;
+    let total = VECTOR_COUNT;
     let mut failures = 0;
     for n in 1..=total {
         let (name, _) = vec_json(n);
