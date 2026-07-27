@@ -758,19 +758,39 @@ plainly, in the order they matter.
                    clean project required causalontology/causalontology 4.0.1
                    from Packagist (resolved v4.0.1), and the conformance suite
                    passed 137/137 from the installed vendor tree.
-  [ ] Python     - published to PyPI; fresh install 137/137.
-                   STATUS: PUBLISHED BUT DEFECTIVE (2026-07-26) - 4.0.0 was
-                   published to PyPI with the owner's named go-ahead, and the
-                   137/137 reported that day was WRONG: the runner did
-                   sys.path.insert of bindings/python, so the venv install was
-                   never exercised. The truly-installed 4.0.0 wheel scores
-                   62/137 - it carries none of the twenty-one schemas and
-                   resolved them from a repository-relative path. 4.0.1 is
-                   built and verified genuinely standalone (wheel and sdist
-                   each carry the 21 schemas; installed into a clean venv,
-                   CAUSALONTOLOGY_SPEC unset, run from outside the checkout:
-                   137/137). Remaining: publish 4.0.1 and yank 4.0.0, each
-                   needing the owner's separately named go-ahead.
+  [x] Python     - published to PyPI; fresh install 137/137.
+                   STATUS: COMPLETE (2026-07-27), after a defective publish the
+                   day before. On 2026-07-26 the 137/137 reported for 4.0.0 was
+                   WRONG: the runner did sys.path.insert of bindings/python, so
+                   the venv install was never exercised. The truly-installed
+                   wheel scored 62/137 - it carried none of the twenty-one
+                   schemas and resolved them from a repository-relative path.
+                   The correction was kept at 4.0.0 on the owner's instruction.
+                   A PyPI filename is burned forever but a RELEASE accepts more
+                   than one file, so the fix went in as a second file carrying
+                   wheel build tag 1 - causalontology-4.0.0-1-py3-none-any.whl,
+                   33 entries, all 21 schemas, Build: 1 in its WHEEL metadata.
+                   The build tag is the last element of pip's candidate sort
+                   key, so it wins the tie against the untagged wheel. The two
+                   defective files were then deleted by the owner; release
+                   4.0.0 now holds exactly one file.
+                   Verified against the live registry, not locally: a clean
+                   venv running pip install causalontology==4.0.0 resolved the
+                   build-tagged wheel unprompted, 21/21 schemas arrived, and
+                   the 137 vectors passed against the INSTALLED package with
+                   CAUSALONTOLOGY_SPEC first poisoned and then stripped, from a
+                   working directory outside any checkout - 137/137. The bare
+                   consumer call validate_schema now returns (True, []) where
+                   the morning of 2026-07-26 it raised FileNotFoundError.
+                   Accepted permanent consequence: 4.0.0 can never carry a
+                   source distribution again, because a release accepts only
+                   one and that filename is burned. pip install --no-binary at
+                   exactly 4.0.0 therefore now fails loudly with 'No matching
+                   distribution found' rather than silently installing a
+                   package that cannot validate. Loud beats silent.
+                   BUILD NOTE: build it only with the build number. A plain
+                   build emits the burned filename and PyPI will reject it. See
+                   the comment at the top of bindings/python/pyproject.toml.
   [ ] R          - submitted to and accepted by CRAN; fresh install 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
                    (second wave); passes 137/137 locally, DESCRIPTION reads
