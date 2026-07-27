@@ -3,7 +3,7 @@
 
 Runs every vector in conformance/vectors/ against the Python binding. An
 implementation is conformant iff it passes all 137 checks (38 driven by the
-# shared vector files, 99 implemented here); this
+shared vector files, 99 implemented here); this
 runner exits nonzero on any failure. Vectors V01-V107 are the whole-word
 2.0.0 baseline (Principle P7): V01-V38 re-frozen unaltered in meaning,
 V39-V107 new. V108-V119 are the 3.0.0 additions; V120-V137 are the 4.0.0

@@ -44,9 +44,16 @@ consumer project it fails with *no bin target named `conformance`*, because
 the binary belongs to a dependency, not to your package. Install the runner
 instead and hand it a vectors directory:
 
+**crates.io serves 4.0.0 today. 4.0.1 is prepared here but is not published
+yet**, so `cargo install causalontology --version 4.0.1` fails with *error:
+could not find `causalontology` in registry `crates-io` with version
+`=4.0.1`* (checked 2026-07-27), and 4.0.0's binary panics - see below. Until
+4.0.1 reaches crates.io, install the same corrected binary from a checkout:
+
 ```
-$ cargo install causalontology --version 4.0.1
 $ git clone https://github.com/ai-university-aiu/causalontology
+$ cargo install --path causalontology/bindings/rust
+     # once 4.0.1 is published: cargo install causalontology --version 4.0.1
 $ cd /any/directory/outside/the/repository
 $ conformance /path/to/causalontology/conformance/vectors
 causalontology-rust conformance run (specification 4.0.0)
@@ -72,8 +79,9 @@ summary.
 `vectors dir: Os { code: 2, kind: NotFound }` on first run, wherever it is
 installed: it looked for the vectors at a path relative to the repository and
 accepted no argument and no environment override. The 4.0.0 *library* is
-unaffected and sound — the defect is confined to the test runner. Use 4.0.1 or
-newer.
+unaffected and sound — the defect is confined to the test runner, and 4.0.0 is
+the only version crates.io serves. Use 4.0.1 or newer once it is published;
+until then build the runner from a checkout as shown above.
 
 The shared vector files are frozen at specification 4.0.0 (2026-07-22; 137
 files, V01–V137). The 38 that carry an executable payload — V01–V38 — hold

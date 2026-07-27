@@ -18,6 +18,15 @@ genuinely content-addressed object cannot contain its own hash, which is
 exactly why the rule exists.
 
 Idempotent: already-frozen values (64/128 hex) pass through unchanged.
+
+HISTORICAL, retained for lineage only. The 2.0.0 whole-word re-mint
+(freeze_2_0_0.py) superseded this script, and two of its statements above no
+longer describe the vectors on disk. First, this script only recognises the
+eight abbreviated 1.0.0 schemes, none of which survives the re-mint, so running
+it against the 4.0.0 suite is a no-op - verified 2026-07-27, "frozen: 0". And
+second, "the frozen record verifies for real" was true of V11 when it was
+written and is no longer: the re-mint rewrote the bytes its signature covered.
+See the KNOWN LIMIT note in freeze_2_0_0.py and the honest notes in README.md.
 """
 
 import hashlib

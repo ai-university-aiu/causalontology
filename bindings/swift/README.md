@@ -38,6 +38,33 @@ The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
 environment variable when set, otherwise from its own source location inside
 `bindings/swift/`.
 
+### Where the schemas come from
+
+This binding vendors no copy of its own and embeds nothing.
+`SchemaValidator.defaultSchemaDirectory()` resolves, highest precedence
+first: `$CAUSALONTOLOGY_SPEC/schema`, then `$CAUSALONTOLOGY_ROOT/spec/schema`,
+then `spec/schema` relative to this source file's own compile-time location
+(`#filePath`, five parents up).
+
+That is safe here **only because SwiftPM is different from every other
+package manager in this repository**: it resolves a dependency by cloning the
+whole git repository into `.build/checkouts/`, so the repository's `spec/`
+travels with the package and the `#filePath` walk lands inside the consumer's
+own checkout. Verified 2026-07-27 against the published `v4.0.3` tag: a
+separate SwiftPM package declaring
+`.package(url: "https://github.com/ai-university-aiu/causalontology", from: "4.0.3")`,
+built and run from a working directory outside this repository with both
+`CAUSALONTOLOGY_SPEC` and `CAUSALONTOLOGY_ROOT` unset, validated an
+`occurrent` (`ok=true`) and rejected a wrong-typed `category` (`ok=false`),
+reading `.build/checkouts/causalontology/spec/schema`.
+
+The standing hazard, stated plainly: anything that removes `spec/` from what a
+consumer receives — a `.gitattributes` `export-ignore` rule, or distributing
+this package as a pruned source archive rather than a git checkout — silently
+takes the schemas away, which is the same defect that broke the PyPI, pub.dev
+and Go artifacts. There is deliberately **no `.gitattributes` in this
+repository**; do not add one that touches `spec/`.
+
 ## Thirty-second taste
 
 ```swift
@@ -60,9 +87,12 @@ print(store.gaps("missing_field"))   // the degenerate claim is a visible invita
 ## Status
 
 Source complete and ported line-for-line from the Python binding; built and
-executed by GitHub Actions CI (`cd bindings/swift && swift run conformance`) —
-there is no Swift toolchain on the authoring machine, so CI is the gate, as
-it is for every binding.
+executed by GitHub Actions CI (`cd bindings/swift && swift run conformance`).
+Last run locally on 2026-07-27: **137/137 checks passed**, exit 0. Note the
+working directory: the `conformance` executable product is declared in
+`bindings/swift/Package.swift`, not in the repository-root `Package.swift`
+(which exposes the library product only), so `swift run conformance` from
+the repository root fails with *no executable product named 'conformance'*.
 
 License: "The attribution always; no profit, no problem license." — see the
 repository `LICENSE` and `NOTICE`.

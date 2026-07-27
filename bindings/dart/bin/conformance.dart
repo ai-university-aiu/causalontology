@@ -2,7 +2,7 @@
 ///
 /// Runs every vector in conformance/vectors/ against the Dart binding. An
 /// implementation is conformant iff it passes all 137 checks (38 driven by the
-// shared vector files, 99 implemented here); this
+/// shared vector files, 99 implemented here); this
 /// runner exits nonzero on any failure. It mirrors
 /// bindings/python/tests/run_conformance.py exactly.
 ///
@@ -1980,6 +1980,18 @@ Future<void> _guards() async {
   final resolved = await Isolate.resolvePackageUri(
       Uri.parse('package:causalontology/causalontology.dart'));
   if (Platform.environment['CAUSALONTOLOGY_TEST_INSTALLED'] != null) {
+    // CAUSALONTOLOGY_SPEC wins over the schemas compiled into the package
+    // (see lib/schema.dart), so leaving it set lets a package that shipped
+    // none at all still report 137/137 - the exact false green that put
+    // broken artifacts on three registries.
+    final specEnv = Platform.environment['CAUSALONTOLOGY_SPEC'];
+    if (specEnv != null && specEnv.isNotEmpty) {
+      stderr.writeln('CAUSALONTOLOGY_TEST_INSTALLED is set but '
+          'CAUSALONTOLOGY_SPEC is also set ($specEnv); it would override the '
+          'embedded schemas and hide the packaging defect installed mode '
+          'exists to catch. Re-run with `env -u CAUSALONTOLOGY_SPEC`.');
+      exit(1);
+    }
     final path = resolved?.toFilePath() ?? '<unresolved>';
     if (resolved == null || path.startsWith('$root${Platform.pathSeparator}')) {
       stderr.writeln('CAUSALONTOLOGY_TEST_INSTALLED is set but the repository '

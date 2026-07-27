@@ -83,10 +83,12 @@ comparison whenever a repository checkout is present and exits nonzero
 with `bundled schema drift: <file> differs from spec/schema`. After any
 change to `spec/schema`, run `python3 bindings/kotlin/tools/gen_spec_schemas.py`.
 
-The suite is 137 checks at specification 4.0.0 (38 driven by the shared vector files,
-V01-V137): they carry concrete identifiers, real keys, and a real
-verifying signature. The harness's old normalization now simply passes
-frozen values through.
+The suite is 137 checks at specification 4.0.0, V01-V137. Only the first 38 -
+V01-V38 - are driven by the frozen shared files in `conformance/vectors/`:
+those carry concrete identifiers, real keys, and a real verifying signature as
+data, and the harness's old normalization now simply passes those frozen
+values through. V39-V137 are labels only, so those 99 checks are hand-written
+in this binding and share no data with any other implementation.
 
 ## Status
 

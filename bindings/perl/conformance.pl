@@ -74,6 +74,17 @@ if ($ENV{CAUSALONTOLOGY_TEST_INSTALLED}) {
     }
     print "binding under test: $loaded\n";
 
+    # CAUSALONTOLOGY_SPEC overrides schema resolution absolutely (Schema.pm
+    # gives it first precedence), so leaving it set in installed mode means the
+    # package's own copy is never read - and pointing it anywhere outside the
+    # checkout defeated the repository test below. Verified: an installed lib
+    # tree with every schema deleted scored a confident 137/137 that way.
+    # Refuse it outright, as the other runners do.
+    die "CAUSALONTOLOGY_TEST_INSTALLED is set but CAUSALONTOLOGY_SPEC is also "
+      . "set; it would override the package's own schemas. Re-run with "
+      . "`env -u CAUSALONTOLOGY_SPEC`.\n"
+        if defined $ENV{CAUSALONTOLOGY_SPEC} && length $ENV{CAUSALONTOLOGY_SPEC};
+
     # The schemas must come from inside the installed package too. Loading the
     # right module but reading spec/schema out of a checkout is precisely the
     # defect this bundling exists to remove, and it fails only for consumers.

@@ -65,6 +65,25 @@ defmodule ConformanceBoot do
   # way a real consumer does it (a Hex dependency compiled into _build, or any
   # built artifact added with -pa). Nothing repository-relative is required.
   def load_installed_copy(root) do
+    # CAUSALONTOLOGY_SPEC wins over the copy vendored into priv/schema (see
+    # Causalontology.Schema.schema_dir/0), so leaving it set lets a package
+    # that shipped no schemas at all still report 137/137 - the exact false
+    # green that put broken artifacts on three registries.
+    case System.get_env("CAUSALONTOLOGY_SPEC") do
+      nil ->
+        :ok
+
+      "" ->
+        :ok
+
+      spec ->
+        die(
+          "CAUSALONTOLOGY_TEST_INSTALLED is set but CAUSALONTOLOGY_SPEC is also set (#{spec}); " <>
+            "it would override the bundled schemas and hide the packaging defect installed mode " <>
+            "exists to catch. Re-run with `env -u CAUSALONTOLOGY_SPEC`."
+        )
+    end
+
     Enum.each(@modules, fn mod ->
       Code.ensure_loaded?(mod) ||
         die(
@@ -79,6 +98,47 @@ defmodule ConformanceBoot do
     if inside?(path, root) do
       die("CAUSALONTOLOGY_TEST_INSTALLED is set but the repository copy was loaded: #{path}")
     end
+
+    # Refusing CAUSALONTOLOGY_SPEC and checking the .beam path is necessary but
+    # NOT sufficient, and this was measured: an application copied outside the
+    # repository with its priv/ deleted still printed 137/137 CONFORMANT,
+    # because Causalontology.Schema falls back to
+    # source_priv_schema_dir = Path.expand("../../priv/schema", __DIR__) with
+    # __DIR__ baked in at COMPILE time - i.e. straight back into the checkout.
+    # The .beam was outside the repo; the schemas were not.
+    #
+    # So assert a POSITIVE origin. A genuinely installed OTP application has a
+    # resolvable priv directory; a loose copy of the compiled modules does not.
+    priv =
+      case :code.priv_dir(:causalontology) do
+        p when is_list(p) ->
+          Path.expand(List.to_string(p))
+
+        other ->
+          die(
+            "CAUSALONTOLOGY_TEST_INSTALLED is set but :code.priv_dir(:causalontology) returned " <>
+              "#{inspect(other)} - this is not an installed application, so the schemas cannot " <>
+              "come from its priv/ and would silently fall back to the source tree"
+          )
+      end
+
+    priv_schema = Path.join(priv, "schema")
+
+    if inside?(priv_schema, root) do
+      die(
+        "CAUSALONTOLOGY_TEST_INSTALLED is set but the package's priv/schema resolves inside the " <>
+          "repository: #{priv_schema}"
+      )
+    end
+
+    unless File.dir?(priv_schema) do
+      die(
+        "CAUSALONTOLOGY_TEST_INSTALLED is set but the installed application has no priv/schema " <>
+          "(#{priv_schema}) - it shipped without its schemas"
+      )
+    end
+
+    IO.puts("schemas under test: #{priv_schema} (priv/ of the installed application)")
 
     path
   end

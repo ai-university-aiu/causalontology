@@ -1,9 +1,25 @@
 {
   "@context": {
+    "@version": 1.1,
+
     "co": "https://causalontology.org/ns#",
     "bfo": "http://purl.obolibrary.org/obo/BFO_",
     "ro": "http://purl.obolibrary.org/obo/RO_",
     "prov": "http://www.w3.org/ns/prov#",
+
+    "@vocab": "https://causalontology.org/ns#",
+
+    "id": "@id",
+    "type": {
+      "@id": "@type",
+      "@type": "@vocab",
+      "@context": {
+        "stratum": "co:Stratum",
+        "quality": "co:Quality",
+        "realizable": "co:Realizable"
+      }
+    },
+
     "causal_relation_object": "co:CausalRelationObject",
     "occurrent": {
       "@id": "bfo:0000003"
@@ -30,6 +46,8 @@
     "temporal": {
       "@id": "co:temporalWindow"
     },
+    "minimum_delay": "co:minimumDelay",
+    "maximum_delay": "co:maximumDelay",
     "modality": {
       "@id": "co:modality"
     },
@@ -41,14 +59,19 @@
       "@id": "co:refines",
       "@type": "@id"
     },
+    "skips": "co:skips",
     "label": "co:canonicalLabel",
     "category": "co:category",
+    "kind": "co:realizableKind",
     "about": {
       "@id": "co:about",
       "@type": "@id"
     },
     "field": "co:enrichmentField",
     "entry": "co:enrichmentEntry",
+    "aliases": "co:alias",
+    "lang": "co:aliasLanguage",
+    "text": "co:aliasText",
     "realized_in": {
       "@id": "bfo:0000054",
       "@type": "@id"
@@ -61,21 +84,35 @@
       "@id": "bfo:0000050",
       "@type": "@id"
     },
+    "occurrent_subsumes": {
+      "@id": "co:occurrentIsA",
+      "@type": "@id"
+    },
+    "occurrent_part_of": {
+      "@id": "co:occurrentPartOf",
+      "@type": "@id"
+    },
     "source": {
       "@id": "prov:wasAttributedTo",
       "@type": "@id"
     },
     "evidence_type": "co:evidenceType",
     "evidence": "co:evidence",
+    "evidenced_by": {
+      "@id": "co:evidencedBy",
+      "@type": "@id"
+    },
     "strength": "co:strengthEstimate",
     "confidence": "co:confidence",
     "timestamp": {
       "@id": "prov:generatedAtTime"
     },
+    "signature": "co:signature",
     "retracts": {
       "@id": "co:retracts",
       "@type": "@id"
     },
+    "reason": "co:retractionReason",
     "predecessor": {
       "@id": "co:predecessorKey",
       "@type": "@id"
@@ -84,6 +121,10 @@
       "@id": "co:successorKey",
       "@type": "@id"
     },
+    "assertion": "co:Assertion",
+    "enrichment": "co:Enrichment",
+    "retraction": "co:Retraction",
+    "succession": "co:Succession",
 
     "bridge": "co:Bridge",
     "port": "co:Port",
@@ -135,9 +176,24 @@
       "@id": "co:transform",
       "@type": "@id"
     },
+    "realized_by": {
+      "@id": "co:realizedBy",
+      "@type": "@id"
+    },
     "datatype": "co:qualityDatatype",
     "stratum": {
       "@id": "co:atStratum",
+      "@type": "@id"
+    },
+
+    "cross_stratal_seam": "co:CrossStratalSeam",
+    "target": {
+      "@id": "co:seamTarget",
+      "@type": "@id"
+    },
+    "mechanism_status": "co:mechanismStatus",
+    "chain": {
+      "@id": "co:chain",
       "@type": "@id"
     },
 
@@ -153,6 +209,8 @@
     "end": {
       "@id": "prov:endedAtTime"
     },
+    "start_tick": "co:startTick",
+    "end_tick": "co:endTick",
     "open": "co:intervalOpen",
     "participants": "co:hasParticipant",
     "role": "co:participantRole",
@@ -186,6 +244,34 @@
     },
     "actual_delay": "co:actualDelay",
     "duration": "co:duration",
-    "counterfactual": "co:counterfactual"
+    "counterfactual": "co:counterfactual",
+
+    "attitude": "co:Attitude",
+    "holder": {
+      "@id": "co:holder",
+      "@type": "@id"
+    },
+    "attitude_type": "co:attitudeType",
+    "content": {
+      "@id": "co:content",
+      "@type": "@id"
+    },
+
+    "predicted_occurrence": "co:PredictedOccurrence",
+    "predictor": {
+      "@id": "co:predictor",
+      "@type": "@id"
+    },
+
+    "prediction_error": "co:PredictionError",
+    "predicted": {
+      "@id": "co:predicted",
+      "@type": "@id"
+    },
+    "observed": {
+      "@id": "co:observed",
+      "@type": "@id"
+    },
+    "discrepancy": "co:discrepancy"
   }
 }

@@ -110,6 +110,18 @@ private fun bindingLocation(): String {
 
 private fun checkInstalled() {
     if (getEnvVar("CAUSALONTOLOGY_TEST_INSTALLED").isNullOrEmpty()) return
+    // CAUSALONTOLOGY_SPEC wins over the schemas compiled into the artifact
+    // (see Schema.kt), so leaving it set lets an artifact that carries no
+    // schemas at all still report 137/137 - the exact false green that put
+    // broken artifacts on three registries.
+    val specEnv = getEnvVar("CAUSALONTOLOGY_SPEC")
+    if (!specEnv.isNullOrEmpty()) {
+        println("CAUSALONTOLOGY_TEST_INSTALLED is set but CAUSALONTOLOGY_SPEC is " +
+                "also set ($specEnv); it would override the compiled-in schemas " +
+                "and hide the packaging defect installed mode exists to catch. " +
+                "Re-run with `env -u CAUSALONTOLOGY_SPEC`.")
+        exitProcess(1)
+    }
     val loaded = canonical(bindingLocation())
     val repo = canonical(repoTree())
     if (loaded == repo || loaded.startsWith(repo + java.io.File.separator)) {

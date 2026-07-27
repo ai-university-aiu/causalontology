@@ -45,6 +45,16 @@ co_inside <- function(path, root) {
 }
 
 if (co_test_installed) {
+  # CAUSALONTOLOGY_SPEC wins over the vendored inst/schema copy inside
+  # co_schema_dir(), so leaving it set lets a package that shipped no
+  # schemas at all still report 137/137 - the exact false green that put
+  # broken artifacts on three registries. Refuse rather than mask it.
+  if (nzchar(Sys.getenv("CAUSALONTOLOGY_SPEC", unset = ""))) {
+    stop("CAUSALONTOLOGY_TEST_INSTALLED is set but CAUSALONTOLOGY_SPEC is also ",
+         "set (", Sys.getenv("CAUSALONTOLOGY_SPEC"), "); it would override the ",
+         "bundled schemas and hide the packaging defect installed mode exists ",
+         "to catch. Re-run with `env -u CAUSALONTOLOGY_SPEC`.", call. = FALSE)
+  }
   if (!requireNamespace("causalontology", quietly = TRUE)) {
     stop("CAUSALONTOLOGY_TEST_INSTALLED is set but the 'causalontology' ",
          "package is not installed in .libPaths(): ",
@@ -61,6 +71,17 @@ if (co_test_installed) {
   attach(as.list(co_ns, all.names = TRUE), name = "causalontology_installed",
          warn.conflicts = FALSE)
   cat(sprintf("binding under test: %s\n", co_loaded))
+  co_schemas <- tryCatch(co_schema_dir(), error = function(e) "")
+  if (!nzchar(co_schemas) || !dir.exists(co_schemas)) {
+    stop("CAUSALONTOLOGY_TEST_INSTALLED is set but the installed package could ",
+         "not resolve its schemas - it shipped without them", call. = FALSE)
+  }
+  co_schemas <- normalizePath(co_schemas, mustWork = FALSE)
+  if (co_inside(co_schemas, co_root_candidate)) {
+    stop("CAUSALONTOLOGY_TEST_INSTALLED is set but the schemas resolved inside ",
+         "the repository: ", co_schemas, call. = FALSE)
+  }
+  cat(sprintf("schemas under test: %s\n", co_schemas))
 } else {
   for (co_src in c("json.R", "jcs.R", "canonical.R", "signing.R",
                    "schema.R", "semantics.R", "store.R")) {

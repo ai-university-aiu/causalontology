@@ -13,13 +13,19 @@ correction is the next thing on this page, not a footnote.
 > which 38 are driven by the frozen shared vector files (the number is measured
 > and explained under "What 137/137 actually counts" below) — and **4.0.0
 > publication began on 2026-07-26 with the owner's explicit, per-act
-> go-ahead**. The tags `v4.0.1`, `v4.0.2` and `bindings/go/v4.0.0` are pushed,
-> and **`v4.0.3` is the tag the tag-based channels now point at**: Swift, Zig,
-> Packagist (PHP), the C++ source tarball, and the `source.tag` in the LuaRocks
-> rockspec. `v4.0.0`, `v4.0.1` and `v4.0.2` are left exactly where they are,
-> for one reason: a pushed tag is a public, cached surface that a consumer may
-> already have pinned by hash or by lockfile, so a corrected tree gets a new
-> tag and an existing tag is never moved. The remaining registries proceed per
+> go-ahead**. Fifteen of the nineteen bindings now have a live 4.0.x artifact,
+> and fourteen of those fifteen are additionally proved installed — Rust is the
+> exception, for the reason set out below. The pushed tags are `v4.0.0`, `v4.0.1`, `v4.0.2`, `v4.0.3`, `bindings/go/v4.0.0`
+> and `bindings/go/v4.0.1`, and **`v4.0.3` is the tag the tag-based channels
+> now point at**: Swift, Zig, Packagist (PHP), the C++ source tarball, and the
+> `source.tag` in the LuaRocks rockspec. The earlier tags are left exactly
+> where they are, for one reason: a pushed tag is a public, cached surface that
+> a consumer may already have pinned by hash or by lockfile, so a corrected
+> tree gets a new tag and an existing tag is never moved. Four bindings have
+> nothing live at 4.x — Haskell, Perl, R (submitted to CRAN and in the
+> reviewer's queue) and Julia — and a fifth publication is outstanding on a
+> channel that is already live: crates.io's corrected **4.0.1**. Those five
+> acts proceed per
 > [`docs/Causalontology_4_0_0_Release_Plan.txt`](docs/Causalontology_4_0_0_Release_Plan.txt).
 
 ## What went wrong on 2026-07-26, plainly
@@ -99,7 +105,8 @@ a package of **ten files and zero schemas**, and a consumer project that fetched
 the module and called `validateSchema` died with `error.SpecDirNotSet`. The
 earlier entry on this page called that "a documented requirement of the
 interface" — it was a broken package. It is now fixed: the root `.paths` names
-`bindings/zig`, `spec`, `conformance/vectors`, `LICENSE` and `NOTICE`; the
+`build.zig`, `build.zig.zon`, `bindings/zig`, `spec`, `conformance/vectors`,
+`LICENSE` and `NOTICE`; the
 twenty-one schemas are additionally compiled into the library from
 `bindings/zig/src/spec_schema/` (Zig 0.13 refuses `@embedFile` of a path outside
 the module directory, so the copy has to sit beside the sources); and the
@@ -163,16 +170,65 @@ cannot happen again:
 | Live artifact | Built from | Not from |
 |---|---|---|
 | crates.io `causalontology` 4.0.0 | `main` at `43d58a6` (the same commit later tagged `v4.0.1`) | **not** `v4.0.0` — that tag carries the 2.0.0 Rust binding with 17 schemas |
-| pub.dev `causalontology` 4.0.0 (defective) | `main` at `43d58a6` | — |
-| Go `bindings/go/v4@v4.0.0` (defective) | tag `bindings/go/v4.0.0` = `43d58a6` | not the tag `bindings/go/v4/v4.0.0`, which the toolchain never consults |
+| pub.dev `causalontology` 4.0.0 (defective, now retracted) | `main` at `43d58a6` | — |
+| pub.dev `causalontology` 4.0.1 (live) | **no single commit — published from the working tree**, recorded as a process failure rather than reconciled. Re-measured from the downloaded archive: fourteen of its sixteen files are byte-identical to `bindings/dart/` at every commit from `3f4a23b` to `b2e00ad`, and the only two that differ are `README.md` and `bin/conformance.dart` — both outside `lib/`, both carrying the then-uncommitted "137 checks" wording. The library a consumer actually uses is therefore identical to committed code | — |
+| Go `bindings/go/v4@v4.0.0` (defective, now retracted) | tag `bindings/go/v4.0.0` = `43d58a6` | not the tag `bindings/go/v4/v4.0.0`, which the toolchain never consults |
+| Go `bindings/go/v4@v4.0.1` (live) | tag `bindings/go/v4.0.1` = `aeaf0e7` — confirmed against the proxy, which reports `Ref: refs/tags/bindings/go/v4.0.1`, `Hash: aeaf0e71cc1b1f1ddcddd7c70d2b59fc3076d6f8` | — |
 | npm `causalontology` 4.0.0 | `main` at `e697d32` (the commit that put `LICENSE` inside the artifact) | — |
 | PyPI `causalontology-4.0.0-1-py3-none-any.whl` | `main` at `e697d32` | not `v4.0.0` |
-| Packagist `causalontology/causalontology` 4.0.1 | tag `v4.0.1` = `43d58a6` | — |
-| SwiftPM / Zig / C++ tarball at `v4.0.1` | tag `v4.0.1` = `43d58a6` | — |
-| LuaRocks `causalontology 4.0.0-1` (published 2026-07-27) | tag `v4.0.3` | not `v4.0.0`, whose Lua binding is at specification 2.0.0 |
+| Packagist `causalontology/causalontology` v4.0.3 (newest served) | tag `v4.0.3` = `4c12aab`; v4.0.0, v4.0.1 and v4.0.2 also remain on the index | — |
+| SwiftPM / Zig / C++ tarball at `v4.0.3` | tag `v4.0.3` = `4c12aab` (they were at `v4.0.1` = `43d58a6` until 2026-07-27) | — |
+| LuaRocks `causalontology 4.0.0-1` (published 2026-07-27) | rockspec `source.tag` = `v4.0.3`, confirmed on the live rockspec at luarocks.org | not `v4.0.0`, whose Lua binding is at specification 2.0.0 |
 
-All of the above are superseded by **`v4.0.3`** for the tag channels, per the
-next section.
+**Six live artifacts have no recorded build commit, and that is a gap in this
+record rather than a detail.** RubyGems 4.0.0, Hex 4.0.0, NuGet 4.0.0, both
+Maven Central artifacts, and the pub.dev 4.0.1 archive were published on
+2026-07-26/27 without the commit being written down at the time. What can be
+said from the artifacts themselves: the RubyGems gem's thirty-two files are
+byte-identical to `bindings/ruby/` at every commit from `3f4a23b` (the
+schema-bundling commit) through `b2e00ad`, and are **not** identical to current
+`main` — its bundled `README.md` and `conformance.rb` predate the "137 checks"
+wording sweep. The rule going forward is in the release plan: record the commit
+at the moment of publish, because a registry artifact and a git tag are two
+different things.
+
+**The retracted "137 vectors" phrasing is still live on almost every published
+artifact.** An earlier draft of this paragraph said "four immutable channels"
+and gave Hex an all-clear. Both were wrong, and the correction was measured on
+2026-07-27 by unpacking the artifacts rather than by reading registry metadata —
+which is the whole lesson, because several of the misses sit *inside* archives
+whose metadata field was correct.
+
+Measured, by unpacking what each registry actually serves:
+
+| Channel | What still says "vectors" |
+|---|---|
+| npm 4.0.0 | bundled `README.md` |
+| PyPI 4.0.0 | wheel `METADATA` |
+| RubyGems 4.0.0 | bundled `README.md` |
+| **Hex 4.0.0** | **bundled `README.md`** — the hex.pm *description field* was corrected before upload, but the artifact was not. The earlier all-clear here was false |
+| crates.io 4.0.0 | bundled `README.md` |
+| NuGet 4.0.0 | bundled `README.md` |
+| Go proxy `v4.0.1` | the module zip and the conformance binary |
+| Maven Central (Java) | the POM inside the jar |
+| **git tag `v4.0.3`** | **all nineteen conformance runners** |
+
+Only the Kotlin POM and pub.dev 4.0.1 carry the corrected wording.
+
+The `v4.0.3` row is the largest instance and the one worth understanding. That
+tag serves five live channels — Swift, Zig, Packagist, the C++ tarball and the
+LuaRocks `source.tag` — and it was cut **before** the sweep landed; `main` is 14
+commits ahead of it. So a consumer of any of those five runs the project's own
+verification step and is shown the retracted claim, inside a package whose own
+`PUBLISHING.md` retracts it.
+
+Nothing can be edited in place on the immutable channels. The `v4.0.3` instance
+*can* be fixed, by cutting a tag from current `main` and re-pointing the five
+channels that read it. That is a deliberate decision rather than an oversight,
+and it is recorded as an open item rather than quietly left.
+
+The tag rows above are the current state; `v4.0.3` supersedes `v4.0.1` for
+every tag channel, per the next section.
 
 ## What to publish where, and at which version
 
@@ -190,10 +246,10 @@ allowed to differ, and the 137 vectors are the thing that must not.
 | PyPI | python | **4.0.0 LIVE and CORRECT** | **yes** | **done 2026-07-27** | the correction shipped **inside the existing 4.0.0 release** as `causalontology-4.0.0-1-py3-none-any.whl`, and the two defective files were then deleted. Release 4.0.0 now holds exactly one file. `pip install causalontology==4.0.0` into a clean virtual environment resolves the build-tagged wheel unprompted, delivers all 21 schemas, and scores **137/137** with `CAUSALONTOLOGY_SPEC` poisoned then stripped, from outside any checkout. `validate_schema` returns `(True, [])` where this morning it raised `FileNotFoundError`. Permanent consequence, accepted deliberately: 4.0.0 can never carry an sdist again, so `--no-binary` at exactly 4.0.0 now fails loudly with *No matching distribution found* rather than silently installing a package that cannot validate |
 | pub.dev | dart | **4.0.1 LIVE, 4.0.0 retracted** | **yes** | **done 2026-07-27** | published and proved: a consumer with an empty pub cache resolved 4.0.1 from pub.dev, and the `validateSchema` call that previously threw now returns `(true, [])` from outside any checkout with `CAUSALONTOLOGY_SPEC` poisoned then stripped — **137/137**. 4.0.0 is now retracted, and a consumer asking for `^4.0.0` resolves to 4.0.1. Retraction on pub.dev is reversible and does not delete: anyone already pinned to 4.0.0 keeps working, new installs simply stop choosing it |
 | Go module proxy | go (`bindings/go/v4`) | **v4.0.1 LIVE, v4.0.0 retracted** | **yes** | **done 2026-07-27** | tag `bindings/go/v4.0.1` pushed, proxy primed, and proved: a clean consumer with an empty module cache resolved v4.0.1 from proxy.golang.org **with checksum verification against sum.golang.org on**, received all 21 schemas, and `ValidateSchema` returned `true` from outside any checkout with `CAUSALONTOLOGY_SPEC` poisoned then stripped. The conformance program fetched fresh from the proxy scored **137/137**. The retraction works: `go list -m -versions` now offers only v4.0.1, and a consumer still on v4.0.0 is shown the reason. Module-proxy versions are immutable and cached forever — v4.0.0 could never be deleted, only superseded and retracted |
-| Packagist | php | 4.0.1 (tag `v4.0.1`) | yes | **`v4.0.3`** | 4.0.1 was and is sound — Composer's dist archive is the whole repository, so `spec/schema` is delivered, verified by an actual `composer require` into a clean project. `v4.0.3` stops that being an accident: the binding now vendors its own twenty-one schemas and passes 137/137 with the top-level `spec/` deleted |
-| Swift Package Manager | swift | tag `v4.0.1` | yes | **`v4.0.3`** | 4.0.1 was and is sound: a tag delivers the whole tree, so `spec/schema` arrives with the sources. `v4.0.3` is the tag that carries the rest of the repair; Swift still vendors nothing and still derives its path from `#filePath` |
-| Zig | zig | tag `v4.0.1` | **no — broken** | **`v4.0.3`** | `zig fetch` prunes the tarball to the root `build.zig.zon` `.paths` list, `spec/` was not on it, and a consumer received ten files and zero schemas. `v4.0.3` lists the schemas, the specification and the vectors, and compiles the schemas into the library besides |
-| C++ source tarball | cpp | tag `v4.0.1` | yes, with a caveat | **`v4.0.3`** | the tarball is the whole repository, so `spec/schema` is there for anyone who points at it. The caveat was the CMake **install**, which shipped zero schemas; `v4.0.3` installs them to `<prefix>/share/causalontology/spec/schema` and refuses `find_package` on an incomplete install |
+| Packagist | php | **v4.0.3 LIVE** (v4.0.0, v4.0.1 and v4.0.2 also remain on the index) | yes | **done 2026-07-27** | 4.0.1 was and is sound — Composer's dist archive is the whole repository, so `spec/schema` is delivered, verified by an actual `composer require` into a clean project. `v4.0.3` stops that being an accident: the binding now vendors its own twenty-one schemas and passes 137/137 with the top-level `spec/` deleted. Re-checked against the live index on 2026-07-27: `repo.packagist.org` serves `v4.0.3` as the newest version, so `^4.0` now resolves there |
+| Swift Package Manager | swift | **tag `v4.0.3` LIVE** | yes | **done 2026-07-27** | 4.0.1 was and is sound: a tag delivers the whole tree, so `spec/schema` arrives with the sources. `v4.0.3` is the tag that carries the rest of the repair; Swift still vendors nothing and still derives its path from `#filePath`. The tag is pushed; the 137/137 proof on record is the one run at `v4.0.1`, and it has not been re-run at `v4.0.3` — nothing in the Swift binding changed between them |
+| Zig | zig | **tag `v4.0.3` LIVE** | yes — repaired (`v4.0.1` was broken) | **done 2026-07-27** | `zig fetch` prunes the tarball to the root `build.zig.zon` `.paths` list, `spec/` was not on it, and a consumer received ten files and zero schemas. `v4.0.3` lists the schemas, the specification and the vectors, and compiles the schemas into the library besides. Re-measured against the **published** `v4.0.3` tarball on 2026-07-27: `zig fetch` prints `122000cacf485f8c9e8f87cfdd428d54270200b14aa666912a3e7d53cec9600c71fa` and the fetched package holds 209 files — 21 schemas under `spec/schema`, 21 compiled in, and all 137 vectors |
+| C++ source tarball | cpp | **tag `v4.0.3` LIVE** | yes, with a caveat now fixed | **done 2026-07-27** | the tarball is the whole repository, so `spec/schema` is there for anyone who points at it. The caveat was the CMake **install**, which shipped zero schemas; `v4.0.3` installs them to `<prefix>/share/causalontology/spec/schema` and refuses `find_package` on an incomplete install. The vcpkg and Conan ports stay CLA-gated, and are still at 2.0.1 |
 | npm | javascript | **4.0.0 LIVE** | **yes** | **done 2026-07-27** | published and proved: `npm install causalontology@4.0.0` into an empty directory delivers the 21 schemas under `spec/schema/`, and the installed package scored **137/137** with `CAUSALONTOLOGY_SPEC` first poisoned then stripped, from outside any checkout. Registry shasum `953f69a4`, licence indexed as `Apache-2.0` |
 | RubyGems | ruby | **4.0.0 LIVE** | **yes** | **done 2026-07-27** | published and proved: `gem install causalontology --version 4.0.0` from rubygems.org into an empty gem home delivers all 21 vendored schemas, and the installed gem scored **137/137** with `CAUSALONTOLOGY_SPEC` poisoned then stripped, from outside any checkout. Registry checksum `e0a0e35eb4f07a73`, 32 files. Note for whoever verifies next: the first install attempt failed with *Could not find a valid gem* purely because the local gem client's index was cached — the registry was already correct. Redirect `HOME` to a scratch directory to force a virgin index |
 | Hex | elixir | **4.0.0 LIVE** | **yes** | **done 2026-07-27** | published and proved: a throwaway project depending on `{:causalontology, "~> 4.0"}` resolved 4.0.0 from hex.pm, received all 21 schemas under `priv/schema`, and scored **137/137** with `CAUSALONTOLOGY_SPEC` poisoned then stripped, from outside any checkout. Release checksum `ba3e87a8947505c2`. Publish with `mix hex.publish package --yes` — the bare form runs a docs stage that needs `ex_doc`, which this zero-dependency binding does not carry |
@@ -206,38 +262,55 @@ allowed to differ, and the 137 vectors are the thing that must not.
 | Hackage | haskell | not published at 4.x | n/a | **4.0.0** | first 4.x release; the schemas are Cabal `data-files`, present in the sdist and in the installed store |
 | Julia General | julia | not published at 4.x | n/a | **4.0.0** | first 4.x release; registration delivers the whole repository, so `spec/schema` arrives with the code |
 
-Two acts remain per broken channel and each needs the owner's separately named
-go-ahead. For pub.dev and the Go proxy the acts are: publish the superseding
-version, then retract the broken one. Retraction is not deletion — a retracted
-Go version is still downloadable — so the superseding release is the fix and the
-retraction is only a signpost.
+**All three broken channels are now closed, each by two separately authorized
+acts.** For pub.dev and the Go proxy the acts were: publish the superseding
+version, then retract the broken one — both done on 2026-07-27, and both
+confirmed against the live registries (pub.dev reports 4.0.0 `retracted: true`
+with 4.0.1 as `latest`; `go list -m -versions` offers only v4.0.1). Retraction
+is not deletion — a retracted Go version is still downloadable — so the
+superseding release was the fix and the retraction is only a signpost.
 
-PyPI is deliberately different, on the owner's instruction of 2026-07-26 that
-the release ship as 4.0.0 wherever that is possible. There the acts are: delete
-the two broken 4.0.0 files, then upload the build-tagged wheel into the same
-4.0.0 release. This is the only channel of the three where the string 4.0.0 can
-be made to serve correct code, because it is the only one whose release format
-holds more than one file. It buys that at the cost of an sdist that can never
-exist again, and it must happen before 2026-08-09.
+PyPI was deliberately different, on the owner's instruction of 2026-07-26 that
+the release ship as 4.0.0 wherever that is possible. There the acts were:
+delete the two broken 4.0.0 files, then upload the build-tagged wheel into the
+same 4.0.0 release. Both were done on 2026-07-27, well inside the 2026-08-09
+deadline after which PyPI stops accepting new files on a release older than
+fourteen days; the release now holds exactly one file,
+`causalontology-4.0.0-1-py3-none-any.whl` (33 entries, 21 schemas, `Build: 1`
+in its `WHEEL` metadata, confirmed by downloading it from
+files.pythonhosted.org). This was the only channel of the three where the
+string 4.0.0 could be made to serve correct code, because it is the only one
+whose release format holds more than one file. It bought that at the cost of an
+sdist that can never exist again at 4.0.0.
 
-## Live at 4.0.0 — package registries (published 2026-07-26)
+Five publication acts are still outstanding: crates.io's corrected **4.0.1**
+(on a channel that is already live at 4.0.0), and the four bindings never
+published at 4.x — Hackage (Haskell), CPAN (Perl), CRAN (R, submitted and in
+the queue) and Julia General. Each needs the owner's separately named
+go-ahead, and CRAN and Julia additionally need a human reviewer.
+
+## crates.io at 4.0.0 — the one live channel with a known defect
+
+Every other live channel is recorded in the table above. crates.io gets its own
+entry because it is the only one where the published artifact is part sound and
+part broken, and the distinction matters to a consumer.
 
 | Registry | Consume with | Fresh-install proof |
 |---|---|---|
 | crates.io | `cargo add causalontology` | **The library is proven sound; the 4.0.0 conformance binary and README are not, and 4.0.1 is fixed in tree but unpublished.** The crate compiles the twenty-one schemas in with `include_str!` from `bindings/rust/spec_schema/` and reads nothing from disk at run time. Note the reasoning, because the older wording here got it wrong: crates.io ships only the `bindings/rust` subtree, never the repository, so Rust is safe because the schemas live *inside* that subtree — not because of whole-repository delivery. Proven on 2026-07-27 the strong way: a consumer crate built against the packaged `.crate`, from a working directory outside every checkout, with the repository bind-mounted away behind an empty directory, printed identical output with `CAUSALONTOLOGY_SPEC` poisoned and with it stripped, and `strace` recorded no syscall touching the repository. What is **not** sound at 4.0.0: the `conformance` binary resolves the vectors at `../../conformance/vectors` relative to `CARGO_MANIFEST_DIR`, which no registry checkout has, so an installed copy panics with exit 101; and the published README's headline instruction `cargo run --bin conformance` fails in a consumer project with *no bin target named `conformance`*. Both are fixed at **4.0.1** in this tree — four ways to locate the vectors, the directory it read printed on every run, exit 2 and an actionable message instead of a panic — and 4.0.1 awaits a publish. Verify the crate against `main` at `43d58a6`, **not** against the `v4.0.0` tag, which carries the 2.0.0 Rust binding and seventeen schemas. 2.0.0 remains; 1.0.0 stays yanked |
 
-## Published but defective — awaiting a fixed release (2026-07-26)
+## Published defective on 2026-07-26 — all three repaired on 2026-07-27
 
-These went out before the masked-proof defect was found. The code in this
-repository is fixed and verified standalone; the corrected releases are not
-published yet, because each publish and each yank is a separate act needing the
-owner's explicitly named go-ahead.
+These three went out before the masked-proof defect was found. **All three are
+now fixed on the live registries**, each by two separately authorized acts
+(publish the correction, then delete or retract the broken artifact). The
+history is kept rather than deleted, because what went wrong is the useful part.
 
-| Registry | Live version | What is wrong | Fixed build, verified standalone |
+| Registry | Live version now | What was wrong | The repair, verified against the live registry |
 |---|---|---|---|
 | PyPI | **4.0.0, now correct** | *was:* shipped no schemas; truly-installed wheel scored **62/137** — every schema-validation vector failed with file-not-found | **RESOLVED 2026-07-27.** `causalontology-4.0.0-1-py3-none-any.whl` uploaded into the same release (33 entries, all 21 schemas, `Build: 1` in `WHEEL`), then the defective wheel and sdist deleted. Verified against the live registry: pip resolves the build-tagged wheel on its own, 21/21 schemas installed, **137/137** from a clean venv outside the checkout with `CAUSALONTOLOGY_SPEC` stripped. Build it only with the build number (see the comment in `pyproject.toml`); a plain build emits the burned filename and PyPI will reject it |
 | pub.dev | **4.0.1 live; 4.0.0 retracted** | *was:* shipped no schemas; a clean consumer outside a checkout threw `cannot locate spec/schema` on the first validate (reproduced against the live registry) | **RESOLVED 2026-07-27** at 4.0.1: the 21 schemas are compiled in via a generated `lib/spec_schema.g.dart` (Dart has no dependable runtime path to its own data files once compiled); staged exactly as pub.dev would ship it — zero schema files present — and consumed from outside the repository: **137/137** |
-| Go module proxy | `bindings/go/v4@v4.0.0` | a Go module ships only its own subdirectory, so `spec/schema` was never delivered; the runner also called `SetSchemaDir(repo)` outright, which is why the "fetched fresh from proxy.golang.org" proof passed regardless | **RESOLVED 2026-07-27** at **v4.0.1**: schemas compiled in with `//go:embed`, schema resolution decoupled from `CAUSALONTOLOGY_ROOT` (that variable locates vectors only), and `retract v4.0.0` in `go.mod`. Verified against the live proxy with checksum verification on: 21 schemas delivered, a real consumer validates, and `go run .../conformance@v4.0.1` scored **137/137**. v4.0.0 no longer appears in `go list -m -versions` |
+| Go module proxy | **`bindings/go/v4@v4.0.1` live; `v4.0.0` retracted** | *was:* a Go module ships only its own subdirectory, so `spec/schema` was never delivered; the runner also called `SetSchemaDir(repo)` outright, which is why the "fetched fresh from proxy.golang.org" proof passed regardless | **RESOLVED 2026-07-27** at **v4.0.1**: schemas compiled in with `//go:embed`, schema resolution decoupled from `CAUSALONTOLOGY_ROOT` (that variable locates vectors only), and `retract v4.0.0` in `go.mod`. Verified against the live proxy with checksum verification on: 21 schemas delivered, a real consumer validates, and `go run .../conformance@v4.0.1` scored **137/137**. v4.0.0 no longer appears in `go list -m -versions` |
 
 ## Live at 4.0.x — git-tag channels (tag `v4.0.3`, superseding `v4.0.1`)
 
@@ -267,9 +340,9 @@ is unchanged and still vendors nothing.
 
 | Channel | Consume with | Fresh proof, and what it does and does not show |
 |---|---|---|
-| Swift Package Manager | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "4.0.3")` | at `v4.0.1`, a fresh clone built and passed 137/137 and a stub package resolved the dependency at exactly `4.0.1` through Swift Package Manager itself, built, and imported the library (2026-07-26); `v4.0.3` moves the same, sound arrangement forward. Swift Package Index listing: [PackageList PR #14440](https://github.com/SwiftPackageIndex/PackageList/pull/14440) (merge pending). Swift is the one channel still correct *only* because the tag delivers the whole tree — it vendors nothing, and `SchemaValidator.defaultSchemaDirectory()` derives its path from `#filePath`, so it points at the SwiftPM checkout that compiled it; move or delete that checkout and a consumer must set `CAUSALONTOLOGY_SPEC` |
-| Zig | `zig fetch --save https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.3.tar.gz`, then `dep.module("causalontology")` | **`v4.0.1` was broken here and the earlier entry on this page did not say so.** The old hash `12207a70…fe98d6f` pins a package of ten files and zero schemas. Measured on the repaired tree: the fetched package is **209 files — 21 schemas under `spec/schema`, 21 compiled into the library, and all 137 vectors** — and a consumer that calls `validateSchema` with no `setSpecDir`, no `CAUSALONTOLOGY_SPEC`, and the repository bind-mounted away behind an empty directory gets `valid = true`; `strace` shows it opening no schema file at all. The runner inside the fetched package passed 137/137 under those same conditions. Package hash `122000cacf485f8c9e8f87cfdd428d54270200b14aa666912a3e7d53cec9600c71fa`, taken from `zig fetch` run against the **published** `v4.0.3` tarball on 2026-07-27, not from a locally built one. The earlier locally-computed estimate `12206993b2c6279008106276f92f88cf1209be3ded300d9de6f9dc5b15007a65f09c` was wrong: a package hash covers the pruned file set, and `bindings/zig` is packaged whole, so later edits to the Zig README moved it. That is the general lesson — never record a Zig hash from a tarball you built yourself. A package hash covers only the pruned file set, so this channel cannot be corrected in place: a consumer must re-run `zig fetch --save` against the new tag |
-| Packagist (PHP) | `composer require causalontology/causalontology:^4.0` | the Packagist webhook mirrored `v4.0.1` automatically on the tag push (verified on the live index, 2026-07-26); a freshly fetched `composer.phar` installed `causalontology/causalontology` 4.0.1 from Packagist into a clean project and the vendor tree passed 137/137. That is a genuine installed-artifact proof, and it depended entirely on Composer's dist archive being the whole repository. It no longer has to: at `v4.0.3` the binding carries its own `bindings/php/spec/schema`, and a Composer-shaped vendor tree **with the top-level `spec/` deleted** passes 137/137 from outside the checkout — and still passes with the repository hidden behind a mount namespace. The runner aborts before the first vector if a vendored schema is missing, so a package that cannot validate cannot pass its own suite |
+| Swift Package Manager | `.package(url: "https://github.com/ai-university-aiu/causalontology", from: "4.0.3")` | at `v4.0.1`, a fresh clone built and passed 137/137 and a stub package resolved the dependency at exactly `4.0.1` through Swift Package Manager itself, built, and imported the library (2026-07-26); `v4.0.3` moves the same, sound arrangement forward. Swift Package Index listing: [PackageList PR #14440](https://github.com/SwiftPackageIndex/PackageList/pull/14440) — **merged 2026-07-17**, so the package is listed; the index reindexes on each new tag. Swift is the one channel still correct *only* because the tag delivers the whole tree — it vendors nothing, and `SchemaValidator.defaultSchemaDirectory()` derives its path from `#filePath`, so it points at the SwiftPM checkout that compiled it; move or delete that checkout and a consumer must set `CAUSALONTOLOGY_SPEC` |
+| Zig | `zig fetch --save https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.3.tar.gz`, then `dep.module("causalontology")` | **`v4.0.1` was broken here and the earlier entry on this page did not say so.** The old hash `12207a70…fe98d6f` pins a package of ten files and zero schemas. Measured on the repaired tree: the fetched package is **209 files — 21 schemas under `spec/schema`, 21 compiled into the library, and all 137 vectors** — and a consumer that calls `validateSchema` with no `setSpecDir`, no `CAUSALONTOLOGY_SPEC`, and the repository bind-mounted away behind an empty directory gets `valid = true`; `strace` shows it opening no schema file at all. The runner inside the fetched package passed 137/137 under those same conditions. Package hash `122000cacf485f8c9e8f87cfdd428d54270200b14aa666912a3e7d53cec9600c71fa`, taken from `zig fetch` run against the **published** `v4.0.3` tarball on 2026-07-27, not from a locally built one — and re-confirmed the same day by an independent `zig fetch` of that published tarball into an empty cache, which printed the identical hash and produced a package of 209 files, 21 schemas under `spec/schema`, 21 beside the sources, and 137 vectors. The earlier locally-computed estimate `12206993b2c6279008106276f92f88cf1209be3ded300d9de6f9dc5b15007a65f09c` was wrong: a package hash covers the pruned file set, and `bindings/zig` is packaged whole, so later edits to the Zig README moved it. That is the general lesson — never record a Zig hash from a tarball you built yourself. A package hash covers only the pruned file set, so this channel cannot be corrected in place: a consumer must re-run `zig fetch --save` against the new tag |
+| Packagist (PHP) | `composer require causalontology/causalontology:^4.0` | the Packagist webhook mirrored `v4.0.1` automatically on the tag push (verified on the live index, 2026-07-26) and has since mirrored `v4.0.3` the same way — re-checked on 2026-07-27, `repo.packagist.org` serves `v4.0.3`, `v4.0.2`, `v4.0.1` and `v4.0.0`, so `^4.0` now resolves to `v4.0.3`. A freshly fetched `composer.phar` installed `causalontology/causalontology` 4.0.1 from Packagist into a clean project and the vendor tree passed 137/137. That is a genuine installed-artifact proof, and it depended entirely on Composer's dist archive being the whole repository. It no longer has to: at `v4.0.3` the binding carries its own `bindings/php/spec/schema`, and a Composer-shaped vendor tree **with the top-level `spec/` deleted** passes 137/137 from outside the checkout — and still passes with the repository hidden behind a mount namespace. The runner aborts before the first vector if a vendored schema is missing, so a package that cannot validate cannot pass its own suite |
 | C++ source tarball | the [`v4.0.3` archive](https://github.com/ai-university-aiu/causalontology/archive/refs/tags/v4.0.3.tar.gz) | `bindings/cpp/run_conformance.sh` from the freshly downloaded `v4.0.1` tarball passed 137/137 (2026-07-26), and that remains true: the tarball is the whole repository and the script points the library at the tarball's own `spec/schema`. What that run never touched was the **CMake install**, which is how anyone consumes this as a library — it installed 15 files and **zero** schemas, so an installed consumer could not validate anything. At `v4.0.3` the install carries 36 files including all 21 schemas at `<prefix>/share/causalontology/spec/schema`, a `find_package` consumer built outside the checkout validates correctly with the repository bind-mounted away, and an incomplete install fails loudly at configure, at `find_package`, and at run time rather than silently reading the tree that built it. A second correction: the README claimed `CAUSALONTOLOGY_SPEC` overrode the schema directory, and it did not — the variable was unreachable behind an explicit `schema_set_spec_dir()` call. It is now consulted first, and the conformance run scores 62/137 when it is poisoned, which is how you can tell it is really being read. The vcpkg and Conan ports stay CLA-gated below |
 
 Pushing `v4.0.3` also triggers the release workflow, which builds and attaches
@@ -278,20 +351,30 @@ exactly where they are and are not moved: a pushed tag is a public, cached
 surface that a consumer may already have pinned, so a corrected tree gets a new
 tag rather than a redefined one.
 
-## Live at 2.0.0 — package registries awaiting their 4.0.0 publication
+## What happened to the superseded 1.0.0 and 2.0.0 releases
 
-These seven were never published at 4.x, which is the one piece of luck in this
-episode: they go out correct the first time, at **4.0.0**, per the version table
-above. Each now packages its own copy of the twenty-one schemas and has been
-proved installed — artifact built, installed into a clean temporary location,
-137/137 with `CAUSALONTOLOGY_TEST_INSTALLED=1`, `CAUSALONTOLOGY_SPEC` unset,
-from a working directory outside the checkout. The 2.0.0-era packages listed
-here still carry the old defect and should be treated as superseded once 4.0.0
-lands.
+This section used to list the registries still waiting for their first 4.x
+publication. All but five of them have now shipped, so what is left worth
+recording is the disposition of the older releases each registry still carries.
+The rule differs by registry, and the differences are real rather than
+oversights:
 
-| Registry | Consume with | 1.0.0 disposition |
+| Registry | Older releases still listed | Disposition |
 |---|---|---|
-| LuaRocks | `luarocks install causalontology` | no yank; 1.0.0-1 remains listed |
+| PyPI | 1.0.0, 2.0.0 | 1.0.0 yanked; 2.0.0 remains |
+| crates.io | 1.0.0, 2.0.0 | 1.0.0 yanked; 2.0.0 remains |
+| RubyGems | 2.0.0 | 1.0.0 yanked (a yanked gem leaves the version index); 2.0.0 remains |
+| npm | 1.0.0, 2.0.0 | 1.0.0 deprecated, message *superseded by 2.0.0 (whole-word schemes, P7)*; nothing unpublished |
+| NuGet | 1.0.0, 2.0.0 | 1.0.0 unlisted; NuGet has no yank and no delete |
+| Hex | 1.0.0, 2.0.0 | 1.0.0 retired; 2.0.0 remains |
+| pub.dev | 1.0.0, 2.0.0, 4.0.0 | 1.0.0 and 4.0.0 retracted; 2.0.0 remains |
+| LuaRocks | 1.0.0-1, 2.0.0-1, 4.0.0-1 | LuaRocks has no yank, so both older rockspecs remain listed |
+| Maven Central | 1.0.0, 2.0.0 (jar and klib alike) | immutable: no delete, no replace, no yank |
+| Packagist | v1.0.1, v1.0.2, v2.0.0, v2.0.1, v4.0.0, v4.0.1, v4.0.2 | Packagist mirrors every git tag; nothing is removed |
+| Go module proxy | `/v1` line, `/v2` line, `v4.0.0` | the v1 line is deprecated and retracted via `bindings/go/v1.0.1`; `/v2` stays live for 2.0.x; `v4.0.0` is retracted |
+
+The 2.0.0-era packages all predate the schema-packaging repair and carry the old
+defect. Treat them as superseded, not as a fallback.
 
 ## Still pending — accounts, registrars, or human review
 
@@ -300,12 +383,12 @@ account action.
 
 | Registry | Binding | What remains |
 |---|---|---|
-| Hackage | haskell | The sdist is built and passes `cabal check`. Needs a Hackage account + upload token, then `cabal upload --publish <sdist>`. |
-| CPAN | perl | The dist tarball is built. The Perl Authors Upload Server (PAUSE) has no application programming interface (API) token; upload via the web form at pause.perl.org. |
-| CRAN | r | **Ready for web-form submission.** Caveat 6c resolved: `signing.R` uses the `openssl` R package for Ed25519 (Imports, not the CLI). The export surface is a documented 22-function public API (`man/*.Rd` with runnable examples), the **21** JSON Schemas are bundled under `inst/schema` so the package works standalone — and, since 2026-07-26, `tests/bundled_schema.R` makes `R CMD check` fail if they ever stop shipping — and `R CMD check --as-cran` passes with only the standard "New submission" NOTE (no WARNINGs, no ERRORs); conformance is **137/137**. **Submitted 2026-07-27** and the confirmation email clicked; now awaiting a CRAN reviewer. Tarball sha256 `95195ab72c6230d3f1666258b637cd1921d5855bdbab7ecdfafba6e006085185`. |
-| Julia General | julia | Registration PR [General #161292](https://github.com/JuliaRegistries/General/pull/161292) is open but under contested human review; a 2.0.0 registration follows once it merges. |
-| vcpkg (C++) | cpp | Port PR [microsoft/vcpkg #52892](https://github.com/microsoft/vcpkg/pull/52892), updated to 2.0.1. Blocked only on the owner's Microsoft Contributor License Agreement (comment `@microsoft-github-policy-service agree` on the PR). |
-| Conan (C++) | cpp | Recipe PR [conan-io/conan-center-index #30612](https://github.com/conan-io/conan-center-index/pull/30612), updated to 2.0.1. Blocked only on signing the Contributor License Agreement at the cla-assistant link on the PR. |
+| Hackage | haskell | The sdist is built and passes `cabal check`. Needs a Hackage account + upload token, then `cabal upload --publish <sdist>`. Confirmed unpublished on 2026-07-27: `hackage.haskell.org/package/causalontology` answers 404. |
+| CPAN | perl | The dist tarball is built. The Perl Authors Upload Server (PAUSE) has no application programming interface (API) token; upload via the web form at pause.perl.org. Confirmed unpublished on 2026-07-27: the MetaCPAN release endpoint answers 404. |
+| CRAN | r | **Submitted 2026-07-27, awaiting a reviewer.** Confirmed against CRAN itself the same day: `causalontology_4.0.0.tar.gz` is sitting in `cran.r-project.org/incoming/newbies/`, and the copy served from there hashes to sha256 `95195ab72c6230d3f1666258b637cd1921d5855bdbab7ecdfafba6e006085185` — the same tarball recorded here. It is genuinely queued, not merely built. (`crandb.r-pkg.org` still answers *not found*, which is what "not yet accepted" looks like; an earlier `causalontology_2.0.0.tar.gz` sits in `incoming/archive/`.) The submission itself: caveat 6c resolved, `signing.R` uses the `openssl` R package for Ed25519 (Imports, not the CLI); the export surface is a documented 22-function public API (`man/*.Rd` with runnable examples); the **21** JSON Schemas are bundled under `inst/schema` so the package works standalone, and since 2026-07-26 `tests/bundled_schema.R` makes `R CMD check` fail if they ever stop shipping; `R CMD check --as-cran` gave no ERRORs and no WARNINGs; conformance is **137/137**. The confirmation email was clicked, which is the step that silently kills a CRAN submission when it is missed. |
+| Julia General | julia | Registration PR [General #161292](https://github.com/JuliaRegistries/General/pull/161292) is open and under contested human review. Read the PR carefully before quoting it: it registers **v1.0.0** (commit `12f4c6a`, the tree tagged `v1.0.2`), not 2.0.0 and not 4.0.0. Julia's registry requires the versions to land in order, so 2.0.0 and then 4.0.0 follow only once this one merges — which is why Julia is the furthest behind of all nineteen bindings on the registry side, however green it is locally. |
+| vcpkg (C++) | cpp | Port PR [microsoft/vcpkg #52892](https://github.com/microsoft/vcpkg/pull/52892), still open; the port manifest on the PR head reads `"version": "2.0.1"`, confirmed 2026-07-27. Blocked only on the owner's Microsoft Contributor License Agreement (comment `@microsoft-github-policy-service agree` on the PR). Note that it is two majors behind the specification, and its description still says "passes all 38 frozen conformance vectors" — bring both to 4.0.0 when the gate clears. |
+| Conan (C++) | cpp | Recipe PR [conan-io/conan-center-index #30612](https://github.com/conan-io/conan-center-index/pull/30612), still open and titled `causalontology/2.0.1: new recipe`, confirmed 2026-07-27. Blocked only on signing the Contributor License Agreement at the cla-assistant link on the PR. Same caveat as vcpkg: 2.0.1, and a 38-vector description to correct. |
 
 ## Reach beyond the direct installs
 
@@ -347,6 +430,17 @@ are read, only **26** change any verdict when their bytes are destroyed —
 V01–V19, V21–V25, V34 and V35. Gutting all 137 files still leaves 111 checks
 passing.
 
+Independently reproduced on 2026-07-27 against the Python reference, on a copy
+of the tree outside the repository, so the numbers above are not taken on
+trust: replacing the contents of the 99 files V39–V137 with `{}` still prints
+`137/137 checks passed` and `CONFORMANT`; replacing the contents of all 137
+prints `111/137`; and deleting the 99 outright makes the runner die with an
+`IndexError` on a filename glob rather than report a missing vector, which is
+the "accident rather than a guard" described below. The file structure behind
+that: of the 137 vector files, exactly the 38 numbered V01–V38 carry executable
+data, and every one of the 99 numbered V39–V137 has an `operation` field
+reading, literally, `see bindings/*/conformance runner`.
+
 What this does and does not undermine. It does not mean the bindings are
 unverified: 137 assertions per language really do run, and the schema-packaging
 proofs recorded on this page are unaffected, since those turn on whether an
@@ -385,7 +479,11 @@ after `source ~/toolchains/env.sh`:
 python3 bindings/python/tests/run_conformance.py
 ```
 
-The runner exits zero only on 137/137.
+The runner exits zero only on 137/137. Re-checked 2026-07-27: it prints
+`137/137 checks passed (38 from the frozen shared vectors, 99 per-binding)` and
+exits 0; with `CAUSALONTOLOGY_SPEC` set to a non-existent directory it prints
+`62/137` and exits 1, which is how you can tell the variable is genuinely being
+read rather than ignored.
 
 That check tells you the *source tree* is conformant. It deliberately tells you
 nothing about the *package*, and confusing the two is what produced the false
@@ -423,16 +521,27 @@ payload, InterPlanetary File System (IPFS), BitTorrent, or plain Hypertext Trans
 `dumps/example/`. To verify a dump end to end — no store required — and then
 stand up a mirror:
 
+The three commands below are against the worked example in `dumps/example/`;
+point `--dir` at whatever directory holds the four files of the dump you
+actually have. (They read `--dir` literally, so `--dir dumps` fails with
+`FileNotFoundError: dumps/commons.snapshot.ndjson` — the earlier version of
+this page had that wrong.)
+
 ```
 # offline check: manifest signature, Merkle root, every hash and signature
-python3 store/server/snapshot_import.py --dir dumps --verify-only
+python3 store/server/snapshot_import.py --dir dumps/example --verify-only
 
 # the detached checksum is a plain sha256sum file
-cd dumps && sha256sum -c commons.snapshot.sha256
+cd dumps/example && sha256sum -c commons.snapshot.sha256
 
 # mirror it into a fresh node by verified, idempotent union-merge
-python3 store/server/snapshot_import.py --dir dumps --db mirror.db
+python3 store/server/snapshot_import.py --dir dumps/example --db mirror.db
 ```
+
+Run 2026-07-27, those print, in order: `VERIFIED: manifest signature, Merkle
+root, every identifier and every signature check out (4 content, 2
+provenance)`; two `OK` lines; and `MIRRORED: snapshot verified and union-merged
+(Merkle root bda5f51b…)` with 4 content objects and 2 provenance records added.
 
 Pin a publisher you trust with `--trust ed25519:<hex>`. The token tier is
 excluded from a default snapshot for privacy. Full format:
@@ -440,10 +549,14 @@ excluded from a default snapshot for privacy. Full format:
 
 ## Release mechanics
 
-- Git tags drive the tag channels: `vX.Y.Z` for SwiftPM/Zig and the source
-  release; `bindings/go/vX.Y.Z` for the Go module. The current tag for those
-  channels is `v4.0.3`; earlier tags are never moved, only superseded, because
-  a consumer may already have pinned one.
+- Git tags drive the tag channels: `vX.Y.Z` for SwiftPM, Zig, Packagist and the
+  source release; `bindings/go/vX.Y.Z` for the Go module, which moves on its own
+  schedule. The current tags are **`v4.0.3`** for the first group and
+  **`bindings/go/v4.0.1`** for the Go module. Earlier tags are never moved, only
+  superseded, because a consumer may already have pinned one. Pushed to date:
+  `v4.0.0`, `v4.0.1`, `v4.0.2`, `v4.0.3`, `bindings/go/v4.0.0` and
+  `bindings/go/v4.0.1`, plus one harmless misnamed tag, `bindings/go/v4/v4.0.0`,
+  which the Go toolchain never consults.
 - GitHub Releases carry the built artifacts (wheel, sdist, npm tarball, crate,
   and the WebAssembly core). See [CHANGELOG.md](CHANGELOG.md) for what each
   release contains.

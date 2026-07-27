@@ -37,7 +37,18 @@ VECDIR = File.join(ROOT, "conformance", "vectors")
 # inside the repository. Without that refusal a "fresh install" test happily
 # exercises the repository source through a relative path and reports a false
 # pass, which is precisely how the missing-schema defect reached production.
+#
+# Loading the right gem is only half of it: CAUSALONTOLOGY_SPEC points
+# Schema#schema_dir at a checkout, so a gem that shipped no schemas at all
+# still reports 137/137. Installed mode must read the copy that travels
+# inside the gem, so refuse outright when that variable is set.
 if ENV["CAUSALONTOLOGY_TEST_INSTALLED"]
+  if ENV["CAUSALONTOLOGY_SPEC"]
+    abort "CAUSALONTOLOGY_TEST_INSTALLED is set but CAUSALONTOLOGY_SPEC is also " \
+          "set (#{ENV['CAUSALONTOLOGY_SPEC']}); it would override the bundled " \
+          "schemas and hide the packaging defect installed mode exists to " \
+          "catch. Re-run with `env -u CAUSALONTOLOGY_SPEC`."
+  end
   require "causalontology"
   entry = $LOADED_FEATURES.find { |f| f.end_with?(File::SEPARATOR + "causalontology.rb") }
   abort "CAUSALONTOLOGY_TEST_INSTALLED is set but no causalontology.rb was loaded" unless entry
@@ -46,6 +57,17 @@ if ENV["CAUSALONTOLOGY_TEST_INSTALLED"]
     abort "CAUSALONTOLOGY_TEST_INSTALLED is set but the repository copy was loaded: #{entry}"
   end
   puts "binding under test: #{entry}"
+  schema_dir = Causalontology::Schema.schema_dir
+  unless File.directory?(schema_dir)
+    abort "CAUSALONTOLOGY_TEST_INSTALLED is set but the schema directory does " \
+          "not exist: #{schema_dir} - the gem shipped without its schemas"
+  end
+  schema_dir = File.realpath(schema_dir)
+  if schema_dir.start_with?(File.realpath(ROOT) + File::SEPARATOR)
+    abort "CAUSALONTOLOGY_TEST_INSTALLED is set but the schemas resolved inside " \
+          "the repository: #{schema_dir}"
+  end
+  puts "schemas under test: #{schema_dir}"
 else
   require_relative "lib/causalontology"
 end
