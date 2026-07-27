@@ -1030,11 +1030,28 @@ says, so it is recorded here plainly rather than left to be discovered again.
                    (second wave); passes 137/137 locally on Kotlin/JVM over the
                    shared sources and build.gradle.kts reads 4.0.0; Maven
                    Central still carries 2.0.0.
-  [ ] Lua        - published to LuaRocks; fresh install 137/137.
-                   STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
-                   (second wave); passes 137/137 locally with a new
-                   causalontology-4.0.0-1.rockspec; LuaRocks still carries
-                   2.0.0; only the upload and fresh-install check remain.
+  [x] Lua        - published to LuaRocks; fresh install 137/137.
+                   STATUS: COMPLETE (2026-07-27). 4.0.0-1 is live at
+                   luarocks.org/modules/ai-university-aiu/causalontology.
+                   Proven the strong way: luarocks install causalontology
+                   4.0.0-1 into an EMPTY tree delivered 21/21 schemas, and the
+                   suite scored 137/137 from outside any checkout with
+                   CAUSALONTOLOGY_SPEC poisoned and then stripped.
+                   THE TOOLCHAIN GAP IS CLOSED, NOT WORKED AROUND. luarocks was
+                   not installed on the build machine, and the alternative -
+                   storing the key as a repository secret and publishing
+                   through CI - would have persisted a credential the key
+                   protocol says must never be stored. So luarocks 3.11.1 was
+                   built from source against ~/toolchains/lua-5.4.7 into a
+                   scratch prefix, and the key was used in one command and
+                   discarded. Configure line:
+                     ./configure --prefix=<scratch> \
+                       --with-lua=$HOME/toolchains/lua-5.4.7/install \
+                       --lua-version=5.4
+                   NOTE: luarocks upload sends a .src.rock it builds by FETCHING
+                   source.tag - it does not upload your working tree. The
+                   source.tag guard in publish.yml exists for exactly that
+                   reason, and the upload was observed fetching v4.0.3.
                    Its source.tag now names v4.0.3 (it named v4.0.2 until
                    2026-07-27). LuaRocks uploads the rockspec and not the
                    code, so that field decides what a consumer fetches, and a
