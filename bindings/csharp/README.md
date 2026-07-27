@@ -16,7 +16,8 @@ answer before any vector runs. Requires the **.NET 8 SDK** or newer.
 | `Causalontology/Canonical.cs` | identity-bearing field filtering per kind and Secure Hash Algorithm 256-bit (SHA-256) content-addressed `Identify()` (spec/identity.md) |
 | `Causalontology/Ed25519.cs` | Ed25519 (RFC 8032) in pure C# over `System.Numerics.BigInteger`; every field reduction is normalized with `((a % p) + p) % p` because C#'s `%` can return negatives |
 | `Causalontology/Signing.cs` | record-level `SignRecord()` / `VerifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
-| `Causalontology/SchemaValidator.cs` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use) |
+| `Causalontology/SchemaValidator.cs` | validation against the twenty-one JSON Schemas (a small interpreter for exactly the keywords those schemas use), read from `CAUSALONTOLOGY_SPEC`, else the vendored copy that travels inside the package, else the repository's `spec/schema/` |
+| `spec_schema/` | the vendored copy of `spec/schema/*.schema.json`, compiled into `Causalontology.dll` as embedded resources and packed into the `.nupkg`, so an installed package validates with no repository present |
 | `Causalontology/Semantics.cs` | the 25 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s; year = 31,556,952 s) and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `Causalontology/Store.cs` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors, retraction and succession lineage, the resolve minimum, the deterministic cycle-breaking view rule, and the stigmergy `Gaps()` read |
 | `conformance/Program.cs` | the conformance runner: internal known-answer checks (RFC 8032 TEST 1, RFC 8785 basics), then all 137 vectors, mirroring `bindings/python/tests/run_conformance.py` exactly |
@@ -30,10 +31,44 @@ $ dotnet run --project bindings/csharp/conformance
 causalontology-csharp is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
+The runner locates the 137 **vectors** from the `CAUSALONTOLOGY_ROOT`
 environment variable when set, otherwise by walking up from the working
-directory until it finds `conformance/vectors`; the schemas are read from
-`spec/schema` under the same root (overridable with `CAUSALONTOLOGY_SPEC`).
+directory until it finds `conformance/vectors`, otherwise from the source
+directory baked into the build. The vectors are test data and are not shipped
+in the package.
+
+The **schemas** are a separate matter and `CAUSALONTOLOGY_ROOT` does not affect
+them. They are read from `CAUSALONTOLOGY_SPEC` if it is set, otherwise from the
+`spec_schema` directory shipped beside the assembly, otherwise from the copies
+embedded in the assembly itself, and only as a last resort by walking up to a
+repository `spec/schema`. That ordering is what lets an installed copy validate
+with no checkout anywhere.
+
+Whenever both `spec/schema/` and `spec_schema/` are reachable the runner
+compares them byte for byte and exits with `bundled schema drift` on any
+difference, so the vendored copy can never go stale.
+
+### Testing an installed package, not the repository
+
+By default the runner is built against the repository sources
+(`ProjectReference`). With `CAUSALONTOLOGY_TEST_INSTALLED` set it is built
+against the published NuGet package instead (`PackageReference`), it does
+not set `CAUSALONTOLOGY_SPEC` for itself, it prints `binding under test:`
+with the resolved assembly path, and it refuses to run if either that
+assembly or the schemas it loads come from inside the repository tree:
+
+```
+$ dotnet pack bindings/csharp/Causalontology -c Release -o /tmp/feed
+$ CAUSALONTOLOGY_TEST_INSTALLED=1 dotnet restore bindings/csharp/conformance -s /tmp/feed
+$ CAUSALONTOLOGY_TEST_INSTALLED=1 dotnet build bindings/csharp/conformance \
+      -c Release --no-restore -o /tmp/installed
+$ cd /tmp && env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+      dotnet /tmp/installed/conformance.dll
+binding under test: /tmp/installed/Causalontology.dll
+schema source: bundled:/tmp/installed/spec_schema
+...
+137/137 vectors passed
+```
 
 The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors, V01–V137): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 

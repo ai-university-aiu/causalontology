@@ -1,6 +1,7 @@
 defmodule Causalontology.Schema do
   @moduledoc """
-  Schema validation against spec/schema/*.schema.json.
+  Schema validation against the twenty-one *.schema.json files - the copy
+  vendored into this package's priv/schema, or spec/schema in a checkout.
 
   A deliberately small interpreter for exactly the JSON Schema keywords the
   twenty-one Causalontology schemas use: type, const, enum, pattern, required,
@@ -62,15 +63,42 @@ defmodule Causalontology.Schema do
     schema_dir() |> Path.join(filename) |> File.read!() |> Json.parse!()
   end
 
-  # The spec directory: the CAUSALONTOLOGY_SPEC environment variable when set
-  # (naming the spec/ directory), otherwise resolved relative to this source
-  # file (bindings/elixir/lib/causalontology -> repository root -> spec).
+  # Where the twenty-one schema files live, in strict precedence order:
+  #
+  #   (a) the CAUSALONTOLOGY_SPEC environment variable when set (naming the
+  #       spec/ directory) - the explicit override always wins;
+  #   (b) the copy vendored into this package's priv/schema - present in every
+  #       published artifact, so an installed copy validates standalone;
+  #   (c) the repository-relative spec/schema (bindings/elixir/lib/causalontology
+  #       -> repository root -> spec) - the last resort, for repo-mode work in
+  #       a checkout that has not vendored the schemas.
   defp schema_dir do
     case System.get_env("CAUSALONTOLOGY_SPEC") do
-      nil -> Path.expand("../../../../spec/schema", __DIR__)
+      nil -> bundled_schema_dir() || repo_schema_dir()
       env -> Path.join(env, "schema")
     end
   end
+
+  # The vendored copy. In a compiled/installed application priv/ is found
+  # through the code server; in a plain source checkout (and for the standalone
+  # conformance script, which requires the sources directly without an OTP
+  # application) it is found relative to this file.
+  defp bundled_schema_dir do
+    Enum.find([priv_schema_dir(), source_priv_schema_dir()], fn dir ->
+      is_binary(dir) and File.dir?(dir)
+    end)
+  end
+
+  defp priv_schema_dir do
+    case :code.priv_dir(:causalontology) do
+      {:error, _} -> nil
+      priv -> priv |> List.to_string() |> Path.join("schema")
+    end
+  end
+
+  defp source_priv_schema_dir, do: Path.expand("../../priv/schema", __DIR__)
+
+  defp repo_schema_dir, do: Path.expand("../../../../spec/schema", __DIR__)
 
   # ------------------------------------------------------------ the checker
 

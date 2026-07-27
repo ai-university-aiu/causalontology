@@ -8,6 +8,12 @@
 # Standalone script: it Code.require_file's the lib modules directly, so no
 # mix compile is needed — `cd bindings/elixir && elixir conformance.exs`.
 #
+# Set CAUSALONTOLOGY_TEST_INSTALLED to test a real published artifact instead:
+# the runner then refuses to require anything repository-relative, takes the
+# binding from the code path (an installed application), prints the resolved
+# path, and hard-fails if that path is inside the repository tree. Point
+# CAUSALONTOLOGY_ROOT at the checkout so the vectors are still found.
+#
 # Vectors V01-V107 are the whole-word 2.0.0 baseline (Principle P7): V01-V38 are
 # the 1.0.0 suite re-frozen unaltered in meaning, V39-V107 are new. They carry
 # concrete 64-hex identifiers and real Ed25519 keys, which pass through the
@@ -18,14 +24,108 @@
 # the predicted_occurrence, the prediction_error) — all built in the runner,
 # mirroring the Python reference exactly.
 
-Code.require_file("lib/causalontology/json.ex", __DIR__)
-Code.require_file("lib/causalontology/jcs.ex", __DIR__)
-Code.require_file("lib/causalontology/canonical.ex", __DIR__)
-Code.require_file("lib/causalontology/signing.ex", __DIR__)
-Code.require_file("lib/causalontology/schema.ex", __DIR__)
-Code.require_file("lib/causalontology/semantics.ex", __DIR__)
-Code.require_file("lib/causalontology/store.ex", __DIR__)
-Code.require_file("lib/causalontology.ex", __DIR__)
+defmodule ConformanceBoot do
+  @moduledoc false
+
+  # The eight modules the suite exercises, in dependency order.
+  @sources ~w(lib/causalontology/json.ex
+              lib/causalontology/jcs.ex
+              lib/causalontology/canonical.ex
+              lib/causalontology/signing.ex
+              lib/causalontology/schema.ex
+              lib/causalontology/semantics.ex
+              lib/causalontology/store.ex
+              lib/causalontology.ex)
+
+  @modules [
+    Causalontology,
+    Causalontology.Json,
+    Causalontology.Jcs,
+    Causalontology.Canonical,
+    Causalontology.Signing,
+    Causalontology.Schema,
+    Causalontology.Semantics,
+    Causalontology.Store
+  ]
+
+  def die(message) do
+    IO.puts(:stderr, message)
+    System.halt(1)
+  end
+
+  # Repo mode (the default): require the sources sitting next to this script,
+  # exactly as this runner has always done. No mix compile needed.
+  def load_repo_copy(here) do
+    Enum.each(@sources, &Code.require_file(&1, here))
+    here
+  end
+
+  # Installed mode: the binding must already be on the code path, put there the
+  # way a real consumer does it (a Hex dependency compiled into _build, or any
+  # built artifact added with -pa). Nothing repository-relative is required.
+  def load_installed_copy(root) do
+    Enum.each(@modules, fn mod ->
+      Code.ensure_loaded?(mod) ||
+        die(
+          "CAUSALONTOLOGY_TEST_INSTALLED is set but #{inspect(mod)} is not on the code path - " <>
+            "add the installed application's ebin directory (mix run in a project that depends " <>
+            "on :causalontology, or elixir -pa <app>/ebin)"
+        )
+    end)
+
+    path = beam_path(Causalontology.Schema)
+
+    if inside?(path, root) do
+      die("CAUSALONTOLOGY_TEST_INSTALLED is set but the repository copy was loaded: #{path}")
+    end
+
+    path
+  end
+
+  defp beam_path(mod) do
+    case :code.which(mod) do
+      path when is_list(path) -> path |> List.to_string() |> Path.expand()
+      other -> die("cannot resolve #{inspect(mod)} to a file: #{inspect(other)}")
+    end
+  end
+
+  defp inside?(path, root) do
+    root = Path.expand(root)
+    path == root or String.starts_with?(path, root <> "/")
+  end
+
+  # Drift guard: a vendored copy that has silently gone stale is worse than no
+  # vendored copy at all, so refuse to run when the two differ by a single byte.
+  def check_schema_drift(bundled, spec) do
+    if File.dir?(bundled) and File.dir?(spec) do
+      spec
+      |> Path.join("*.schema.json")
+      |> Path.wildcard()
+      |> Enum.sort()
+      |> Enum.each(fn file ->
+        name = Path.basename(file)
+        copy = Path.join(bundled, name)
+
+        if not File.exists?(copy) or File.read!(copy) != File.read!(file) do
+          die("bundled schema drift: #{name} differs from spec/schema - re-copy before building")
+        end
+      end)
+    end
+  end
+end
+
+root = System.get_env("CAUSALONTOLOGY_ROOT") || Path.expand("../..", __DIR__)
+
+if System.get_env("CAUSALONTOLOGY_TEST_INSTALLED") do
+  IO.puts("binding under test: #{ConformanceBoot.load_installed_copy(root)}")
+else
+  ConformanceBoot.load_repo_copy(__DIR__)
+end
+
+ConformanceBoot.check_schema_drift(
+  Path.expand("priv/schema", __DIR__),
+  Path.join(root, "spec/schema")
+)
 
 defmodule Conformance do
   @moduledoc false

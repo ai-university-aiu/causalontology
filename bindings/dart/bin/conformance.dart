@@ -14,10 +14,12 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
-import '../lib/causalontology.dart';
-import '../lib/ed25519.dart' as ed25519;
-import '../lib/sha2.dart';
+import 'package:causalontology/causalontology.dart';
+import 'package:causalontology/ed25519.dart' as ed25519;
+import 'package:causalontology/sha2.dart';
+import 'package:causalontology/spec_schema.g.dart';
 
 // ---------------------------------------------------------------------------
 // repository location
@@ -1967,7 +1969,42 @@ void v137() {
 
 // ---------------------------------------------------------------------------
 
-void main() {
+/// Installed-mode guard and embedded-schema drift guard.
+///
+/// With CAUSALONTOLOGY_TEST_INSTALLED set, the runner must be exercising a
+/// resolved package (pub cache), never the repository's own lib/ - that
+/// confusion is exactly what once let a broken package report 137/137.
+Future<void> _guards() async {
+  final root = repoRoot().absolute.path;
+  final resolved = await Isolate.resolvePackageUri(
+      Uri.parse('package:causalontology/causalontology.dart'));
+  if (Platform.environment['CAUSALONTOLOGY_TEST_INSTALLED'] != null) {
+    final path = resolved?.toFilePath() ?? '<unresolved>';
+    if (resolved == null || path.startsWith('$root${Platform.pathSeparator}')) {
+      stderr.writeln('CAUSALONTOLOGY_TEST_INSTALLED is set but the repository '
+          'copy was resolved: $path');
+      exit(1);
+    }
+    print('binding under test: $path');
+  }
+
+  final specDir = Directory('$root${Platform.pathSeparator}spec'
+      '${Platform.pathSeparator}schema');
+  if (specDir.existsSync()) {
+    for (final f in specDir.listSync().whereType<File>()) {
+      final name = f.uri.pathSegments.last;
+      if (!name.endsWith('.schema.json')) continue;
+      if (embeddedSchemas[name] != f.readAsStringSync()) {
+        stderr.writeln('embedded schema drift: $name differs from '
+            'spec/schema - rerun tool/embed_schemas.dart');
+        exit(1);
+      }
+    }
+  }
+}
+
+Future<void> main() async {
+  await _guards();
   print('causalontology-dart conformance run (specification 4.0.0)');
   stdout.write(
       'internal checks (RFC 8032, RFC 8785, fixed constants) ... ');

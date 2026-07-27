@@ -23,7 +23,9 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const co = require(path.join(__dirname, "..", "causalontology.js"));
+const co = process.env.CAUSALONTOLOGY_TEST_INSTALLED
+  ? require("node:module").createRequire(path.join(process.cwd(), "consumer.js"))("causalontology")
+  : require(path.join(__dirname, "..", "causalontology.js"));
 const {
   identify, validateSchema, validateSemantics, isPartial, admissible,
   conflicts, refinementValid, hierarchyConsistent, bridgeClosure, classifyCro,
@@ -36,6 +38,29 @@ const {
 
 const ROOT = path.join(__dirname, "..", "..", "..");   // repository root
 const VECDIR = path.join(ROOT, "conformance", "vectors");
+
+if (process.env.CAUSALONTOLOGY_TEST_INSTALLED) {
+  const resolved = require("node:module")
+    .createRequire(path.join(process.cwd(), "consumer.js"))
+    .resolve("causalontology");
+  if (resolved.startsWith(path.resolve(ROOT) + path.sep)) {
+    console.error("CAUSALONTOLOGY_TEST_INSTALLED is set but the repository copy was resolved: " + resolved);
+    process.exit(1);
+  }
+  console.log("binding under test: " + resolved);
+}
+
+const BUNDLED_SCHEMAS = path.join(__dirname, "..", "spec", "schema");
+const SPEC_SCHEMAS = path.join(ROOT, "spec", "schema");
+if (fs.existsSync(BUNDLED_SCHEMAS) && fs.existsSync(SPEC_SCHEMAS)) {
+  for (const f of fs.readdirSync(SPEC_SCHEMAS).filter((n) => n.endsWith(".schema.json"))) {
+    const b = path.join(BUNDLED_SCHEMAS, f);
+    if (!fs.existsSync(b) || !fs.readFileSync(b).equals(fs.readFileSync(path.join(SPEC_SCHEMAS, f)))) {
+      console.error("bundled schema drift: " + f + " differs from spec/schema - re-copy before packing");
+      process.exit(1);
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // small assertion helpers

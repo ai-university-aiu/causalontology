@@ -7,7 +7,10 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.CodeSource;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,13 +35,23 @@ import java.util.regex.Pattern;
  * into the vectors themselves.
  *
  * Run from bindings/java (run_conformance.sh does this); the vector
- * directory is ../../conformance/vectors and the schemas are
- * ../../spec/schema.
+ * directory is ../../conformance/vectors and the schemas come from
+ * wherever SchemaValidator resolves them - normally the copy bundled with
+ * the classes, never a hard-coded repository path.
+ *
+ * Set CAUSALONTOLOGY_TEST_INSTALLED to test a real consumer's view: the
+ * binding classes must then come from a built artifact outside the
+ * repository tree (put the installed jar on the classpath after the
+ * repository's target/test-classes, which holds only this runner - see
+ * build_jar.sh), and this runner hard-fails if a repository copy was
+ * loaded instead, or if no checkout can be located at all. The
+ * vectors are still read from the repository checkout, exactly as the
+ * Python and JavaScript harnesses do. With the variable unset, behaviour
+ * is unchanged.
  */
 public final class Conformance {
 
-    private static final Path VECDIR =
-        Paths.get("..", "..", "conformance", "vectors");
+    private static final Path VECDIR = vectorDir();
 
     private static final Set<String> SCHEMES =
         Set.of("occurrent", "causal_relation_object", "continuant",
@@ -51,6 +64,159 @@ public final class Conformance {
     private static final Map<String, Signing.Keys> KEYS = new HashMap<>();
 
     private Conformance() {
+    }
+
+    // -----------------------------------------------------------------
+    // locating the repository checkout and the binding under test
+    // -----------------------------------------------------------------
+
+    /** The filesystem location a class was loaded from, or null. */
+    static Path codeSource(Class<?> cls) {
+        try {
+            CodeSource cs = cls.getProtectionDomain().getCodeSource();
+            if (cs == null || cs.getLocation() == null) {
+                return null;
+            }
+            return Paths.get(cs.getLocation().toURI())
+                        .toAbsolutePath().normalize();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static boolean isCheckout(Path candidate) {
+        return candidate != null
+            && Files.isDirectory(candidate.resolve("conformance")
+                                          .resolve("vectors"))
+            && Files.isDirectory(candidate.resolve("spec").resolve("schema"));
+    }
+
+    /**
+     * The repository checkout, or null when there is none in reach. First
+     * ../.. relative to the working directory (repo mode: bindings/java),
+     * then walking up from wherever this runner class itself was loaded -
+     * which is what lets installed-mode runs from an unrelated working
+     * directory still find the frozen vectors.
+     */
+    static Path repoRoot() {
+        Path relative = Paths.get("..", "..");
+        if (isCheckout(relative)) {
+            return relative;
+        }
+        Path here = codeSource(Conformance.class);
+        while (here != null) {
+            if (isCheckout(here)) {
+                return here;
+            }
+            here = here.getParent();
+        }
+        return null;
+    }
+
+    private static Path vectorDir() {
+        Path relative = Paths.get("..", "..", "conformance", "vectors");
+        if (Files.isDirectory(relative)) {
+            return relative;
+        }
+        Path root = repoRoot();
+        if (root != null) {
+            return root.resolve("conformance").resolve("vectors");
+        }
+        return relative;
+    }
+
+    /**
+     * Refuse to report a green run against repository sources when the
+     * caller asked for an installed artifact, and say what was actually
+     * exercised.
+     */
+    private static void demask(Path root) {
+        String installed = System.getenv("CAUSALONTOLOGY_TEST_INSTALLED");
+        if (installed == null || installed.isEmpty()) {
+            return;
+        }
+        Path binding = codeSource(SchemaValidator.class);
+        if (binding == null) {
+            System.err.println("CAUSALONTOLOGY_TEST_INSTALLED is set but the "
+                + "binding's code source could not be resolved");
+            System.exit(1);
+        }
+        if (root == null) {
+            // Without a checkout there is nothing to compare the binding's
+            // location against, so the guard below could not do its job -
+            // and the frozen vectors would be unreachable anyway. Refuse
+            // rather than report a green run nobody has actually checked.
+            System.err.println("CAUSALONTOLOGY_TEST_INSTALLED is set but the "
+                + "repository checkout could not be located, so neither the "
+                + "frozen vectors nor the repo-path guard are available; put "
+                + "the repository's bindings/java/target/test-classes ahead "
+                + "of the installed jar on the classpath (see build_jar.sh)");
+            System.exit(1);
+        }
+        if (binding.startsWith(root.toAbsolutePath().normalize())) {
+            System.err.println("CAUSALONTOLOGY_TEST_INSTALLED is set but the "
+                + "repository copy was loaded: " + binding);
+            System.exit(1);
+        }
+        System.out.println("binding under test: " + binding);
+        System.out.println("schemas under test: "
+                           + SchemaValidator.schemaSource());
+    }
+
+    /**
+     * Hard-fail if the schemas bundled into the artifact have drifted from
+     * spec/schema, so the vendored copy can never silently go stale.
+     */
+    private static void driftGuard(Path root) {
+        if (root == null) {
+            return;
+        }
+        Path specDir = root.resolve("spec").resolve("schema");
+        List<Path> specFiles = new ArrayList<>();
+        try (DirectoryStream<Path> stream =
+                 Files.newDirectoryStream(specDir, "*.schema.json")) {
+            for (Path p : stream) {
+                specFiles.add(p);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        Collections.sort(specFiles);
+        // "Is anything bundled at all?" - asked of the whole set rather than
+        // of one sentinel file, so that a partially packaged artifact is
+        // caught as drift instead of being mistaken for an unbundled
+        // repo-mode run and waved through.
+        boolean anyBundled = false;
+        for (Path p : specFiles) {
+            if (SchemaValidator.bundledBytes(p.getFileName().toString())
+                    != null) {
+                anyBundled = true;
+                break;
+            }
+        }
+        if (!anyBundled) {
+            return;
+        }
+        for (Path p : specFiles) {
+            String name = p.getFileName().toString();
+            byte[] bundled = SchemaValidator.bundledBytes(name);
+            byte[] spec;
+            try {
+                spec = Files.readAllBytes(p);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            if (bundled == null || !Arrays.equals(bundled, spec)) {
+                System.err.println("bundled schema drift: " + name
+                    + (bundled == null
+                       ? " is missing from the bundled copy"
+                       : " differs from spec/schema")
+                    + " - re-copy spec/schema into "
+                    + "bindings/java/src/main/resources/schema before "
+                    + "building");
+                System.exit(1);
+            }
+        }
     }
 
     /** A deliberate conformance check failed. */
@@ -2537,6 +2703,9 @@ public final class Conformance {
     }
 
     public static void main(String[] args) {
+        Path root = repoRoot();
+        demask(root);
+        driftGuard(root);
         System.out.println(
             "causalontology-java conformance run (specification 4.0.0)");
         System.out.print(

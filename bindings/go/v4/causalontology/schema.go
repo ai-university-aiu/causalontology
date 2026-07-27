@@ -68,15 +68,18 @@ func SetSchemaDir(dir string) {
 	schemaCache = map[string]map[string]any{}
 }
 
-// resolveSchemaDir finds spec/schema: the explicit override first, then
-// the CAUSALONTOLOGY_ROOT environment variable, then a walk up from the
-// working directory.
+// resolveSchemaDir finds an on-disk spec/schema for the cases that ask for
+// one: the explicit override first, then CAUSALONTOLOGY_SPEC, then a walk up
+// from the working directory. It is deliberately NOT driven by
+// CAUSALONTOLOGY_ROOT - that variable locates the test vectors, and letting it
+// move the schema source too is what once hid the missing schemas from the
+// conformance run. With neither override set the compiled-in copy is used.
 func resolveSchemaDir() (string, error) {
 	if schemaDirOverride != "" {
 		return schemaDirOverride, nil
 	}
-	if root := os.Getenv("CAUSALONTOLOGY_ROOT"); root != "" {
-		return filepath.Join(root, "spec", "schema"), nil
+	if spec := os.Getenv("CAUSALONTOLOGY_SPEC"); spec != "" {
+		return filepath.Join(spec, "schema"), nil
 	}
 	dir, err := os.Getwd()
 	if err != nil {
@@ -94,7 +97,7 @@ func resolveSchemaDir() (string, error) {
 		dir = parent
 	}
 	return "", fmt.Errorf(
-		"cannot locate spec/schema: set CAUSALONTOLOGY_ROOT or run inside the repository")
+		"cannot locate spec/schema: set CAUSALONTOLOGY_SPEC or run inside the repository")
 }
 
 // loadSchema reads and caches the root schema for one kind.
@@ -112,13 +115,28 @@ func loadSchemaFile(fileName string) (map[string]any, error) {
 	if cached, ok := schemaCache[fileName]; ok {
 		return cached, nil
 	}
-	dir, err := resolveSchemaDir()
-	if err != nil {
-		return nil, err
-	}
-	value, err := DecodeJSONFile(filepath.Join(dir, fileName))
-	if err != nil {
-		return nil, err
+	// An explicit override or CAUSALONTOLOGY_ROOT still wins, so a caller can
+	// always point the binding at a working tree; otherwise the compiled-in
+	// copy is used, which is what makes `go get` of this module self-contained.
+	var value any
+	if schemaDirOverride == "" && os.Getenv("CAUSALONTOLOGY_SPEC") == "" {
+		data, embErr := embeddedSchemas.ReadFile("spec_schema/" + fileName)
+		if embErr != nil {
+			return nil, fmt.Errorf("schema %s is not embedded: %w", fileName, embErr)
+		}
+		if err := json.Unmarshal(data, &value); err != nil {
+			return nil, err
+		}
+	} else {
+		dir, err := resolveSchemaDir()
+		if err != nil {
+			return nil, err
+		}
+		var err2 error
+		value, err2 = DecodeJSONFile(filepath.Join(dir, fileName))
+		if err2 != nil {
+			return nil, err2
+		}
 	}
 	schema, ok := value.(map[string]any)
 	if !ok {

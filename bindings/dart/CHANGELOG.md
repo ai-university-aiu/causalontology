@@ -1,3 +1,24 @@
+## 4.0.1
+
+- Packaging fix, no specification change: the twenty-one JSON Schemas of
+  `spec/schema` are now embedded in the package itself as generated Dart
+  source (`lib/spec_schema.g.dart`), so a consumer who installs the package
+  from pub.dev can validate without a repository checkout. Before this,
+  schema loading walked up from the running script looking for a
+  `spec/schema` directory, which only ever exists inside the repository - so
+  the first `validateSchema` call in an installed package threw.
+- `CAUSALONTOLOGY_SPEC` still overrides everything, so a working tree can
+  always be pointed at; the directory walk survives only as a fallback for a
+  schema file the embedded map does not carry.
+- `tool/embed_schemas.dart` regenerates the embedded copy, and the
+  conformance runner hard-fails on any byte-level drift between the embedded
+  copy and `spec/schema`.
+- The conformance runner honours `CAUSALONTOLOGY_TEST_INSTALLED`: it prints
+  the resolved path of the binding under test and exits nonzero if that path
+  lies inside the repository, so a test of the installed package can no
+  longer silently exercise the repository sources.
+- Still passes all 137 frozen conformance vectors (specification 4.0.0).
+
 ## 4.0.0
 
 - Folds in the specification 3.0.0 delta: the ordinal `ticks` temporal unit (a

@@ -34,9 +34,44 @@ causalontology-lua is CONFORMANT to the suite (vectors frozen at specification 4
 ```
 
 The runner locates the repository root from the `CAUSALONTOLOGY_ROOT`
-environment variable when set, otherwise two directories above the script;
-the schemas are read from `spec/schema` under the same root (overridable
-with `CAUSALONTOLOGY_SPEC`).
+environment variable when set, otherwise two directories above the script.
+
+### Where the schemas come from
+
+The twenty-one JSON Schemas are **vendored into the rock**, at
+`causalontology/spec/schema/`, and the rockspec ships them through
+`build.install.lua`; an installed `causalontology` therefore validates
+standalone, with no checkout present. `causalontology/schema.lua` resolves
+them in this order:
+
+1. `CAUSALONTOLOGY_SPEC`, if set - that directory's `schema/` subdirectory wins.
+2. The vendored copy, `<the directory schema.lua was loaded from>/spec/schema`.
+   Installed that is `<lua tree>/causalontology/spec/schema`; in a checkout it
+   is `bindings/lua/causalontology/spec/schema`. One rule, both layouts.
+3. The repository's own `spec/schema`, as a last resort, so a checkout still
+   works if the vendored copy is absent.
+
+The vendored copy is a byte-for-byte duplicate of the repository's
+`spec/schema/*.schema.json`, and the runner fails with `bundled schema drift`
+if it ever stops being one - re-copy the files rather than editing them.
+
+### Testing the installed rock rather than the checkout
+
+By default the runner puts `bindings/lua/` first on `package.path`, so it
+exercises the checkout. Set `CAUSALONTOLOGY_TEST_INSTALLED=1` and it does not
+touch `package.path` at all: `require` finds the binding exactly where a
+consumer's would, the run aborts if what it found is inside the repository
+tree, and it prints what it is actually testing.
+
+```
+$ cd /tmp/anywhere-outside-the-repo
+$ env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+      lua /path/to/repo/bindings/lua/conformance.lua
+binding under test: /usr/local/share/lua/5.4/causalontology/schema.lua
+schemas under test: /usr/local/share/lua/5.4/causalontology/spec/schema
+...
+137/137 vectors passed
+```
 
 The V01-V107 vectors are the whole-word 2.0.0 baseline (2026-07-13):
 they carry concrete identifiers, real keys, and a real verifying

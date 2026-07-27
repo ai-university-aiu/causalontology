@@ -55,20 +55,66 @@ local BASE = "https://causalontology.org/schema/"
 local cache = {}       -- kind -> parsed schema
 local file_cache = {}  -- filename -> parsed schema
 
--- The spec/schema directory: CAUSALONTOLOGY_SPEC overrides, else a caller
--- (the conformance runner) sets schema.spec_dir before the first load.
+-- The spec/schema directory.  A caller (the conformance runner) may still set
+-- schema.spec_dir to the repository's spec/ directory before the first load.
 schema.spec_dir = nil
 
-local function schema_dir()
+-- The directory this file was loaded from.  Installed, that is
+-- <lua tree>/causalontology/; in a checkout it is bindings/lua/causalontology/.
+-- Either way the vendored schemas sit at <that directory>/spec/schema, so one
+-- rule serves both layouts.
+local function module_dir()
+  local info = debug and debug.getinfo and debug.getinfo(1, "S")
+  local src = info and info.source
+  if src and src:sub(1, 1) == "@" then
+    return src:sub(2):match("^(.*)[/\\][^/\\]*$") or "."
+  end
+  local found = package.searchpath
+                and package.searchpath("causalontology.schema", package.path)
+  if found then return found:match("^(.*)[/\\][^/\\]*$") end
+  return nil
+end
+
+-- Lua has no portable directory test, so probe for a schema that must be there.
+local PROBE = "occurrent.schema.json"
+
+local function has_schemas(dir)
+  if not dir then return false end
+  local f = io.open(dir .. "/" .. PROBE, "rb")
+  if f then f:close() return true end
+  return false
+end
+
+-- Where the twenty-one schemas are read from, in this order:
+--   (a) CAUSALONTOLOGY_SPEC          - the explicit override, unchanged
+--   (b) the vendored copy shipped inside the package, if it is present
+--   (c) the repository-relative path - schema.spec_dir when a caller set it,
+--       else bindings/lua/causalontology/../../../spec - as a last resort, so
+--       a checkout without the vendored copy still works
+function schema.schema_dir()
   local env = os.getenv("CAUSALONTOLOGY_SPEC")
   if env then return env .. "/schema" end
+
+  local mdir = module_dir()
+  if mdir then
+    local bundled = mdir .. "/spec/schema"
+    if has_schemas(bundled) then return bundled end
+  end
+
   if schema.spec_dir then return schema.spec_dir .. "/schema" end
-  error("set CAUSALONTOLOGY_SPEC or schema.spec_dir to the spec/ directory", 0)
+
+  if mdir then
+    local repo = mdir .. "/../../../spec/schema"
+    if has_schemas(repo) then return repo end
+  end
+
+  error("no schemas found: the package's vendored spec/schema is missing; " ..
+        "set CAUSALONTOLOGY_SPEC or schema.spec_dir to a spec/ directory", 0)
 end
 
 local function load_file(filename)
   if not file_cache[filename] then
-    local path = schema_dir() .. "/" .. filename
+    local path = schema.schema_dir() .. "/" .. filename
     local f = assert(io.open(path, "rb"), "cannot open schema " .. path)
     local text = f:read("a")
     f:close()

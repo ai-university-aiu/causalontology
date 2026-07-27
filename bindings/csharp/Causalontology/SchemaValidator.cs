@@ -1,4 +1,16 @@
-// Schema validation against spec/schema/*.schema.json.
+// Schema validation against the twenty-one Causalontology JSON Schemas.
+//
+// The schemas are vendored into bindings/csharp/spec_schema and travel
+// inside the published package - compiled into this assembly as embedded
+// resources and also copied next to it on build/publish - so an installed
+// copy validates standalone, with no repository checkout anywhere.
+//
+// Lookup order (see SchemaSource):
+//   (a) CAUSALONTOLOGY_SPEC, for the existing
+//       environment-variable workflows;
+//   (b) the vendored copy: the spec_schema directory shipped beside the
+//       assembly, else the copies embedded in the assembly;
+//   (c) the old repository-relative walk-up, as a last resort.
 //
 // A deliberately small interpreter for exactly the JSON Schema keywords
 // the twenty-one Causalontology schemas use: type, const, enum, pattern,
@@ -45,15 +57,60 @@ public static class SchemaValidator
     // cache keyed by FILE NAME (cross-file $ref loads sibling files directly)
     private static readonly Dictionary<string, JsonMap> Cache = new();
 
-    private static string SchemaDir()
+    // the resource-name prefix the .csproj gives the embedded schemas
+    private const string EmbeddedPrefix = "Causalontology.spec_schema.";
+
+    // (a) explicit environment override, or null when it is not set.
+    //
+    // Only CAUSALONTOLOGY_SPEC is consulted. CAUSALONTOLOGY_ROOT deliberately is
+    // NOT: that variable locates the 137 conformance VECTORS, which are test
+    // data and are not shipped in the package. Letting it also steer schema
+    // resolution conflated the two, so a runner that merely needed to find its
+    // test inputs silently pulled the schemas out of the repository as well -
+    // which is the precise mechanism that produced a false 137/137 here. Go
+    // decoupled the same pair for the same reason; see bindings/go/v4.
+    private static string? EnvSchemaDir()
     {
         var env = Environment.GetEnvironmentVariable("CAUSALONTOLOGY_SPEC");
         if (!string.IsNullOrEmpty(env))
             return Path.Combine(env, "schema");
-        var root = Environment.GetEnvironmentVariable("CAUSALONTOLOGY_ROOT");
-        if (!string.IsNullOrEmpty(root))
-            return Path.Combine(root, "spec", "schema");
-        // walk up from the working directory until spec/schema is found
+        return null;
+    }
+
+    // (b1) the vendored copy shipped beside the assembly, or null
+    private static string? BundledSchemaDir()
+    {
+        foreach (var basePath in new[]
+                 {
+                     AppContext.BaseDirectory,
+                     Path.GetDirectoryName(
+                         typeof(SchemaValidator).Assembly.Location),
+                 })
+        {
+            if (string.IsNullOrEmpty(basePath))
+                continue;
+            var candidate = Path.Combine(basePath, "spec_schema");
+            // probe a real file: an empty directory must not win
+            if (File.Exists(Path.Combine(candidate, "occurrent.schema.json")))
+                return candidate;
+        }
+        return null;
+    }
+
+    // (b2) the copies compiled into this assembly, or null if stripped
+    private static string? EmbeddedSchemaText(string file)
+    {
+        var assembly = typeof(SchemaValidator).Assembly;
+        using var stream = assembly.GetManifestResourceStream(EmbeddedPrefix + file);
+        if (stream is null)
+            return null;
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
+
+    // (c) the old repository-relative walk-up, or null
+    private static string? RepoSchemaDir()
+    {
         var dir = Directory.GetCurrentDirectory();
         for (var i = 0; i < 12 && dir is not null; i++)
         {
@@ -62,16 +119,56 @@ public static class SchemaValidator
                 return candidate;
             dir = Path.GetDirectoryName(dir);
         }
+        return null;
+    }
+
+    /// <summary>
+    /// Where the schemas are being read from, as "env:&lt;dir&gt;",
+    /// "bundled:&lt;dir&gt;", "embedded", or "repo:&lt;dir&gt;". The
+    /// conformance runner prints this and refuses a repository source when
+    /// it is testing an installed copy.
+    /// </summary>
+    public static string SchemaSource()
+    {
+        var env = EnvSchemaDir();
+        if (env is not null)
+            return "env:" + env;
+        var bundled = BundledSchemaDir();
+        if (bundled is not null)
+            return "bundled:" + bundled;
+        if (EmbeddedSchemaText("occurrent.schema.json") is not null)
+            return "embedded";
+        var repo = RepoSchemaDir();
+        if (repo is not null)
+            return "repo:" + repo;
         throw new DirectoryNotFoundException(
             "no spec/schema above the working directory; "
-            + "set CAUSALONTOLOGY_SPEC or CAUSALONTOLOGY_ROOT");
+            + "set CAUSALONTOLOGY_SPEC");
+    }
+
+    private static string ReadSchemaText(string file)
+    {
+        var env = EnvSchemaDir();
+        if (env is not null)
+            return File.ReadAllText(Path.Combine(env, file));
+        var bundled = BundledSchemaDir();
+        if (bundled is not null)
+            return File.ReadAllText(Path.Combine(bundled, file));
+        if (EmbeddedSchemaText(file) is string embedded)
+            return embedded;
+        var repo = RepoSchemaDir();
+        if (repo is not null)
+            return File.ReadAllText(Path.Combine(repo, file));
+        throw new DirectoryNotFoundException(
+            "no spec/schema above the working directory; "
+            + "set CAUSALONTOLOGY_SPEC");
     }
 
     private static JsonMap LoadFile(string file)
     {
         if (!Cache.TryGetValue(file, out var schema))
         {
-            schema = (JsonMap)Json.ParseFile(Path.Combine(SchemaDir(), file))!;
+            schema = (JsonMap)Json.Parse(ReadSchemaText(file))!;
             Cache[file] = schema;
         }
         return schema;

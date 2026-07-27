@@ -83,6 +83,66 @@ private val VECTOR_FILES: List<String> by lazy {
     listDir(VECDIR).filter { it.endsWith(".json") }
 }
 
+// ---------------------------------------------------------------------------
+// de-masking: prove which copy of the binding is actually under test
+// ---------------------------------------------------------------------------
+// Every binding's conformance runner has historically loaded the library
+// straight out of the repository tree, so a "fresh install" test silently
+// exercised repository code and reported a false pass. When
+// CAUSALONTOLOGY_TEST_INSTALLED is set, run_conformance.sh compiles only this
+// file and puts an installed artifact on the classpath; the checks below
+// confirm that is what really happened.
+
+// The repository checkout to guard against: the runner script exports
+// CAUSALONTOLOGY_REPO; fall back to the vector root when it is not set.
+private fun repoTree(): String =
+    getEnvVar("CAUSALONTOLOGY_REPO")?.takeIf { it.isNotEmpty() } ?: ROOT
+
+private fun canonical(path: String): String =
+    try { java.io.File(path).canonicalPath } catch (e: Exception) { java.io.File(path).absolutePath }
+
+// Where this binding's own compiled code was loaded from - the installed jar
+// in installed mode, the repository build output in repository mode.
+private fun bindingLocation(): String {
+    val url = Schema::class.java.protectionDomain?.codeSource?.location ?: return "<unknown>"
+    return try { java.io.File(url.toURI()).absolutePath } catch (e: Exception) { url.path }
+}
+
+private fun checkInstalled() {
+    if (getEnvVar("CAUSALONTOLOGY_TEST_INSTALLED").isNullOrEmpty()) return
+    val loaded = canonical(bindingLocation())
+    val repo = canonical(repoTree())
+    if (loaded == repo || loaded.startsWith(repo + java.io.File.separator)) {
+        println("CAUSALONTOLOGY_TEST_INSTALLED is set but the repository copy " +
+                "was loaded: $loaded")
+        exitProcess(1)
+    }
+    println("binding under test: $loaded")
+}
+
+// The twenty-one schemas are vendored into the artifact as compiled-in string
+// constants (src/SpecSchemas.kt). Whenever a repository checkout is also
+// present the two must agree byte for byte, or the published package would
+// quietly validate against a stale specification.
+private fun checkSchemaDrift() {
+    val specDir = repoTree() + "/spec/schema"
+    val onDisk = listDir(specDir).filter { it.endsWith(".schema.json") }
+    if (onDisk.isEmpty()) return
+    for (name in onDisk) {
+        val bundled = SpecSchemas.FILES[name]
+        if (bundled == null) {
+            println("bundled schema drift: $name is missing from the bundled copy " +
+                    "- regenerate with tools/gen_spec_schemas.py")
+            exitProcess(1)
+        }
+        if (bundled != readFile("$specDir/$name")) {
+            println("bundled schema drift: $name differs from spec/schema " +
+                    "- regenerate with tools/gen_spec_schemas.py")
+            exitProcess(1)
+        }
+    }
+}
+
 private fun vecFileName(n: Int): String {
     val nn = n.toString().padStart(2, '0')
     val hits = VECTOR_FILES.filter { it.startsWith("v${nn}_") }
@@ -1541,6 +1601,8 @@ private fun v137() {
 
 // ---------------------------------------------------------------------------
 fun main() {
+    checkInstalled()
+    checkSchemaDrift()
     println("causalontology-kotlin conformance run (specification 4.0.0)")
     print("internal checks (RFC 8032, RFC 8785, fixed constants) ... ")
     internalChecks()

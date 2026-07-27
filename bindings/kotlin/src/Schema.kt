@@ -45,16 +45,35 @@ object Schema {
     // directory (the conformance script runs from the repository root).
     fun repoRoot(): String = getEnvVar("CAUSALONTOLOGY_ROOT") ?: "."
 
-    // The schema directory: $CAUSALONTOLOGY_SPEC/schema when set, else
-    // <root>/spec/schema (mirrors schema.py's _schema_dir).
+    // The repository-relative schema directory: $CAUSALONTOLOGY_SPEC/schema
+    // when set, else <root>/spec/schema (mirrors schema.py's _schema_dir).
     private fun schemaDir(): String {
         val env = getEnvVar("CAUSALONTOLOGY_SPEC")
         if (env != null && env.isNotEmpty()) return "$env/schema"
         return repoRoot() + "/spec/schema"
     }
 
+    // Where a schema file's text comes from, in this order:
+    //
+    //   (a) $CAUSALONTOLOGY_SPEC/schema/<file>   - explicit override, wins
+    //   (b) the vendored copy compiled into this artifact (SpecSchemas)
+    //   (c) <repo root>/spec/schema/<file>       - repository checkout, last
+    //
+    // (b) is what lets an installed copy validate standalone: a Kotlin/Native
+    // klib cannot carry loose resource files, so the schemas are embedded as
+    // string constants at compile time (see src/SpecSchemas.kt). (a) and (c)
+    // are kept so the existing env-var workflows and repository-mode
+    // development keep working unchanged.
+    private fun schemaText(filename: String): String {
+        val env = getEnvVar("CAUSALONTOLOGY_SPEC")
+        if (env != null && env.isNotEmpty()) return readFile("$env/schema/$filename")
+        val bundled = SpecSchemas.FILES[filename]
+        if (bundled != null) return bundled
+        return readFile(schemaDir() + "/" + filename)
+    }
+
     private fun loadFile(filename: String): JObj = fileCache.getOrPut(filename) {
-        asObj(Json.parse(readFile(schemaDir() + "/" + filename)))
+        asObj(Json.parse(schemaText(filename)))
     }
 
     fun loadSchema(kind: String): JObj {

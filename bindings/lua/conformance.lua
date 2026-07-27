@@ -14,13 +14,27 @@
 -- Usage, from anywhere:  lua bindings/lua/conformance.lua
 -- The repository root is CAUSALONTOLOGY_ROOT when set, else two directories
 -- above this script.
+--
+-- Set CAUSALONTOLOGY_TEST_INSTALLED=1 to run the same suite against an
+-- installed rock rather than the checkout; the run then refuses to proceed if
+-- either the binding or its schemas came from the repository tree.
 
 -- ------------------------------------------------------------------ paths
 
 local script = arg and arg[0] or "conformance.lua"
 local script_dir = script:match("^(.*)[/\\][^/\\]*$") or "."
-package.path = script_dir .. "/?.lua;" .. script_dir .. "/?/init.lua;"
-               .. package.path
+
+-- Set CAUSALONTOLOGY_TEST_INSTALLED to test a real installation instead of the
+-- checkout.  Default (unset) behaviour is unchanged: this directory goes first
+-- on package.path, so the repository's causalontology/ is what runs.  With the
+-- variable set we deliberately leave package.path alone, so require() finds the
+-- binding exactly where a consumer's would - and we hard-fail below if what it
+-- found is nonetheless inside the repository tree.
+local TEST_INSTALLED = os.getenv("CAUSALONTOLOGY_TEST_INSTALLED")
+if not TEST_INSTALLED then
+  package.path = script_dir .. "/?.lua;" .. script_dir .. "/?/init.lua;"
+                 .. package.path
+end
 
 local ROOT = os.getenv("CAUSALONTOLOGY_ROOT") or (script_dir .. "/../..")
 local VECDIR = ROOT .. "/conformance/vectors"
@@ -35,8 +49,120 @@ local semantics = require("causalontology.semantics")
 local signing = require("causalontology.signing")
 local store = require("causalontology.store")
 
--- point schema validation at the repository's spec/ directory
-schema.spec_dir = schema.spec_dir or (ROOT .. "/spec")
+-- ------------------------------------------- installed-vs-repository checks
+
+-- A physical absolute path, without depending on realpath(1): ask the shell to
+-- cd into the directory and print it.  Falls back to the argument unchanged.
+local function abs_dir(path)
+  local p = io.popen("cd '" .. path:gsub("'", "'\\''") .. "' 2>/dev/null && pwd -P")
+  local out = p and p:read("l")
+  if p then p:close() end
+  if out and out ~= "" then return out end
+  return path
+end
+
+local function abs_file(path)
+  local d, base = path:match("^(.*)[/\\]([^/\\]*)$")
+  if not d then return abs_dir(".") .. "/" .. path end
+  return abs_dir(d) .. "/" .. base
+end
+
+local ROOT_ABS = abs_dir(ROOT)
+
+local function inside_repo(path)
+  return path:sub(1, #ROOT_ABS + 1) == ROOT_ABS .. "/"
+end
+
+local function die(message)
+  io.stderr:write(message .. "\n")
+  os.exit(1)
+end
+
+if TEST_INSTALLED then
+  local found = package.searchpath("causalontology.schema", package.path)
+  if not found then
+    die("CAUSALONTOLOGY_TEST_INSTALLED is set but causalontology is not on " ..
+        "package.path: install the rock (or point LUA_PATH at the install " ..
+        "tree) before running this")
+  end
+  local loaded = abs_file(found)
+  if inside_repo(loaded) then
+    die("CAUSALONTOLOGY_TEST_INSTALLED is set but the repository copy was " ..
+        "loaded: " .. loaded)
+  end
+  print("binding under test: " .. loaded)
+end
+
+-- Point schema validation at the repository's spec/ directory.  This is the
+-- last-resort path inside the binding, so in repository mode it changes
+-- nothing; in installed mode it must NOT be set, or a rock that shipped no
+-- schemas would silently borrow the checkout's and report a false pass.
+if not TEST_INSTALLED then
+  schema.spec_dir = schema.spec_dir or (ROOT .. "/spec")
+end
+
+do
+  local ok, where = pcall(schema.schema_dir)
+  if not ok then
+    die("the binding under test cannot find its schemas: " .. tostring(where))
+  end
+  local resolved = abs_dir(where)
+  if TEST_INSTALLED then
+    -- An explicit CAUSALONTOLOGY_SPEC is a deliberate override and is honoured
+    -- wherever it points; without one, the schemas must have come from the
+    -- installation, or the rock shipped none and the run would be worthless.
+    if not os.getenv("CAUSALONTOLOGY_SPEC") and inside_repo(resolved) then
+      die("CAUSALONTOLOGY_TEST_INSTALLED is set but the schemas resolved " ..
+          "inside the repository: " .. resolved)
+    end
+    print("schemas under test: " .. resolved)
+  end
+
+  -- Drift guard: the vendored copy must be byte-for-byte the specification's.
+  local SPEC = ROOT .. "/spec/schema"
+
+  local function schema_names(dir)
+    local names = {}
+    local ls = io.popen("ls -1 '" .. dir:gsub("'", "'\\''") ..
+                        "' 2>/dev/null")
+    if not ls then return names end
+    for name in ls:lines() do
+      if name:match("%.schema%.json$") then names[#names + 1] = name end
+    end
+    ls:close()
+    return names
+  end
+
+  local function slurp(path)
+    local f = io.open(path, "rb")
+    if not f then return nil end
+    local text = f:read("a")
+    f:close()
+    return text
+  end
+
+  local spec_names = schema_names(SPEC)
+
+  local function check_drift(bundled)
+    if #spec_names == 0 then return end
+    if not slurp(bundled .. "/occurrent.schema.json") then return end
+    for _, name in ipairs(spec_names) do
+      local want = slurp(SPEC .. "/" .. name)
+      local got = slurp(bundled .. "/" .. name)
+      if got ~= want then
+        die("bundled schema drift: " .. name .. " in " .. bundled ..
+            " differs from spec/schema - re-copy before packing")
+      end
+    end
+  end
+
+  -- the copy that ships in the rock, as it sits in the checkout ...
+  check_drift(script_dir .. "/causalontology/spec/schema")
+  -- ... and, in installed mode, the copy the installed rock actually resolved
+  if TEST_INSTALLED and not os.getenv("CAUSALONTOLOGY_SPEC") then
+    check_drift(resolved)
+  end
+end
 
 local identify = canonical.identify
 local validate_schema = schema.validate_schema

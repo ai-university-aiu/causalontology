@@ -29,12 +29,63 @@ $ ./run_conformance.sh
 causalontology-java is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The script compiles `src/` into `out/` and runs
-`org.causalontology.Conformance` from `bindings/java`, so the vectors are
-read from `../../conformance/vectors` and the schemas from
-`../../spec/schema`. The schema location can be overridden with the system
-property `causalontology.spec` or the environment variable
-`CAUSALONTOLOGY_SPEC` (either names the `spec/` directory).
+The script compiles `src/` into `out/`, copies the bundled schemas
+alongside the classes, and runs `org.causalontology.Conformance` from
+`bindings/java`, so the vectors are read from `../../conformance/vectors`.
+
+## Where the schemas come from
+
+The twenty-one JSON Schemas are **shipped inside the jar** at `/schema/`,
+so the published artifact validates standalone with no repository checkout.
+They are packaged from `src/main/resources/schema/`, a byte-for-byte copy of
+the repository's `spec/schema/`, by the `<resources>` block in `pom.xml`, and
+read back with `getResourceAsStream`.
+
+`SchemaValidator` resolves them in exactly this order:
+
+1. the system property `causalontology.spec`, or the environment variable
+   `CAUSALONTOLOGY_SPEC` - either names the `spec/` directory;
+2. the copy bundled in the artifact, on the classpath at `/schema/`;
+3. `../../spec/schema` relative to the working directory, as a last resort
+   for repository-mode development.
+
+Two guards keep this honest. The conformance runner compares the bundled
+copy against `spec/schema` byte-for-byte and fails with
+`bundled schema drift` on any difference, so the vendored copy cannot go
+stale. And when `CAUSALONTOLOGY_TEST_INSTALLED` is set, the runner prints
+`binding under test: <path>` and exits nonzero if the classes were loaded
+from inside the repository tree, so a "fresh install" test cannot silently
+pass by exercising repository sources:
+
+```
+$ sh build_jar.sh                       # target/causalontology-4.0.0.jar
+                                        # + target/test-classes (the runner)
+$ cp target/causalontology-4.0.0.jar <installed>/     # or mvn install
+$ cd /somewhere/outside/the/repo
+$ env -u CAUSALONTOLOGY_SPEC CAUSALONTOLOGY_TEST_INSTALLED=1 \
+    java -cp <repo>/bindings/java/target/test-classes:<installed>/causalontology-4.0.0.jar \
+    org.causalontology.Conformance
+binding under test: <installed>/causalontology-4.0.0.jar
+schemas under test: bundled:jar:file:<installed>/causalontology-4.0.0.jar!/schema/occurrent.schema.json
+...
+137/137 vectors passed
+```
+
+Only `target/test-classes` - the conformance runner, recompiled on its own
+against the finished jar - comes from the repository there; every binding
+class the run exercises is resolved from the artifact, which is what
+`binding under test` reports. That mirrors the Python and JavaScript
+harnesses, where the runner script is repository code and the package under
+test is the installed one. The runner also refuses to run at all if
+`CAUSALONTOLOGY_TEST_INSTALLED` is set and no checkout can be located, since
+it could then neither read the frozen vectors nor check where the binding
+came from.
+
+`build_jar.sh` performs the pom's compile-and-package steps directly with
+`javac` and `jar`, for environments without Maven: it compiles
+`<sourceDirectory>src</sourceDirectory>`, copies the pom's `<resources>`
+block into the class output, and packages the result - the same
+`target/causalontology-4.0.0.jar` layout `mvn package` produces.
 
 The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors, V01-V137): they carry concrete identifiers, real keys, and a real verifying signature. The harness's old normalization now simply passes frozen values through.
 

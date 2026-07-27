@@ -4,6 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "causalontology"
+# Stays 4.0.0. The 4.0.0 wheel already on PyPI shipped without the twenty-one
+# JSON Schemas, and PyPI burns a filename permanently, so it can never be
+# replaced in place. The correction ships instead as a second file inside the
+# same 4.0.0 release, carrying the wheel build tag 1:
+#
+#     causalontology-4.0.0-1-py3-none-any.whl
+#
+# pip's candidate sort key ends in the build tag, so the tagged wheel wins the
+# tie against the untagged one. Build it with the build number, never without:
+#
+#     python -c "import setuptools.build_meta as b; \
+#         b.build_wheel('dist', {'--build-option': ['--build-number', '1']})"
+#
+# A plain build produces causalontology-4.0.0-py3-none-any.whl, whose filename
+# is already burned on PyPI and can never be uploaded again.
 version = "4.0.0"
 description = "The Python binding of the Causalontology standard - a verb-first noun-hosting ontology; a programming-language-neutral standard and shared commons for reified causation. Zero dependencies: RFC 8785 canonicalization, SHA-256 identity, pure-Python Ed25519 (RFC 8032), schema and semantics validation, and an in-memory conformant store."
 readme = "README.md"
@@ -15,6 +30,9 @@ keywords = ["causality", "ontology", "causal-reasoning", "knowledge-graph", "pro
 [project.urls]
 Homepage = "https://github.com/ai-university-aiu/causalontology"
 Specification = "https://github.com/ai-university-aiu/causalontology/tree/main/spec"
+
+[tool.setuptools.package-data]
+causalontology = ["spec/schema/*.schema.json"]
 
 [tool.setuptools.packages.find]
 include = ["causalontology*"]

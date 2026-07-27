@@ -37,7 +37,9 @@ defmodule Causalontology.MixProject do
         "GitHub" => @source_url,
         "Specification" => @source_url <> "/tree/main/spec"
       },
-      files: ["lib", "mix.exs", "README.md", "LICENSE", "conformance.exs"]
+      # priv/schema carries the twenty-one JSON Schema files, so an installed
+      # copy of this package validates standalone with no checkout present.
+      files: ["lib", "priv", "mix.exs", "README.md", "LICENSE", "conformance.exs"]
     ]
   end
 end

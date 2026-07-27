@@ -20,8 +20,16 @@ use Cwd qw(abs_path);
 use Digest::SHA qw(sha256 sha256_hex);
 use Time::HiRes qw(time);
 
-# make bindings/perl/lib visible regardless of the working directory
-use lib dirname(abs_path(__FILE__)) . '/lib';
+# Repo mode (the default, and unchanged): make bindings/perl/lib visible
+# regardless of the working directory. Set CAUSALONTOLOGY_TEST_INSTALLED to
+# skip that line, so the binding can only come from the ordinary @INC - i.e.
+# from an installed copy, loaded exactly the way a consumer would load it.
+BEGIN {
+    unless ($ENV{CAUSALONTOLOGY_TEST_INSTALLED}) {
+        require lib;
+        lib->import(dirname(abs_path(__FILE__)) . '/lib');
+    }
+}
 
 use Causalontology;
 use Causalontology::JSON qw(
@@ -49,6 +57,90 @@ $| = 1;
 # the repository root is two levels above this script (bindings/perl/..)
 my $ROOT = dirname(dirname(dirname(abs_path(__FILE__))));
 my $VECDIR = "$ROOT/conformance/vectors";
+
+# In installed mode the loaded module must NOT be the repository copy;
+# otherwise a "fresh install" run would silently exercise the working tree
+# and report a false pass.
+if ($ENV{CAUSALONTOLOGY_TEST_INSTALLED}) {
+    my $loaded = $INC{'Causalontology.pm'};
+    die "CAUSALONTOLOGY_TEST_INSTALLED is set but Causalontology.pm was not loaded\n"
+        unless defined $loaded;
+    $loaded = abs_path($loaded);
+    if (index($loaded, $ROOT . '/') == 0) {
+        die "CAUSALONTOLOGY_TEST_INSTALLED is set but the repository copy "
+          . "was loaded: $loaded\n";
+    }
+    print "binding under test: $loaded\n";
+
+    # The schemas must come from inside the installed package too. Loading the
+    # right module but reading spec/schema out of a checkout is precisely the
+    # defect this bundling exists to remove, and it fails only for consumers.
+    my $sdir = Causalontology::Schema::_schema_dir();
+    my $abs  = -d $sdir ? abs_path($sdir) : $sdir;
+    die "CAUSALONTOLOGY_TEST_INSTALLED is set but the schemas resolve inside "
+      . "the repository: $abs\n" if index($abs, $ROOT . '/') == 0;
+    die "CAUSALONTOLOGY_TEST_INSTALLED is set but the schema directory does "
+      . "not exist: $abs - the package shipped without its schemas\n"
+        unless -d $abs;
+    print "schemas under test: $abs\n";
+}
+
+# Drift guard: the vendored schemas shipped in the distribution must be
+# byte-for-byte the ones in spec/schema, or the published package would
+# validate against a stale specification. Three ways that can go wrong, all
+# checked here: a schema missing from share/schema, a schema whose bytes
+# differ, and a stale schema left in share/schema after a spec rename.
+{
+    my $dist    = dirname(abs_path(__FILE__));
+    my $bundled = "$dist/share/schema";
+    my $spec    = "$ROOT/spec/schema";
+    if (-d $bundled && -d $spec) {
+        my %expected;
+        for my $path (sort glob "$spec/*.schema.json") {
+            my $name = basename($path);
+            $expected{$name} = 1;
+            my $copy = "$bundled/$name";
+            die "bundled schema drift: $name is missing from share/schema "
+              . "- re-copy before packing\n" unless -f $copy;
+            die "bundled schema drift: $name differs from spec/schema "
+              . "- re-copy before packing\n" if slurp($copy) ne slurp($path);
+        }
+        for my $path (sort glob "$bundled/*.schema.json") {
+            my $name = basename($path);
+            die "bundled schema drift: share/schema/$name is not in "
+              . "spec/schema - delete the stale copy before packing\n"
+                unless $expected{$name};
+        }
+
+        # A vendored file that MANIFEST does not list is not in the tarball
+        # `make dist` builds, so it would never reach a consumer. That is the
+        # original bug in a new disguise, and it is silent - MakeMaker only
+        # warns about MANIFEST entries with no file, never the reverse.
+        if (-f "$dist/MANIFEST") {
+            my %listed;
+            for my $line (split /\n/, slurp("$dist/MANIFEST")) {
+                next if $line =~ /\A\s*(?:#|\z)/;
+                my ($file) = $line =~ /\A(\S+)/;
+                $listed{$file} = 1 if defined $file;
+            }
+            for my $name (sort keys %expected) {
+                die "MANIFEST does not list share/schema/$name - `make dist` "
+                  . "would ship a distribution that cannot validate\n"
+                    unless $listed{"share/schema/$name"};
+            }
+        }
+    }
+}
+
+# read a file as raw bytes
+sub slurp {
+    my ($path) = @_;
+    open my $fh, '<:raw', $path or die "cannot open $path: $!\n";
+    local $/;
+    my $raw = <$fh>;
+    close $fh;
+    return $raw;
+}
 
 # ---------------------------------------------------------------------------
 # symbolic-identifier normalization

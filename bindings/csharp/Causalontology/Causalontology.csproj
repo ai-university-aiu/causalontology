@@ -23,4 +23,28 @@
     <None Include="../README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
+  <!-- The twenty-one JSON Schemas, vendored from ../../../spec/schema into
+       ../spec_schema, must travel inside the published package: a consumer
+       who has only the NuGet package has no repository to read them from.
+       They ship three ways, all from the one vendored copy:
+         1. compiled into Causalontology.dll as embedded resources - the
+            guaranteed path, independent of any file layout;
+         2. copied next to the assembly on build/publish (CopyToOutputDirectory);
+         3. carried in the .nupkg both as contentFiles (so a PackageReference
+            consumer gets them in their own output directory) and under
+            spec_schema/ so the artifact is inspectable.
+       SchemaValidator prefers CAUSALONTOLOGY_SPEC, then this vendored copy,
+       then the old repository-relative walk-up. -->
+  <ItemGroup>
+    <EmbeddedResource Include="../spec_schema/*.schema.json"
+                      LogicalName="Causalontology.spec_schema.%(Filename)%(Extension)" />
+    <Content Include="../spec_schema/*.schema.json"
+             Link="spec_schema/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             Pack="true"
+             PackagePath="contentFiles/any/any/spec_schema/;spec_schema/"
+             PackageCopyToOutput="true"
+             BuildAction="Content" />
+  </ItemGroup>
+
 </Project>

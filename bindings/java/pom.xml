@@ -33,5 +33,20 @@
   </properties>
   <build>
     <sourceDirectory>src</sourceDirectory>
+    <!--
+      Ship the twenty-one JSON Schema files inside the jar, at /schema/*.
+      SchemaValidator reads them with getResourceAsStream, so the published
+      artifact validates standalone instead of needing a repository checkout.
+      They are a byte-for-byte copy of spec/schema; the conformance runner
+      fails the build on any drift between the two.
+    -->
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <includes>
+          <include>schema/*.schema.json</include>
+        </includes>
+      </resource>
+    </resources>
   </build>
 </project>

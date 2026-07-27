@@ -498,10 +498,21 @@ use the Hex-published Elixir package).
 
 PART THREE - THE POST-RELEASE SECTION
 
-A release is COMPLETE for a language only when its 4.0.0 package is published
-AND a fresh install passes 137/137. Track it honestly: a language that is not
-yet green is listed PENDING with its blocker; a false "all shipped" is not
+A release is COMPLETE for a language only when its package is published AND a
+fresh install passes 137/137. Track it honestly: a language that is not yet
+green is listed PENDING with its blocker; a false "all shipped" is not
 permitted.
+
+TIGHTENED 2026-07-26, after the packaging defect recorded below. "A fresh
+install passes 137/137" now means one specific thing, because the loose
+reading is what produced a page of false claims: the ARTIFACT is built, then
+installed into a clean location OUTSIDE the checkout, and the suite is run
+from a working directory outside the checkout with
+CAUSALONTOLOGY_TEST_INSTALLED=1 and CAUSALONTOLOGY_SPEC unset. The runner
+prints the binding path and the schema directory it actually read, and aborts
+if either is inside the repository. A run that resolves the binding by
+relative path from the source tree proves nothing about the package and does
+not count, whatever number it prints.
 
 POST-RELEASE CHECKLIST AND CURRENT STATUS (tick a language only when both
 hold - published AND fresh-install 137/137; the code-level status below is the
@@ -562,35 +573,144 @@ runner itself fetched FRESH from proxy.golang.org (go run
 github.com/ai-university-aiu/causalontology/bindings/go/v4/conformance@v4.0.0
 in a clean directory) and passed 137/137. The /v2 module stays live for
 2.0.x; no /v3 was ever cut; the earlier bindings/go/v4/v4.0.0 tag is never
-consulted and remains harmless.
+consulted and remains harmless. THAT 137/137 WAS FALSE - see the next
+section. The runner called co.SetSchemaDir(repoRoot + "/spec/schema")
+outright, so it read the checkout's schemas no matter where the module came
+from. The tag and the proxy resolution are real; the proof was not.
+
+THE PACKAGING DEFECT, AND WHY THE PROOFS ABOVE WERE FALSE (2026-07-26, last
+thing that day). Everything published earlier on this date was verified by a
+method that could not detect the fault it was meant to detect. Three findings,
+plainly, in the order they matter.
+
+  FINDING ONE - THE SCHEMAS WERE NEVER PACKAGED. Every binding except Rust
+  located the twenty-one JSON Schemas at a path relative to a REPOSITORY
+  CHECKOUT and shipped no copy of its own: Python at
+  Path(__file__).parents[3]/"spec"/"schema", JavaScript at
+  path.join(__dirname, "..", "..", "spec", "schema"), and the same shape in
+  every other language. Inside a checkout that path exists, so every local
+  test passed. Inside an installed package it does not exist, so the first
+  validate call a real consumer made failed with file-not-found. The
+  published PyPI wheel for 4.0.0 contains eleven files and not one schema.
+
+  FINDING TWO - THE CONFORMANCE RUNNERS SHADOWED THE ARTIFACT. Each runner
+  reached the binding by relative path - sys.path.insert,
+  require("../causalontology.js"), require_relative, import "../lib/..." -
+  so a run advertised as a fresh install actually exercised the repository
+  source sitting beside it, and read the repository's schemas while doing so.
+  Nothing about the package was under test. The Go runner went further and
+  set the schema directory to the checkout explicitly.
+
+  FINDING THREE - THEREFORE THE EARLIER PROOFS WERE FALSE, NOT MERELY WEAK.
+  A "fresh install 137/137" produced by code that loads the repository is not
+  an optimistic reading of a real measurement; it is a number that would have
+  come out the same had the package been empty. Every such claim in this plan
+  and in PUBLISHING.md for a package registry has been struck or restated.
+  Measured honestly: the installed PyPI wheel scores 62/137, a clean Dart
+  consumer outside a checkout throws "cannot locate spec/schema" on its first
+  validate, and the Go module delivers no spec/schema by go get at all.
+
+  WHAT WAS DONE ABOUT IT. Each binding now carries a byte-for-byte copy of
+  the twenty-one schemas inside its own package and prefers that copy over
+  the repository path; CAUSALONTOLOGY_SPEC still overrides both. Where the
+  package format allows it the schemas are COMPILED IN rather than shipped as
+  loose data files - Rust include_str!, Go go:embed, generated source for
+  Dart and Kotlin - because a compiled-in copy cannot be dropped by a
+  packaging manifest. Every conformance runner gained an installed mode:
+  with CAUSALONTOLOGY_TEST_INSTALLED set it resolves the binding the way a
+  consumer does, prints the path it loaded and the schema directory it
+  actually read, and HARD FAILS if either lies inside the repository, if
+  CAUSALONTOLOGY_SPEC is set, or if the bundled copy differs from
+  spec/schema by a single byte. The conformance workflow now runs both modes
+  for every binding, so a binding that stops shipping its schemas fails the
+  build rather than the user. As of this writing all twenty-one vendored or
+  compiled-in copies are byte-identical to spec/schema across every binding.
+
+  THE VERSION DECISION (the owner's, recorded here as given). The instruction
+  was: ship as 4.0.0 wherever that is physically possible, and 4.0.1 only where
+  a registry forbids it. A channel never published at 4.x therefore ships 4.0.0
+  correctly the first time: npm, RubyGems, Hex, NuGet, LuaRocks, both Maven
+  Central artifacts, CPAN, CRAN, Hackage, and Julia General. pub.dev and the Go
+  module proxy are superseded at 4.0.1, because each holds exactly one file per
+  version and that file is permanent; on those two, 4.0.0 can never be made to
+  serve correct code by any means. PyPI is the exception that proves the rule:
+  a PyPI release holds many files, so the broken pair is deleted and the fix is
+  uploaded into the SAME 4.0.0 release as a build-tagged wheel, which pip
+  prefers on the tie-break. That costs an sdist which can never exist again for
+  4.0.0, and it must be done before 2026-08-09, when PyPI stops accepting new
+  files on a release older than fourteen days. crates.io
+  stays at 4.0.0 because it was always sound, and the v4.0.1 tag channels
+  (Swift, Zig, Packagist, the C++ tarball) stay as they are. Package version
+  and specification version are therefore allowed to differ - every one of
+  these implements specification 4.0.0 - and the 137 vectors are the thing
+  that must not differ. The full table is in PUBLISHING.md. Publishing a
+  superseding version and yanking or retracting the broken one are two
+  separate acts, each needing the owner's separately named go-ahead;
+  retraction is not deletion, so the superseding release is the fix and the
+  yank is only a signpost.
 
   [x] C++ (source tarball) - the v4.0.1 tag tarball is out and a freshly
                    downloaded copy passed 137/137 (2026-07-26). The vcpkg and
                    Conan ports remain unticked besides: both await their CLA
-                   gates, exactly as before.
+                   gates, exactly as before. STRUCTURAL NOTE added after the
+                   packaging defect: schema.cpp has no default schema path -
+                   schemaDir() throws unless the consumer calls
+                   schema_set_spec_dir() or sets CAUSALONTOLOGY_SPEC - and
+                   the run above works because run_conformance.sh points it
+                   at the tarball's own spec/schema. The tarball is the whole
+                   repository, so the schemas are there for anyone who points
+                   at them; nothing is vendored and nothing fails silently.
   [ ] C#         - published to NuGet; fresh install 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
                    (second wave); passes 137/137 locally and the csproj reads
                    4.0.0; NuGet still carries 2.0.0; only publication and the
                    fresh-install check remain.
-  [x] Dart       - published to pub.dev; fresh add 137/137.
-                   STATUS: COMPLETE (2026-07-26) - 4.0.0 published to pub.dev
-                   with the owner's explicit go-ahead; a clean package
-                   resolved 4.0.0 fresh from the registry and passed 137/137.
+  [ ] Dart       - published to pub.dev; fresh add 137/137.
+                   STATUS: PUBLISHED BUT DEFECTIVE (2026-07-26) - 4.0.0 was
+                   published to pub.dev with the owner's go-ahead, and the
+                   137/137 reported that day was WRONG: bin/conformance.dart
+                   imported ../lib/*.dart directly, so the resolved package
+                   was never exercised. Reproduced against the LIVE registry:
+                   a clean consumer outside any checkout throws
+                   "cannot locate spec/schema; set CAUSALONTOLOGY_SPEC" on the
+                   first validate, and the published archive holds sixteen
+                   files and not one schema. 4.0.1 is fixed and verified: the
+                   21 schemas are compiled in via a generated
+                   lib/spec_schema.g.dart (Dart has no dependable runtime path
+                   to its own data files once compiled), the runner now uses
+                   package: imports with an installed-mode guard, and a stage
+                   holding exactly what pub.dev would ship - zero schema files
+                   - passed 137/137 consumed from outside the repository.
+                   Remaining: publish 4.0.1 and retract 4.0.0, each needing
+                   the owner's separately named go-ahead.
   [ ] Elixir     - published to Hex; fresh consume 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
                    (second wave); passes 137/137 locally and mix.exs reads
                    4.0.0; Hex still carries 2.0.0; only publication and the
                    fresh-install check remain.
-  [x] Go         - /v4 module tag pushed and proxied; fresh get 137/137.
-                   STATUS: COMPLETE (2026-07-26) - the owner explicitly
-                   authorized the correctly named tag in their own words
-                   ("Push the tag bindings/go/v4.0.0 on causalontology");
-                   the tag was pushed at the v4.0.1 commit, the module proxy
-                   resolved v4.0.0 on the prime, and the conformance runner
-                   fetched fresh from proxy.golang.org passed 137/137.
-                   The /v2 module stays live; no /v3 ever cut; the earlier
-                   bindings/go/v4/v4.0.0 tag is never consulted, harmless.
+  [ ] Go         - /v4 module tag pushed and proxied; fresh get 137/137.
+                   STATUS: PUBLISHED BUT DEFECTIVE (2026-07-26) - the tag
+                   bindings/go/v4.0.0 was pushed with the owner's explicitly
+                   named go-ahead, and it resolves; but the 137/137 reported
+                   that day was WRONG in the strongest way of all: the runner
+                   called co.SetSchemaDir(repoRoot + "/spec/schema") outright,
+                   so it read repository schemas no matter where the module
+                   came from. A Go module ships only its own subdirectory, so
+                   spec/schema is never delivered by go get; the module cache
+                   copy of bindings/go/v4@v4.0.0 contains zero schema files.
+                   Proven against the live proxy: a consumer program calling
+                   ValidateSchema fails with "cannot locate spec/schema: set
+                   CAUSALONTOLOGY_ROOT or run inside the repository". The fix
+                   in tree: the 21 schemas compiled in with //go:embed, schema
+                   resolution decoupled from CAUSALONTOLOGY_ROOT (that
+                   variable locates the vectors only, and conflating the two
+                   is what hid this), a drift guard, and "retract v4.0.0" in
+                   go.mod. Verified with the module tree copied OUTSIDE the
+                   repository, schemas served from embed.FS: 137/137.
+                   Remaining: push tag bindings/go/v4.0.1, needing the
+                   owner's separately named go-ahead. The /v2 module stays
+                   live; no /v3 ever cut; the earlier bindings/go/v4/v4.0.0
+                   tag is never consulted, harmless.
   [ ] Haskell    - published to Hackage; fresh consume 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
                    (second wave); passes 137/137 locally and the .cabal reads
@@ -632,11 +752,19 @@ consulted and remains harmless.
                    clean project required causalontology/causalontology 4.0.1
                    from Packagist (resolved v4.0.1), and the conformance suite
                    passed 137/137 from the installed vendor tree.
-  [x] Python     - published to PyPI; fresh install 137/137.
-                   STATUS: COMPLETE (2026-07-26) - 4.0.0 published to PyPI
-                   with the owner's explicitly named go-ahead; a brand-new
-                   virtual environment installed 4.0.0 fresh from PyPI and
-                   passed 137/137.
+  [ ] Python     - published to PyPI; fresh install 137/137.
+                   STATUS: PUBLISHED BUT DEFECTIVE (2026-07-26) - 4.0.0 was
+                   published to PyPI with the owner's named go-ahead, and the
+                   137/137 reported that day was WRONG: the runner did
+                   sys.path.insert of bindings/python, so the venv install was
+                   never exercised. The truly-installed 4.0.0 wheel scores
+                   62/137 - it carries none of the twenty-one schemas and
+                   resolved them from a repository-relative path. 4.0.1 is
+                   built and verified genuinely standalone (wheel and sdist
+                   each carry the 21 schemas; installed into a clean venv,
+                   CAUSALONTOLOGY_SPEC unset, run from outside the checkout:
+                   137/137). Remaining: publish 4.0.1 and yank 4.0.0, each
+                   needing the owner's separately named go-ahead.
   [ ] R          - submitted to and accepted by CRAN; fresh install 137/137.
                    STATUS: GREEN LOCALLY, UNPUBLISHED - re-baselined to 4.0.0
                    (second wave); passes 137/137 locally, DESCRIPTION reads
@@ -647,11 +775,23 @@ consulted and remains harmless.
                    (second wave); passes 137/137 locally and both the VERSION
                    constant and the gemspec read 4.0.0; RubyGems still carries
                    2.0.0; only publication and the fresh-install check remain.
-  [x] Rust       - published to crates.io; fresh install 137/137.
+  [x] Rust       - published to crates.io; the artifact carries its schemas.
                    STATUS: COMPLETE (2026-07-26) - 4.0.0 published to
-                   crates.io with the owner's explicit go-ahead; a clean
-                   cargo project added the crate fresh from the registry and
-                   passed 137/137.
+                   crates.io with the owner's explicit go-ahead. Re-audited
+                   the same day after the packaging defect was found, and
+                   Rust is the one binding that never had it: schema.rs
+                   compiles the twenty-one schemas in with include_str! from
+                   its own vendored spec_schema/, so the crate cannot build
+                   without them and reads nothing from disk at run time.
+                   "cargo package --list" names all twenty-one of them.
+                   ONE CLAIM WITHDRAWN: the earlier line "a clean cargo
+                   project added the crate fresh from the registry and passed
+                   137/137" is not reproducible as written - the conformance
+                   binary resolves the vectors at ../../conformance/vectors
+                   relative to CARGO_MANIFEST_DIR, and no registry checkout
+                   has that path. The soundness conclusion stands on the
+                   embedding, which anyone can check; the run does not, and
+                   is struck rather than defended.
   [x] Swift      - v4.0.1 tag pushed; fresh 137/137 at the tag.
                    STATUS: COMPLETE (2026-07-26) - Swift Package Manager is
                    tag-resolved and the v4.0.1 tag is pushed; a fresh clone
@@ -660,20 +800,43 @@ consulted and remains harmless.
                    4.0.1 through Swift Package Manager itself, built it, and
                    imported the library. The Swift Package Index listing
                    (PackageList pull request) remains pending on that index's
-                   side, as before.
+                   side, as before. STRUCTURAL NOTE added after the packaging
+                   defect: Swift ships no vendored copy. It is correct only
+                   because a tag delivers the whole repository tree, and
+                   defaultSchemaDirectory() derives its path from #filePath -
+                   the Swift Package Manager checkout that compiled the
+                   library. Move or delete that checkout and the consumer
+                   must set CAUSALONTOLOGY_SPEC.
   [x] Zig        - v4.0.1 tarball published and hash recorded; fresh fetch
                    137/137.
                    STATUS: COMPLETE (2026-07-26) - the v4.0.1 tag tarball is
                    the artifact; zig fetch pinned its package hash (recorded
                    in PUBLISHING.md), and the freshly fetched tag tree passed
-                   137/137.
+                   137/137. READ THAT NARROWLY, added after the packaging
+                   defect: it is a proof about the TAG TREE, not about the
+                   fetched package. build.zig.zon lists .paths as build.zig,
+                   build.zig.zon, bindings/zig/src and LICENSE - spec/ is not
+                   among them - and schema.zig has no default directory at
+                   all, returning error.SpecDirNotSet unless the consumer
+                   calls setSpecDir. A Zig consumer must therefore supply the
+                   twenty-one schemas itself. That is a documented
+                   requirement of the interface rather than a silent failure,
+                   which is why Zig could not have failed the way Python and
+                   Dart did, but it is not the guarantee the package
+                   registries now give.
 
 WHEN THE PACKAGES ARE OUT:
   - Update the standard's README.md and the Standalone Design to point at the
-    published 4.0.0 versions (the package table in PUBLISHING.md, bumped to
-    4.0.0).
+    published versions - 4.0.0 for the channels shipping 4.x for the first
+    time, 4.0.0 for PyPI as well (the build-tagged wheel inside the existing
+    release), and 4.0.1 only for pub.dev and the Go module proxy, which each
+    hold one immutable file per version and so cannot be corrected in place.
+    The two numbers are deliberate; do not normalise them.
   - Confirm the spec version tag v4.0.0 is pushed so consumers can pin the
     exact specification (spec/VERSIONS.md lists it).
+  - For each superseding release, yank or retract the broken one as a
+    SEPARATE act with its own named go-ahead, and record here that it was
+    done. A yank is not a deletion: pinned installs keep resolving.
 
 MATURITY NOTE. The bindings are at different maturity, and this plan says so
 plainly. It gives the steps and states each language's PREREQUISITE - a binding

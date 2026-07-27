@@ -65,14 +65,30 @@ sub _load_file {
     return $FILE_CACHE{$filename};
 }
 
-# spec/schema under the repository root (or $CAUSALONTOLOGY_SPEC/schema)
+# Where the twenty-one *.schema.json documents live, in strict precedence:
+#
+#   (a) $CAUSALONTOLOGY_SPEC/schema  - explicit override, always wins
+#   (b) the vendored copy shipped inside the distribution, so an installed
+#       package validates standalone with no repository checkout present
+#   (c) spec/schema under the repository root - repo-mode development
+#
+# (b) has two shapes. Installed, Makefile.PL puts the schemas beside the
+# modules at <libdir>/Causalontology/share/schema. In the repository the
+# same files sit at bindings/perl/share/schema, two levels above this file's
+# directory. Both are checked so repo mode and installed mode agree.
 sub _schema_dir {
     if ($ENV{CAUSALONTOLOGY_SPEC}) {
         return $ENV{CAUSALONTOLOGY_SPEC} . '/schema';
     }
-    # this file lives at <root>/bindings/perl/lib/Causalontology/Schema.pm
+    # this file lives at <libdir>/Causalontology/Schema.pm
     my $here = abs_path(__FILE__);
-    my $root = dirname(dirname(dirname(dirname(dirname($here)))));
+    my $dir  = dirname($here);                       # .../Causalontology
+    for my $vendored ($dir . '/share/schema',        # installed layout
+                      dirname(dirname($dir)) . '/share/schema') {  # repo layout
+        return $vendored if -d $vendored;
+    }
+    # last resort: this file is <root>/bindings/perl/lib/Causalontology/Schema.pm
+    my $root = dirname(dirname(dirname(dirname($dir))));
     return $root . '/spec/schema';
 }
 

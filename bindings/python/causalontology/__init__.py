@@ -8,7 +8,7 @@ Causalontology is a verb-first noun-hosting ontology: reality is what
 happens, and things are its participants.
 """
 
-__version__ = "4.0.0"  # specification 4.0.0 (attitude, predicted_occurrence, prediction_error)
+__version__ = "4.0.0"  # binding 4.0.0, wheel build tag 1; specification 4.0.0 (attitude, predicted_occurrence, prediction_error)
 
 from .canonical import canonicalize, identify, identity_bearing, infer_kind
 from .schema import validate_schema

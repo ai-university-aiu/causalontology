@@ -22,7 +22,8 @@ ships with the compiler. Built and verified with **Kotlin/Native 2.0.20**.
 | `src/Bignum.kt` | arbitrary-precision non-negative integers over base-2^16 IntArray limbs: add/sub/cmp/mul, shifts, binary modulus, small division, and exact decimal rendering |
 | `src/Ed25519.kt` | Ed25519 (RFC 8032): the twisted Edwards point group in extended coordinates over the bignum layer, with a limb-aligned fold reduction (2^256 = 38 mod p), Fermat inversion, deterministic signing and verification; all field arithmetic stays non-negative (`a - b` mod p is computed as `a + p - b`); gated on the RFC 8032 TEST 1 known answer (public key, exact signature, verify, reject) |
 | `src/Canonical.kt` | identity-bearing field filtering per kind and SHA-256 content-addressed `identify()` (spec/identity.md) |
-| `src/Schema.kt` | validation against the twenty-one JSON Schemas in `spec/schema/` (a small interpreter for exactly the keywords those schemas use); the schemas' anchored pattern families are interpreted with `kotlin.text.Regex` |
+| `src/Schema.kt` | validation against the twenty-one JSON Schemas (a small interpreter for exactly the keywords those schemas use); the schemas' anchored pattern families are interpreted with `kotlin.text.Regex`. Schema text is resolved in a fixed order: `$CAUSALONTOLOGY_SPEC/schema/<file>` when that variable is set, then the vendored copy compiled into the artifact, then `<repository root>/spec/schema/<file>` |
+| `src/SpecSchemas.kt` | **generated** - the twenty-one schemas vendored into the published package as compiled-in string constants, byte-for-byte identical to `spec/schema/`. Regenerate with `python3 tools/gen_spec_schemas.py` |
 | `src/Semantics.kt` | the 25 semantic rules: temporal admissibility with the fixed unit constants (month = 2,629,746 s; year = 31,556,952 s) and the dimension-disjoint ordinal tick unit, the formal conflict test, refinement validity, bridged reachability, stratal classification, the skip decision, cross-stratal seam well-formedness with the coarsest-stratum home rule, enrichment field/shape rules, and the token-tier coherence checks including the prediction-to-observation pairing |
 | `src/Signing.kt` | record-level `signRecord()` / `verifyRecord()` over canonical identity-bearing bytes (spec/provenance.md); a succession verifies against its predecessor key |
 | `src/Store.kt` | an in-memory conformant store: idempotent immutable puts, signed add-only records with quarantine, materialized enrichment views with contributors (deduplicated by canonical entry), retraction and succession lineage, the resolve minimum (label before alias), the deterministic cycle-breaking view rule (greatest (timestamp, id) loses), `forceMergeRecord()` replica merges, and the stigmergy `gaps()` read with its five gap kinds |
@@ -38,14 +39,49 @@ $ bash bindings/kotlin/run_conformance.sh
 causalontology-kotlin is CONFORMANT to the suite (vectors frozen at specification 4.0.0).
 ```
 
-The script uses `kotlinc-native` from PATH when available and otherwise
-downloads the pinned 2.0.20 prebuilt compiler to a temporary directory
-(the compiler itself is a JVM application, so a JDK must be present; the
-first compile also fetches Kotlin/Native's LLVM dependencies). It compiles
-`src/*.kt` to `/tmp/co_conformance` and runs it from the repository root,
-so the vectors are read from `conformance/vectors` and the schemas from
-`spec/schema` (overridable with `CAUSALONTOLOGY_ROOT` and
-`CAUSALONTOLOGY_SPEC`).
+In its default **repository mode** the script compiles `src/*.kt` with
+`kotlinc` (JVM) and runs the result from the repository root, so the
+vectors are read from `conformance/vectors` (overridable with
+`CAUSALONTOLOGY_ROOT`).
+
+### Testing the published artifact, not the repository
+
+Running the suite against the sources sitting next to it proves only that
+the repository is self-consistent. To test what a consumer actually
+installs, build the artifact and set `CAUSALONTOLOGY_TEST_INSTALLED`:
+
+```
+$ bash bindings/kotlin/tools/build_jar.sh          # installs into ~/.m2/repository/...
+$ cd /tmp && CAUSALONTOLOGY_TEST_INSTALLED=1 \
+      bash /path/to/bindings/kotlin/run_conformance.sh
+binding under test: /home/you/.m2/repository/io/github/ai-university-aiu/causalontology-kotlin/4.0.0/causalontology-kotlin-4.0.0.jar
+...
+137/137 vectors passed
+```
+
+In this mode nothing under `src/` is compiled except the runner itself;
+the library comes only from the installed artifact on the classpath
+(override its location with `CAUSALONTOLOGY_KOTLIN_JAR`). The runner
+prints the path it resolved and refuses to run if that path lies inside
+the repository tree, so a repository copy can never masquerade as an
+installed one.
+
+### The schemas travel with the artifact
+
+A Kotlin/Native klib cannot carry loose resource files, so the twenty-one
+JSON Schemas are vendored into the published package as compiled-in
+string constants (`src/SpecSchemas.kt`), the same way the Rust binding
+vendors them with `include_str!`. An installed copy therefore validates
+objects with no repository checkout and no `CAUSALONTOLOGY_SPEC` on the
+environment.
+
+Two guards keep that copy honest. The Gradle `verifyBundledSchemas` task
+runs before `assemble`, `check`, and every publish task, and fails the
+build if `src/SpecSchemas.kt` is missing or has drifted from
+`spec/schema`. The conformance runner repeats the byte-for-byte
+comparison whenever a repository checkout is present and exits nonzero
+with `bundled schema drift: <file> differs from spec/schema`. After any
+change to `spec/schema`, run `python3 bindings/kotlin/tools/gen_spec_schemas.py`.
 
 The vectors are frozen at specification 4.0.0 (2026-07-22; 137 vectors,
 V01-V137): they carry concrete identifiers, real keys, and a real
@@ -65,9 +101,11 @@ byte-for-byte), 1232 JCS number-formatting cases (including random
 hash functions and the signature scheme.
 
 Packaging: the natural registry for a Kotlin/Native library is **Maven
-Central**, as a klib / Kotlin Multiplatform artifact; publication is
-pending. The sources carry no Gradle build on purpose - conformance
-needs nothing but `kotlinc-native`.
+Central**, as a klib / Kotlin Multiplatform artifact; `build.gradle.kts`
+produces that klib and its Maven metadata. The twenty-one specification
+schemas are compiled into the klib, so the published artifact is
+self-contained (see "The schemas travel with the artifact" above).
+Conformance itself still needs nothing but `kotlinc` and a JDK.
 
 License: "The attribution always; no profit, no problem license." - see
 the repository `LICENSE` and `NOTICE`.
